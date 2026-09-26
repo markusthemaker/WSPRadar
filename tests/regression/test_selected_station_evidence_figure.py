@@ -53,6 +53,7 @@ def _localized_selected_evidence_recipe(
         time_agg,
     )
     presentation = {
+        "reference_snr_correction_db": 0.0,
         "analysis_start_t": analysis_start_t,
         "analysis_end_t": analysis_end_t,
         "count_label": translations[
@@ -131,6 +132,7 @@ def _localized_segment_temporal_recipe(
     ]
     chronological_title = translations["fig_segment_chronological_delta"]
     presentation = {
+        "reference_snr_correction_db": 0.0,
         "analysis_start_t": analysis_start_t,
         "analysis_end_t": analysis_end_t,
         "chronological_title": translations[
@@ -1656,7 +1658,7 @@ def test_segment_benchmark_temporal_recipe_and_dual_density_figure():
     )
 
     assert recipe["kind"] == "segment_benchmark_temporal"
-    assert recipe["schema_version"] == 5
+    assert recipe["schema_version"] == 6
     assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
     assert recipe["utc_date_count"] == 2
@@ -1848,7 +1850,9 @@ def test_prepared_compare_profile_matches_exact_row_aggregation(time_bin):
         "1h",
         time_bin_options=("1h", "3h"),
     )
-    work_df = evidence_figures._prepare_temporal_metric_rows(plot_df)
+    work_df = evidence_figures._prepare_temporal_metric_rows(
+        plot_df, reference_snr_correction_db=0.0,
+    )
     metric_bins = np.arange(
         int(work_df["metric_bin"].min()),
         int(work_df["metric_bin"].max()) + 1,
@@ -2147,7 +2151,9 @@ def test_compare_chronological_bins_anchor_to_selected_start_and_keep_gaps():
             "metric": [0.0, 0.0, 0.0],
         }
     )
-    work_df = evidence_figures._prepare_temporal_metric_rows(plot_df)
+    work_df = evidence_figures._prepare_temporal_metric_rows(
+        plot_df, reference_snr_correction_db=0.0,
+    )
 
     count_grid, summaries, x_edges, x_centers = (
         evidence_figures._chronological_density_components(
@@ -2332,17 +2338,307 @@ def test_compare_chronological_empty_notice_is_exact_and_bilingual(
     assert T[language]["fig_compare_chronological_unavailable"] == expected_text
 
 
-def test_compare_temporal_renderer_rejects_stale_data_tight_recipe_schema():
-    """Prevent cached schema-v4 recipes from restoring obsolete tight limits."""
+@pytest.mark.parametrize("obsolete_schema", (4, 5))
+def test_compare_temporal_renderer_rejects_stale_data_tight_recipe_schema(obsolete_schema):
+    """Reject obsolete window geometry and pre-correction temporal density grids."""
     recipe = _localized_segment_temporal_recipe(
         _correction_footer_test_rows(),
         "Stale selected window",
         "3h",
     )
-    recipe["schema_version"] = 4
+    recipe["schema_version"] = obsolete_schema
 
     with pytest.raises(
         ValueError,
         match="Unsupported Benchmark temporal recipe schema",
     ):
         render_segment_temporal_evidence_export_figure(recipe)
+
+
+_TEMPORAL_TEST_CORRECTIONS_DB = (0.0, 0.5, -0.5, 1.2, -1.2, 1.6, -1.6)
+
+
+def _correction_grid_population():
+    """Provide fractional raw comparisons and hand-calculated half-open IDs."""
+    comparison_values = np.array([
+        -4.0, -3.56, -3.5, -3.44, -2.5, -2.25,
+        -1.75, -1.56, -1.5, -1.44, -1.0, -0.5,
+        -0.25, 0.0, 0.44, 0.5, 0.56, 0.75,
+        1.25, 1.5, 2.0, 2.5, 3.5, 5.0,
+    ])
+    expected_bin_ids = np.array([
+        -4, -4, -3, -3, -2, -2, -2, -2, -1, -1, -1, 0,
+        0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 4, 5,
+    ])
+    group_times = pd.to_datetime([
+        "2026-07-01T00:17:00Z", "2026-07-01T02:17:00Z",
+        "2026-07-02T00:17:00Z", "2026-07-02T02:59:00Z",
+    ], utc=True)
+    plot_times = group_times.repeat(6)
+    return comparison_values, expected_bin_ids, plot_times
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_temporal_grid_membership_and_edges_use_independent_half_open_expectations(
+    correction_db,
+):
+    """Translate physical 1 dB cells without re-correcting scientific values."""
+    comparisons, expected_ids, plot_times = _correction_grid_population()
+    corrected_values = comparisons - correction_db
+    source = pd.DataFrame({"plot_time": plot_times, "metric": corrected_values})
+    source_before = source.copy(deep=True)
+    prepared = evidence_figures._prepare_temporal_metric_rows(
+        source, reference_snr_correction_db=correction_db,
+    )
+    np.testing.assert_array_equal(prepared["metric"], corrected_values)
+    np.testing.assert_array_equal(prepared["metric_bin"], expected_ids)
+    pd.testing.assert_frame_equal(source, source_before)
+
+    actual_ids, actual_edges = evidence_figures._temporal_metric_bin_axis(
+        prepared["metric_bin"], reference_snr_correction_db=correction_db,
+    )
+    np.testing.assert_array_equal(actual_ids, [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
+    zero_correction_edges = np.array([
+        -4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5,
+    ])
+    np.testing.assert_array_equal(actual_edges, zero_correction_edges - correction_db)
+    np.testing.assert_allclose(np.diff(actual_edges), 1.0, rtol=0, atol=1e-15)
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_temporal_grid_uses_authorized_tenth_db_membership_resolution(
+    correction_db,
+):
+    """Suppress sub-tenth noise while preserving distinct 0.1 dB-scale inputs."""
+    for raw_boundary, lower_id, upper_id in (
+        (-3.5, -4, -3), (-1.5, -2, -1), (-0.5, -1, 0),
+        (0.5, 0, 1), (2.5, 2, 3),
+    ):
+        corrected_boundary = np.float64(raw_boundary) - correction_db
+        corrected_values = np.array([
+            corrected_boundary - 0.06,
+            np.nextafter(corrected_boundary, -np.inf),
+            corrected_boundary,
+            np.nextafter(corrected_boundary, np.inf),
+            corrected_boundary + 0.06,
+        ])
+        actual_ids = evidence_figures._temporal_metric_bin_ids(
+            corrected_values, reference_snr_correction_db=correction_db,
+        )
+        np.testing.assert_array_equal(actual_ids, [lower_id, upper_id, upper_id, upper_id, upper_id])
+
+
+@pytest.mark.parametrize("recipe_kind", ("segment", "selected"))
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_temporal_profiles_translate_with_fixed_membership_statistics_and_time_grid(
+    recipe_kind, correction_db,
+):
+    """Use independently tabulated cells for both routes, gaps and final partial bin."""
+    comparisons, expected_ids, plot_times = _correction_grid_population()
+    corrected_values = comparisons - correction_db
+    recipe_builder = (
+        _localized_segment_temporal_recipe if recipe_kind == "segment"
+        else _localized_selected_evidence_recipe
+    )
+    common = {
+        "reference_snr_correction_db": correction_db,
+        "analysis_start_t": pd.Timestamp("2026-07-01T00:17:00Z"),
+        "analysis_end_t": pd.Timestamp("2026-07-02T03:05:00Z"),
+    }
+    source = pd.DataFrame({"plot_time": plot_times, "metric": corrected_values})
+    compact_recipe = recipe_builder(source, "Correction grid", "1h", **common)
+    prepared_recipe = recipe_builder(
+        source, "Correction grid", "1h", time_bin_options=("1h",), **common,
+    )
+    assert compact_recipe["reference_snr_correction_db"] == correction_db
+    assert prepared_recipe["reference_snr_correction_db"] == correction_db
+    np.testing.assert_array_equal(
+        evidence_figures._compare_recipe_array_values(compact_recipe["metric"], dtype=np.float64),
+        corrected_values,
+    )
+    profiles = prepared_recipe["prepared_profiles"]
+    np.testing.assert_array_equal(profiles["metric_bin_ids"], np.arange(-4, 6))
+    expected_edges = np.arange(-4.5, 6.0, 1.0) - correction_db
+    np.testing.assert_array_equal(profiles["y_edges"], expected_edges)
+    for profile_name, expected_column_count, observation_columns in (
+        ("chronological", 27, np.repeat([0, 2, 24, 26], 6)),
+        ("folded", 24, np.repeat([0, 2, 0, 2], 6)),
+    ):
+        profile = (
+            profiles["chronological"]["1h"] if profile_name == "chronological"
+            else profiles["folded"]
+        )
+        counts, statistics, x_edges, _ = evidence_figures._compare_temporal_profile_values(profile)
+        expected_counts = np.zeros((10, expected_column_count), dtype=np.int64)
+        for bin_id, column in zip(expected_ids, observation_columns):
+            expected_counts[bin_id + 4, column] += 1
+        np.testing.assert_array_equal(counts, expected_counts)
+        density = evidence_figures._relative_density_values(counts)
+        np.testing.assert_array_equal(np.ma.getmaskarray(density), expected_counts == 0)
+        np.testing.assert_array_equal(
+            density.compressed(),
+            (100.0 * expected_counts / expected_counts.max())[expected_counts > 0],
+        )
+        for column in range(expected_column_count):
+            group_values = comparisons[observation_columns == column]
+            if not len(group_values):
+                assert np.isnan(statistics.loc[column, "median"])
+                assert np.isnan(statistics.loc[column, "q1"])
+                assert np.isnan(statistics.loc[column, "q3"])
+                assert np.isnan(statistics.loc[column, "count"])
+                continue
+            assert statistics.loc[column, "count"] == len(group_values)
+            np.testing.assert_allclose(
+                statistics.loc[column, ["q1", "median", "q3"]].to_numpy(dtype=float),
+                np.quantile(group_values, [0.25, 0.5, 0.75]) - correction_db,
+                rtol=0, atol=1e-14,
+            )
+        if profile_name == "chronological":
+            expected_times = pd.date_range(common["analysis_start_t"], periods=27, freq="1h")
+            expected_times = expected_times.append(pd.DatetimeIndex([common["analysis_end_t"]]))
+            np.testing.assert_array_equal(x_edges, mdates.date2num(expected_times.to_pydatetime()))
+        else:
+            np.testing.assert_array_equal(x_edges, np.arange(25))
+
+
+@pytest.mark.parametrize("recipe_kind", ("segment", "selected"))
+@pytest.mark.parametrize("correction_db", (-1.6, 1.6))
+def test_corrected_compact_and_prepared_renderers_match_both_density_panels(
+    recipe_kind, correction_db,
+):
+    """Screen/export renderer paths receive identical shifted physical geometry."""
+    comparisons, _, plot_times = _correction_grid_population()
+    recipe_builder = (
+        _localized_segment_temporal_recipe if recipe_kind == "segment"
+        else _localized_selected_evidence_recipe
+    )
+    renderer = (
+        render_segment_temporal_evidence_export_figure if recipe_kind == "segment"
+        else render_selected_evidence_export_figure
+    )
+    source = pd.DataFrame({"plot_time": plot_times, "metric": comparisons - correction_db})
+    common = {
+        "reference_snr_correction_db": correction_db,
+        "analysis_start_t": pd.Timestamp("2026-07-01T00:17:00Z"),
+        "analysis_end_t": pd.Timestamp("2026-07-02T03:05:00Z"),
+    }
+    # A deliberately misleading localized footer must never select geometry.
+    common["reference_snr_correction_notice"] = "Configured correction: -99 dB"
+    recipes = [
+        recipe_builder(source, "Correction grid", "1h", **common),
+        recipe_builder(source, "Correction grid", "1h", time_bin_options=("1h",), **common),
+    ]
+    figures = []
+    try:
+        figures = [renderer(recipe) for recipe in recipes]
+        for panel in (0, 1):
+            meshes = [next(collection for collection in figure.axes[panel].collections
+                           if isinstance(collection, QuadMesh)) for figure in figures]
+            np.testing.assert_array_equal(meshes[0].get_coordinates(), meshes[1].get_coordinates())
+            np.testing.assert_array_equal(meshes[0].get_array(), meshes[1].get_array())
+            np.testing.assert_array_equal(
+                np.ma.getmaskarray(meshes[0].get_array()), np.ma.getmaskarray(meshes[1].get_array()),
+            )
+            np.testing.assert_array_equal(
+                meshes[0].get_coordinates()[:, 0, 1], np.arange(-4.5, 6.0, 1.0) - correction_db,
+            )
+            for figure in figures:
+                axis = figure.axes[panel]
+                lower, upper = axis.get_ylim()
+                assert lower <= min(float(source["metric"].min()), -4.5 - correction_db, 0.0)
+                assert upper >= max(float(source["metric"].max()), 5.5 - correction_db, 0.0)
+                median_markers = _collections_with_gid(axis, "temporal-bin-median-markers")
+                assert len(median_markers) == 1
+            np.testing.assert_array_equal(
+                _collections_with_gid(figures[0].axes[panel], "temporal-bin-median-markers")[0].get_offsets(),
+                _collections_with_gid(figures[1].axes[panel], "temporal-bin-median-markers")[0].get_offsets(),
+            )
+    finally:
+        for figure in figures:
+            dispose_matplotlib_figure(figure)
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_empty_temporal_grid_retains_shifted_cell_without_fabricated_evidence(correction_db):
+    recipe = _localized_segment_temporal_recipe(
+        pd.DataFrame(columns=["plot_time", "metric"]), "Empty", "1h",
+        reference_snr_correction_db=correction_db, time_bin_options=("1h",),
+    )
+    profiles = recipe["prepared_profiles"]
+    np.testing.assert_array_equal(profiles["metric_bin_ids"], [0])
+    np.testing.assert_array_equal(profiles["y_edges"], np.array([-0.5, 0.5]) - correction_db)
+    counts, statistics, _, _ = evidence_figures._compare_temporal_profile_values(profiles["chronological"]["1h"])
+    assert not counts.any()
+    assert statistics["median"].isna().all()
+    assert profiles["folded"] is None
+
+
+@pytest.mark.parametrize("correction_db", (np.nan, np.inf, -np.inf, "invalid", None))
+def test_temporal_recipe_rejects_invalid_numerical_correction_even_with_valid_footer(correction_db):
+    with pytest.raises((TypeError, ValueError)):
+        _localized_segment_temporal_recipe(
+            _correction_footer_test_rows(), "Invalid correction", "1h",
+            reference_snr_correction_db=correction_db,
+            reference_snr_correction_notice="Configured correction: +1.6 dB",
+        )
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+@pytest.mark.parametrize("uses_display_projection", (False, True))
+def test_temporal_membership_preserves_half_db_ids_after_production_correction_order(
+    correction_db, uses_display_projection,
+):
+    """Cover T-(R+c) cancellation and the existing one-decimal Joint projection."""
+    target_snr = np.array([-39.5, -10.5, -0.5, 0.5, 1.5])
+    reference_snr = np.array([-40.0, -10.0, 0.0, 0.0, 0.0])
+    corrected_metrics = target_snr - (reference_snr + correction_db)
+    if uses_display_projection:
+        corrected_metrics = corrected_metrics.round(1)
+    source = pd.DataFrame({
+        "plot_time": pd.date_range("2026-07-01T00:00Z", periods=5, freq="2min"),
+        "metric": corrected_metrics,
+    })
+    prepared = evidence_figures._prepare_temporal_metric_rows(
+        source, reference_snr_correction_db=correction_db,
+    )
+    np.testing.assert_array_equal(prepared["metric_bin"], [1, 0, 0, 1, 2])
+    np.testing.assert_array_equal(prepared["metric"], corrected_metrics)
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_temporal_coordinate_quantization_documents_exact_half_tenth_ties(correction_db):
+    """Only comparison-coordinate tenths use ties-to-even, never half-dB IDs."""
+    coordinates = [-0.56, -0.55, -0.54, -0.46, -0.45, -0.44, 0.44, 0.45, 0.46]
+    expected_ids = [-1, -1, 0, 0, 0, 0, 0, 0, 1]
+    np.testing.assert_array_equal(
+        evidence_figures._temporal_metric_bin_ids(
+            np.array(coordinates) - correction_db, reference_snr_correction_db=correction_db,
+        ),
+        expected_ids,
+    )
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_temporal_coordinate_quantization_preserves_values_beyond_midpoint_roundoff_guard(correction_db):
+    """Do not turn a float64 arithmetic guard into a broad midpoint tolerance."""
+    comparison_coordinates = np.array([
+        -0.550000001, -0.55, -0.549999999,
+        0.449999999, 0.45, 0.450000001,
+    ])
+    np.testing.assert_array_equal(
+        evidence_figures._temporal_metric_bin_ids(
+            comparison_coordinates - correction_db, reference_snr_correction_db=correction_db,
+        ),
+        [-1, -1, 0, 0, 0, 1],
+    )
+
+
+@pytest.mark.parametrize("correction_db", _TEMPORAL_TEST_CORRECTIONS_DB)
+def test_temporal_median_focus_covers_shifted_cells_extreme_tails_and_absolute_zero(correction_db):
+    comparisons = np.array([-37.25, -36.5, 2.5, 40.5])
+    corrected_metrics = comparisons - correction_db
+    expected_edges = np.arange(-37.5, 42.0, 1.0) - correction_db
+    focus = _build_compare_median_focus_spec(corrected_metrics, temporal_y_edges=expected_edges)
+    assert focus.median_db == np.median(corrected_metrics)
+    assert focus.median_db - focus.half_span_db <= min(expected_edges[0], corrected_metrics.min(), 0.0)
+    assert focus.median_db + focus.half_span_db >= max(expected_edges[-1], corrected_metrics.max(), 0.0)

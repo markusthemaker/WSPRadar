@@ -88,7 +88,8 @@ COMPARE_MEDIAN_FOCUS_BROAD_LABELS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0)
 COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES = 256 * 1024
 COMPARE_RECIPE_ARRAY_ENCODING = "numpy-zlib-v1"
 COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 2
-COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 5
+COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 6
+COMPARE_TEMPORAL_MEMBERSHIP_MIDPOINT_EPS_MULTIPLIER = 8.0
 DELTA_SNR_OUTLIER_MARKER_SIZE = 84
 DELTA_SNR_OUTLIER_MARKER_FACE_COLOR = "#FF2BD6"
 DELTA_SNR_OUTLIER_MARKER_INNER_EDGE_COLOR = "#FFFFFF"
@@ -261,11 +262,11 @@ def _compare_median_focus_inverse(values, spec):
     return spec.median_db + coordinate_signs * magnitudes_db
 
 
-def _build_compare_median_focus_spec(values):
+def _build_compare_median_focus_spec(values, *, temporal_y_edges=None):
     """
     Build a display-only Benchmark scale from raw evidence values.
 
-    The exact evidence median is the center. Raw histogram and integer heatmap
+    The exact evidence median is the center. Raw histogram and physical temporal
     bin edges, plus absolute zero, determine a symmetric non-clipping span. A
     tight ham-radio anchor profile is used only when every required deviation
     is at most 10 dB; otherwise the broad 3/6/10/20/30 dB profile is used.
@@ -276,17 +277,25 @@ def _build_compare_median_focus_spec(values):
 
     median_db = float(np.median(metric_values))
     histogram_edges, _, _ = _metric_histogram_bins(metric_values)
-    rounded_metric_bins = np.rint(metric_values)
+    if temporal_y_edges is None:
+        _, temporal_y_edges = _temporal_metric_bin_axis(
+            _temporal_metric_bin_ids(
+                metric_values,
+                reference_snr_correction_db=0.0,
+            ),
+            reference_snr_correction_db=0.0,
+        )
+    temporal_y_edges = np.asarray(temporal_y_edges, dtype=np.float64)
     lower_bound_db = min(
         float(np.min(metric_values)),
         float(histogram_edges[0]),
-        float(np.min(rounded_metric_bins) - 0.5),
+        float(np.min(temporal_y_edges)),
         0.0,
     )
     upper_bound_db = max(
         float(np.max(metric_values)),
         float(histogram_edges[-1]),
-        float(np.max(rounded_metric_bins) + 0.5),
+        float(np.max(temporal_y_edges)),
         0.0,
     )
     required_deviation_db = max(
@@ -339,7 +348,12 @@ def _compare_median_focus_recipe(spec):
     }
 
 
-def _compare_median_focus_spec_from_recipe(recipe, fallback_values):
+def _compare_median_focus_spec_from_recipe(
+    recipe,
+    fallback_values,
+    *,
+    temporal_y_edges=None,
+):
     """Validate a stored focus mapping or derive one from the supplied evidence."""
     if isinstance(recipe, dict):
         try:
@@ -390,7 +404,10 @@ def _compare_median_focus_spec_from_recipe(recipe, fallback_values):
                 )
         except (KeyError, TypeError, ValueError):
             pass
-    return _build_compare_median_focus_spec(fallback_values)
+    return _build_compare_median_focus_spec(
+        fallback_values,
+        temporal_y_edges=temporal_y_edges,
+    )
 
 def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
@@ -978,8 +995,100 @@ def _selected_window_chronological_axis(start, end, bin_minutes):
     return bin_delta, bin_count, bin_edges, bin_centers
 
 
-def _prepare_temporal_metric_rows(plot_df):
-    """Return finite evidence rows with naive UTC plot times and integer metric bins."""
+def _validated_temporal_reference_snr_correction(reference_snr_correction_db):
+    """Require numerical analysis metadata independently of localized notices."""
+    try:
+        correction_db = float(reference_snr_correction_db)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Reference SNR correction must be finite.") from exc
+    if not np.isfinite(correction_db):
+        raise ValueError("Reference SNR correction must be finite.")
+    return correction_db
+
+
+def _temporal_metric_bin_ids(metric_values, *, reference_snr_correction_db):
+    """Assign already corrected Delta SNR to correction-invariant 1 dB cells.
+
+    The membership-only comparison coordinate ``d + c`` uses the approved
+    0.1 dB display resolution: convert it to integer tenths with nearest-tenth,
+    ties-to-even rounding, then calculate ``(tenths + 5) // 10``. This implements
+    ``floor(d + c + 0.5)`` at that declared resolution and removes sub-tenth
+    correction-arithmetic noise. Exact half-dB values always enter the upper
+    cell, including negative values; ties-to-even applies only to the preceding
+    tenth-dB quantization, never to whole-dB membership. At half-tenth rounding
+    midpoints only, differences up to ``8 * eps * max(1, abs(d) + abs(c))`` dB
+    are treated as the exact midpoint before ties-to-even rounding. This narrow
+    float64 arithmetic guard prevents correction noise from selecting opposite
+    tenths at e.g. 0.45 dB; values outside the guard remain distinct for the
+    quantizer. Values below the declared 0.1 dB display resolution can
+    intentionally share membership.
+
+    Cell k retains physical interval ``[k - 0.5 - c, k + 0.5 - c)``. Only a
+    temporary comparison-coordinate array is quantized: stored corrected
+    metrics, medians, quartiles, observations, and the numerical correction are
+    never rounded or corrected again here.
+    This helper is exclusively the Benchmark temporal-density policy, not the
+    static histogram, Performance, or native-point Drill-Down policy.
+    """
+    correction_db = _validated_temporal_reference_snr_correction(
+        reference_snr_correction_db
+    )
+    corrected_values = np.asarray(metric_values, dtype=np.float64)
+    if not np.isfinite(corrected_values).all():
+        raise ValueError("Temporal metric binning requires finite values.")
+    comparison_coordinates_tenths = (corrected_values + correction_db) * 10.0
+    rounding_midpoints_tenths = (
+        np.floor(comparison_coordinates_tenths) + 0.5
+    )
+    midpoint_tolerance_tenths = (
+        COMPARE_TEMPORAL_MEMBERSHIP_MIDPOINT_EPS_MULTIPLIER
+        * np.finfo(np.float64).eps
+        * np.maximum(1.0, np.abs(corrected_values) + abs(correction_db))
+        * 10.0
+    )
+    is_rounding_midpoint = (
+        np.abs(comparison_coordinates_tenths - rounding_midpoints_tenths)
+        <= midpoint_tolerance_tenths
+    )
+    comparison_tenths = np.rint(
+        np.where(
+            is_rounding_midpoint,
+            rounding_midpoints_tenths,
+            comparison_coordinates_tenths,
+        )
+    ).astype(np.int64)
+    return (comparison_tenths + 5) // 10
+
+
+def _temporal_metric_bin_axis(metric_bin_ids, *, reference_snr_correction_db):
+    """Return contiguous integer cell IDs and their translated physical edges."""
+    correction_db = _validated_temporal_reference_snr_correction(
+        reference_snr_correction_db
+    )
+    metric_bin_ids = np.asarray(metric_bin_ids, dtype=np.int64)
+    if metric_bin_ids.size:
+        minimum_bin_id = int(np.min(metric_bin_ids))
+        maximum_bin_id = int(np.max(metric_bin_ids))
+    else:
+        minimum_bin_id = maximum_bin_id = 0
+    metric_bins = np.arange(
+        minimum_bin_id,
+        maximum_bin_id + 1,
+        dtype=np.int64,
+    )
+    y_edges = (
+        np.arange(minimum_bin_id, maximum_bin_id + 2, dtype=np.float64)
+        - 0.5
+        - correction_db
+    )
+    return metric_bins, y_edges
+
+
+def _prepare_temporal_metric_rows(plot_df, *, reference_snr_correction_db):
+    """Retain corrected metrics and add UTC times and comparison-coordinate IDs."""
+    correction_db = _validated_temporal_reference_snr_correction(
+        reference_snr_correction_db
+    )
     if plot_df is None or plot_df.empty or not {"plot_time", "metric"}.issubset(plot_df.columns):
         return pd.DataFrame(columns=["plot_time", "metric", "metric_bin"])
 
@@ -998,7 +1107,10 @@ def _prepare_temporal_metric_rows(plot_df):
         work_df["metric_bin"] = pd.Series(dtype="int64")
         return work_df
 
-    work_df["metric_bin"] = work_df["metric"].round().astype(int)
+    work_df["metric_bin"] = _temporal_metric_bin_ids(
+        work_df["metric"],
+        reference_snr_correction_db=correction_db,
+    )
     return work_df
 
 
@@ -1536,16 +1648,13 @@ def _build_compare_temporal_profile_recipes(
     analysis_start_t,
     analysis_end_t,
     utc_date_count,
+    reference_snr_correction_db,
 ):
     """Precompute selected-window profiles so bin changes avoid row aggregation."""
-    if work_df.empty:
-        metric_bins = np.array([0], dtype=np.int64)
-        y_edges = np.array([-0.5, 0.5], dtype=np.float64)
-    else:
-        metric_min = int(work_df["metric_bin"].min())
-        metric_max = int(work_df["metric_bin"].max())
-        metric_bins = np.arange(metric_min, metric_max + 1)
-        y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
+    metric_bins, y_edges = _temporal_metric_bin_axis(
+        work_df["metric_bin"],
+        reference_snr_correction_db=reference_snr_correction_db,
+    )
     chronological_profiles = {}
     for time_bin in dict.fromkeys(str(value) for value in time_bin_options):
         chronological_profiles[time_bin] = _compare_temporal_profile_recipe(
@@ -1566,6 +1675,7 @@ def _build_compare_temporal_profile_recipes(
     return {
         "chronological": chronological_profiles,
         "folded": folded_profile,
+        "metric_bin_ids": metric_bins,
         "y_edges": y_edges,
     }
 
@@ -1578,6 +1688,7 @@ def _segment_temporal_evidence_export_recipe(
     *,
     analysis_start_t,
     analysis_end_t,
+    reference_snr_correction_db,
     chronological_title,
     chronological_x_label,
     chronological_unavailable_text,
@@ -1603,7 +1714,13 @@ def _segment_temporal_evidence_export_recipe(
         analysis_start_t,
         analysis_end_t,
     )
-    work_df = _prepare_temporal_metric_rows(plot_df)
+    correction_db = _validated_temporal_reference_snr_correction(
+        reference_snr_correction_db
+    )
+    work_df = _prepare_temporal_metric_rows(
+        plot_df,
+        reference_snr_correction_db=correction_db,
+    )
     work_df = work_df[
         work_df["plot_time"].ge(analysis_start)
         & work_df["plot_time"].lt(analysis_end)
@@ -1638,8 +1755,15 @@ def _segment_temporal_evidence_export_recipe(
         if folded_subtitle is not None
         else None
     )
+    _, temporal_y_edges = _temporal_metric_bin_axis(
+        work_df["metric_bin"],
+        reference_snr_correction_db=correction_db,
+    )
     median_focus = _compare_median_focus_recipe(
-        _build_compare_median_focus_spec(work_df["metric"])
+        _build_compare_median_focus_spec(
+            work_df["metric"],
+            temporal_y_edges=temporal_y_edges,
+        )
     )
     plot_time_ns = (
         work_df["plot_time"]
@@ -1663,6 +1787,7 @@ def _segment_temporal_evidence_export_recipe(
                 analysis_start_t=analysis_start,
                 analysis_end_t=analysis_end,
                 utc_date_count=utc_date_count,
+                reference_snr_correction_db=correction_db,
             )
         }
     else:
@@ -1706,6 +1831,7 @@ def _segment_temporal_evidence_export_recipe(
         "bin_median_label": str(bin_median_label),
         "bin_iqr_label": str(bin_iqr_label),
         "iqr_min_count": TEMPORAL_IQR_MIN_COUNT,
+        "reference_snr_correction_db": correction_db,
         "reference_snr_correction_notice": str(
             reference_snr_correction_notice or ""
         ),
@@ -1742,6 +1868,9 @@ def render_segment_temporal_evidence_export_figure(recipe):
         COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION
     ):
         raise ValueError("Unsupported Benchmark temporal recipe schema.")
+    correction_db = _validated_temporal_reference_snr_correction(
+        recipe.get("reference_snr_correction_db")
+    )
     analysis_start, analysis_end = _compare_temporal_window_from_recipe(
         recipe
     )
@@ -1802,7 +1931,10 @@ def render_segment_temporal_evidence_export_figure(recipe):
                 "metric": metric_values,
             }
         )
-        work_df = _prepare_temporal_metric_rows(plot_df)
+        work_df = _prepare_temporal_metric_rows(
+            plot_df,
+            reference_snr_correction_db=correction_db,
+        )
         work_df = work_df[
             work_df["plot_time"].ge(analysis_start)
             & work_df["plot_time"].lt(analysis_end)
@@ -1811,18 +1943,10 @@ def render_segment_temporal_evidence_export_figure(recipe):
         utc_date_count = _temporal_utc_date_count(work_df)
         is_folded_available = utc_date_count >= 2
         bin_minutes = _time_agg_minutes(time_bin)
-        if work_df.empty:
-            metric_bins = np.array([0], dtype=np.int64)
-            y_edges = np.array([-0.5, 0.5], dtype=np.float64)
-        else:
-            metric_min = int(work_df["metric_bin"].min())
-            metric_max = int(work_df["metric_bin"].max())
-            metric_bins = np.arange(metric_min, metric_max + 1)
-            y_edges = np.arange(
-                metric_min - 0.5,
-                metric_max + 1.5,
-                1.0,
-            )
+        metric_bins, y_edges = _temporal_metric_bin_axis(
+            work_df["metric_bin"],
+            reference_snr_correction_db=correction_db,
+        )
         (
             chronological_grid,
             chronological_medians,
@@ -1893,6 +2017,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
     median_focus_spec = _compare_median_focus_spec_from_recipe(
         recipe.get("median_focus"),
         metric_focus_values,
+        temporal_y_edges=y_edges,
     )
     if utc_date_count > 0 and median_focus_spec is None:
         raise ValueError(
@@ -2120,6 +2245,7 @@ def _selected_evidence_export_recipe(
     *,
     analysis_start_t,
     analysis_end_t,
+    reference_snr_correction_db,
     count_label,
     chronological_title,
     chronological_x_label,
@@ -2154,6 +2280,7 @@ def _selected_evidence_export_recipe(
         count_label,
         analysis_start_t=analysis_start_t,
         analysis_end_t=analysis_end_t,
+        reference_snr_correction_db=reference_snr_correction_db,
         chronological_title=chronological_title,
         chronological_subtitle=None,
         chronological_x_label=chronological_x_label,

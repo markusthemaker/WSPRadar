@@ -89,7 +89,7 @@ def test_no_benchmark_builds_only_the_directional_performance_analysis():
     )
     assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
     assert all(
-        analysis["absolute_method_version"] == "opportunity-v2"
+        analysis["absolute_method_version"] == "opportunity-v3"
         for analysis in tx_analyses + rx_analyses
     )
 

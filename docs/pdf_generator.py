@@ -100,6 +100,14 @@ def _replace_pdf_math(md_text, translations):
     )
     block_replacements = {
         (
+            r"S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},"
+            r"\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}"
+        ): _formula(
+            "S<sub>i,c</sub> = T<sub>i,c</sub>, "
+            "&nbsp;&nbsp;O<sub>i,c</sub> = T<sub>i,c</sub> &or; E<sub>i,c</sub>, "
+            "&nbsp;&nbsp;M<sub>i,c</sub> = E<sub>i,c</sub> &and; &not; T<sub>i,c</sub>"
+        ),
+        (
             r"n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}"
         ): _formula(
             "n<sub>i</sub> = sum<sub>c</sub> O<sub>i,c</sub>, "
@@ -439,6 +447,13 @@ def _replace_pdf_math(md_text, translations):
         r"n_i": "n<sub>i</sub>",
         r"O_{i,c}": "O<sub>i,c</sub>",
         r"O_{i,c}=1": "O<sub>i,c</sub> = 1",
+        r"O_{i,c}=S_{i,c}+M_{i,c}": (
+            "O<sub>i,c</sub> = S<sub>i,c</sub> + M<sub>i,c</sub>"
+        ),
+        r"T_{i,c}=1": "T<sub>i,c</sub> = 1",
+        r"E_{i,c}=1": "E<sub>i,c</sub> = 1",
+        r"E_{i,c}=0": "E<sub>i,c</sub> = 0",
+        r"M_{i,c}": "M<sub>i,c</sub>",
         r"R_{i,b}": "R<sub>i,b</sub>",
         r"R_{opportunity}": "R<sub>opportunity</sub>",
         r"R_{station}": "R<sub>station</sub>",

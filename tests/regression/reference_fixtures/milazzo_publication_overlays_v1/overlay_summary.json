@@ -41,6 +41,14 @@
   "figure7_extraction": "Blue B>150,R<100,G<120; red R>150,G<120,B<120; 3x3 erosion; 4-neighbor components; 35..90 pixels and width/height <=10; source-only rule to avoid merged centers. Integer SNR read from calibrated ordinate, checked against visible annotations.",
   "figure7_match_rule": "Require one same-series report within 240 seconds and 0.25 dB of each image-derived anchor at the declared common 37 dBm scale; no archive-based axis fitting",
   "runtime_scope": "Current generated SQL through regression SQLite adapter, followed by production filtering and inspector preparation. No live provider calls or native ClickHouse verification.",
+  "plot_input_boundary": {
+    "colored_rings": "Deliberate pre-gate diagnostic: current generated SQL endpoint components, including reports ineligible for Benchmark results",
+    "outer_rings": "Membership in current apply_post_fetch_filters output, verified against the retained production Inspector outcome for the exact cycle/callsign/full-locator identity",
+    "lower_panel": "Current _compare_joint_evidence_points(require_paired_eligible=True) output after map, Inspector and threshold preparation; no offline Delta SNR or pair-eligibility calculation",
+    "expected_files": "Not used as plotting inputs; independent frozen values remain regression assertions",
+    "presentation_only": "Fixed paper-axis transform and common 30 to 37 dBm shift; paired Delta SNR unchanged",
+    "unexercised": "Native ClickHouse, live provider, runtime cache and full interactive session"
+  },
   "target_active_gate": {
     "rule": "global_time_slot",
     "description": "At least one captured Target report in the exact 120-second WSPR cycle across all eligible peers; no graphical time tolerance or same-peer requirement",
@@ -61,5 +69,188 @@
     "rendering": "Existing colored SQL rings remain; a larger charcoal ring with white separation marks each gate-retained endpoint",
     "joint_pairing": "Gate survival alone does not establish a Joint pair; full locator identity still applies"
   },
-  "script_sha256": "005098182c6bc1b9277bd94c6edf0b9f2be73c1bc483437aed0142aee5dd9d53"
+  "script_sha256": "a0ccd59f27f01fbb4ea07e157a74da4448791e3ffc465b442779cdc197d68c8f",
+  "footer_text": "WSPRadar.org by Dr. Markus Brosch (DL1MKS)",
+  "presentation_revision": "three-panel-native-temporal-2026-09-27",
+  "presentation_checks": {
+    "figure6": {
+      "page_inches": [
+        24,
+        16.2
+      ],
+      "png_pixels": [
+        3840,
+        2592
+      ],
+      "paired_observations": 5,
+      "full_peer_locators": [
+        "DO34",
+        "DO34ir"
+      ],
+      "paired_delta_snr_db": [
+        17.0,
+        7.0,
+        8.0,
+        22.0,
+        7.0
+      ],
+      "native_time_bin": "3h",
+      "native_density_total": 5,
+      "native_populated_bins": 4,
+      "native_renderer": "render_selected_evidence_export_figure",
+      "native_axis": "median-centered nonlinear dB",
+      "panel_a": "Unmodified original source image, including the printed direction",
+      "panel_b": "Complete pre-gate SQL endpoint reconstruction over the original image at full opacity, with production-retained outer rings",
+      "panel_b_underlay": {
+        "opacity": 1.0,
+        "calibration": "Existing source-only paper_coordinates transform; no fitted shift or offset"
+      },
+      "layout": "C aligns with the actual A graph edges; density scale below the A legend; separate B/C legends; direction note centered below A",
+      "layout_checks": {
+        "panel_a_plot_bounds": [
+          0.07786356707317071,
+          0.5635724085365854,
+          0.33635373475609764,
+          0.2064786585365854
+        ],
+        "panel_a_legend_left": 0.4247477134146342,
+        "panel_c_plot_bounds": [
+          0.07786356707317071,
+          0.158,
+          0.33635373475609764,
+          0.2064786585365854
+        ],
+        "panel_c_density_bounds": [
+          0.4247477134146342,
+          0.158,
+          0.006000000000000005,
+          0.2064786585365854
+        ],
+        "panel_b_series_legend_bounds": [
+          0.545,
+          0.4577641916366598,
+          0.405,
+          0.020235808363340158
+        ],
+        "panel_b_gate_legend_bounds": [
+          0.545,
+          0.4287641916366598,
+          0.2407624421296295,
+          0.020235808363340213
+        ],
+        "panel_c_summary_legend_bounds": [
+          0.07786356707317071,
+          0.07827330889917694,
+          0.33635373475609764,
+          0.018726691100823048
+        ],
+        "panel_c_exact_legend_bounds": [
+          0.07786356707317071,
+          0.05127330889917695,
+          0.23249999999999998,
+          0.018726691100823055
+        ],
+        "direction_note_bounds": [
+          0.14620442708333334,
+          0.4700219478737997,
+          0.22259114583333336,
+          0.028978052126200304
+        ],
+        "panel_a_image_bounds": [
+          0.05355070503048779,
+          0.517,
+          0.40789858993902445,
+          0.30100000000000005
+        ]
+      },
+      "panel_c": "Native chronological evidence with exact Joint Spot annotations"
+    },
+    "figure7": {
+      "page_inches": [
+        24,
+        16.2
+      ],
+      "png_pixels": [
+        3840,
+        2592
+      ],
+      "paired_observations": 1,
+      "full_peer_locators": [
+        "DO34ir"
+      ],
+      "paired_delta_snr_db": [
+        -2.0
+      ],
+      "native_time_bin": "3h",
+      "native_density_total": 1,
+      "native_populated_bins": 1,
+      "native_renderer": "render_selected_evidence_export_figure",
+      "native_axis": "median-centered nonlinear dB",
+      "panel_a": "Unmodified original source image, including the printed direction",
+      "panel_b": "Complete pre-gate SQL endpoint reconstruction over the original image at full opacity, with production-retained outer rings",
+      "panel_b_underlay": {
+        "opacity": 1.0,
+        "calibration": "Existing source-only paper_coordinates transform; no fitted shift or offset"
+      },
+      "layout": "C aligns with the actual A graph edges; density scale below the A legend; separate B/C legends; direction note centered below A",
+      "layout_checks": {
+        "panel_a_plot_bounds": [
+          0.07786356707317071,
+          0.5635724085365854,
+          0.33635373475609764,
+          0.2064786585365854
+        ],
+        "panel_a_legend_left": 0.4247477134146342,
+        "panel_c_plot_bounds": [
+          0.07786356707317071,
+          0.158,
+          0.33635373475609764,
+          0.2064786585365854
+        ],
+        "panel_c_density_bounds": [
+          0.4247477134146342,
+          0.158,
+          0.006000000000000005,
+          0.2064786585365854
+        ],
+        "panel_b_series_legend_bounds": [
+          0.545,
+          0.4577641916366598,
+          0.405,
+          0.020235808363340158
+        ],
+        "panel_b_gate_legend_bounds": [
+          0.545,
+          0.4287641916366598,
+          0.2407624421296295,
+          0.020235808363340213
+        ],
+        "panel_c_summary_legend_bounds": [
+          0.07786356707317071,
+          0.07827330889917694,
+          0.33635373475609764,
+          0.018726691100823048
+        ],
+        "panel_c_exact_legend_bounds": [
+          0.07786356707317071,
+          0.05127330889917695,
+          0.23249999999999998,
+          0.018726691100823055
+        ],
+        "direction_note_bounds": [
+          0.14620442708333334,
+          0.4700219478737997,
+          0.22259114583333336,
+          0.028978052126200304
+        ],
+        "panel_a_image_bounds": [
+          0.05355070503048779,
+          0.517,
+          0.40789858993902445,
+          0.30100000000000005
+        ]
+      },
+      "panel_c": "Native chronological evidence with exact Joint Spot annotations"
+    }
+  }
 }

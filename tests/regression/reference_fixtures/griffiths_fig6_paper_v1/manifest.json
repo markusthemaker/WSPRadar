@@ -7,8 +7,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 13056,
-      "sha256": "23c5f7ad62a0bfc94a3f26e167e49b41122352056c4da4a2580301de82f609fe"
+      "bytes": 16122,
+      "sha256": "38b2a8becb21f78f2c273ade0ce6bb8b59a0b1569434570676852d4c25673e8b"
     },
     {
       "path": "comparison_policy.json",
@@ -37,13 +37,18 @@
     },
     {
       "path": "figure6_evidence_comparison.png",
-      "bytes": 1537265,
-      "sha256": "c7930b984949d53e759df3b347bd23848df1788360ff4642d8e4796d9464082a"
+      "bytes": 1644925,
+      "sha256": "30b668a59f9c1c515392349a00ff419e256f05a6ffc2be05dd5d8bc6f84fcf4a"
     },
     {
-      "path": "figure6_evidence_comparison.pdf",
-      "bytes": 487650,
-      "sha256": "afd879855ed8a511d9db504beb897cee9b92695b215ea4a3d7ad5722e0568a03"
+      "path": "WSPRadar_Demo_Griffiths_Figure6.pdf",
+      "bytes": 458807,
+      "sha256": "5f2cdd6900430118561e8243274b926702eac9a0d0b5ab41c8914b90d772e5f2"
+    },
+    {
+      "path": "render_checks.json",
+      "bytes": 4339,
+      "sha256": "89dcc6781f93949c568df96d3665973c8fcbbb8bf957a95a96b6f1855b06c29f"
     }
   ]
 }

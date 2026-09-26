@@ -1,0 +1,134 @@
+{
+  "P01": {
+    "example_hits": 2,
+    "example_misses": 1,
+    "example_target_only": 1,
+    "example_opportunities": 3,
+    "example_rate_pct": 66.66666666666667
+  },
+  "P02": {
+    "hits": 57,
+    "misses": 22,
+    "target_only": 22,
+    "opportunities": 79,
+    "rate_pct": 72.15189873417721,
+    "all_rows": 79
+  },
+  "P03": {
+    "hit_count": 57,
+    "median_db": -23,
+    "q1_db": -29,
+    "q3_db": -22,
+    "minimum_db": -35,
+    "maximum_db": -14
+  },
+  "P04": {
+    "station_balanced_rate_pct": 65.85281385281385,
+    "pooled_rate_pct": 53.84615384615385,
+    "stations": 5,
+    "hits": 56,
+    "misses": 48
+  },
+  "P05": {
+    "peer_reach_pct": 100,
+    "station_balanced_rate_pct": 71.45804031879982,
+    "pooled_rate_pct": 72.81553398058253,
+    "median_db": -22,
+    "q1_db": -22.5,
+    "q3_db": -21
+  },
+  "P06": {
+    "qualifying_stations": 6,
+    "reached_stations": 4,
+    "peer_reach_pct": 66.66666666666667,
+    "hits": 34,
+    "misses": 247,
+    "pooled_rate_pct": 12.099644128113878,
+    "station_balanced_rate_pct": 7.402900770600019
+  },
+  "P07": {
+    "hits": 6,
+    "misses": 3,
+    "rate_pct": 66.66666666666667,
+    "station_hit_vote": 0.6666666666666666,
+    "station_miss_vote": 0.3333333333333333,
+    "median_db": -22.5,
+    "q1_db": -23,
+    "q3_db": -20.5
+  },
+  "P08": {
+    "hour12_date_count": 2,
+    "hour12_mean_misses": 1,
+    "hour12_mean_station_support": 0.5,
+    "hour20_date_count": 1,
+    "hour20_mean_misses": 2,
+    "hour20_mean_station_support": 1
+  },
+  "P09": {
+    "date_hour_count": 2,
+    "median_db": -25.5,
+    "q1_db": -26.75,
+    "q3_db": -24.25,
+    "pooled_raw_median_db": -27,
+    "iqr_visible": false
+  },
+  "P10": {
+    "contributing_stations": 9,
+    "median_db": 1.5,
+    "q1_db": -3.0,
+    "q3_db": 3.0,
+    "ve6pdq_anomaly_db": -10
+  },
+  "B01": {
+    "peer_sign": "VE6PDQ",
+    "peer_grid": "DO34ir",
+    "utc": "2010-12-20T00:22:00Z",
+    "target_report_id": 44698904,
+    "reference_report_id": 44698905,
+    "target_snr_db": -20,
+    "reference_snr_db": -18,
+    "delta_snr_db": -2
+  },
+  "B02": {
+    "station": {
+      "count": 30,
+      "mean": -3.9,
+      "median": -3.75,
+      "positive_extreme_db": 8,
+      "positive_extreme_count": 1
+    },
+    "joint": {
+      "count": 45,
+      "mean": -3.9555555555555557,
+      "median": -4,
+      "positive_extreme_db": 8,
+      "positive_extreme_count": 1
+    }
+  },
+  "B03": {
+    "station_counts": [
+      40,
+      30,
+      5,
+      1
+    ],
+    "observation_counts": [
+      237,
+      45,
+      771,
+      1
+    ]
+  },
+  "B04": {
+    "segment_id": "[0-2500km] NNE",
+    "station_medians_db": {
+      "VE6OG": -2.5,
+      "VE6PDQ": -2
+    },
+    "unrounded_segment_median_db": -2.25,
+    "segment_value_db": -2.2,
+    "station_count": 2,
+    "joint_count": 3,
+    "pooled_median_db": -2
+  }
+}

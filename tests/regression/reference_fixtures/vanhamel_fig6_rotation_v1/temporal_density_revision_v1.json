@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "presentation_contract": "correction-aware-1db-v1",
+  "derivation": "Standard-library Decimal calculation from frozen raw report SNR/power; frozen independent paired ledger supplies source report identities and UTC membership only",
+  "membership": "Round the temporary uncorrected comparison coordinate to 0.1 dB (ties-to-even), then k=floor(coordinate+0.5); exact half-dB belongs to upper cell",
+  "membership_resolution_db": 0.1,
+  "scientific_precision": "Stored corrected metrics, observations, medians and quartiles are not quantized by the density policy",
+  "physical_interval": "[k-0.5-c, k+0.5-c)",
+  "reference_correction_db": 1.6,
+  "joint_spots": 1441,
+  "time_bin_count": 28,
+  "metric_bin_id_min": -5,
+  "metric_bin_id_max": 11,
+  "first_bin_observation_span_db": [
+    -3.6,
+    1.4
+  ],
+  "first_bin_occupied_cell_span_db": [
+    -4.1,
+    1.9
+  ],
+  "legacy_density_expectation": "expected_density_12h.csv is retained unchanged; its corrected-coordinate labels -7..9 become comparison-coordinate IDs -5..11, preserving every count",
+  "unchanged_scientific_expectations": "All original expected_* files remain byte-identical; this file and the new density CSV supersede only the legacy grid geometry",
+  "input_sha256": {
+    "source_rows.csv": "84ab229a22555a365fc16ba707a16fd12c8a7b9b75f5b557768790ea2c07cf28",
+    "expected_paired_rows.csv": "1861148eb3e6693d5333ac31598c04b91ccc126cd47cc29ff7b95e28eabb9b15",
+    "demo.config": "31c2650c1ace7f163e8a80a128ae3e61df9ab99f04f8c40d61b06432ce12c406",
+    "expected_density_12h.csv": "1ec6568e96205253af8a1ca8109fea636c6ccb3e357dfd5ee05109a8da904f98"
+  },
+  "calculator_path": "scripts/build_vanhamel_temporal_density_reference.py",
+  "calculator_sha256": "ae6570f76fd9f4606c2df1da5cc02f03bfe7e98ec47b405182584fe7a11740c3"
+}

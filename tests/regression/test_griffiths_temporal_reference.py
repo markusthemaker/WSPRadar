@@ -1,8 +1,9 @@
 """Mandatory offline reference for the Griffiths April 2017 temporal evidence.
 
-Frozen SQL-result rows enter the real post-fetch, map, Inspector and temporal
-recipe calculations. Reviewed expectations are read only after calculation;
-neither database SQL execution nor figure rendering is claimed by these tests.
+Frozen source reports enter newly generated production SQL through the bounded
+SQLite compatibility adapter, then real post-fetch, map, Inspector and temporal
+recipe calculations. Reviewed expectations are read only after calculation.
+This is not native ClickHouse-engine or geographic-distance validation.
 """
 
 from dataclasses import dataclass
@@ -17,10 +18,14 @@ import pandas as pd
 import pytest
 import requests
 
+from reference_sql import execute_generated_sql
+
 from config import BAND_MAP
 from core.analysis_context import AnalysisContext
 from core.analysis_plan import AnalysisPlan, DECODE_FILTER_LEGACY
-from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
+from core.analysis_runner import (
+    apply_post_fetch_filters, build_analysis_batches, should_retry_without_decode_filter,
+)
 from core.map_data import build_map_data_result
 from core.math_utils import locator_to_latlon
 from core.presentation_context import PresentationContext
@@ -118,17 +123,21 @@ class TemporalReferenceRun:
     paired_points: pd.DataFrame
     temporal_recipes: dict
     reference_directory: Path
+    source_row_count: int
+    strict_row_count: int
+    sql_rows: pd.DataFrame
 
 
 def _reject_network_access(*args, **kwargs):
     pytest.fail("The frozen temporal reference must not access the network")
 
 
-def _build_temporal_recipe(paired_points, configuration, time_bin, time_bin_options=("24h", "3h")):
+def _build_temporal_recipe(paired_points, configuration, time_bin, time_bin_options=("24h", "3h"), *, reference_snr_correction_db):
     """Use the actual export recipe without invoking its figure renderer."""
     return _segment_temporal_evidence_export_recipe(
         paired_points[["plot_time", "metric"]],
         "Griffiths April 2017 temporal reference", time_bin, "Joint spots",
+        reference_snr_correction_db=reference_snr_correction_db,
         analysis_start_t=configuration["start_utc"],
         analysis_end_t=configuration["end_utc"],
         chronological_title="Chronological Delta SNR ({time_bin})",
@@ -142,8 +151,12 @@ def _build_temporal_recipe(paired_points, configuration, time_bin, time_bin_opti
     )
 
 
-def _prepare_reference_run(reference_directory, time_bins, *, max_peer_distance_km=None):
-    """Calculate once from input rows; expected outputs never enter this path."""
+def _prepare_reference_run(reference_directory, time_bins, *, max_peer_distance_km=None, source_rows=None):
+    """Replay source reports through production SQL and evidence preparation.
+
+    Neither captured SQL-result snapshots nor expected paired rows are read.
+    ``source_rows`` permits controlled input perturbations for sensitivity tests.
+    """
     with pytest.MonkeyPatch.context() as network_guard:
         network_guard.setattr(requests.sessions.Session, "request", _reject_network_access)
         network_guard.setattr(socket, "create_connection", _reject_network_access)
@@ -165,11 +178,16 @@ def _prepare_reference_run(reference_directory, time_bins, *, max_peer_distance_
             presentation_context=presentation_context,
         )
         assert len(analyses) == 1
-        # This fixture starts at the captured legacy SQL-result boundary. It
-        # does not pretend to exercise HTTP retries or database aggregation.
-        analysis = analyses[0].for_legacy_query()
-        input_rows = pd.read_parquet(reference_directory / "input_sql_rows.parquet")
+        source_rows = pd.read_parquet(reference_directory / "source_rows.parquet") if source_rows is None else source_rows
+        analysis = analyses[0]
+        strict_rows = execute_generated_sql(analysis.query, source_rows)
+        if should_retry_without_decode_filter(strict_rows, analysis):
+            analysis = analysis.for_legacy_query()
+            input_rows = execute_generated_sql(analysis.query, source_rows)
+        else:
+            input_rows = strict_rows
         input_row_count = len(input_rows)
+        sql_rows = input_rows.copy()
         processed_rows, warning_message = apply_post_fetch_filters(
             input_rows, analysis, context, center_latitude, center_longitude, T["en"],
         )
@@ -201,12 +219,16 @@ def _prepare_reference_run(reference_directory, time_bins, *, max_peer_distance_
             comparison_units, require_paired_eligible=True,
         )
         temporal_recipes = {
-            time_bin: _build_temporal_recipe(paired_points, configuration, time_bin, time_bins)
+            time_bin: _build_temporal_recipe(
+                paired_points, configuration, time_bin, time_bins,
+                reference_snr_correction_db=context.reference_snr_correction_db,
+            )
             for time_bin in time_bins
         }
     return TemporalReferenceRun(
         configuration, context, analysis, input_row_count, processed_rows,
         station_rows, comparison_units, paired_points, temporal_recipes, reference_directory,
+        len(source_rows), len(strict_rows), sql_rows,
     )
 
 
@@ -246,8 +268,8 @@ def test_reference_configuration_and_processed_population(reference_run):
     ).any().sum() == expected["global"]["paired_peer_identities"]
 
 
-def _assert_paired_rows_match_reference(reference_run, filename="expected_paired_rows.parquet"):
-    expected = pd.read_parquet(reference_run.reference_directory / filename)
+def _canonical_paired_rows(reference_run):
+    """Project freshly computed paired evidence without reading any oracle."""
     identity_keys = ["evidence_utc", "peer_sign", "peer_grid"]
     actual = reference_run.paired_points.rename(columns={
         "plot_time": "evidence_utc", "station": "peer_sign", "grid": "peer_grid",
@@ -257,6 +279,12 @@ def _assert_paired_rows_match_reference(reference_run, filename="expected_paired
         on=identity_keys, how="left", validate="one_to_one",
     )
     actual["time_slot"] = actual["evidence_utc"].dt.as_unit("ns").astype("int64") // 120_000_000_000
+    return actual
+
+
+def _assert_paired_rows_match_reference(reference_run, filename="expected_paired_rows.parquet"):
+    actual = _canonical_paired_rows(reference_run)
+    expected = pd.read_parquet(reference_run.reference_directory / filename)
     sort_keys = ["time_slot", "peer_sign", "peer_grid"]
     pd.testing.assert_frame_equal(
         actual[expected.columns].sort_values(sort_keys).reset_index(drop=True),
@@ -275,6 +303,147 @@ def test_all_paired_rows_match_the_reviewed_reference(reference_run):
     for recipe in reference_run.temporal_recipes.values():
         assert recipe["utc_date_count"] == summary["days"]
         assert recipe["median_focus"]["median_db"] == summary["median_delta_snr_db"]
+
+
+def test_source_sql_replay_preserves_frozen_aggregation(reference_run):
+    """The SQL-result capture is an assertion target, never a pipeline input."""
+    expected = pd.read_parquet(reference_run.reference_directory / "input_sql_rows.parquet")
+    columns = ["time_slot", "peer_sign", "peer_grid", "snr_u_norm", "snr_r_norm", "has_u", "has_r", "best_ref_sign"]
+    keys = ["time_slot", "peer_sign", "peer_grid"]
+    # CSV ingestion of the original ClickHouse capture converted empty absent-
+    # reference strings to NA; SQLite returns the aggregate's empty string.
+    expected["best_ref_sign"] = expected.best_ref_sign.fillna("")
+    pd.testing.assert_frame_equal(
+        reference_run.sql_rows[columns].sort_values(keys).reset_index(drop=True),
+        expected[columns].sort_values(keys).reset_index(drop=True),
+        check_dtype=False, check_exact=True,
+    )
+    assert reference_run.source_row_count > reference_run.input_row_count
+    assert reference_run.strict_row_count == 0
+    assert reference_run.analysis.decode_filter_mode == DECODE_FILTER_LEGACY
+
+
+def test_source_replay_is_independent_of_expected_and_sql_capture_reads(monkeypatch):
+    """Forbid all non-source parquet inputs while the scientific path executes."""
+    read_parquet = pd.read_parquet
+    observed_reads = []
+
+    def read_source_only(path, *args, **kwargs):
+        path = Path(path)
+        assert path.name == "source_rows.parquet", f"Replay read a derived fixture: {path}"
+        observed_reads.append(path.name)
+        return read_parquet(path, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "read_parquet", read_source_only)
+    replay = _prepare_reference_run(FIG6_REFERENCE_DIRECTORY, ("12h",))
+    projected = _canonical_paired_rows(replay)
+    assert observed_reads == ["source_rows.parquet"]
+    assert len(projected) == len(replay.paired_points) > 0
+    assert replay.temporal_recipes["12h"]["prepared_profiles"]["chronological"]["12h"]
+
+
+def test_source_snr_perturbation_changes_computed_pairs_and_temporal_grid(fig6_reference_run):
+    """A changed measurement must propagate to plotted evidence and fail its oracle."""
+    before = _canonical_paired_rows(fig6_reference_run)
+    witness = before.sort_values(["evidence_utc", "peer_sign", "peer_grid"]).iloc[0]
+    source = pd.read_parquet(FIG6_REFERENCE_DIRECTORY / "source_rows.parquet")
+    selected = (
+        source.rx_sign.eq("G3ZIL") & source.time.eq(witness.evidence_utc)
+        & source.tx_sign.eq(witness.peer_sign) & source.tx_loc.eq(witness.peer_grid)
+    )
+    assert selected.any()
+    source.loc[selected, "snr"] += 3
+    changed_run = _prepare_reference_run(FIG6_REFERENCE_DIRECTORY, ("24h", "3h", "1h", "6h"), source_rows=source)
+    after = _canonical_paired_rows(changed_run)
+    keys = ["evidence_utc", "peer_sign", "peer_grid"]
+    comparison = before[keys + ["delta_snr_db"]].merge(after[keys + ["delta_snr_db"]], on=keys,
+                                                       validate="one_to_one", suffixes=("_before", "_after"))
+    difference = comparison.delta_snr_db_after - comparison.delta_snr_db_before
+    assert len(comparison) == len(before) == len(after)
+    assert difference.ne(0).sum() == 1 and difference[difference.ne(0)].iloc[0] == 3
+    old = fig6_reference_run.temporal_recipes["1h"]["prepared_profiles"]["folded"]["count_grid"]
+    new = changed_run.temporal_recipes["1h"]["prepared_profiles"]["folded"]["count_grid"]
+    assert not np.array_equal(old, new)
+    with pytest.raises(AssertionError):
+        _assert_paired_rows_match_reference(changed_run)
+
+
+def test_figure3_hourly_density_uses_production_counts_and_preserves_12h_view(fig3_reference_run, monkeypatch):
+    from scripts import build_griffiths_figure3_comparisons as builder
+
+    pairs = _canonical_paired_rows(fig3_reference_run)
+
+    def reject_derived_inputs(*args, **kwargs):
+        pytest.fail("Density presentation must use the supplied production pairs")
+
+    with monkeypatch.context() as guard:
+        guard.setattr(pd, "read_parquet", reject_derived_inputs)
+        guard.setattr(pd, "read_csv", reject_derived_inputs)
+        recipe = builder.temporal_recipe(
+            pairs, reference_snr_correction_db=fig3_reference_run.context.reference_snr_correction_db,
+        )
+        density = builder.prepare_density_reconstruction(pairs, recipe)
+    hourly, _, edges, _ = _compare_temporal_profile_values(recipe["prepared_profiles"]["chronological"]["1h"])
+    half_daily, _, _, _ = _compare_temporal_profile_values(recipe["prepared_profiles"]["chronological"]["12h"])
+    np.testing.assert_array_equal(density["counts"], hourly)
+    assert hourly.shape[1] == 720 and hourly.sum() == len(pairs) == 57767
+    np.testing.assert_allclose(np.diff(edges), 1 / 24, rtol=0, atol=5e-12)
+    np.testing.assert_array_equal(np.diff(density["y_edges_db"]), 1)
+    np.testing.assert_array_equal(hourly.reshape(hourly.shape[0], 60, 12).sum(axis=2), half_daily)
+    np.testing.assert_array_equal(np.ma.getmaskarray(density["relative_density"]), hourly == 0)
+    np.testing.assert_allclose(density["relative_density"].compressed(), 100 * hourly[hourly > 0] / hourly.max())
+    assert len(density["native_days"]) == len(density["native_delta_snr_db"]) == len(pairs)
+    np.testing.assert_array_equal(density["native_delta_snr_db"], pairs.delta_snr_db)
+    np.testing.assert_allclose(density["native_days"],
+                               (pairs.evidence_utc - builder.START).dt.total_seconds() / 86400,
+                               rtol=0, atol=5e-12)
+
+
+def test_figure3_density_artists_preserve_global_scale_and_all_native_coordinates():
+    from scripts import build_griffiths_figure3_comparisons as builder
+    from core.matplotlib_runtime import dispose_agg_figure, matplotlib_operation_lock
+
+    # Three first-hour observations occupy cell 0; the exact +0.5 dB
+    # boundary belongs to cell 1 under the temporal half-open policy.
+    # The next hour has two in that cell and a separate half-dB tie, while
+    # the last observation remains in the grid beyond B's displayed y range.
+    pairs = pd.DataFrame({
+        "evidence_utc": pd.to_datetime([
+            "2017-04-01T00:00Z", "2017-04-01T00:00Z", "2017-04-01T00:00Z", "2017-04-01T00:58Z",
+            "2017-04-01T01:00Z", "2017-04-01T01:02Z", "2017-04-01T01:04Z", "2017-04-30T23:58Z",
+        ], utc=True),
+        "delta_snr_db": [0, 0, 0, .5, -.5, 0, 1.5, 35],
+    })
+    density = builder.prepare_density_reconstruction(
+        pairs, builder.temporal_recipe(pairs, reference_snr_correction_db=0.0),
+    )
+    assert density["counts"].sum() == 8
+    np.testing.assert_array_equal(density["counts"][0, :2], [3, 2])
+    np.testing.assert_allclose(density["relative_density"][0, :2], [100, 200 / 3])
+    assert density["counts"][1, 0] == 1
+    assert density["counts"][2, 1] == density["counts"][35, -1] == 1
+    expected_offsets = np.column_stack([
+        (pairs.evidence_utc - builder.START).dt.total_seconds() / 86400,
+        pairs.delta_snr_db,
+    ])
+    with matplotlib_operation_lock():
+        figure, axis = builder.plt.subplots()
+        try:
+            mesh, markers = builder.draw_density_reconstruction(axis, density)
+            assert mesh.cmap.name == "gray_r" and mesh.norm.vmin == 0 and mesh.norm.vmax == 100
+            np.testing.assert_allclose(mesh.cmap(mesh.norm([0, 50, 100]))[:, :3],
+                                       [[1, 1, 1], [.5, .5, .5], [0, 0, 0]], atol=1 / 255)
+            np.testing.assert_array_equal(mesh.get_array().filled(-1), density["relative_density"].filled(-1))
+            np.testing.assert_array_equal(mesh.get_coordinates()[0, :, 0], density["time_edges_days"])
+            np.testing.assert_array_equal(mesh.get_coordinates()[:, 0, 1], density["y_edges_db"])
+            np.testing.assert_allclose(markers.get_offsets(), expected_offsets, rtol=0, atol=5e-12)
+            assert len(markers.get_offsets()) == 8  # includes the three coincident pairs
+            assert markers.get_gid() == "figure3-all-native-pairs"
+            assert np.all(markers.get_sizes() > 2.5) and markers.get_alpha() > .2
+            np.testing.assert_array_equal(markers.get_facecolors()[:, :3], 0)
+            assert axis.get_yscale() == "linear"
+        finally:
+            dispose_agg_figure(figure)
 
 
 def _assert_temporal_profile_matches_reference(reference_run, profile_name, filename_suffix=""):

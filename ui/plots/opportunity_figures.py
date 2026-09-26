@@ -13,6 +13,7 @@ from config import (
 )
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.opportunity_engine import (
+    ABSOLUTE_METHOD_VERSION,
     opportunity_utc_from_time_slot,
     opportunity_rate_scale_max,
 )
@@ -607,6 +608,7 @@ def _opportunity_segment_recipe(
 
     return {
         "kind": "opportunity_performance_evidence",
+        "performance_method_version": ABSOLUTE_METHOD_VERSION,
         "schema_version": 2,
         "distance_binning_version": SUCCESS_DISTANCE_BINNING_VERSION,
         "title": title,
@@ -2295,6 +2297,7 @@ def _opportunity_temporal_recipe(
     )
     return {
         "kind": "opportunity_performance_temporal",
+        "performance_method_version": ABSOLUTE_METHOD_VERSION,
         "schema_version": 8,
         "population_mode": population_mode,
         "snr_representation": snr_representation,

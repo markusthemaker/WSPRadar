@@ -1,82 +1,161 @@
-"""Presentation-only A-to-B-to-C layout; all frozen numerical inputs are read-only."""
+"""Render Zander Figure 4 from raw-source production replay and paper evidence.
+
+Frozen expected results are assertions only; they never supply plotted values.
+The generated SQL runs offline through the bounded regression SQLite adapter.
+"""
 from pathlib import Path
 import argparse
 import hashlib
 import json
 import sys
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(ROOT), str(ROOT / "tests/regression")]
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.text import Text
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np
 import pandas as pd
 from PIL import Image
-from ui.plots.evidence_figures import _vertical_metric_histogram_recipe
+from test_zander_experiment_a_reference import _calculate_run
 from core.matplotlib_runtime import matplotlib_operation_lock
+from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
+from config.demo_pdf_headers import DEMO_PDF_HEADERS
+from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
+from i18n import T
+from ui.plots.evidence_figures import render_segment_insight_export_figure
+from ui.results_export import _style_figure_for_paper
 
 PAPER = ROOT / "tests/regression/reference_fixtures/zander_fig4_paper_v1"
 ARCHIVE = ROOT / "tests/regression/reference_fixtures/zander_experiment_a_v1"
 OUTPUT = PAPER / "figure4_histogram_overlay.png"
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-directory", type=Path, default=PAPER)
-    output_directory = parser.parse_args().output_directory
-    output_directory.mkdir(parents=True, exist_ok=True)
-    output_path = output_directory / OUTPUT.name
-    annotations = json.loads((PAPER / "paper_features.json").read_text())
-    policy = json.loads((PAPER / "comparison_policy.json").read_text())
-    paired = pd.read_csv(ARCHIVE / "expected_paired_rows.csv", float_precision="round_trip")
-    fine_expected = pd.read_csv(ARCHIVE / "expected_histogram_1db.csv", float_precision="round_trip")
-    differences = paired.delta_snr_db.to_numpy()
-    recipe = _vertical_metric_histogram_recipe(differences)
-    assert recipe["value_count"] == 166 and recipe["bin_width"] == 1
-    np.testing.assert_array_equal(recipe["centers"], fine_expected.delta_snr_db)
-    np.testing.assert_array_equal(recipe["counts"], fine_expected.joint_spots)
-    percentages = 100 * recipe["counts"] / recipe["value_count"]
-    np.testing.assert_allclose(percentages, fine_expected.percent_of_sample, rtol=0, atol=1e-12)
-    edges = np.asarray(policy["nominal_edges_db"])
+def build_comparison_inputs(source_rows=None, configuration_document=None):
+    """Calculate every plotted reconstruction value through current production.
+
+    This function deliberately never opens expected_* files. Coarse rebinning
+    changes only the display of the actual production 1 dB histogram counts.
+    """
+    annotations = json.loads((PAPER / "paper_features.json").read_text(encoding="utf-8"))
+    policy = json.loads((PAPER / "comparison_policy.json").read_text(encoding="utf-8"))
+    if source_rows is None:
+        source_rows = pd.read_csv(ARCHIVE / "source_rows.csv", float_precision="round_trip")
+    run = _calculate_run(source_rows, configuration_document)
+    recipe = run.recipe["spot_histogram"]
+    differences = run.points["metric"].to_numpy(dtype=float)
+    sample_count = int(recipe["value_count"])
+    assert recipe["bin_width"] == 1 and sample_count == len(differences)
+    fine_counts = np.asarray(recipe["counts"], dtype=int)
+    fine_centers = np.asarray(recipe["centers"], dtype=float)
+    percentages = 100 * fine_counts / sample_count
+    edges = np.asarray(policy["nominal_edges_db"], dtype=float)
     widths = np.diff(edges)
-    counts = np.histogram(differences, bins=edges)[0]
-    assert counts.sum() == recipe["counts"].sum() == 166
-    density = counts / (166 * widths)
+    counts = np.histogram(fine_centers, bins=edges, weights=fine_counts)[0]
+    assert counts.sum() == fine_counts.sum() == sample_count, "Do not renormalize clipped evidence"
+    density = counts / (sample_count * widths)
     paper_density = np.array([entry["density_per_db"] for entry in annotations["digitization"]["bins"][:9]])
-    residuals = density - paper_density
-    tolerance = annotations["digitization"]["density_absolute_readout_tolerance_per_db"]
-    assert np.all(np.abs(residuals) <= tolerance)
-    assert np.isclose(percentages.sum(), 100) and np.isclose(np.dot(density, widths), 1)
-    mean = float(differences.mean())
-    sample_sd = float(differences.std(ddof=1))
-    median = float(np.median(differences))
-    assert median == -7
-    identities = len(paired[["peer_sign", "peer_grid"]].drop_duplicates())
-    cycles = paired.time_slot.nunique()
+    return SimpleNamespace(
+        run=run, annotations=annotations, policy=policy, recipe=recipe,
+        differences=differences, sample_count=sample_count,
+        percentages=percentages, edges=edges, widths=widths, counts=counts,
+        density=density, paper_density=paper_density, residuals=density-paper_density,
+        mean=float(recipe["mean"]), median=float(recipe["median"]),
+        sample_sd=float(differences.std(ddof=1)),
+        identities=len(run.points[["station", "grid"]].drop_duplicates()),
+        cycles=int(run.points["plot_time"].nunique()),
+    )
+
+
+def verify_comparison_inputs_against_references(comparison):
+    """Let independent expectations reject a render, never generate its values."""
+    fine_expected = pd.read_csv(ARCHIVE / "expected_histogram_1db.csv", float_precision="round_trip")
+    np.testing.assert_array_equal(comparison.recipe["centers"], fine_expected.delta_snr_db)
+    np.testing.assert_array_equal(comparison.recipe["counts"], fine_expected.joint_spots)
+    np.testing.assert_allclose(comparison.percentages, fine_expected.percent_of_sample, rtol=0, atol=1e-12)
+    paired_expected = pd.read_csv(ARCHIVE / "expected_paired_rows.csv", float_precision="round_trip")
+    actual_pairs = comparison.run.points.rename(columns={
+        "station": "peer_sign", "grid": "peer_grid", "metric": "delta_snr_db",
+    }).copy()
+    actual_pairs["time_slot"] = pd.to_datetime(actual_pairs["plot_time"], utc=True).dt.as_unit("s").astype("int64") // 120
+    keys = ["time_slot", "peer_sign", "peer_grid"]
+    columns = keys + ["delta_snr_db"]
+    pd.testing.assert_frame_equal(
+        actual_pairs[columns].sort_values(keys).reset_index(drop=True),
+        paired_expected[columns].sort_values(keys).reset_index(drop=True),
+        check_dtype=False, check_exact=True,
+    )
+    tolerance = comparison.annotations["digitization"]["density_absolute_readout_tolerance_per_db"]
+    assert np.all(np.abs(comparison.residuals) <= tolerance)
+    assert np.isclose(comparison.percentages.sum(), 100)
+    assert np.isclose(np.dot(comparison.density, comparison.widths), 1)
+
+
+def render_comparison(comparison, output_path):
+    """Render three comparison panels with the unchanged native histogram.
+
+    The page retains its 5:3 aspect ratio, the original publication raster and
+    the residual diagnostic. Only displayed numbers are rounded; calculated
+    observations, histogram values and provenance retain their full precision.
+    """
+    annotations, recipe = comparison.annotations, comparison.recipe
+    percentages, edges, widths = comparison.percentages, comparison.edges, comparison.widths
+    density, paper_density, residuals = comparison.density, comparison.paper_density, comparison.residuals
+    mean, sample_sd, median = comparison.mean, comparison.sample_sd, comparison.median
+    identities, cycles = comparison.identities, comparison.cycles
+    sample_count = comparison.sample_count
 
     INK, MUTED, TEAL, ORANGE = "#172B3A", "#526572", "#148A91", "#D9792C"
-    BACKGROUND, GRID = "#FCFBF8", "#DEE5E7"
+    BACKGROUND, GRID = "white", "#DEE5E7"
     plt.rcParams.update({
         "font.family": "DejaVu Sans", "font.size": 12, "text.color": INK,
         "axes.labelcolor": INK, "xtick.color": MUTED, "ytick.color": MUTED,
         "axes.edgecolor": "#91A0A8", "figure.facecolor": BACKGROUND,
         "axes.facecolor": "white", "savefig.facecolor": BACKGROUND,
     })
-    figure = plt.figure(figsize=(20, 12), dpi=180)
-    lefts, width, bottom, height = [.055, .375, .695], .27, .45, .34
-    figure.text(.055, .962, "Zander Figure 4 · from the paper to WSPRadar", fontsize=26, weight="bold")
-    figure.text(.055, .924, "Experiment A, 14 MHz  |  The same 166 reconstructed pairs, shown with coarse and fine bins", fontsize=14, color=MUTED)
-    titles = ["A  Published Figure 4", "B  Reconstruction in the paper’s bins", "C  WSPRadar · 1 dB bins"]
-    subtitles = ["Original raster; orange line: paper’s normal curve.", "Digitized paper bars over the reconstruction.", "Same pairs, percent-of-sample bar heights."]
+    # Retain the production figure and its actual right-hand histogram artists.
+    # The common paper-export style changes the background, not series colours,
+    # binning, statistics, axis limits or transformations.
+    native_recipe = dict(comparison.run.recipe)
+    native_recipe["paired_evidence_title"] = T["en"]["fig_joint_spot_delta"]
+    native_recipe["metric_axis_label"] = T["en"]["tbl_col_delta_snr"]
+    figure = render_segment_insight_export_figure(native_recipe)
+    _style_figure_for_paper(figure)
+    app_axis = next(axis for axis in figure.axes if any(
+        patch.get_gid() == "spot-metric-histogram" for patch in axis.patches
+    ))
+    for axis in list(figure.axes):
+        if axis is not app_axis:
+            figure.delaxes(axis)
+    for page_text in list(figure.texts):
+        page_text.remove()
+    figure.set_size_inches(24, 14.4)
+    figure.set_layout_engine(None)
+    lefts, width, bottom, height = [.055, .375, .695], .27, .424, .30
+    app_axis.set_box_aspect(None)
+    app_axis.set_position([lefts[2], bottom, width, height])
+    app_axis.set_title(native_recipe["paired_evidence_title"], fontsize=13, pad=12)
+    native_legend = app_axis.get_legend()
+    median_handles, median_labels = app_axis.get_legend_handles_labels()
+    if native_legend is not None:
+        native_legend.remove()
+    for native_text in app_axis.findobj(Text):
+        native_text.set_fontfamily("DejaVu Sans")
+        native_text.set_fontsize(13)
+        native_text.set_color(INK)
+    app_axis.tick_params(labelsize=12)
+
+    add_demo_pdf_header(figure, DEMO_PDF_HEADERS["zander_figure4"])
+    titles = ["Panel A - Original publication", "Panel B - Reconstruction", "Panel C - WSPRadar view"]
+    subtitles = ["Original image; orange line: paper’s normal curve.", "Paper-style bins, with digitized paper bars overlaid.", "Native Joint-Spot histogram with 1 dB bins."]
     for left, title, subtitle in zip(lefts, titles, subtitles):
-        figure.text(left, .878, title, fontsize=15, weight="bold")
-        figure.text(left, .848, subtitle, fontsize=11, color=MUTED)
-    for arrow_x in [.348, .668]:
-        figure.text(arrow_x, .88, "→", fontsize=23, color=TEAL, ha="center")
+        figure.text(left, .796, title, fontsize=16, weight="bold")
+        figure.text(left, .773, subtitle, fontsize=12, color=MUTED)
 
     # Align the original raster's plot frame with B and C while retaining the full
     # source image, including its title, axes, tick labels and original Gaussian.
@@ -98,8 +177,7 @@ def main():
     source_axis.set_axis_off()
 
     overlay_axis = figure.add_axes([lefts[1], bottom, width, height])
-    app_axis = figure.add_axes([lefts[2], bottom, width, height])
-    for axis in [overlay_axis, app_axis]:
+    for axis in [overlay_axis]:
         axis.set_xlim(x_limits)
         axis.set_xticks(calibration["x_tick_values_db"])
         axis.set_xlabel("Target − Reference ΔSNR (dB)", labelpad=9)
@@ -113,28 +191,30 @@ def main():
     overlay_axis.set_ylabel("Probability density (dB⁻¹)", labelpad=9)
     overlay_axis.yaxis.set_major_locator(MultipleLocator(.02))
     overlay_axis.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-    overlay_axis.legend(handles=[
+    figure.legend(handles=[
         Line2D([], [], color=ORANGE, lw=2.2, label="Paper bars (digitized)"),
-        Patch(facecolor=TEAL, alpha=.35, edgecolor=TEAL, label="WSPRadar reconstruction"),
-    ], loc="upper right", fontsize=9.5, framealpha=.97, edgecolor=GRID)
-    overlay_axis.annotate("Final flat region combines\ntwo source bars", xy=(1.9, density[-1]), xytext=(1.5, .034),
-                          fontsize=10, color=MUTED, arrowprops={"arrowstyle": "-", "color": MUTED, "lw": .8})
+        Patch(facecolor=TEAL, alpha=.35, edgecolor=TEAL, label="Reconstruction (B)"),
+    ], labels=["Paper bars (B)", "Reconstruction (B)"],
+        loc="center", bbox_to_anchor=(lefts[1] + width / 2, .361),
+        ncol=2, fontsize=13, frameon=False)
+    figure.legend(handles=[
+        Patch(facecolor="#36aaf9", alpha=.70, edgecolor="#67c4ff", label="Joint Spots (C)"),
+        *median_handles,
+    ], labels=["Joint Spots (C)",
+               *[f"{label} (C)" for label in median_labels]],
+        loc="center", bbox_to_anchor=(lefts[2] + width / 2, .361),
+        ncol=2, fontsize=13, frameon=False)
+    overlay_axis.annotate("Final flat region combines\ntwo source bars", xy=(1.9, density[-1]), xytext=(-.5, .034),
+                          fontsize=12, color=MUTED, arrowprops={"arrowstyle": "-", "color": MUTED, "lw": .8})
 
-    bars = app_axis.bar(recipe["centers"], percentages, width=.82, align="center", color=TEAL, alpha=.55,
-                        edgecolor=TEAL, linewidth=.7, zorder=2)
-    np.testing.assert_allclose([bar.get_height() for bar in bars], fine_expected.percent_of_sample, rtol=0, atol=1e-12)
+    bars = [patch for patch in app_axis.patches if patch.get_gid() == "spot-metric-histogram"]
+    np.testing.assert_allclose([bar.get_height() for bar in bars], percentages, rtol=0, atol=1e-12)
     np.testing.assert_array_equal([bar.get_x() + bar.get_width()/2 for bar in bars], recipe["centers"])
-    app_axis.set_ylim(0, 15)
-    app_axis.set_yticks([0, 3, 6, 9, 12, 15])
-    app_axis.set_ylabel("Joint pairs (% of sample)", labelpad=9)
-    app_axis.axvline(median, color=INK, ls="--", lw=1.2, alpha=.7)
-    app_axis.text(.975, .965, f"n = 166\nMedian {median:.1f} dB\nMean {mean:.3f} dB", transform=app_axis.transAxes,
-                  ha="right", va="top", fontsize=10.5, color=MUTED)
 
     # Retain the former C residual evidence as a smaller unlettered supporting plot.
-    figure.text(lefts[1], .351, "Agreement check · reconstruction minus digitized density", fontsize=11.5, weight="bold")
-    figure.text(lefts[1], .326, f"Maximum |residual| {np.abs(residuals).max():.7f} dB⁻¹", fontsize=10.5, color=MUTED)
-    residual_axis = figure.add_axes([lefts[1], .18, width, .119])
+    figure.text(lefts[1], .324, "Agreement check - Panel B minus paper", fontsize=14, weight="bold")
+    figure.text(lefts[1], .299, f"Maximum |residual| {np.abs(residuals).max() * 1e4:.2f} × 10⁻⁴ dB⁻¹", fontsize=12, color=MUTED)
+    residual_axis = figure.add_axes([lefts[1], .180, width, .096])
     residual_axis.axhspan(-5, 5, color=ORANGE, alpha=.10)
     residual_axis.axhline(0, color="#71838D", lw=.8)
     residual_axis.stairs(residuals * 1e4, edges, color=TEAL, lw=1.8, baseline=None)
@@ -143,43 +223,101 @@ def main():
     residual_axis.set_xticks(calibration["x_tick_values_db"])
     residual_axis.set_yticks([-5, 0, 5])
     residual_axis.spines[["top", "right"]].set_visible(False)
-    residual_axis.tick_params(labelsize=10)
-    figure.text(lefts[1], .132, "Shaded allowance: ±0.0005 dB⁻¹; not a confidence interval.", fontsize=10.2, color=MUTED)
+    residual_axis.tick_params(labelsize=12)
 
-    figure.text(lefts[0], .351, "Rounded paper statistics", fontsize=12, weight="bold")
-    figure.text(lefts[0], .321, "Mean −6.8 dB  ·  Reported σ 3.5 dB", fontsize=14)
-    figure.text(lefts[0], .272, "Independent archive reconstruction", fontsize=12, weight="bold")
-    figure.text(lefts[0], .242, f"Mean {mean:.3f} dB  ·  Sample s {sample_sd:.3f} dB", fontsize=14, color=TEAL)
-    figure.text(lefts[0], .206, f"166 receiver-cycle pairs  ·  {identities} receiver identities  ·  {cycles} cycles", fontsize=10.5, color=MUTED)
-    figure.text(lefts[0], .165, "All 9 visible regions fall within the\noriginal readout allowance.", fontsize=12, weight="bold", color=TEAL, va="top", linespacing=1.4)
+    figure.text(lefts[0], .324, "Rounded paper statistics", fontsize=14, weight="bold")
+    figure.text(lefts[0], .296, "Mean −6.8 dB  ·  Reported σ 3.5 dB", fontsize=14)
+    figure.text(lefts[0], .256, "Current WSPRadar reconstruction", fontsize=14, weight="bold")
+    figure.text(lefts[0], .228, f"Mean {mean:.1f} dB  ·  Sample σ {sample_sd:.1f} dB", fontsize=14, color=TEAL)
+    figure.text(lefts[0], .196, f"{sample_count} receiver-cycle pairs · {identities} receiver identities · {cycles} cycles", fontsize=12, color=MUTED)
 
-    figure.text(lefts[2], .351, "Same observations, finer display", fontsize=12, weight="bold")
-    figure.text(lefts[2], .316, "The 1 dB bins reveal uneven counts and empty bins\nthat are combined in the paper’s coarser histogram.\nThe mean and standard deviation do not change.", fontsize=11.5, color=MUTED, va="top", linespacing=1.6)
-    figure.text(lefts[2], .229, "B shows density per dB.\nC shows percent of all 166 pairs per 1 dB bin;\nits percentages sum to 100%.", fontsize=11.5, color=MUTED, va="top", linespacing=1.6)
-    figure.text(lefts[2], .132, "No fitted curve, time shift or density rescaling.", fontsize=10.5, color=MUTED)
+    figure.text(lefts[2], .324, "Same observations, finer display", fontsize=14, weight="bold")
+    figure.text(lefts[2], .296, "The 1 dB bins reveal uneven counts and empty bins\nthat the paper’s coarser histogram combines.\nThe mean and standard deviation do not change.", fontsize=12, color=MUTED, va="top", linespacing=1.4)
+    figure.text(lefts[2], .232, f"Panel B: density = count / ({sample_count} × bin width in dB);\nbar areas sum to 1. Panel C: percent of all {sample_count}\npairs per 1 dB bin; bar heights sum to 100%.", fontsize=12, color=MUTED, va="top", linespacing=1.4)
+    figure.text(lefts[2], .177, "Read both histogram axes linearly. Panel C retains\nWSPRadar’s native binning, colours and statistics.", fontsize=12, color=MUTED, va="top", linespacing=1.4)
+    figure.text(lefts[2], .131, "No fitted curve, time shift or density rescaling\nis applied to the reconstruction.", fontsize=12, color=MUTED, va="top", linespacing=1.4)
 
-    figure.add_artist(Line2D([.055, .965], [.104, .104], transform=figure.transFigure, color=GRID, lw=1))
-    figure.text(.055, .078, "METHOD  Coarse density = count ÷ (166 × region width). Eight 2.1 dB regions plus one 4.2 dB region; no clipping or subset renormalization.", fontsize=10.5)
-    figure.text(.055, .050, "LIMIT  Agreement supports the pooled-pair reconstruction; the paper leaves exact selectors and histogram sample weighting unresolved.", fontsize=10.5)
-    figure.text(.055, .023, "SOURCE  Jens Zander (2022), arXiv:2209.08989v1, Figure 4. Graphical allowances are not statistical confidence intervals. Frozen fixture data and tests are unchanged.", fontsize=10, color=MUTED)
+    figure.add_artist(Line2D([.055, .965], [.088, .088], transform=figure.transFigure, color=GRID, lw=1))
+    figure.text(.055, .064, "READ  ΔSNR = Target − Reference: negative values favour the Reference vertical. Each Joint Spot pairs both signals at one receiver in one cycle.", fontsize=12)
+    add_demo_pdf_footer(figure, right=.965, bottom=.018)
 
     figure.savefig(output_path, dpi=180, metadata={
         "Title": "Zander Figure 4: publication to reconstruction to WSPRadar",
-        "Description": "A original publication, B fixed coarse-bin density overlay, C production1dB histogram percentages in the same light style; residual check retained underneath B.",
+        "Description": "Panel A original publication, Panel B fixed coarse-bin density overlay, Panel C native WSPRadar histogram; residual check retained underneath Panel B.",
         "Inputs": json.dumps({str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in [
-            PAPER/"paper_features.json", PAPER/"comparison_policy.json", PAPER/"paper_figure4.png", ARCHIVE/"expected_paired_rows.csv", ARCHIVE/"expected_histogram_1db.csv"]}),
+            PAPER/"paper_features.json", PAPER/"comparison_policy.json", PAPER/"paper_figure4.png", ARCHIVE/"source_rows.csv", ARCHIVE/"demo.config"]}),
     })
     # Bars, lines and labels remain vector; only the original paper is raster.
     with matplotlib.rc_context({"pdf.fonttype": 42}):
-        figure.savefig(output_path.with_suffix(".pdf"), metadata={
-            "Title": "Zander Figure 4: publication, reconstruction and WSPRadar",
+        figure.savefig(output_path.with_name("WSPRadar_Demo_Zander_Figure4.pdf"), metadata={
+            **demo_pdf_metadata(DEMO_PDF_HEADERS["zander_figure4"]),
             "Subject": "Vector histogram reconstruction and comparison with the original publication raster",
             "CreationDate": None, "ModDate": None,
         })
     plt.close(figure)
-    print(json.dumps({"output": str(output_path), "sample_count": 166, "fine_bin_counts_and_bar_heights_verified": True, "maximum_density_residual": float(np.abs(residuals).max())}))
+    print(json.dumps({"output": str(output_path), "sample_count": sample_count, "fine_bin_counts_and_bar_heights_verified": True, "maximum_density_residual": float(np.abs(residuals).max())}))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-directory", type=Path, default=PAPER)
+    output_directory = parser.parse_args().output_directory
+    output_directory.mkdir(parents=True, exist_ok=True)
+    comparison = build_comparison_inputs()
+    verify_comparison_inputs_against_references(comparison)
+    with matplotlib_operation_lock():
+        render_comparison(comparison, output_directory / OUTPUT.name)
+    provenance = {
+        "scientific_values": "Current WSPRadar calculations from frozen raw provider reports; expected_* files are assertions only",
+        "pipeline": [
+            "validated demo.config -> AnalysisContext -> build_analysis_batches",
+            "current generated SQL -> reference_sql.execute_generated_sql over source_rows.csv",
+            "apply_post_fetch_filters -> build_map_data_result -> build_compare_inspector_view_model",
+            "_build_compare_unit_rows -> _retain_thresholded_compare_outcomes -> _compare_joint_evidence_points",
+            "_segment_figure_export_recipe -> spot_histogram",
+        ],
+        "adapter_limit": "SQLite executes the generated scientific SELECT, predicates, grouping and aggregation through a bounded ClickHouse-function adapter; this is not native ClickHouse verification",
+        "presentation": {
+            "footer_text": DEMO_PDF_FOOTER_TEXT,
+            "A": "Original publication raster",
+            "B": "Coarse paper-style rebinning of production 1 dB histogram counts; external digitized paper bars overlaid",
+            "C": "Native production Joint-Spot histogram renderer, with unchanged bins, percentage heights, colours, median and mean; white paper-export theme",
+            "style_specification": "config/demo_pdf_style.md",
+            "page_inches": [24, 14.4],
+            "page_aspect_ratio": "5:3 (unchanged)",
+            "display_precision": "One decimal place for mean and sample standard deviation; at most two decimal places for other calculated display values; residuals use a coefficient times 10^-4 per dB; original paper and arXiv identifier unchanged",
+            "axes": "Linear axes; native Panel C limits and tick policy retained",
+            "legend": "Separate legends centered below Panels B and C, with panel-scoped labels; native red dashed median retained",
+            "sample_standard_deviation": "Supplemental paper-review statistic: NumPy standard deviation with ddof=1 over actual production paired differences; this is not a statistic supplied by the app histogram recipe",
+            "sample_standard_deviation_label": "Sample σ, following the paper's symbol for its estimated sample standard deviation; reconstruction still uses ddof=1",
+        },
+        "source_input_sha256": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in (ARCHIVE / "source_rows.csv", ARCHIVE / "demo.config")
+        },
+        "assertion_only_input_sha256": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in (ARCHIVE / "expected_paired_rows.csv", ARCHIVE / "expected_histogram_1db.csv")
+        },
+        "generated_sql_sha256": hashlib.sha256(comparison.run.analysis.query.encode("utf-8")).hexdigest(),
+        "observed": {
+            "raw_report_count": len(comparison.run.source_rows),
+            "sql_group_count": len(comparison.run.sql_rows),
+            "retained_group_count": len(comparison.run.processed),
+            "joint_pairs": comparison.sample_count,
+            "paired_receiver_identities": comparison.identities,
+            "paired_cycles": comparison.cycles,
+            "mean_delta_snr_db": comparison.mean,
+            "median_delta_snr_db": comparison.median,
+            "sample_std_delta_snr_db": comparison.sample_sd,
+            "paper_style_region_counts": comparison.counts.tolist(),
+            "maximum_paper_density_residual_per_db": float(np.abs(comparison.residuals).max()),
+        },
+    }
+    (output_directory / "figure4_comparison_provenance.json").write_text(
+        json.dumps(provenance, indent=2) + "\n", encoding="utf-8", newline="\n",
+    )
 
 
 if __name__ == "__main__":
-    with matplotlib_operation_lock():
-        main()
+    main()

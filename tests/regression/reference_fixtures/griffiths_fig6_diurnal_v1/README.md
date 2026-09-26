@@ -12,7 +12,7 @@ This fixture independently reconstructs a frozen archive population behind the G
 - Historical source mode: `legacy_no_code`. All 18,791 captured reports have `code=0`; this observation does not independently establish their physical decode mode.
 - Frozen source: public wspr.live query captured on 2026-09-23. The original capture records the then-current dirty working tree and provider provenance.
 
-The additional 22,000 km case changes only `max_peer_distance_km`. It uses exactly the same frozen SQL-result input, time window, endpoint identities and remaining scientific settings. It tests whether the production radius setting genuinely determines the retained evidence population.
+The additional 22,000 km case changes only `max_peer_distance_km`. It uses exactly the same frozen raw-source input, time window, endpoint identities and remaining scientific settings. It tests whether the production radius setting genuinely determines the retained evidence population.
 
 ## Numerical anchors
 
@@ -51,7 +51,7 @@ Pooling the native paired observations in the daily clock-time interval **[05:00
 
 The one-off derivation script was retained at `tmp/build_griffiths_fig6_reference_20260924.py`; its checksum is recorded in `verification.json`. It imports no WSPRadar modules. Pandas is used only for table serialization. The script is not needed by the regression tests and must never be invoked automatically to refresh expectations.
 
-Only after deriving the expectations were the independently grouped source reports compared with the frozen SQL output. All 12,290 group keys, receiver counts and present-side normalized SNR maxima matched exactly. This is a crosscheck of the captured SQL output; it is not execution of the current SQL against the fixture.
+Only after deriving the expectations were the independently grouped source reports compared with the frozen SQL output. All 12,290 group keys, receiver counts and present-side normalized SNR maxima matched exactly. That original derivation crosscheck did not execute current SQL. The installed replay was extended on 2026-09-25 to execute freshly generated production SQL against the same frozen source reports.
 
 ## Temporal contracts
 
@@ -77,7 +77,7 @@ The external agreement is the qualitative UTC-hour reversal and its approximate 
 
 - `demo.config`, `analysis_context.json`: fixed base configuration and captured canonical context. The 22,000 km variant is a single explicit override recorded in `expected_summary.json`.
 - `source_rows.parquet`: the original 18,791 raw endpoint reports, copied byte-for-byte from the capture. `source_rows_query.sql` records their acquisition query.
-- `input_sql_rows.parquet`: the 12,290 captured SQL-result rows, converted without scientific transformation from `sql_output_legacy.csv` for offline production replay. `query_legacy.sql` preserves the original aggregation query.
+- `input_sql_rows.parquet`: the 12,290 captured SQL-result rows, converted without scientific transformation from `sql_output_legacy.csv`. These rows now serve only as an assertion target for freshly executed SQL, never a pipeline input. `query_legacy.sql` preserves the original aggregation query.
 - `expected_paired_rows.parquet` and `expected_paired_rows_22000km.parquet`: independently reconstructed paired units, including exact cycle/time identity, both normalized SNR components and their difference.
 - `expected_24h.csv`, `expected_3h.csv`, `expected_1h.csv`, `expected_6h.csv`, `expected_utc_hour.csv`: fixed temporal summaries at the base radius.
 - `expected_density_*.csv`: complete integer count grids for those base profiles.
@@ -91,9 +91,15 @@ Text files use UTF-8 without BOM and LF line endings. Parquet is binary. The man
 
 ## Regression scope and maintenance
 
-The companion regression replays the frozen SQL-result rows through the real post-fetch filters, geographic selection, station aggregation, Inspector paired eligibility and temporal recipes. Expected rows and summaries must be read only for assertions, never substituted into the calculation. Required files must fail loudly when absent or corrupt.
+The companion regression reads all 18,791 frozen raw reports, generates current production SQL, and executes its strict query and applicable legacy fallback through the bounded SQLite compatibility adapter. It then runs the real post-fetch filters, geographic selection, station aggregation, Inspector paired eligibility and temporal recipes. The same calculated evidence supplies the comparison graphics. Expected rows, captured SQL results and summaries are read only for assertions, never substituted into the calculation. Required files must fail loudly when absent or corrupt.
 
-The regression does not run a database, contact a provider, exercise automatic provider failover, establish the scientific meaning of historical `code=0`, or execute the current SQL against raw source rows. Independent derivation of the expectations covers normalization and grouping arithmetic for the captured population, but a production SQL change requires a separate SQL-execution test to be checked end-to-end.
+The regression runs generated SQL expressions and predicates in an in-memory SQLite database, removing only the output FORMAT directive. It does not contact a provider, exercise HTTP/cache/admission behavior, establish the scientific meaning of historical `code=0`, or validate the native ClickHouse engine and its geographic-distance implementation. Independent derivation of the expectations remains separate from the production SQL and downstream calculation being tested.
+
+The 2026-09-25 source-input isolation check forbids expected and captured-SQL
+Parquet reads during calculation. A controlled +3 dB change to one Target
+transmission's raw reports must change exactly its production paired value,
+change the folded density grid and fail the unchanged paired-row oracle.
+Earlier post-SQL-only integration results below remain historical records.
 
 Use exact comparisons for identities, timestamps, counts and this dataset's integer/half/quarter-dB statistics. An absolute tolerance of 1e-12 dB is sufficient for ordinary floating arithmetic summaries such as means. Do not use a broad +/-1 dB tolerance to accommodate unexplained changes.
 

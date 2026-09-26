@@ -61,7 +61,7 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             manual,
         )
 
-        assert len(source_block_formulas) == 29
+        assert len(source_block_formulas) == 30
         formal_manual = manual.split('<a id="sec-7-11"></a>', 1)[1].split(
             '<a id="sec-8"></a>', 1
         )[0]
@@ -86,6 +86,9 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
         assert not re.search(r"(?<!\$)\$[^$\r\n]+\$(?!\$)", rendered)
         assert "&Delta;" not in rendered
         expected_formula_fragments = (
+            "S<sub>i,c</sub> = T<sub>i,c</sub>",
+            "O<sub>i,c</sub> = T<sub>i,c</sub> &or; E<sub>i,c</sub>",
+            "M<sub>i,c</sub> = E<sub>i,c</sub> &and; &not; T<sub>i,c</sub>",
             "n<sub>i</sub> = sum<sub>c</sub> O<sub>i,c</sub>",
             "r<sub>i</sub> = 100% &times; h<sub>i</sub> / n<sub>i</sub>",
             "R<sub>station</sub>(g) = (1 / |I<sub>g</sub>|)",

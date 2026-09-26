@@ -23,6 +23,7 @@ import pandas as pd
 from config import APP_VERSION
 from core.evidence_statistics import _expanded_metric_limits
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
+from core.opportunity_engine import ABSOLUTE_METHOD_VERSION
 from ui.inspector.outlier_candidates import DELTA_SNR_OUTLIER_MAD_NORMALIZATION
 from ui.plots.benchmark_evidence_figures import (
     render_selected_compare_coverage_export_figure,
@@ -288,6 +289,7 @@ def build_drilldown_zoom_performance_snr_recipe(
         evidence_unit_kind="successful_opportunity",
     )
     recipe["snr_title"] = recipe["title"]
+    recipe["performance_method_version"] = ABSOLUTE_METHOD_VERSION
     return recipe
 
 

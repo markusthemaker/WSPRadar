@@ -99,6 +99,7 @@ operating risks. The Streamlit application neither imports nor starts it.
 | `config/guided_input_flow.schema.json` | Strict Draft 2020-12 schema for the declarative Guided Input flow. |
 | `config/json_utils.py` | Shared strict UTF-8 JSON decoder rejecting duplicate keys and non-finite numbers. |
 | `config/plot_constants.py` | Map extent, projection/render constants, colors, and scientific display constants. |
+| `config/demo_pdf_headers.py` | Presentation-only titles, source citations, demo-context text and header layouts for authored comparison PDFs. Interpreted by `scripts/demo_pdf_header.py`; not used for scientific selection or runnable demo configuration. |
 | `config/__init__.py` | Compatibility re-exports for configuration consumers. |
 
 User-saved configuration files and demos share the version-1
@@ -679,7 +680,7 @@ processed schema deliberately:
   `time_slot * 120` through one helper;
 - stores repeated peer callsign, locator, and outcome values categorically;
 - retains peer coordinates and target SNR at their existing precision;
-- distinguishes hits, misses, target-only observations, and eligible evidence;
+- distinguishes hits, misses, eligible evidence and the Target-only provenance subset of hits;
 - uses peer-balanced segment aggregation while retaining pooled diagnostics;
 - allows owned-input mutation to avoid unnecessary full DataFrame copies;
 - projects only the columns needed by segment, drilldown, and map consumers.
@@ -719,8 +720,8 @@ station-level evidence renderable and omits only segment-dependent output. A
 configured requirement and an observed diagnostic are separate fields: the UI
 may report a highest observed count only when it is present in the diagnostic,
 and it must never display the configured minimum as though it had been
-observed. Performance Target-only audit rows do not contribute to the confirmed
-opportunity count. Benchmark preserves its established generic
+observed. Performance Target-only successes contribute once to both success and confirmed
+opportunity counts; their provenance count is never added again. Benchmark preserves its established generic
 no-qualifying-result boundary and records the applicable Joint or complete
 Scheduled-Pair and segment requirements without inventing station-support
 maxima that the Benchmark pipeline did not calculate.
@@ -1003,7 +1004,7 @@ partially overlapping boundary slot counts as one represented slot rather than
 being exposure-fraction weighted, so its folded mean can be depressed.
 Chronological one-hour support is directly comparable in units only when bin
 edges are anchored to UTC-hour boundaries; wider chronological bins cover
-multiple hours. Target-only audit rows do not enter either Performance denominator.
+multiple hours. Target-only successes enter both Performance denominators once, as part of all hits.
 
 All Performance and Benchmark temporal presentations use one unavailable-state
 contract in RX and TX, for both active-scope segment and selected-station
@@ -1050,7 +1051,7 @@ selected start therefore changes bin membership and the resulting density,
 median and quartile inputs; rendering does not merely widen the x-axis. Its
 chronological and pooled UTC-hour bin medians retain their raw
 observation-level populations. Q1 and Q3 use those same unrounded Joint Spot or
-complete Scheduled Pair values before integer heatmap binning and the
+complete Scheduled Pair values before temporal density binning and the
 median-centered nonlinear display transform. The subtle IQR band is bounded by
 fine Q1/Q3 lines, requires at least five values, breaks at unsupported bins
 without suppressing sparse medians, and does not alter the complete finite
@@ -1058,6 +1059,36 @@ evidence envelope used by the axis. The exact
 scope median is identified by its red line and legend rather than a tick-label
 suffix. Absolute zero remains inside the scale envelope but has no separate
 reference line or boxed label.
+
+Benchmark temporal density uses a correction-aware 1 dB lattice. The numerical
+`AnalysisContext.reference_snr_correction_db` is passed explicitly through
+Segment and Selected Station preparation into recipe schema 6, independently
+of localized correction notices, at the same one-decimal applied precision
+already used by the scientific query. For corrected Delta SNR `d` and correction
+`c`, the integer cell ID is `floor(d + c + 0.5)`, while physical edges are
+`k - 0.5 - c` and `k + 0.5 - c`. This coordinate transformation never modifies
+the corrected metric or its observation-level statistics. Prepared profiles
+and compact-row rendering share membership and edge construction; chronological
+and folded UTC-hour views and exports therefore use the same geometry. The
+median-focused axis includes the actual translated cell boundaries, raw tails,
+and absolute zero. Inspector cache version 50 and temporal export render
+version 9 prevent reuse of the previous integer-centered grids.
+
+The numerical membership policy evaluates `d + c` at the explicitly approved
+0.1 dB resolution and assigns integer cell IDs from integer tenths. This
+absorbs floating-point noise at half-dB boundaries while preserving the stored
+corrected observations and all their statistics. Sub-resolution membership
+distinctions can intentionally merge; physical edges still use the numerical
+correction without quantizing their 1 dB width. Exact half-dB coordinates at
+this resolution enter the upper cell, including negative values, replacing the previous
+ties-to-even policy, including at zero correction. Ordinary static histogram
+binning, Performance figures and native-point Drill-Down remain separate.
+Nearest-tenth quantization uses ties-to-even only at half-tenth midpoints;
+differences within `8 * float64_eps * max(1, abs(d) + abs(c))` dB of those
+midpoints are treated as the midpoint to absorb arithmetic noise. Values beyond
+that narrow guard remain distinct for quantization. A full-precision observation
+can sit up to 0.05 dB beyond its assigned cell edge because only membership is
+quantized; raw extrema remain part of the non-clipping axis envelope.
 
 Optional Delta-SNR outlier-candidate reporting is a lazy, presentation-side
 subsystem over the retained full-precision comparison units. One simultaneous
@@ -1878,10 +1909,28 @@ must remain outside `README.md`.
    Map and segment aggregates use the corresponding narrow projections.
 6. The inspector loads selected evidence only when required.
 
-The Performance method version is `opportunity-v2`. It distinguishes canonical
-peer-cycle consolidation in export provenance and completed-run identity, so
-pre-fix processed results cannot be reused as current completed results. Raw
-query-cache entries remain valid and pass through consolidation on a new run.
+The Performance method version is `opportunity-v3`. In the existing Target-active,
+same-band, same-cycle and exact peer-identity scope, `hit = target_seen`,
+`opportunity = target_seen OR external_seen`, and
+`miss = external_seen AND NOT target_seen`. A valid successful decode confirms
+both endpoints. In RX, the Target RX decoding the peer TX confirms both their
+activities; another eligible RX reporting that same peer TX confirms peer TX
+activity for a Miss only while the Target RX is demonstrably active. In TX, the
+peer RX decoding the Target TX confirms both their activities; that exact peer
+RX reporting another qualifying TX confirms peer RX activity for a Miss only
+while the Target TX is demonstrably active. Evidence with neither flag remains
+unknown and excluded. Activity somewhere else never proves that a particular
+silent receiver was listening. `target_only = target_seen AND NOT external_seen`
+remains a provenance subset of hits, never an extra outcome to add to totals.
+The flags feed station thresholds, both rates, maps, Peer Reach, successful-SNR
+medians/IQR/extremes, temporal and folded profiles, Station Insights, Drill-Down
+and exports. Strongest-report consolidation, normalization, filters and all
+Benchmark/Delta-SNR methods remain unchanged.
+
+The method version enters export provenance, completed-run identity and figure
+cache identity so incompatible processed results and figures cannot be reused.
+Unchanged raw query-cache entries remain valid and are reprocessed through
+canonical peer-cycle consolidation and the revised classification on a new run.
 
 ### Duplicate and Admission Flow
 
@@ -2342,6 +2391,22 @@ capabilities.
    user-supplied single-path subset, so its conditional gate outcomes are not
    claims about global receiver activity in a complete live RX run. Original
    digitization and the historical TX audit are retained with explicit scope.
+   The separate `milazzo_human_review_v2` reference preserves explicit user
+   approval of all P01–P10 and B01–B04 cards on 26 September 2026. It freezes the
+   full-band Performance source, the Benchmark source, exact 32-hour review
+   configurations, card anchors and independently derived complete ledgers.
+   Mandatory local regression replays generated SQL through the offline adapter
+   before actual production classification, maps, Inspector and figure recipes;
+   expected values never supply production inputs. Selected rendered-artist
+   assertions protect the reviewed marker, weighting and IQR contracts. This
+   is additional human-reviewed archive evidence, distinct from the paper-only
+   Figures 6/7 reconciliation and from individually reviewed raw reports.
+   `scripts/verify_milazzo_clickhouse.py` provides a separate, explicitly invoked
+   read-only provider comparison before major development completion. It checks
+   actual ClickHouse query results against the frozen reference without running
+   on routine regressions or in GitHub CI. Upstream archive drift and a query
+   defect can both produce a mismatch; neither permits automatic expectation
+   replacement. This check does not upload frozen input into a native database.
    Native database execution over frozen input and wider independent
    reference coverage remain outstanding. A generated prepared-export package
    is still absent, so the separate package-integrity test remains skipped.

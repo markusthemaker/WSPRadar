@@ -44,7 +44,7 @@ WSPRadar does not decode these radio messages or reconstruct a compound identity
 
 Under concurrent load, WSPRadar can route a complete new run to **WSPRDaemon WD2** and then **WD1**, as capacity permits. This ordered capacity spillover is distinct from provider failover: if a selected source fails, WSPRadar discards the unpublished attempt and restarts the complete run on the next source. Every completed run remains pinned to one archive; records from different sources are never combined.
 
-One limitation is central to every analysis: the archive records successful decodes, not a complete log of every attempted transmission or every active receiver. WSPRadar therefore constructs an <strong class="defined-term">opportunity</strong> only when independent evidence shows that the relevant remote transmitter or receiver was active. For RX, another eligible receiver must have decoded the same transmitter. For TX, the remote receiver must have decoded another signal on the same band. Without such supporting activity, a missing Target spot is not automatically treated as a radio failure.
+One limitation is central to every analysis: the archive records successful decodes, not a complete log of every attempted transmission or every active receiver. A valid successful decode directly confirms participation of both endpoints. Within a Target-active cycle, WSPRadar therefore constructs an <strong class="defined-term">opportunity</strong> when the Target-side decode succeeds or external evidence confirms the relevant peer activity. For RX, the Target RX decoding the peer TX is a success; another eligible RX decoding that same peer TX confirms the peer TX activity needed to assess a missing Target RX decode. For TX, the peer RX decoding the Target TX is a success; that same peer RX decoding another qualifying same-band TX confirms the peer RX activity needed to assess a missing Target TX decode. All evidence must match the selected band, cycle and exact peer identity. Without sufficient endpoint-activity evidence, silence remains unknown and excluded; activity somewhere else never establishes that a particular silent receiver was listening.
 
 This distinction turns WSPR from a collection of successful spots into evidence that can support questions about practical reach, consistency and relative performance without pretending that every missing report represents a failed radio path.
 
@@ -53,17 +53,17 @@ This distinction turns WSPR from a collection of successful spots into evidence 
 
 #### 0.1 What WSPRadar can show
 
-WSPRadar is a WSPR-based antenna and station performance analysis and benchmarking system. It evaluates one <strong class="defined-term">Target</strong>: the station under test, normally your station, represented either as a complete installed station or as a controlled transmit or receive path. A <strong class="defined-term">peer</strong> is a remote station whose radio path contributes to the analysis. <strong class="defined-term">Decode Rate</strong> is the percentage of independently confirmed opportunities in which the Target-side decode succeeded: the Target decoded the peer in RX, or the peer decoded the Target in TX. WSPRadar then answers one of two broad questions.
+WSPRadar is a WSPR-based antenna and station performance analysis and benchmarking system. It evaluates one <strong class="defined-term">Target</strong>: the station under test, normally your station, represented either as a complete installed station or as a controlled transmit or receive path. A <strong class="defined-term">peer</strong> is a remote station whose radio path contributes to the analysis. <strong class="defined-term">Decode Rate</strong> is the percentage of confirmed opportunities in which the Target-side decode succeeded: the Target decoded the peer in RX, or the peer decoded the Target in TX. WSPRadar then answers one of two broad questions.
 
-* <strong class="defined-term">Performance</strong> asks how the Target behaved across independently confirmed WSPR opportunities. It can reveal practical footprint, at-least-once reach, Decode Rate, successful signal levels, distance and direction structure, temporal behavior, and the breadth and depth of the supporting evidence.
+* <strong class="defined-term">Performance</strong> asks how the Target behaved across confirmed WSPR opportunities. It can reveal practical footprint, at-least-once reach, Decode Rate, successful signal levels, distance and direction structure, temporal behavior, and the breadth and depth of the supporting evidence.
 * <strong class="defined-term">Benchmark</strong> asks how the Target behaved relative to a meaningful <strong class="defined-term">Reference</strong> under matched conditions. It can reveal paired Target-minus-Reference Delta SNR, joint and one-sided Decode Outcomes, how much evidence was pairable, and where and when the relative difference appeared.
 
 The question determines the appropriate evidence design:
 
 | Analysis | Question | Practical examples |
 |---|---|---|
-| <strong class="analysis-choice-single">RX Performance</strong> | How broadly and consistently does my receiver decode signals that were independently confirmed elsewhere? | Establish the receiving footprint of a newly commissioned antenna or station; see whether reception is broad but intermittent or narrower and consistent; identify recurring direction, distance or UTC-hour patterns, including periods that may warrant a separate check for local noise or intermittent hardware. |
-| <strong class="analysis-choice-single">TX Performance</strong> | Where, when and how consistently is my transmitter decoded by receivers independently shown to be active? | Map where a QRP beacon or newly installed antenna is heard; see when and in which directions independently confirmed active receivers decode the station most consistently; establish a station baseline after commissioning, repair or relocation, and use comparable repeat runs to determine whether its observed behavior later changes. |
+| <strong class="analysis-choice-single">RX Performance</strong> | How broadly and consistently does my receiver decode signals across confirmed opportunities? | Establish the receiving footprint of a newly commissioned antenna or station; see whether reception is broad but intermittent or narrower and consistent; identify recurring direction, distance or UTC-hour patterns, including periods that may warrant a separate check for local noise or intermittent hardware. |
+| <strong class="analysis-choice-single">TX Performance</strong> | Where, when and how consistently is my transmitter decoded by receivers shown to be active? | Map where a QRP beacon or newly installed antenna is heard; see when and in which directions confirmed active receivers decode the station most consistently; establish a station baseline after commissioning, repair or relocation, and use comparable repeat runs to determine whether its observed behavior later changes. |
 | <span class="analysis-choice"><span class="analysis-family">RX Benchmark</span><br><strong class="analysis-variant">Hardware A/B</strong></span> | Did two local receive paths differ while observing the same remote transmissions? | Compare two antennas, each feeding its own simultaneous receiver and decoder chain, as complete receive paths; attribute a difference specifically to the antennas only when the remaining chains are matched, characterized or confirmed by crossover; feed one antenna through a characterized splitter into two receivers to compare receiver or decoder paths; place a preamplifier, filter, feedline or common-mode choke in only one otherwise controlled path and benchmark the two documented complete receive paths. |
 | <span class="analysis-choice"><span class="analysis-family">TX Benchmark</span><br><strong class="analysis-variant">Hardware A/B</strong></span> | Did two local transmit paths differ under simultaneous or tightly scheduled operation? | Feed two antennas from separate calibrated transmit chains and transmit simultaneously with synchronized cycles, distinguishable signals and adequate isolation; use one transmitter and a controlled RF switch to alternate between two antennas on a fixed UTC schedule; compare two feedlines, matching networks, filters or complete transmit paths while controlling actual power, timing and the remaining chain. |
 | <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Reference Station / Buddy Test</strong></span> | How does my complete station compare with one known station? | <strong>RX:</strong> compare your receiver with a known Buddy receiver while both observe the same remote transmitters in the same cycles; <strong>TX:</strong> compare your transmitter with a Buddy transmitter at the same remote receivers in the same cycles; repeat a stable, well-understood Buddy design as a relative whole-station baseline before and after documented station work, without treating the Buddy as an absolute calibrated standard. |
@@ -261,8 +261,8 @@ Before a confirmatory repetition, fix the direction, band, Reference design, fil
 
 | Operating question | Analysis |
 |---|---|
-| Which independently confirmed signals does my receiver decode, where, when and how consistently? | **RX Performance** |
-| Where and how consistently is my transmitter decoded by receivers independently shown to be active? | **TX Performance** |
+| Which signals does my receiver decode across confirmed opportunities, where, when and how consistently? | **RX Performance** |
+| Where and how consistently is my transmitter decoded by receivers shown to be active? | **TX Performance** |
 | How do two local receive paths, two complete receiving stations, or my receiver and a local neighborhood Reference differ? | **RX Benchmark** |
 | How do two local transmit paths, two complete transmitting stations, or my transmitter and a local neighborhood Reference differ? | **TX Benchmark** |
 
@@ -334,11 +334,11 @@ Use the section matching the selected Direction and result type. Exact control l
 
 #### 2.1 RX Performance
 
-**Question answered.** Which remote transmitter-cycles, independently confirmed by another eligible receiver, did the Target receiver also decode; how consistently did it do so; what successful SNR did it observe; and where and when did that behavior occur?
+**Question answered.** Which confirmed peer TX cycles did the Target RX decode; how consistently did it do so; what successful SNR did it observe; and where and when did that behavior occur?
 
 **Minimum valid setup.** Use the exact Target reporting callsign and QTH, one band and a window with observable Target receiver activity. Keep the receive chain stable. Performance does not introduce a Reference and does not isolate one component of the receive system.
 
-**What WSPRadar evaluates.** A confirmed RX opportunity exists when another eligible receiver decoded the same remote transmitter in the same Target-active cycle. `Heard by Target` means the Target also decoded it; `Heard by others only` means the independent receiver did but the Target did not. Evidence without independent confirmation remains auditable but does not enter Decode Rate. The exact classification is in [Section 7.4](#sec-7-4).
+**What WSPRadar evaluates.** Within the selected band, exact peer identity and Target-active cycle, a confirmed RX opportunity exists when the Target RX decodes the peer TX or another eligible RX decodes that same peer TX. `Heard by Target` is a success whether or not another RX also reports the peer TX: the Target RX report directly confirms both the transmitting peer TX and the receiving Target RX. `Heard by others only` is a Miss when another eligible RX confirms the peer TX transmission but the active Target RX does not decode it. A Target-only success is retained as provenance within successes and opportunities, never added a second time. If the Target RX has no activity evidence, another receiver's report does not prove that the Target RX was listening. The exact classification is in [Section 7.4](#sec-7-4).
 
 **Read the evidence path.** On the **Map**, sector color shows the Station-balanced Decode Rate of qualifying remote transmitters in each distance-and-direction segment. Station markers and the footer distinguish paths heard by the Target at least once from paths heard only elsewhere. Use this first to locate broad RX footprint and directional structure, not to judge receiver sensitivity from color alone.
 
@@ -350,7 +350,7 @@ In **Segment Inspector**, first compare station breadth with confirmed-opportuni
 
 In **Temporal Evidence**, successful-SNR deviation compares each transmitter path with its own usual successful level during the run. Values above `0 dB` mean successful decodes were stronger than usual for their respective paths; values below `0 dB` mean weaker. The accompanying station and opportunity evidence shows whether a signal-level change coincided with changed Decode Rate and whether the pattern was broadly supported. The chronological view identifies changes during the run; the folded UTC-hour view identifies recurring daily behavior.
 
-In **Station Insights**, read each transmitter's Decode Rate together with `Heard by Target` and `Heard by others only` counts. Select a typical path, an outlier and any path contributing unusually large evidence. **Selected Station Evidence** then shows the actual successful SNR and opportunity history of one transmitter path rather than the station-relative summary across the segment. **Drill-Down** verifies the contributing cycles and distinguishes confirmed opportunities from Target evidence that lacks independent confirmation.
+In **Station Insights**, read each transmitter's Decode Rate together with `Heard by Target` and `Heard by others only` counts. Select a typical path, an outlier and any path contributing unusually large evidence. **Selected Station Evidence** then shows the actual successful SNR and opportunity history of one transmitter path rather than the station-relative summary across the segment. **Drill-Down** verifies the contributing cycles and distinguishes externally supported successes from the Target-only provenance subset, which is already included in successes and opportunities.
 
 **Common interpretation patterns.** Broad reach with high Decode Rate means many paths opened and were decoded consistently. Broad reach with lower Decode Rate means many paths opened at least once but were intermittent. Limited reach with high Decode Rate means fewer qualifying paths opened, but those that did were comparatively consistent. If successful SNR remains steady or rises while Decode Rate falls, weaker signals may have disappeared below the decoder threshold, leaving only stronger successful decodes. A pattern confined to one azimuth, distance range or UTC period can be operationally useful, but it describes the installed receiver under those paths and conditions rather than a context-free sensitivity number.
 
@@ -358,17 +358,17 @@ In **Station Insights**, read each transmitter's Decode Rate together with `Hear
 
 <p class="evidence-conclusion-label"><strong>Evidence-matched conclusion.</strong></p>
 
-<blockquote class="evidence-conclusion"><p>For this Target receiver, band, UTC window and selected transmitter population, RX Performance describes at-least-once reach, Decode Rate within independently confirmed transmitter-cycles, successful-decode SNR and the geographic and temporal scope in which those observations appeared. State the weighting used, the station and opportunity support, and whether the pattern was broad, intermittent, directional, distance-dependent or recurring.</p></blockquote>
+<blockquote class="evidence-conclusion"><p>For this Target receiver, band, UTC window and selected transmitter population, RX Performance describes at-least-once reach, Decode Rate within confirmed transmitter-cycles, successful-decode SNR and the geographic and temporal scope in which those observations appeared. State the weighting used, the station and opportunity support, and whether the pattern was broad, intermittent, directional, distance-dependent or recurring.</p></blockquote>
 
 <a id="sec-3-tx-performance"></a>
 
 #### 2.2 TX Performance
 
-**Question answered.** Which remote receivers independently shown to be active decoded the Target transmitter; how consistently did they do so; what successful SNR did they report; and where and when did that behavior occur?
+**Question answered.** Which peer RX stations shown to be active decoded the Target TX; how consistently did they do so; what successful SNR did they report; and where and when did that behavior occur?
 
 **Minimum valid setup.** Use the exact Target callsign and QTH, one band and a window in which the Target transmitter was operating. Keep the RF path, schedule and actual power stable, and report power accurately. Performance evaluates the complete transmitted station rather than one isolated component.
 
-**What WSPRadar evaluates.** A confirmed TX opportunity exists when the remote receiver was active in a Target transmit cycle, demonstrated by another qualifying same-band decode. `Target heard` means that receiver also decoded the Target; `Other signals heard only` means it decoded qualifying same-band activity but not the Target. A Target report without independent receiver-activity confirmation remains auditable but does not enter Decode Rate. The exact denominator is in [Section 7.4](#sec-7-4).
+**What WSPRadar evaluates.** Within the selected band, exact peer identity and Target-active cycle, a confirmed TX opportunity exists when the peer RX decodes the Target TX or that same peer RX decodes another qualifying same-band transmitter. `Target heard` is a success whether or not the peer RX also reports another transmitter: its Target TX report directly confirms both endpoints. `Other signals heard only` is a Miss when that peer RX reports another qualifying transmitter but not the active Target TX. A Target-only success is retained as provenance within successes and opportunities, never added a second time. A report of the Target TX at some other receiver proves Target TX activity, not that this particular silent peer RX was listening. The exact denominator is in [Section 7.4](#sec-7-4).
 
 **Read the evidence path.** On the **Map**, sector color shows the Station-balanced Decode Rate of qualifying active receivers in each distance-and-direction segment. Markers and footer counts distinguish receivers that heard the Target at least once from receivers that heard only other qualifying signals. Use the map to locate practical transmitted footprint and directional structure.
 
@@ -380,7 +380,7 @@ In **Segment Inspector**, compare receiver breadth with confirmed-opportunity de
 
 In **Temporal Evidence**, successful-SNR deviation shows when successful reports were stronger or weaker than each receiver path's own usual successful level. The accompanying station and opportunity stacks show whether a change in successful SNR was accompanied by a change in practical detectability and how much support each time bin contains. Chronological change and recurring UTC-hour behavior should be distinguished.
 
-In **Station Insights**, read each receiver's rate with its `Target heard` and `Other signals heard only` counts. **Selected Station Evidence** exposes one receiver path's actual successful SNR and opportunity history, which helps determine whether the segment summary reflects many receivers or masks a path-specific effect. **Drill-Down** verifies Target reports, independent receiver activity and any Target reports that lack independent receiver-activity confirmation.
+In **Station Insights**, read each receiver's rate with its `Target heard` and `Other signals heard only` counts. **Selected Station Evidence** exposes one receiver path's actual successful SNR and opportunity history, which helps determine whether the segment summary reflects many receivers or masks a path-specific effect. **Drill-Down** verifies Target TX reports, externally confirmed peer RX activity and the Target-only provenance subset already included in successes and opportunities.
 
 **Common interpretation patterns.** Broad reach and high Decode Rate indicate that many qualifying active receivers heard the Target consistently. Broad reach and lower Decode Rate indicate a large but intermittent footprint. A persistent advantage in one azimuth or distance range can be consistent with installed antenna and terrain behavior; a short isolated improvement can instead reflect propagation or receiver availability. Stable successful SNR with falling Decode Rate can indicate that only stronger surviving reports remain. Differences between station-balanced and Opportunity-level rates reveal whether a few high-volume receivers are driving the pooled view.
 
@@ -388,7 +388,7 @@ In **Station Insights**, read each receiver's rate with its `Target heard` and `
 
 <p class="evidence-conclusion-label"><strong>Evidence-matched conclusion.</strong></p>
 
-<blockquote class="evidence-conclusion"><p>For this Target transmitter, band, UTC window and selected active-receiver population, TX Performance describes at-least-once reach, Decode Rate within independently confirmed receiver-cycles, successful reported SNR and the geographic and temporal scope in which those observations appeared. State the weighting, receiver and opportunity support, reported-power basis and whether the pattern was broad, intermittent, directional, distance-dependent or recurring.</p></blockquote>
+<blockquote class="evidence-conclusion"><p>For this Target transmitter, band, UTC window and selected active-receiver population, TX Performance describes at-least-once reach, Decode Rate within confirmed receiver-cycles, successful reported SNR and the geographic and temporal scope in which those observations appeared. State the weighting, receiver and opportunity support, reported-power basis and whether the pattern was broad, intermittent, directional, distance-dependent or recurring.</p></blockquote>
 
 <a id="sec-3-3"></a>
 <a id="sec-3-rx-benchmark"></a>
@@ -658,7 +658,7 @@ A full technical report also states:
 
 **Performance wording**
 
-> For this Target, band, UTC window and selected peer population, the displayed Decode Rate describes the fraction of independently confirmed opportunities in which the Target also produced qualifying evidence. State whether the reported value is the Station-balanced Decode Rate or the Opportunity-level Decode Rate. Qualifying stations, confirmed opportunities, geographic scope and temporal views describe the breadth, depth and recurrence supporting that result.
+> For this Target, band, UTC window and selected peer population, the displayed Decode Rate describes the fraction of confirmed opportunities in which the Target also produced qualifying evidence. State whether the reported value is the Station-balanced Decode Rate or the Opportunity-level Decode Rate. Qualifying stations, confirmed opportunities, geographic scope and temporal views describe the breadth, depth and recurrence supporting that result.
 
 A complete Performance statement can additionally say whether at-least-once reach was broad or limited, whether participation was consistent or intermittent, where distance or directional patterns appeared, whether a UTC-hour pattern recurred and how successful Target SNR behaved. Describe these as observed WSPR behavior of the complete station under the selected conditions, not as isolated gain, sensitivity or efficiency.
 
@@ -904,7 +904,7 @@ Only after these checks should you change evidence thresholds, exclusions, solar
 
 #### 5.2 Diagnose by symptom
 
-An empty-result notice reports the scope and evidence parameters captured for the completed run, not subsequently edited controls. It separates an observed diagnostic from its configured requirement: for example, “highest observed: `3` confirmed opportunities” and “required: at least `5` per station.” A configured minimum is never presented as an observed count, and an observed maximum is shown only when WSPRadar actually calculated and retained it. For Performance, Target-only audit observations are not confirmed opportunities.
+An empty-result notice reports the scope and evidence parameters captured for the completed run, not subsequently edited controls. It separates an observed diagnostic from its configured requirement: for example, “highest observed: `3` confirmed opportunities” and “required: at least `5` per station.” A configured minimum is never presented as an observed count, and an observed maximum is shown only when WSPRadar actually calculated and retained it. For Performance, Target-only successes are confirmed opportunities and contribute to station thresholds; their provenance count is a subset of successes, not an additional total.
 
 | Symptom | Next checks |
 |---|---|
@@ -916,7 +916,7 @@ An empty-result notice reports the scope and evidence parameters captured for th
 | **Benchmark has no Delta SNR** | Check shared remote peers in overlapping cycles or scheduled pairs, Reference uptime, clocks, schedule mapping, joint threshold, filters and scope. |
 | **Benchmark has Delta SNR but little pairable evidence** | Read Joint Evidence Share and Decode Outcomes; check Reference uptime, power, thresholds, scope and whether the paired subset represents the wider station population. |
 | **Performance has very few peers** | Check independent network activity, minimum confirmed opportunities, exclusions, solar state, time window and maximum peer distance. |
-| **Many Performance rows lack independent confirmation** | The Target observations remain auditable but do not enter Decode Rate without the required independent activity evidence. |
+| **Many Performance successes lack external confirmation** | A valid Target decode itself confirms both endpoints. These Target-only successes enter Decode Rate once; their separate provenance count is not added again. Without a Target decode or the required external endpoint-activity evidence, the peer-cycle remains unknown and excluded. |
 | **`Only Reference = 0`** | Check Target-active conditioning, thresholds and active scope; zero can be correct. |
 | **Unexpected Hardware A/B Delta SNR sign** | Verify physical A/B mapping, Target/Reference order, correction sign, schedule phases, actual/reported power and calibration. Reconcile one path in Drill-Down. |
 | **Local result changes with radius** | Inspect local contributors and report radius sensitivity rather than selecting only the most favorable radius. |
@@ -997,7 +997,7 @@ The WSPR archive therefore combines unusual temporal depth and geographic reach 
 <a id="sec-d-lo"></a>
 Lo et al. used 7 MHz WSPR reports to study greyline propagation and warned that no authoritative operating schedules exist for WSPR equipment. Before interpreting a missing path, they checked whether a transmitter was heard elsewhere or whether a receiver heard another station, and they emphasized callsign/location consistency and multiple sites. <a href="#ref-9">[Ref-9]</a>
 
-That activity-check principle is direct prior art for WSPRadar's Target-Active Gate and independently confirmed opportunities: silence should not become counter-evidence until relevant operation is observable. Lo et al. do not define WSPRadar's asymmetric Target conditioning, Performance analysis target, station balancing, Decode Outcomes or local References; those remain WSPRadar design choices for different analysis questions.
+That activity-check principle is direct prior art for WSPRadar's Target-Active Gate and confirmed opportunities: silence should not become counter-evidence until relevant operation is observable. Lo et al. do not define WSPRadar's asymmetric Target conditioning, Performance analysis target, station balancing, Decode Outcomes or local References; those remain WSPRadar design choices for different analysis questions.
 
 <a id="sec-d-3"></a>
 #### 6.3 Antenna and station-comparison lineage
@@ -1033,7 +1033,7 @@ These systems establish substantial prior art in data acquisition, exploration, 
 
 WSPRadar inherits accumulated WSPR observations, activity checks, reported-power correction, common-condition pairing, calibrated receive-chain comparison, database joins and geographic/time inspection. It integrates them into one TX/RX workflow with:
 
-* Performance based on independently confirmed opportunities;
+* Performance based on confirmed opportunities;
 * Hardware A/B, Reference Station and dynamic Local Neighborhood Benchmarks;
 * same-cycle or deterministic scheduled-pair matching;
 * reported-power normalization and optional Reference-side correction;
@@ -1080,8 +1080,8 @@ This chapter uses **summary** or **descriptive statistic** for the rates, median
 
 | Design | Lowest comparison unit | Conditioning / eligibility | Principal summary | Primary boundary |
 |---|---|---|---|---|
-| RX Performance | one remote-transmitter peer-cycle | Target receiver active; same transmitter independently decoded elsewhere | peer Decode Rate, then equal-peer mean; pooled opportunity rate retained | conditional observability, not calibrated sensitivity |
-| TX Performance | one remote-receiver peer-cycle | Target transmitter active; peer receiver independently active on band | peer Decode Rate, then equal-peer mean; pooled opportunity rate retained | conditional observability, not all attempted transmissions |
+| RX Performance | one remote-transmitter peer-cycle | Target RX active; peer TX decoded by Target RX or another eligible RX | peer Decode Rate, then equal-peer mean; pooled opportunity rate retained | conditional observability, not calibrated sensitivity |
+| TX Performance | one remote-receiver peer-cycle | Target TX active; peer RX decodes Target TX or another qualifying same-band TX | peer Decode Rate, then equal-peer mean; pooled opportunity rate retained | conditional observability, not all attempted transmissions |
 | RX Hardware A/B / Buddy | one remote-transmitter peer-cycle | Target active; both receivers report the same transmitter-cycle for Delta SNR | station median Delta SNR, then median across stations | complete receive paths unless chains are controlled |
 | Simultaneous TX Hardware A/B / applicable Buddy or Local Benchmark | one remote-receiver peer-cycle | Target active; same receiver-cycle for paired Delta SNR | station median Delta SNR, then median across stations | power, chain and joint-decode selection |
 | Sequential TX Hardware A/B | one remote receiver in one scheduled Target/Reference pair | deterministic disjoint schedule and complete in-window pair | station median Pair Delta, then median across stations | time separation and switching/schedule effects |
@@ -1156,12 +1156,23 @@ Target-active evidence may be established globally even when the peer that prove
 <a id="sec-7-4"></a>
 #### 7.4 Performance analysis target, classification and summary statistics
 
-For peer $i$ and Target-active cycle $c$, let $O_{i,c}=1$ when independent activity evidence makes that peer-cycle a qualifying opportunity after the selected band, identity, filter and scope rules. Let $S_{i,c}=1$ when the Target also produces the required evidence in that opportunity, with $S_{i,c}\le O_{i,c}$.
+For peer $i$ and Target-active cycle $c$, let $T_{i,c}=1$ when a valid Target-side decode is present and $E_{i,c}=1$ when qualifying external evidence confirms the peer endpoint activity. Apply the selected band, exact peer identity, filter and geographic scope rules before including the peer-cycle. Success $S_{i,c}$, opportunity $O_{i,c}$ and Miss $M_{i,c}$ are defined by:
 
-* RX independent activity: another eligible receiver reports the same transmitter identity in the same cycle.
-* TX independent activity: the peer receiver reports another same-band transmitter in the same cycle.
+$$S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}$$
 
-Target evidence without the independent activity needed for $O_{i,c}=1$ remains auditable but is excluded from Decode Rate. Within qualifying RX opportunities, WSPRadar distinguishes cycles heard by the Target from cycles heard only by other eligible receivers. Within qualifying TX opportunities, it distinguishes cycles in which the peer receiver heard the Target from cycles in which it heard only other qualifying signals on the same band.
+Thus every valid success supplies its own opportunity, with $S_{i,c}\le O_{i,c}$ and $O_{i,c}=S_{i,c}+M_{i,c}$. The method identifier is `opportunity-v3`.
+
+* RX roles: the **Target RX** receives the **peer TX**. The peer TX → Target RX report confirms both endpoints and is a success. A peer TX → other eligible RX report confirms that peer TX was transmitting; it supports a Miss only when the Target RX is also demonstrably active in that cycle.
+* TX roles: the **Target TX** transmits to the **peer RX**. The Target TX → peer RX report confirms both endpoints and is a success. Another qualifying TX → that same peer RX report confirms that peer RX was receiving; it supports a Miss only when the Target TX is also demonstrably active in that cycle.
+
+A Target-only success has $T_{i,c}=1$ and $E_{i,c}=0$. Its provenance is retained as a subset of successes; it is already included once in both the success count and the opportunity count. External confirmation accompanying a success does not create another opportunity. If both flags are zero, endpoint activity is insufficient: the peer-cycle remains unknown and excluded. The Target-Active Gate is unchanged. Activity somewhere else cannot prove that a particular silent Target RX or peer RX was listening.
+
+| Target decode | External evidence | Success | Opportunity | Miss | Meaning |
+| :---: | :---: | :---: | :---: | :---: | :--- |
+| 1 | 0 | 1 | 1 | 0 | Target-only success; provenance subset |
+| 1 | 1 | 1 | 1 | 0 | Externally supported success |
+| 0 | 1 | 0 | 1 | 1 | Externally supported Miss in a Target-active cycle |
+| 0 | 0 | 0 | 0 | 0 | Unknown endpoint activity; excluded |
 
 For one qualifying peer:
 
@@ -1189,9 +1200,9 @@ The numerator counts qualifying peer identities that produced at least one Targe
 
 Reach is a breadth measure and normally increases with observation duration. It does not describe how consistently those peers were decoded; Decode Rate answers that separate question.
 
-Successful Target SNR is defined only where the Target was decoded/reported. It is therefore a success-conditioned distribution. Missed opportunities have no Target SNR and no synthetic value. Decode Rate and successful SNR must be interpreted jointly because a system that adds marginal decodes can show lower successful-SNR summaries while improving practical reach.
+Successful Target SNR is defined only where the Target was decoded/reported, including Target-only successes. It is therefore a success-conditioned distribution. Its medians, IQR and extremes use all retained successes after unchanged strongest-report consolidation and normalization. The same classification supplies station thresholds, both Decode Rate weightings, maps, Peer Reach, chronological and folded profiles, Station Insights, Selected Station Evidence, Drill-Down and exports. Missed opportunities have no Target SNR and no synthetic value. Decode Rate and successful SNR must be interpreted jointly because a system that adds marginal decodes can show lower successful-SNR summaries while improving practical reach.
 
-The Performance analysis target is the Target's conditional participation among independently observable opportunities in the retained population. It is not unconditional receiver sensitivity, the success probability of every attempted transmission or absolute station efficiency.
+The Performance analysis target is the Target's conditional participation among observable opportunities in the retained population. It is not unconditional receiver sensitivity, the success probability of every attempted transmission or absolute station efficiency.
 
 <a id="sec-7-5"></a>
 #### 7.5 Power normalization, correction and Benchmark Delta SNR
@@ -1242,7 +1253,7 @@ WSPRadar aggregates the evidence hierarchically so that one high-volume peer doe
 **Performance**
 
 1. Classify each eligible peer-cycle.
-2. Aggregate qualifying Target successes and counter-evidence by peer identity, while retaining Target observations without independent confirmation separately for audit.
+2. Aggregate all qualifying Target successes and externally supported Misses by peer identity. Retain Target-only provenance as a subset of successes without adding it again to totals.
 3. Apply the minimum opportunity count.
 4. Calculate one peer Decode Rate $r_i$.
 5. Calculate the equal-peer mean $R_{station}$.
@@ -1389,7 +1400,9 @@ Candidate-linked **`Outlier Focus`** uses the full retained pre-event flank, gua
 
 IQR and min–max displays are descriptive spread summaries, not confidence intervals. An IQR band is drawn only where at least five values contribute to the relevant bin; the median remains available with fewer values. Empty bins remain missing rather than becoming synthetic zero observations.
 
-Benchmark histograms normally use 1 dB bins, use 0.5 dB only for a clear half-dB lattice, and coarsen broad ranges to keep the number of bins bounded. Temporal density cells use integer-dB classes. Each density panel is normalized independently:
+Benchmark histograms normally use 1 dB bins, use 0.5 dB only for a clear half-dB lattice, and coarsen broad ranges to keep the number of bins bounded. Benchmark temporal density cells remain 1 dB high and follow the applied Reference SNR correction. For corrected Delta SNR `d` and numerical correction `c`, the ideal membership rule in the uncorrected comparison coordinate is `k = floor(d + c + 0.5)`; the numerical convention below evaluates this coordinate at 0.1 dB resolution. Cell `k` is centered at `k - c` and covers the half-open interval `[k - 0.5 - c, k + 0.5 - c)`: its lower boundary belongs to the cell, its upper boundary to the next cell, also for negative values. Adding `c` for membership is only a coordinate transformation; it does not apply the correction again to the stored observations, medians or quartiles. For the same retained population, changing `c` translates the density grid together with the corrected observations while retaining cell counts and relative-density colors. Fractional observations, including Local Median comparisons, need not lie at cell centers.
+
+For membership only, `d + c` is rounded to the nearest tenth of a decibel before assigning its integer cell ID; exact half-tenth ties choose the even tenth. A float64 roundoff guard only at these rounding midpoints prevents correction noise from choosing opposite tenths. This explicitly limits membership resolution to 0.1 dB and absorbs numerical noise such as `-0.7000000000000028` in a corrected value expected at `-0.7 dB`; distinctions smaller than that membership resolution can share a cell. Exact half-dB coordinates at that resolution enter the upper cell, including negative values. The original corrected observations and their statistics are not rounded by this grid policy. A full-precision fractional observation can consequently lie up to 0.05 dB beyond its assigned cell edge; axis coverage still includes the observation itself. This temporal presentation policy replaces ties-to-even integer rounding, so exact half-dB assignments can change even with zero correction. It does not change ordinary histograms, Performance views or native-point Drill-Down plots. Each density panel is normalized independently:
 
 $$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$
 
@@ -1397,7 +1410,7 @@ Here $n_{cell}$ is the evidence count in one density cell. Dividing by the most 
 
 Thus `100` means the most populated cell in that panel, not 100% of all evidence. Density colors cannot compare absolute evidence volume between independently normalized panels; support counts provide that information.
 
-Benchmark temporal and histogram views use a presentation-only monotonic scale centered on the scope median $M$. For a broad range, equal visual steps are anchored at $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ and $M\pm30$ dB, with a tail anchor at $M\pm60$ dB and extrapolation when required. When every required deviation is at most `10 dB`, the tighter anchors are $M$, $M\pm1$, $M\pm3$, $M\pm6$ and $M\pm10$ dB, with continuation anchors at $M\pm20$ and $M\pm40$ dB. The required range includes the applicable raw histogram or rounded heatmap-bin edges, a minimum `3 dB` half-span and absolute `0 dB`, so Target–Reference equality remains visible. The anchor mapping changes displayed spacing only: raw Delta SNR values, bin membership, counts, medians and quartiles remain unchanged. Because the vertical mapping is nonlinear, histogram bar **length** against its percentage axis — not displayed area — is the quantitative encoding.
+Benchmark temporal and histogram views use a presentation-only monotonic scale centered on the scope median $M$. For a broad range, equal visual steps are anchored at $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ and $M\pm30$ dB, with a tail anchor at $M\pm60$ dB and extrapolation when required. When every required deviation is at most `10 dB`, the tighter anchors are $M$, $M\pm1$, $M\pm3$, $M\pm6$ and $M\pm10$ dB, with continuation anchors at $M\pm20$ and $M\pm40$ dB. The required range includes the applicable raw histogram or correction-shifted temporal cell edges, a minimum `3 dB` half-span and absolute `0 dB`, so Target–Reference equality remains visible. The anchor mapping changes displayed spacing only: raw Delta SNR values, bin membership, counts, medians and quartiles remain unchanged. Because the vertical mapping is nonlinear, histogram bar **length** against its percentage axis — not displayed area — is the quantitative encoding.
 
 Performance successful-SNR views remain on a linear dB axis.
 
@@ -1601,7 +1614,7 @@ WSPRadar supports bounded descriptive and comparative claims about retained obse
 
 Use the result type that matches the statement:
 
-* **Performance** supports the Target's conditional behavior within independently confirmed opportunities and its at-least-once reach during the selected window.
+* **Performance** supports the Target's conditional behavior within confirmed opportunities and its at-least-once reach during the selected window.
 * **Benchmark Delta SNR** supports paired Target-minus-Reference description within the Joint subset.
 * **Decode Outcomes** support statements about pairability and one-sided evidence.
 * **Distance or direction structure** supports statements about observed path segments, not direct radiation angle or gain pattern.
@@ -1614,8 +1627,8 @@ Report the direction, band, UTC window, neighborhood radius, geographic scope, a
 | Avoid | Evidence-matched wording |
 |---|---|
 | “Antenna A has 3 dBi more gain.” | “Path A produced a +3.0 dB station-balanced median Delta SNR against B for the paired evidence in this band, window and segment.” |
-| “My receiver sensitivity is 72%.” | “The Target receiver's station-balanced Decode Rate was 72% among qualifying peer-cycles independently confirmed elsewhere.” |
-| “Performance should be close to 100%.” | “Decode Rate is conditional on independently confirmed opportunities; 100% is not an expected baseline.” |
+| “My receiver sensitivity is 72%.” | “The Target receiver's station-balanced Decode Rate was 72% among qualifying peer-cycles confirmed by a Target decode or external endpoint-activity evidence.” |
+| “Performance should be close to 100%.” | “Decode Rate is conditional on confirmed opportunities; 100% is not an expected baseline.” |
 | “A is statistically significantly better.” | “The descriptive paired median favored A in the selected evidence; no significance test was performed.” |
 | “The antenna has a lower take-off angle.” | “The observed advantage was concentrated in the specified longer-distance segments; radiation angle was not measured.” |
 | “A is more efficient because it had more exclusive decodes.” | “A produced more one-sided decode evidence under the documented power, schedule and network conditions; efficiency was not isolated.” |
@@ -1638,7 +1651,7 @@ Important data and design boundaries include:
 
 * user-supplied callsigns, locators and powers can be wrong;
 * archives contain successful decodes rather than complete attempt logs;
-* Performance is conditioned on independently observable opportunities;
+* Performance is conditioned on observable opportunities;
 * Target-active conditioning is asymmetric;
 * successful Target SNR is censored to successful decodes;
 * Benchmark Delta SNR is selected on Joint observation of both sides;

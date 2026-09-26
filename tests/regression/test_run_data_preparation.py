@@ -56,7 +56,7 @@ def _success_plan():
         "absolute_mode": "RX",
         "analysis_start_utc": datetime(2017, 4, 1, tzinfo=timezone.utc),
         "analysis_end_utc": datetime(2017, 4, 2, tzinfo=timezone.utc),
-        "absolute_method_version": "opportunity-v2",
+        "absolute_method_version": "opportunity-v3",
         "decode_filter_mode": DECODE_FILTER_STRICT,
         "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
         "query": "SUCCESS STRICT",

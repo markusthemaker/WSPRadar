@@ -75,9 +75,9 @@ def test_rx_opportunity_classification_and_target_exclusion():
         target_callsign="DL1MKS",
     )
 
-    assert rows["outcome"].tolist() == ["H", "M", "T"]
-    assert int(rows["opportunity"].sum()) == 2
-    assert int(rows["hit"].sum()) == 1
+    assert rows["outcome"].tolist() == ["H", "M", "H"]
+    assert int(rows["opportunity"].sum()) == 3
+    assert int(rows["hit"].sum()) == 2
     assert int(rows["miss"].sum()) == 1
     assert int(rows["target_only"].sum()) == 1
     assert (rows["opportunity"] == rows["hit"] + rows["miss"]).all()
@@ -92,13 +92,13 @@ def test_rx_opportunity_classification_and_target_exclusion():
 
     peers = aggregate_opportunity_peers(rows, min_opportunities=2)
     peer = peers.iloc[0]
-    assert int(peer["opportunities"]) == 2
-    assert int(peer["hits"]) == 1
+    assert int(peer["opportunities"]) == 3
+    assert int(peer["hits"]) == 2
     assert int(peer["misses"]) == 1
     assert int(peer["target_only"]) == 1
     assert bool(peer["eligible"])
-    assert math.isclose(float(peer["rate_pct"]), 50.0, abs_tol=0.001)
-    assert math.isclose(float(peer["successful_snr_median"]), -12.0, abs_tol=0.001)
+    assert math.isclose(float(peer["rate_pct"]), 66.7, abs_tol=0.001)
+    assert math.isclose(float(peer["successful_snr_median"]), -10.0, abs_tol=0.001)
 
 
 def test_opportunity_science_and_aggregates_match_across_owned_and_copied_inputs():
@@ -224,11 +224,11 @@ def test_canonical_peer_cycle_consolidation_preserves_evidence_and_identity_boun
         _server_row(103, "K1AAA", "FN31AA", 0, 0, None),
         _server_row(104, "K1AAA", "FN31AA", 1, 1, None),
     ])
-    expected["opportunity"] = [1, 1, 1, 0, 0, 0, 1]
-    expected["hit"] = [1, 0, 0, 0, 0, 0, 1]
+    expected["opportunity"] = [1, 1, 1, 1, 1, 0, 1]
+    expected["hit"] = [1, 0, 0, 1, 1, 0, 1]
     expected["miss"] = [0, 1, 1, 0, 0, 0, 0]
     expected["target_only"] = [0, 0, 0, 1, 1, 0, 0]
-    expected["outcome"] = ["H", "M", "M", "T", "T", "", "H"]
+    expected["outcome"] = ["H", "M", "M", "H", "H", "", "H"]
 
     rows = prepare_opportunity_rows(
         source, target_callsign="DL1MKS", owns_input=owns_input,
@@ -292,7 +292,8 @@ def test_time_slot_helper_matches_legacy_utc_timestamp_conversion():
     pd.testing.assert_series_equal(actual, expected)
 
 
-def test_target_only_never_enters_denominator():
+def test_target_only_enters_hits_and_denominator_exactly_once():
+    """Target RX DL1MKS's decodes confirm peer TX K1AAA in both cycles."""
     source = pd.DataFrame([
         _server_row(100, "K1AAA", "FN31aa", 1, 0, -12),
         _server_row(101, "K1AAA", "FN31aa", 1, 0, -8),
@@ -303,14 +304,17 @@ def test_target_only_never_enters_denominator():
     )
     peer = aggregate_opportunity_peers(rows, min_opportunities=1).iloc[0]
 
-    assert int(peer["opportunities"]) == 0
+    assert int(peer["opportunities"]) == 2
+    assert int(peer["hits"]) == 2
+    assert int(peer["misses"]) == 0
     assert int(peer["target_only"]) == 2
-    assert not bool(peer["eligible"])
-    assert pd.isna(peer["rate_pct"])
+    assert bool(peer["eligible"])
+    assert float(peer["rate_pct"]) == 100.0
+    assert float(peer["successful_snr_median"]) == -10.0
 
 
 def test_peer_aggregation_preserves_hit_median_bounds_schema_and_input():
-    """Pin H/M/T semantics while aggregating without cloning evidence rows."""
+    """Pin Hit/Miss and Target-only provenance without cloning evidence rows."""
     source = pd.DataFrame([
         _server_row(100, "K1AAA", "FN31aa", 1, 0, -50),
         _server_row(101, "K1AAA", "FN31aa", 1, 1, -20),
@@ -356,8 +360,8 @@ def test_peer_aggregation_preserves_hit_median_bounds_schema_and_input():
         assert str(peers[column].dtype) == "int64"
 
     first_peer = peers.loc[peers["peer_sign"] == "K1AAA"].iloc[0]
-    assert int(first_peer["opportunities"]) == 3
-    assert int(first_peer["hits"]) == 2
+    assert int(first_peer["opportunities"]) == 5
+    assert int(first_peer["hits"]) == 4
     assert int(first_peer["misses"]) == 1
     assert int(first_peer["target_only"]) == 2
     assert int(first_peer["target_observations"]) == 4
@@ -369,7 +373,7 @@ def test_peer_aggregation_preserves_hit_median_bounds_schema_and_input():
         pd.Series([104])
     ).iloc[0]
     assert bool(first_peer["eligible"])
-    assert float(first_peer["rate_pct"]) == pytest.approx(66.7)
+    assert float(first_peer["rate_pct"]) == pytest.approx(80.0)
 
     second_peer = peers.loc[peers["peer_sign"] == "K2BBB"].iloc[0]
     assert float(second_peer["successful_snr_median"]) == pytest.approx(-20.0)
@@ -384,7 +388,7 @@ def test_success_footer_counts_only_visible_qualified_denominator_evidence():
                 "rate_pct": 40.0,
                 "hits": 2,
                 "misses": 3,
-                "target_only": 7,
+                "target_only": 1,
             },
             {
                 "r_min": 0.0,
@@ -392,7 +396,7 @@ def test_success_footer_counts_only_visible_qualified_denominator_evidence():
                 "rate_pct": 0.0,
                 "hits": 0,
                 "misses": 4,
-                "target_only": 5,
+                "target_only": 0,
             },
             {
                 "r_min": 0.0,
@@ -673,7 +677,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             "Elsewhere (E)",
             "Heard by Target",
             "Heard by others only",
-            "Heard by Target without independent confirmation",
+            "Heard by Target only (included in successes)",
         ),
         (
             "en",
@@ -681,7 +685,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             "Other Signals (OS)",
             "Target heard",
             "Other signals heard",
-            "Target heard without independent RX-activity confirmation",
+            "Target heard only (included in successes)",
         ),
         (
             "de",
@@ -689,7 +693,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             "Elsewhere (E)",
             "Vom Target gehört",
             "Nur von anderen gehört",
-            "Vom Target gehört, aber nicht unabhängig bestätigt",
+            "Nur vom Target gehört (in Erfolgen enthalten)",
         ),
         (
             "de",
@@ -697,7 +701,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             "Other Signals (OS)",
             "Target gehört",
             "Andere Signale gehört",
-            "Target gehört, RX-Aktivität nicht unabhängig bestätigt",
+            "Nur Target gehört (in Erfolgen enthalten)",
         ),
     ),
 )
@@ -713,7 +717,7 @@ def test_success_drilldown_display_translates_outcomes_without_mutating_export_r
     canonical = pd.DataFrame(
         {
             "Outcome": ["Target", "Counter", "Target-only"],
-            "Target (T)": [1, 0, 0],
+            "Target (T)": [1, 0, 1],
             canonical_counter_column: [0, 1, 0],
         }
     )

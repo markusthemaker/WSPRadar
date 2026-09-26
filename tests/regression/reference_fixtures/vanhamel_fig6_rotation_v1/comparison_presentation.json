@@ -1,14 +1,57 @@
 {
   "builder": "scripts/build_vanhamel_rotation_comparison.py",
-  "builder_sha256": "824d4b8f480a1ba16136c1e74fdf6098d1d17f1c8fa718b252e1bfecbdb7821a",
+  "builder_sha256": "45a167d1280627921fd363d54d234d311db7ce854ac6ac149fcd7fdd89e64ed7",
+  "footer_text": "WSPRadar.org by Dr. Markus Brosch (DL1MKS)",
   "figure": 6,
   "source": "Frozen raw reports, actual generated SQL, production post-fetch and selected-station preparation",
   "paired_observations": 1441,
   "reference_correction_db": 1.6,
+  "temporal_density_contract": "correction-aware-1db-v1: membership-only d+c rounded to 0.1 dB, then k=floor(coordinate+0.5); physical interval [k-0.5-c, k+0.5-c)",
+  "density_expectations": "expected_density_12h_correction_aware_v1.csv; legacy expected_density_12h.csv retained unchanged",
+  "page_size_inches": [
+    22,
+    20.2125
+  ],
+  "horizontal_layout_points": {
+    "plot_left": 104,
+    "plot_width": 1343,
+    "colorbar_left": 1476,
+    "colorbar_width": 18
+  },
   "panel_a": "Original full embedded publication raster, with fixed tick calibration and external landmark rings",
   "panel_b": "Every WSPRadar paired reception; endpoint SNR subtracts common 7 dB normalization only to match paper display; paired difference unchanged",
-  "panel_c": "Actual selected_benchmark_temporal chronological artists and production white export styling; 12h bins, UTC axis, median-centered nonlinear delta SNR",
+  "panel_c": "Unchanged black paired Delta SNR trace; native density values, masks, colours and global normalization projected onto exact reception-number membership spans; linear dB axis",
+  "panel_d": "Actual selected_benchmark_temporal chronological artists and production white export styling; 12h bins, UTC axis, median-centered nonlinear delta SNR",
   "scientific_expectations_updated": false,
+  "expectation_input_boundary": "Frozen expected files are read only by assert_reference_reconstruction; plotted data are prepared exclusively from current production points, endpoint units and source power metadata",
+  "scientific_pipeline": [
+    "build_analysis_batches / generated SQL",
+    "offline SQLite compatibility execution",
+    "apply_post_fetch_filters",
+    "build_map_data_result",
+    "build_compare_inspector_view_model",
+    "_build_compare_unit_rows",
+    "_retain_thresholded_compare_outcomes",
+    "_compare_joint_evidence_points(require_paired_eligible=True)",
+    "_selected_evidence_export_recipe",
+    "render_selected_evidence_export_figure",
+    "_style_figure_for_paper"
+  ],
+  "presentation_adaptations": [
+    "Full publication raster in calibrated reception-number/dB coordinates",
+    "One-based chronological reception index",
+    "Common -7 dB endpoint display shift to reported SNR; paired Delta SNR unchanged",
+    "Production chronological subplot repositioned to Panel D; UTC-hour companion omitted",
+    "Native density cells projected onto reception support edges in Panel C; repeated edges give empty UTC bins zero width",
+    "Matching one-based bin labels in Panels C and D",
+    "Panel C reception scale above and bin-number scale below",
+    "Independently read paper landmarks shown as review annotations only"
+  ],
+  "unexercised_boundaries": [
+    "Native ClickHouse",
+    "Live provider HTTP/availability",
+    "Runtime cache and full interactive application session"
+  ],
   "pdf_raster_boundary": "Only the original published Figure 6 image is raster; reconstruction, production density cells, lines, markers, text and axes remain vector",
   "observed_landmarks": [
     {
@@ -52,6 +95,232 @@
       "observed_reception_index": 977,
       "observed_delta_snr_db": 7.4,
       "observed_utc": "2021-05-10T22:28:00+00:00"
+    }
+  ],
+  "bin_mapping": [
+    {
+      "bin_id": 1,
+      "start_utc": "2021-05-01T17:15:00+00:00",
+      "end_utc": "2021-05-02T05:15:00+00:00",
+      "pair_count": 99,
+      "first_reception": 1,
+      "last_reception": 99
+    },
+    {
+      "bin_id": 2,
+      "start_utc": "2021-05-02T05:15:00+00:00",
+      "end_utc": "2021-05-02T17:15:00+00:00",
+      "pair_count": 0,
+      "first_reception": null,
+      "last_reception": null
+    },
+    {
+      "bin_id": 3,
+      "start_utc": "2021-05-02T17:15:00+00:00",
+      "end_utc": "2021-05-03T05:15:00+00:00",
+      "pair_count": 106,
+      "first_reception": 100,
+      "last_reception": 205
+    },
+    {
+      "bin_id": 4,
+      "start_utc": "2021-05-03T05:15:00+00:00",
+      "end_utc": "2021-05-03T17:15:00+00:00",
+      "pair_count": 11,
+      "first_reception": 206,
+      "last_reception": 216
+    },
+    {
+      "bin_id": 5,
+      "start_utc": "2021-05-03T17:15:00+00:00",
+      "end_utc": "2021-05-04T05:15:00+00:00",
+      "pair_count": 109,
+      "first_reception": 217,
+      "last_reception": 325
+    },
+    {
+      "bin_id": 6,
+      "start_utc": "2021-05-04T05:15:00+00:00",
+      "end_utc": "2021-05-04T17:15:00+00:00",
+      "pair_count": 8,
+      "first_reception": 326,
+      "last_reception": 333
+    },
+    {
+      "bin_id": 7,
+      "start_utc": "2021-05-04T17:15:00+00:00",
+      "end_utc": "2021-05-05T05:15:00+00:00",
+      "pair_count": 106,
+      "first_reception": 334,
+      "last_reception": 439
+    },
+    {
+      "bin_id": 8,
+      "start_utc": "2021-05-05T05:15:00+00:00",
+      "end_utc": "2021-05-05T17:15:00+00:00",
+      "pair_count": 2,
+      "first_reception": 440,
+      "last_reception": 441
+    },
+    {
+      "bin_id": 9,
+      "start_utc": "2021-05-05T17:15:00+00:00",
+      "end_utc": "2021-05-06T05:15:00+00:00",
+      "pair_count": 104,
+      "first_reception": 442,
+      "last_reception": 545
+    },
+    {
+      "bin_id": 10,
+      "start_utc": "2021-05-06T05:15:00+00:00",
+      "end_utc": "2021-05-06T17:15:00+00:00",
+      "pair_count": 3,
+      "first_reception": 546,
+      "last_reception": 548
+    },
+    {
+      "bin_id": 11,
+      "start_utc": "2021-05-06T17:15:00+00:00",
+      "end_utc": "2021-05-07T05:15:00+00:00",
+      "pair_count": 105,
+      "first_reception": 549,
+      "last_reception": 653
+    },
+    {
+      "bin_id": 12,
+      "start_utc": "2021-05-07T05:15:00+00:00",
+      "end_utc": "2021-05-07T17:15:00+00:00",
+      "pair_count": 6,
+      "first_reception": 654,
+      "last_reception": 659
+    },
+    {
+      "bin_id": 13,
+      "start_utc": "2021-05-07T17:15:00+00:00",
+      "end_utc": "2021-05-08T05:15:00+00:00",
+      "pair_count": 96,
+      "first_reception": 660,
+      "last_reception": 755
+    },
+    {
+      "bin_id": 14,
+      "start_utc": "2021-05-08T05:15:00+00:00",
+      "end_utc": "2021-05-08T17:15:00+00:00",
+      "pair_count": 4,
+      "first_reception": 756,
+      "last_reception": 759
+    },
+    {
+      "bin_id": 15,
+      "start_utc": "2021-05-08T17:15:00+00:00",
+      "end_utc": "2021-05-09T05:15:00+00:00",
+      "pair_count": 90,
+      "first_reception": 760,
+      "last_reception": 849
+    },
+    {
+      "bin_id": 16,
+      "start_utc": "2021-05-09T05:15:00+00:00",
+      "end_utc": "2021-05-09T17:15:00+00:00",
+      "pair_count": 1,
+      "first_reception": 850,
+      "last_reception": 850
+    },
+    {
+      "bin_id": 17,
+      "start_utc": "2021-05-09T17:15:00+00:00",
+      "end_utc": "2021-05-10T05:15:00+00:00",
+      "pair_count": 97,
+      "first_reception": 851,
+      "last_reception": 947
+    },
+    {
+      "bin_id": 18,
+      "start_utc": "2021-05-10T05:15:00+00:00",
+      "end_utc": "2021-05-10T17:15:00+00:00",
+      "pair_count": 0,
+      "first_reception": null,
+      "last_reception": null
+    },
+    {
+      "bin_id": 19,
+      "start_utc": "2021-05-10T17:15:00+00:00",
+      "end_utc": "2021-05-11T05:15:00+00:00",
+      "pair_count": 95,
+      "first_reception": 948,
+      "last_reception": 1042
+    },
+    {
+      "bin_id": 20,
+      "start_utc": "2021-05-11T05:15:00+00:00",
+      "end_utc": "2021-05-11T17:15:00+00:00",
+      "pair_count": 3,
+      "first_reception": 1043,
+      "last_reception": 1045
+    },
+    {
+      "bin_id": 21,
+      "start_utc": "2021-05-11T17:15:00+00:00",
+      "end_utc": "2021-05-12T05:15:00+00:00",
+      "pair_count": 107,
+      "first_reception": 1046,
+      "last_reception": 1152
+    },
+    {
+      "bin_id": 22,
+      "start_utc": "2021-05-12T05:15:00+00:00",
+      "end_utc": "2021-05-12T17:15:00+00:00",
+      "pair_count": 2,
+      "first_reception": 1153,
+      "last_reception": 1154
+    },
+    {
+      "bin_id": 23,
+      "start_utc": "2021-05-12T17:15:00+00:00",
+      "end_utc": "2021-05-13T05:15:00+00:00",
+      "pair_count": 96,
+      "first_reception": 1155,
+      "last_reception": 1250
+    },
+    {
+      "bin_id": 24,
+      "start_utc": "2021-05-13T05:15:00+00:00",
+      "end_utc": "2021-05-13T17:15:00+00:00",
+      "pair_count": 4,
+      "first_reception": 1251,
+      "last_reception": 1254
+    },
+    {
+      "bin_id": 25,
+      "start_utc": "2021-05-13T17:15:00+00:00",
+      "end_utc": "2021-05-14T05:15:00+00:00",
+      "pair_count": 91,
+      "first_reception": 1255,
+      "last_reception": 1345
+    },
+    {
+      "bin_id": 26,
+      "start_utc": "2021-05-14T05:15:00+00:00",
+      "end_utc": "2021-05-14T17:15:00+00:00",
+      "pair_count": 0,
+      "first_reception": null,
+      "last_reception": null
+    },
+    {
+      "bin_id": 27,
+      "start_utc": "2021-05-14T17:15:00+00:00",
+      "end_utc": "2021-05-15T05:15:00+00:00",
+      "pair_count": 91,
+      "first_reception": 1346,
+      "last_reception": 1436
+    },
+    {
+      "bin_id": 28,
+      "start_utc": "2021-05-15T05:15:00+00:00",
+      "end_utc": "2021-05-15T07:00:00+00:00",
+      "pair_count": 5,
+      "first_reception": 1437,
+      "last_reception": 1441
     }
   ]
 }

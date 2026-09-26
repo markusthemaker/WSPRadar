@@ -1,0 +1,60 @@
+{
+  "scientific_values": "Current WSPRadar calculations from frozen raw provider reports; expected_* files are assertions only",
+  "pipeline": [
+    "validated demo.config -> AnalysisContext -> build_analysis_batches",
+    "current generated SQL -> reference_sql.execute_generated_sql over source_rows.csv",
+    "apply_post_fetch_filters -> build_map_data_result -> build_compare_inspector_view_model",
+    "_build_compare_unit_rows -> _retain_thresholded_compare_outcomes -> _compare_joint_evidence_points",
+    "_segment_figure_export_recipe -> spot_histogram"
+  ],
+  "adapter_limit": "SQLite executes the generated scientific SELECT, predicates, grouping and aggregation through a bounded ClickHouse-function adapter; this is not native ClickHouse verification",
+  "presentation": {
+    "footer_text": "WSPRadar.org by Dr. Markus Brosch (DL1MKS)",
+    "A": "Original publication raster",
+    "B": "Coarse paper-style rebinning of production 1 dB histogram counts; external digitized paper bars overlaid",
+    "C": "Native production Joint-Spot histogram renderer, with unchanged bins, percentage heights, colours, median and mean; white paper-export theme",
+    "style_specification": "config/demo_pdf_style.md",
+    "page_inches": [
+      24,
+      14.4
+    ],
+    "page_aspect_ratio": "5:3 (unchanged)",
+    "display_precision": "One decimal place for mean and sample standard deviation; at most two decimal places for other calculated display values; residuals use a coefficient times 10^-4 per dB; original paper and arXiv identifier unchanged",
+    "axes": "Linear axes; native Panel C limits and tick policy retained",
+    "legend": "Separate legends centered below Panels B and C, with panel-scoped labels; native red dashed median retained",
+    "sample_standard_deviation": "Supplemental paper-review statistic: NumPy standard deviation with ddof=1 over actual production paired differences; this is not a statistic supplied by the app histogram recipe",
+    "sample_standard_deviation_label": "Sample \u03c3, following the paper's symbol for its estimated sample standard deviation; reconstruction still uses ddof=1"
+  },
+  "source_input_sha256": {
+    "tests\\regression\\reference_fixtures\\zander_experiment_a_v1\\source_rows.csv": "5efc787d9d5fb24ff92f0fd9080cc81d3dd9e32e2a35692ca726e2f12b5c6051",
+    "tests\\regression\\reference_fixtures\\zander_experiment_a_v1\\demo.config": "161c751d3c93306b625150c2d18446a70af5a652b2d918d017dace43f8423be7"
+  },
+  "assertion_only_input_sha256": {
+    "tests\\regression\\reference_fixtures\\zander_experiment_a_v1\\expected_paired_rows.csv": "6be72d961c0593ba65341877011ed7d56b90908591af152f7bb84f059fec1881",
+    "tests\\regression\\reference_fixtures\\zander_experiment_a_v1\\expected_histogram_1db.csv": "68baab5dd604ad229d6b5597e8c23abefbc9340abb4b36844b4417607472fe20"
+  },
+  "generated_sql_sha256": "97fe47a2003928037f4bd2c4799ecee160797984ce4b54823bab3252c4a42c14",
+  "observed": {
+    "raw_report_count": 731,
+    "sql_group_count": 564,
+    "retained_group_count": 457,
+    "joint_pairs": 166,
+    "paired_receiver_identities": 37,
+    "paired_cycles": 12,
+    "mean_delta_snr_db": -6.783132530120482,
+    "median_delta_snr_db": -7.0,
+    "sample_std_delta_snr_db": 3.51463845382668,
+    "paper_style_region_counts": [
+      2,
+      8,
+      16,
+      27,
+      33,
+      31,
+      34,
+      11,
+      4
+    ],
+    "maximum_paper_density_residual_per_db": 0.00014138119523809944
+  }
+}

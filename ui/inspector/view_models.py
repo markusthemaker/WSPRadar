@@ -337,9 +337,9 @@ def build_opportunity_inspector_view_model(
 
     Qualifying callsign/locator identities receive one vote in the
     station-balanced rate. Confirmed Target and counter outcomes receive one
-    vote in the observation-level rate. The peer aggregates already exclude
-    Target-only rows from that denominator, so row-level evidence is not
-    retained by this display model.
+    vote in the observation-level rate. Target-only successes already enter
+    the peer aggregates once; their provenance count adds no further votes.
+    Row-level evidence is not retained by this display model.
     """
     labels = presentation_context.labels
     terms = presentation_context.absolute_terms(

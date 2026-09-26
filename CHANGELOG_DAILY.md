@@ -2,7 +2,194 @@
 
 This changelog summarizes major project changes by the date of the change (UTC), with the newest entry first. It is grouped by date rather than by version because early version labels were not yet stable. Record each new change under the current date when it is made, without an "Unsubmitted" heading or redating it when it is submitted to GitHub. Older entries retain the submission dates recorded under the previous policy.
 
+## 2026-09-27
+
+- **Milazzo demo PDF presentation:** updated Figures 6 and 7 to the common
+  header typography and original-publication / reconstruction / WSPRadar-view
+  layout, preserving the page aspect ratio, direction correction, complete
+  report populations, gate markers, diagnostic callouts and exact paired values.
+  The native three-hour selected-path view retains full locator identities and
+  production density/median/IQR behavior. Source images, raw reports, independent
+  scientific expectations and endpoint/anchor ledgers remain unchanged.
+  The layout refinement restores the original traces at full opacity below
+  Panel B's overlay, aligns Panel C to the actual source graph edges and its
+  density scale to the source legend, separates the B/C legends, and centers
+  the direction-correction note below Panel A.
+  Verification: 75 Milazzo/header checks passed; both rendered PDFs were
+  visually inspected, text bounds and embedded/vector content checked, all
+  seven linked PDF copies verified, and changed Python compilation plus
+  whitespace checks passed. The full regression suite was not rerun for this
+  isolated presentation update.
+  Trace: [presentation specification](config/demo_pdf_style.md),
+  [builder](scripts/build_milazzo_publication_overlays.py), and
+  [fixture revision](tests/regression/reference_fixtures/milazzo_publication_overlays_v1/README.md).
+
+## 2026-09-26
+
+- **Correction-aware temporal Delta-SNR density:** Benchmark Segment and
+  Selected Station density cells now retain their comparison-coordinate
+  membership and move by the negative applied Reference SNR correction in
+  chronological, UTC-hour-folded and exported views. The shared 1 dB grid uses
+  explicitly approved 0.1 dB membership resolution; stored corrected values,
+  pairing, medians and quartiles are unchanged. Updated recipe, Inspector and
+  export identities prevent reuse of the previous integer-centered geometry;
+  the nonlinear axis includes shifted boundaries, tails and absolute zero.
+  English/German manuals and generated README describe the revised convention.
+  Frozen Vanhamel replay retains all 1,441 pairs, all 476 density counts/masks,
+  seven paper landmarks and the 3 dB step. Its first occupied span is now
+  -4.1 to +1.9 dB. Figure 6 reuses the fixed production cells in Panels C/D;
+  Panels A/B are pixel-identical and the approved trace, scales and legend are
+  preserved. Original scientific/source files and legacy expectations remain
+  unchanged; separately versioned density-only expectations use an independent
+  Decimal calculation.
+  Complete foreground regression: **3,222 passed, 1 skipped**, with 8 failures
+  from pre-existing renamed/removed demos and 85 setup errors from pre-existing
+  missing Griffiths/Milazzo PNG fixtures (488.11 seconds; exit 1). No revised
+  correction-grid check failed. The final focused rerun passed 50 selected
+  checks. Full Python compilation, whitespace, README synchronization, density
+  oracle reproduction, PDF rendering and seven published-PDF checks passed.
+  Final bilingual documentation/rendering verification passed **108 tests**.
+  A subsequent requested horizontal layout expansion balances Figure 6's outer
+  margins at approximately 43 pt and refreshes the PDF already linked in demo #5.
+  Its focused layout/replay and published-link checks passed **19 tests**;
+  final rendering, embedded fonts, unchanged text and protected-file hashes passed.
+
+- **Vanhamel Figure 6 demo:** added a reception-to-UTC mapping panel between
+  the existing reconstruction and native WSPRadar view. Matching bin numbers
+  connect the unchanged density values across both horizontal scales, including
+  empty intervals and the shortened final bin. The newcomer description explains
+  the four-panel comparison. All 1,441 paired observations, source evidence and
+  numerical expectations are preserved. Focused verification: **16 passed**;
+  PDF rendering, embedded fonts, source hashes and published links checked.
+
+- **Griffiths Figure 3 demo and PDF presentation:** expanded the beginner-facing
+  RX comparison description with Target/Reference meaning, signed Delta SNR,
+  Segment Inspector navigation and the preselected DJ0ABR example. Both PDFs
+  use square pages, a full publication citation and consistent panel spacing;
+  the original image's decorative border is clipped only for display. The
+  pairing diagnostic now shows -20 through 0 dB: 94 retained strongest pairs
+  and 554 additional combinations in the same time window. A four-frequency
+  HB9MHB example explains report pairing, with a separately labelled,
+  source-linked spurious-sideband hypothesis. All original source images,
+  independent expectations and scientific calculations remain unchanged.
+  Final title blocks are centered. Focused verification: **88 passed, 3 expected
+  failures**, plus three pre-existing configuration tests failing because four
+  other demos were already removed from the active demo directory. Both final
+  PDFs passed visual and square-page checks; compilation, source preservation,
+  whitespace and static-link synchronization passed.
+  Clarified how the table's four G3ZIL reports pair with two G4HZX reports
+  not shown in the table; diagnostic values and other layout are unchanged.
+
+- **Human-verified Milazzo scientific regression:** promoted the explicitly
+  approved revision-2 cards P01–P10 and B01–B04 into a permanent, versioned
+  reference with frozen raw reports, exact configurations, approval provenance
+  and independent expectations. Local regression now checks production SQL,
+  processing, station/map aggregation, Inspector and scientific figure values
+  against the reviewed arithmetic, including Target-only successes, denominators,
+  UTC folding, station weighting and SNR baselines. Original review packets and
+  historical decisions remain preserved. A separate explicit read-only
+  ClickHouse-provider comparison is available for major development milestones;
+  it is outside routine regressions. GitHub CI remains unchanged.
+  Complete local verification passed **3,221 tests, with 1 skip, 3 expected
+  failures and 1 existing warning** in 397.49 seconds (exit 0). Compilation,
+  whitespace, 89-module manifest coverage and preservation of all 303 original
+  reference files passed. Live Performance query outputs matched WD2 (5,541
+  fallback rows); live Benchmark outputs matched wspr.live (1,610 fallback rows).
+  Both strict outputs were empty as expected. Provider limitations remain
+  explicit: wspr.live rejects the Performance query's subquery depth, and WD2's
+  Benchmark coordinate metadata differs from the frozen wspr.live capture.
+
 ## 2026-09-25
+
+- **RX and TX Performance endpoint-participation method (`opportunity-v3`):**
+  a valid Target decode now confirms both endpoints and counts once as a
+  success and opportunity, including Target-only observations. External
+  confirmation without a Target decode remains a Miss; insufficient endpoint
+  activity remains unknown. The Target-Active Gate, same-band/cycle and exact
+  peer identity, strongest normalized-report reduction, population filters,
+  Benchmark and Delta-SNR methods are preserved. The revised flags feed station
+  thresholds, balanced and pooled rates, maps, Peer Reach, successful-SNR
+  summaries, temporal/folded profiles, Station Insights, Drill-Down and exports.
+  Method-aware completed-result, Inspector, figure and export identities prevent
+  reuse of incompatible processed output while unchanged raw queries can be
+  reprocessed. English/German guidance and manuals describe explicit Target and
+  peer TX/RX roles; README is regenerated from the English manual. Independent
+  hand-checked RX/TX contracts execute generated SQL and production processing.
+  A separate frozen-source Milazzo replay confirms VE6PDQ changes from 35/57
+  (61.4035%) to 57/79 (72.1519%), with 22 Misses unchanged and median successful
+  SNR changing from -25 to -23 dB. The minimum-five population grows from 82 to
+  85 receivers and its station-balanced rate from 37.1797% to 42.5054%.
+  The original review packet, card expectations and human-review status are
+  preserved; replacement cards require regeneration and human re-review.
+  Final full verification: **3,179 passed, 1 skipped, 3 expected failures**
+  (445.71 seconds; exit 0), with the existing Matplotlib warning. Full Python
+  compilation, whitespace, README synchronization and regression-manifest
+  validation passed; all 303 protected review/reference files were unchanged.
+
+- **Griffiths Figure 3 tail-discrepancy callouts:** matching magenta rectangles
+  in publication Panel A and reconstruction Panel B mark the existing 16 April,
+  -20 to -5 dB diagnostic interval. Callouts and a readable PDF filename link to
+  the separate repeated-RX-report and weaker-combination diagnostic. The boxes
+  share the frozen source calibration; they add navigation without changing
+  paper features, scientific expectations, the density/scatter evidence or
+  native Panel C. The comparison PNG/PDF and demo-linked PDF are refreshed.
+  Focused verification reported **96 passed, 3 expected failures and 1 existing
+  warning** in 63.26 seconds. Panel C is pixel-identical, separate diagnostic
+  artifacts are byte-identical, and numerical provenance is unchanged. PDF
+  callout links, visual review, all fixture manifests, published copies,
+  changed-source compilation and whitespace checks passed.
+
+- **Griffiths Figure 3 paper-style markers:** Panel B now overlays all 57,767
+  production pairs, including coincident observations, using fixed larger black
+  dots (7 points squared, opacity 0.30). The previous sparse-only marker selection
+  is removed. The hourly density, full-month linear grayscale, binning and
+  scientific values remain unchanged; the density scale explicitly refers to
+  the background, while marker overlap contributes additional visual darkness.
+  Panels A/C and the separate tail diagnostic are preserved. The comparison
+  PNG/PDF, presentation provenance and demo-linked PDF are refreshed.
+  Focused verification reported **96 passed, 3 expected failures and 1 existing
+  warning** in 66.31 seconds. Marker assertions preserve every original coordinate
+  and coincident observation; density scaling and hourly-to-12-hour equivalence
+  remain covered. Compilation, whitespace, PDF integrity/publication and visual
+  checks passed; A/C are pixel-identical and the tail artifacts byte-identical.
+
+- **Griffiths Figure 3 density reconstruction:** Panel B now displays the
+  production 1-hour by 1-dB count grid in grayscale on the publication's linear
+  axes, using one full-month scale without smoothing. Original observations in
+  cells containing one or two pairs remain visible as markers. All 57,767 pairs
+  contribute to the density; twelve adjacent hourly columns reproduce the
+  existing 12-hour counts exactly. Publication Panel A, native 12-hour Panel C,
+  scientific expectations and the separate duplicate-tail diagnostic are
+  preserved. The comparison PNG/PDF and demo-linked PDF are refreshed.
+  Focused verification reported **96 passed, 3 expected failures and 1 existing
+  warning** in 64.70 seconds. Two additional tests cover exact production density,
+  1h-to-12h aggregation, global scaling, duplicate counts, hour/rounding boundaries
+  and native sparse-marker coordinates. Compilation, whitespace, PDF publication
+  checks and visual review passed; A/C remain pixel-identical and the separate
+  tail graphics/ledger remain byte-identical to their pre-change versions.
+
+- **Production-pipeline publication reconstructions:** the Griffiths and Zander
+  comparison builders now derive their plotted observations from frozen source
+  reports through generated WSPRadar SQL, production post-fetch filtering,
+  map/Inspector preparation, pairing and figure recipes. The Griffiths regression
+  replay now executes the SQL aggregation instead of injecting its captured
+  output. Independent expected tables are assertion inputs only. Vanhamel and
+  Milazzo are audited to the same boundary; Milazzo outer-ring retention comes
+  from production post-fetch evidence. Publication-style smoothing/rebinning,
+  common display-scale conversions, pre-gate report review and the duplicate
+  tail alternative are explicitly identified as presentation or external review.
+  Regression probes forbid expected-output reads during preparation and check
+  that changed source/production evidence propagates to the reconstructed data.
+  The comparison PDFs/PNGs and their demo-linked PDF copies are rebuilt, while
+  source reports, independent numerical oracles and demo settings are preserved.
+  Verification: the complete foreground suite reported **3,153 passed, 1 skipped
+  and 3 expected failures** in 345.11 seconds, including 13 additional regression
+  cases. Full compilation, whitespace, all eleven fixture manifests (187 files),
+  97 unchanged frozen inputs/expectations and seven published PDF copies passed.
+  The SQL replay uses the offline compatibility adapter; live-provider and
+  native ClickHouse execution are outside this check.
+  Trace: [reconstruction contract](tests/regression/reference_fixtures/README.md)
+  and the publication-specific builders and reference regression modules.
 
 - **Publication comparison PDFs and demo access:** rebuilt Griffiths Figure 3
   and Vanhamel Figure 6 as publication / reconstruction / WSPRadar comparisons.

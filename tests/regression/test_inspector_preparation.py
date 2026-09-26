@@ -90,7 +90,7 @@ def test_scope_cache_hit_uses_original_key_and_reuses_scope_rows(monkeypatch, is
     )
     if is_compare:
         key = (
-            48, "comparison", "TX_COMP", (), (), False,
+            50, "comparison", "TX_COMP", 0.0, (), (), False,
             int(context.analysis_context.tx_ab_repeat_interval_minutes),
             int(context.analysis_context.tx_ab_target_start_minute),
             int(context.analysis_context.tx_ab_reference_start_minute),
@@ -100,7 +100,8 @@ def test_scope_cache_hit_uses_original_key_and_reuses_scope_rows(monkeypatch, is
         method = coordinator.prepare_benchmark_segment
     else:
         key = (
-            48, "opportunity", preparation.SUCCESS_DISTANCE_BINNING_VERSION,
+            50, "opportunity", preparation.ABSOLUTE_METHOD_VERSION,
+            preparation.SUCCESS_DISTANCE_BINNING_VERSION,
             preparation.SUCCESS_SNR_BASELINE_VERSION, "TX_ABS",
             (T["en"]["opt_full_range"],), (T["en"]["opt_all_dirs"],),
             ((0.0, 2000.0),), 1, str(context.analysis_start_t),
@@ -255,3 +256,98 @@ def test_performance_cold_warm_and_language_preserve_science_without_extra_reads
     np.testing.assert_equal(english_recipe["chronological_profiles"], german_recipe["chronological_profiles"])
     np.testing.assert_equal(english_recipe["folded_profile"], german_recipe["folded_profile"])
     pd.testing.assert_frame_equal(scope_rows, original_scope)
+    assert preparation.ABSOLUTE_METHOD_VERSION in cold.cache_key
+    assert english_recipe["performance_method_version"] == "opportunity-v3"
+    assert cold.bundle["figure_recipe"]["performance_method_version"] == "opportunity-v3"
+    monkeypatch.setattr(preparation, "ABSOLUTE_METHOD_VERSION", "opportunity-v2")
+    obsolete_method = coordinator.prepare_performance_segment(context, scope, scope_rows, retained_time_bin="auto")
+    assert obsolete_method.cache_key != cold.cache_key
+    assert obsolete_method.bundle is not cold.bundle
+    assert len(calls) == 3
+
+
+@pytest.mark.parametrize("correction_db", (-1.6, 1.6, 1.34))
+def test_benchmark_segment_and_selected_forward_context_correction_and_separate_cache(
+    monkeypatch, correction_db,
+):
+    """Both preparation routes preserve corrected evidence and context metadata."""
+    context = _context(is_compare=True)
+    scope = _scope()
+    identities = pd.DataFrame({"peer_sign": ["K1AAA"], "peer_grid": ["FN31"]})
+    first_slot = int(context.analysis_start_t.timestamp()) // 120
+    native_rows = pd.DataFrame({
+        "peer_sign": ["K1AAA"] * 3, "peer_grid": ["FN31"] * 3,
+        "time_slot": [first_slot, first_slot + 1, first_slot + 2],
+        "has_u": [1, 1, 1], "has_r": [1, 1, 1],
+        "snr_u_norm": [-8.0, -6.0, -5.0], "snr_r_norm": [-8.0] * 3,
+    })
+    monkeypatch.setattr(
+        preparation, "build_compare_inspector_view_model",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            target_name="Target", has_plot_data=True,
+            build_evidence_identities=lambda: identities,
+            target_only_label="Only Target", reference_only_label="Only Reference",
+        ),
+    )
+    monkeypatch.setattr(
+        preparation, "compare_footer_counts",
+        lambda *_args, **_kwargs: {
+            "stat_only_u": 0, "stat_joint": 1, "stat_both_async": 0, "stat_only_r": 0,
+            "spot_only_u": 0, "spot_joint": 3, "spot_both_async": 0, "spot_only_r": 0,
+        },
+    )
+    # Footer localization is deliberately unrelated to the numerical correction.
+    monkeypatch.setattr(
+        preparation, "configured_snr_correction_notice",
+        lambda *_args, **_kwargs: "Localized notice without a numerical value",
+    )
+    coordinator = preparation.InspectorPreparation({}, 7)
+    captured = []
+    for configured_correction in (0.0, correction_db):
+        applied_correction = round(configured_correction, 1)
+        corrected_context = replace(
+            context, analysis_context=replace(
+                context.analysis_context, reference_snr_correction_db=configured_correction,
+            ),
+        )
+        corrected_rows = native_rows.copy(deep=True)
+        corrected_rows["snr_r_norm"] += applied_correction
+        corrected_before = corrected_rows.copy(deep=True)
+        units, points = coordinator._prepare_selected_comparison_units(
+            corrected_rows, identities, is_sequential=False,
+            tx_ab_repeat_interval_minutes=10, tx_ab_target_start_minute=0,
+            tx_ab_reference_start_minute=2, thresholded_station_rows=None,
+        )
+        monkeypatch.setattr(
+            coordinator, "_prepare_segment_comparison_units",
+            lambda *_args, **_kwargs: (units, points, None, None),
+        )
+        segment = coordinator.prepare_benchmark_segment(
+            corrected_context, scope, pd.DataFrame({"stat_val": [2.0 - applied_correction]}),
+            retained_time_bin="2m",
+        )
+        selected = coordinator.prepare_selected_benchmark_evidence(
+            corrected_rows, identities, False, 10, 0, 2,
+            t=context.translations, analysis_id=context.analysis_id,
+            cache_key=("identical-caller-key",),
+            analysis_context=corrected_context.analysis_context,
+            preferred_time_bin="2m", analysis_start_t=context.analysis_start_t,
+            analysis_end_t=context.analysis_end_t,
+            target_only_label="Only Target", reference_only_label="Only Reference",
+        )
+        segment_recipe = segment.bundle["temporal_bundle"]["base_recipe"]
+        selected_recipe = selected.bundle["base_recipe"]
+        for recipe in (segment_recipe, selected_recipe):
+            assert recipe["reference_snr_correction_db"] == applied_correction
+            assert recipe["reference_snr_correction_notice"] == "Localized notice without a numerical value"
+            profile = recipe["prepared_profiles"]["chronological"]["2m"]
+            np.testing.assert_allclose(profile["median"][:3], np.array([0.0, 2.0, 3.0]) - applied_correction)
+            np.testing.assert_array_equal(profile["count"][:3], [1.0, 1.0, 1.0])
+        np.testing.assert_equal(segment_recipe["prepared_profiles"], selected_recipe["prepared_profiles"])
+        assert corrected_context.analysis_context.reference_snr_correction_db == configured_correction
+        pd.testing.assert_frame_equal(corrected_rows, corrected_before)
+        captured.append((segment, selected))
+    for route in (0, 1):
+        zero_preparation, corrected_preparation = captured[0][route], captured[1][route]
+        assert zero_preparation.cache_key != corrected_preparation.cache_key
+        assert zero_preparation.bundle is not corrected_preparation.bundle

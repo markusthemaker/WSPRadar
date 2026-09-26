@@ -84,7 +84,7 @@ def _success_map_data(*, analysis_id="RX_ABS"):
             "hits": [3, 0, 10],
             "misses": [1, 4, 0],
             "opportunities": [4, 4, 10],
-            "target_only": [2, 1, 0],
+            "target_only": [2, 0, 0],
             "r_min": [0.0, 0.0, 0.0],
         }
     )

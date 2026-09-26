@@ -35,7 +35,7 @@ from ui.inspector.evidence_data import (
 from ui.inspector.view_models import build_compare_inspector_view_model
 from ui.plots.evidence_figures import (
     _compare_temporal_profile_values, _selected_evidence_export_recipe,
-    _temporal_metric_summary,
+    _temporal_metric_summary, _relative_density_values,
 )
 
 
@@ -68,6 +68,7 @@ def verified_reference_files():
         "expected_sql_rows.csv", "expected_retained_rows.csv", "expected_paired_rows.csv",
         "expected_reception_slices_20.csv", "expected_12h.csv",
         "expected_density_12h.csv", "expected_halves.csv", "expected_summary.json",
+        "expected_density_12h_correction_aware_v1.csv", "temporal_density_revision_v1.json",
     }.issubset(paths)
     for record in manifest["files"]:
         path = (REFERENCE_DIRECTORY / record["path"]).resolve()
@@ -137,6 +138,7 @@ def _calculate_run(source_rows, *, reference_correction_db=None):
     points = points.sort_values("plot_time").reset_index(drop=True)
     temporal = _selected_evidence_export_recipe(
         points, "Vanhamel Figure 6: M7AEO (IO82)", "12h", False,
+        reference_snr_correction_db=context.reference_snr_correction_db,
         analysis_start_t=configuration["start_utc"], analysis_end_t=configuration["end_utc"],
         count_label="Joint spots", chronological_title="Delta SNR ({time_bin})",
         chronological_x_label="UTC", chronological_unavailable_text="No evidence",
@@ -288,14 +290,102 @@ def test_selected_station_chart_12h_counts_quartiles_and_density(reference_run):
     assert pd.DatetimeIndex(matplotlib_dates.num2date(edges[:-1], tz="UTC")).equals(starts)
     assert pd.DatetimeIndex(matplotlib_dates.num2date(edges[1:], tz="UTC")).equals(ends)
     assert pd.DatetimeIndex(matplotlib_dates.num2date(centers, tz="UTC")).equals(starts + (ends - starts) / 2)
-    density = _read_csv("expected_density_12h.csv").pivot(index="delta_snr_bin_db", columns="bin_index", values="joint_spots")
+    density_rows = _read_csv("expected_density_12h_correction_aware_v1.csv")
+    density = density_rows.pivot(index="metric_bin_id", columns="bin_index", values="joint_spots")
     np.testing.assert_array_equal(counts, density.to_numpy())
     np.testing.assert_array_equal(counts.sum(axis=0), expected.joint_spots)
-    np.testing.assert_array_equal(profiles["y_edges"], np.arange(density.index.min() - .5, density.index.max() + 1.5))
+    cells = density_rows.drop_duplicates("metric_bin_id").sort_values("metric_bin_id")
+    independent_edges = np.append(cells.cell_lower_db, cells.cell_upper_db.iloc[-1])
+    np.testing.assert_allclose(profiles["y_edges"], independent_edges, rtol=0, atol=2e-15)
+    np.testing.assert_array_equal(profiles["metric_bin_ids"], density.index)
+    legacy_density = _read_csv("expected_density_12h.csv").pivot(index="delta_snr_bin_db", columns="bin_index", values="joint_spots")
+    np.testing.assert_array_equal(counts, legacy_density.to_numpy())
+    np.testing.assert_allclose(independent_edges, np.arange(-7.5, 10.5) + .4, rtol=0, atol=2e-15)
     assert counts.sum() == 1441
     # The extreme tails are retained in their own bins, not clipped to the IQR.
-    assert density.index.min() == -7 and density.index.max() == 9
+    assert density.index.min() == -5 and density.index.max() == 11
     assert counts[0].sum() > 0 and counts[-1].sum() > 0
+    occupied = np.flatnonzero(counts[:, 0])
+    np.testing.assert_allclose([independent_edges[occupied[0]], independent_edges[occupied[-1] + 1]], [-4.1, 1.9], rtol=0, atol=1e-15)
+
+
+def test_correction_translates_grid_and_statistics_once_without_changing_population(reference_run):
+    """Replay frozen raw reports at zero and +1.6 dB through production SQL/preparation."""
+    zero = _calculate_run(reference_run.source_rows, reference_correction_db=0.0)
+    assert len(zero.points) == len(reference_run.points) == 1441
+    np.testing.assert_array_equal(_utc_nanoseconds(zero.points.plot_time), _utc_nanoseconds(reference_run.points.plot_time))
+    np.testing.assert_allclose(reference_run.points.metric, zero.points.metric - 1.6, rtol=0, atol=1e-12)
+    np.testing.assert_array_equal(reference_run.units.target_snr_db, zero.units.target_snr_db)
+    np.testing.assert_allclose(reference_run.units.reference_snr_db, zero.units.reference_snr_db + 1.6, rtol=0, atol=1e-12, equal_nan=True)
+    corrected_profiles = reference_run.temporal["prepared_profiles"]
+    zero_profiles = zero.temporal["prepared_profiles"]
+    np.testing.assert_array_equal(corrected_profiles["metric_bin_ids"], zero_profiles["metric_bin_ids"])
+    np.testing.assert_array_equal(corrected_profiles["y_edges"], np.asarray(zero_profiles["y_edges"]) - 1.6)
+    for zero_profile, corrected_profile in (
+        (zero_profiles["chronological"]["12h"], corrected_profiles["chronological"]["12h"]),
+        (zero_profiles["folded"], corrected_profiles["folded"]),
+    ):
+        zero_counts, zero_summary, zero_edges, zero_centers = _compare_temporal_profile_values(zero_profile)
+        counts, summary, time_edges, time_centers = _compare_temporal_profile_values(corrected_profile)
+        np.testing.assert_array_equal(counts, zero_counts)
+        np.testing.assert_array_equal(time_edges, zero_edges)
+        np.testing.assert_array_equal(time_centers, zero_centers)
+        for column in ("median", "q1", "q3"):
+            np.testing.assert_allclose(summary[column], zero_summary[column] - 1.6, rtol=0, atol=1e-12, equal_nan=True)
+        corrected_density = _relative_density_values(counts)
+        zero_density = _relative_density_values(zero_counts)
+        np.testing.assert_array_equal(corrected_density.data, zero_density.data)
+        np.testing.assert_array_equal(np.ma.getmaskarray(corrected_density), np.ma.getmaskarray(zero_density))
+    _assert_exact_trace(reference_run.points)
+    _paper_landmark_values(reference_run.points)
+
+
+def test_density_only_revision_reproduces_from_raw_reports_without_changing_legacy_oracles(tmp_path):
+    """Keep the independent density revision reproducible and scientific sources frozen."""
+    from scripts.build_vanhamel_temporal_density_reference import calculate_density_reference
+
+    before = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in REFERENCE_DIRECTORY.glob("expected_*")}
+    calculate_density_reference(REFERENCE_DIRECTORY, tmp_path)
+    for filename in ("expected_density_12h_correction_aware_v1.csv", "temporal_density_revision_v1.json"):
+        assert (tmp_path / filename).read_bytes() == (REFERENCE_DIRECTORY / filename).read_bytes()
+    assert before == {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in REFERENCE_DIRECTORY.glob("expected_*")}
+
+
+def test_comparison_preparation_uses_production_values_without_reading_expectations(reference_run, monkeypatch):
+    from scripts import build_vanhamel_rotation_comparison as comparison
+
+    changed = SimpleNamespace(**vars(reference_run))
+    changed.points = reference_run.points.copy()
+    changed.units = reference_run.units.copy()
+    changed.points["metric"] += 2
+    changed.units["target_snr_db"] += 2
+    changed.units["metric"] += 2
+
+    def reject_expected_reads(*args, **kwargs):
+        pytest.fail("Presentation preparation must not read frozen expected CSVs")
+
+    with monkeypatch.context() as guard:
+        guard.setattr(comparison.pd, "read_csv", reject_expected_reads)
+        original = comparison.prepare_reconstruction(reference_run)
+        mutated = comparison.prepare_reconstruction(changed)
+        original_mapping = comparison.prepare_reception_bin_mapping(original)
+        changed_mapping = comparison.prepare_reception_bin_mapping(mutated)
+    np.testing.assert_allclose(mutated.points.metric, original.points.metric + 2, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(mutated.target_trace, original.target_trace + 2, rtol=0, atol=1e-12)
+    np.testing.assert_array_equal(mutated.reference_trace, original.reference_trace)
+    np.testing.assert_array_equal(mutated.reception_indexes, original.reception_indexes)
+    np.testing.assert_array_equal(changed_mapping.reception_edges, original_mapping.reception_edges)
+    np.testing.assert_array_equal(changed_mapping.count_grid, original_mapping.count_grid)
+    np.testing.assert_allclose(changed_mapping.y_edges, original_mapping.y_edges + 2, rtol=0, atol=1e-12)
+    original_summary = _compare_temporal_profile_values(original.temporal_recipe["prepared_profiles"]["chronological"]["12h"])[1]
+    changed_summary = _compare_temporal_profile_values(mutated.temporal_recipe["prepared_profiles"]["chronological"]["12h"])[1]
+    for column in ("median", "q1", "q3"):
+        np.testing.assert_allclose(changed_summary[column], original_summary[column] + 2, rtol=0, atol=1e-12, equal_nan=True)
+    # The oracle still rejects a scientific drift; it does not supply the
+    # reconstructed trace or overwrite production values to hide the change.
+    comparison.assert_reference_reconstruction(original)
+    with pytest.raises(AssertionError):
+        comparison.assert_reference_reconstruction(mutated)
 
 
 @pytest.mark.parametrize("split_kind", ["elapsed_time", "reception_750"])
@@ -337,3 +427,55 @@ def test_exact_trace_rejects_correction_drift_even_inside_paper_tolerance(refere
     else:
         # A 0.1 dB shift can fit a raster's tolerance; exact frozen values detect it.
         _paper_landmark_values(changed.points)
+
+
+def test_reception_mapping_retains_time_membership_gaps_and_final_partial_bin(reference_run):
+    """Preserve exact UTC membership, zero-width gaps and the clipped final bin."""
+    from scripts.build_vanhamel_rotation_comparison import prepare_reconstruction, prepare_reception_bin_mapping
+
+    reconstruction = prepare_reconstruction(reference_run)
+    mapping = prepare_reception_bin_mapping(reconstruction)
+    assert len(mapping.records) == 28
+    assert mapping.pair_counts.sum() == 1441
+    assert [r["bin_id"] for r in mapping.records if not r["pair_count"]] == [2, 18, 26]
+    assert [r["bin_id"] for r in mapping.records if r["first_reception"] is None] == [2, 18, 26]
+    np.testing.assert_array_equal(np.flatnonzero(np.diff(mapping.reception_edges) == 0) + 1, [2, 18, 26])
+    assert mapping.reception_edges[0] == 0.5
+    assert mapping.reception_edges[-1] == 1441.5
+
+    for bin_id, first, last, count in ((1, 1, 99, 99), (13, 660, 755, 96), (14, 756, 759, 4), (15, 760, 849, 90), (16, 850, 850, 1), (28, 1437, 1441, 5)):
+        actual = mapping.records[bin_id - 1]
+        assert (actual["first_reception"], actual["last_reception"], actual["pair_count"]) == (first, last, count)
+        assert np.all(mapping.point_bin_indexes[first - 1:last] == bin_id - 1)
+
+    assert mapping.edge_times[0] == pd.Timestamp("2021-05-01T17:15:00Z")
+    assert mapping.edge_times[-1] == pd.Timestamp("2021-05-15T07:00:00Z")
+    assert mapping.edge_times[-1] - mapping.edge_times[-2] == pd.Timedelta(hours=1, minutes=45)
+
+
+def test_bridge_retains_native_density_values_masks_colours_and_vertical_cells(reference_run):
+    """Change only reception geometry while retaining native density rendering."""
+    from matplotlib.collections import QuadMesh
+    from core.matplotlib_runtime import dispose_agg_figure
+    from scripts.build_vanhamel_rotation_comparison import (prepare_reconstruction, prepare_reception_bin_mapping, draw_reception_density_bridge)
+    from ui.plots.evidence_figures import render_selected_evidence_export_figure
+    from ui.results_export import _style_figure_for_paper
+
+    reconstruction = prepare_reconstruction(reference_run)
+    mapping = prepare_reception_bin_mapping(reconstruction)
+    figure = render_selected_evidence_export_figure(reconstruction.temporal_recipe)
+    try:
+        _style_figure_for_paper(figure)
+        native_axis = next(a for a in figure.axes if a.get_gid() == "compare-temporal-chronological-axis")
+        native = next(c for c in native_axis.collections if isinstance(c, QuadMesh))
+        bridge_axis = figure.add_axes([0.1, 0.1, 0.8, 0.2])
+        bridge = draw_reception_density_bridge(bridge_axis, native, mapping)
+        np.testing.assert_array_equal(bridge.get_array().data, native.get_array().data)
+        np.testing.assert_array_equal(np.ma.getmaskarray(bridge.get_array()), np.ma.getmaskarray(native.get_array()))
+        assert bridge.norm is native.norm
+        assert bridge.get_cmap() is native.get_cmap()
+        np.testing.assert_array_equal(bridge.to_rgba(bridge.get_array()), native.to_rgba(native.get_array()))
+        np.testing.assert_array_equal(bridge.get_coordinates()[:, 0, 1], native.get_coordinates()[:, 0, 1])
+        np.testing.assert_array_equal(bridge.get_coordinates()[0, :, 0], mapping.reception_edges)
+    finally:
+        dispose_agg_figure(figure)

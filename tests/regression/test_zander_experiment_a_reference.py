@@ -101,9 +101,15 @@ def _assert_scientific_rows(actual, expected):
     )
 
 
-@pytest.fixture(scope="module")
-def reference_run(verified_reference_files):
-    configuration = validate_config_document(_read_json(REFERENCE_DIRECTORY, "demo.config"))
+def _calculate_run(source_rows, configuration_document=None):
+    """Replay actual production processing without reading expected results.
+
+    The review-figure builder uses this same bounded offline entry point so
+    scientific changes affect its plotted values before the oracle checks run.
+    """
+    if configuration_document is None:
+        configuration_document = _read_json(REFERENCE_DIRECTORY, "demo.config")
+    configuration = validate_config_document(configuration_document)
     session_values = {"lang": "en"}
     apply_config_state_values(configuration, session_values)
     session_values["run_mode"] = configuration["analysis_direction"].upper()
@@ -116,7 +122,6 @@ def reference_run(verified_reference_files):
     )
     assert len(analyses) == 1
     analysis = analyses[0]
-    source_rows = pd.read_csv(REFERENCE_DIRECTORY / "source_rows.csv", float_precision="round_trip")
     sql_rows = _execute_generated_sql(analysis.query, source_rows)
     processed, warning = apply_post_fetch_filters(
         sql_rows.copy(), analysis, context, latitude, longitude, T["en"],
@@ -163,6 +168,12 @@ def reference_run(verified_reference_files):
         source_rows=source_rows, sql_rows=sql_rows, processed=processed,
         stations=stations, units=units, points=points, recipe=recipe,
     )
+
+
+@pytest.fixture(scope="module")
+def reference_run(verified_reference_files):
+    source_rows = pd.read_csv(REFERENCE_DIRECTORY / "source_rows.csv", float_precision="round_trip")
+    return _calculate_run(source_rows)
 
 
 def test_demo_configuration_and_independent_sql_aggregation(reference_run):
@@ -340,3 +351,94 @@ def test_paper_oracle_rejects_sign_shift_and_aggregation_changes(reference_run):
         except AssertionError:
             continue
         assert not np.all(np.abs(density - expected) <= tolerance)
+
+
+def test_comparison_plot_inputs_read_raw_reports_but_never_expected_results(monkeypatch, reference_run):
+    from scripts import build_zander_fig4_comparison as builder
+
+    read_csv = pd.read_csv
+    opened_names = []
+
+    def deny_expected_results(path, *args, **kwargs):
+        name = Path(path).name
+        opened_names.append(name)
+        assert not name.startswith("expected_"), "Expected results must never supply plotted evidence"
+        return read_csv(path, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "read_csv", deny_expected_results)
+    comparison = builder.build_comparison_inputs()
+    assert opened_names == ["source_rows.csv"]
+    pd.testing.assert_frame_equal(comparison.run.points, reference_run.points)
+    assert comparison.recipe is comparison.run.recipe["spot_histogram"]
+    np.testing.assert_array_equal(comparison.recipe["counts"], reference_run.recipe["spot_histogram"]["counts"])
+    assert comparison.counts.sum() == len(reference_run.points)
+
+
+@pytest.mark.parametrize("mutation_stage", ["raw_report_snr", "production_sql_snr"])
+def test_comparison_plot_values_follow_raw_and_production_mutations(monkeypatch, reference_run, mutation_stage):
+    from scripts import build_zander_fig4_comparison as builder
+
+    baseline = builder.build_comparison_inputs(reference_run.source_rows.copy())
+    witness = reference_run.points.loc[reference_run.points.metric.eq(-7)].iloc[0]
+    slot = int(pd.Timestamp(witness.plot_time).timestamp()) // 120
+    source_rows = reference_run.source_rows.copy()
+    if mutation_stage == "raw_report_snr":
+        selected = (
+            source_rows.tx_sign.eq("SK0WE/P") & source_rows.rx_sign.eq(witness.station)
+            & source_rows.rx_loc.eq(witness.grid)
+            & pd.to_datetime(source_rows.time, utc=True).eq(witness.plot_time)
+        )
+        assert selected.sum() == 1
+        source_rows.loc[selected, "snr"] += 1
+    else:
+        pipeline_globals = builder._calculate_run.__globals__
+        execute_sql = pipeline_globals["_execute_generated_sql"]
+
+        def alter_production_sql_snr(query, raw_rows):
+            computed = execute_sql(query, raw_rows)
+            selected = (
+                computed.time_slot.eq(slot) & computed.peer_sign.eq(witness.station)
+                & computed.peer_grid.eq(witness.grid)
+            )
+            assert selected.sum() == 1
+            computed.loc[selected, "snr_u_norm"] += 1
+            return computed
+
+        monkeypatch.setitem(pipeline_globals, "_execute_generated_sql", alter_production_sql_snr)
+
+    changed = builder.build_comparison_inputs(source_rows)
+    assert changed.sample_count == baseline.sample_count
+    assert changed.mean == pytest.approx(baseline.mean + 1 / baseline.sample_count, abs=1e-12)
+    expected_differences = baseline.differences.copy()
+    selected = (
+        baseline.run.points.station.eq(witness.station)
+        & baseline.run.points.grid.eq(witness.grid)
+        & baseline.run.points.plot_time.eq(witness.plot_time)
+    ).to_numpy()
+    assert selected.sum() == 1
+    expected_differences[selected] += 1
+    np.testing.assert_array_equal(changed.differences, expected_differences)
+    assert not np.array_equal(changed.recipe["counts"], baseline.recipe["counts"])
+    assert not np.array_equal(changed.counts, baseline.counts)
+    with pytest.raises(AssertionError):
+        builder.verify_comparison_inputs_against_references(changed)
+
+
+def test_comparison_expected_results_can_only_reject_computed_plot_values(monkeypatch, reference_run):
+    from scripts import build_zander_fig4_comparison as builder
+
+    comparison = builder.build_comparison_inputs(reference_run.source_rows.copy())
+    before = comparison.differences.copy()
+    read_csv = pd.read_csv
+
+    def corrupt_histogram_expectation(path, *args, **kwargs):
+        rows = read_csv(path, *args, **kwargs)
+        if Path(path).name == "expected_histogram_1db.csv":
+            rows["joint_spots"] += 100
+        return rows
+
+    monkeypatch.setattr(pd, "read_csv", corrupt_histogram_expectation)
+    with pytest.raises(AssertionError):
+        builder.verify_comparison_inputs_against_references(comparison)
+    np.testing.assert_array_equal(comparison.differences, before)
+    np.testing.assert_array_equal(comparison.recipe["counts"], reference_run.recipe["spot_histogram"]["counts"])

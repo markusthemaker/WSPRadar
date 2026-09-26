@@ -117,6 +117,48 @@ def _build_guidance(
     )
 
 
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("rx", "tx"))
+def test_performance_guidance_counts_target_only_success_and_names_endpoint_roles(
+    language, direction
+):
+    """RX peer TX to Target RX and TX Target TX to peer RX each prove both ends."""
+    context = _build_guidance(
+        RESULT_GUIDANCE_CONTEXT,
+        language=language,
+        analysis_id=f"{direction.upper()}_SUCCESS",
+        is_compare=False,
+    )
+    drilldown = _build_guidance(
+        RESULT_GUIDANCE_DRILLDOWN,
+        language=language,
+        analysis_id=f"{direction.upper()}_SUCCESS",
+        is_compare=False,
+    )
+    combined = str(context) + str(drilldown)
+    if language == "en":
+        assert "with or without external confirmation" in combined
+        assert "provenance subset of successes" in combined
+        assert "already included once" in combined
+        assert "unknown and excluded" in combined
+        assert "Target-Active Gate" in combined
+        assert "was listening" in combined
+        roles = "peer TX → Target RX" if direction == "rx" else "Target TX → peer RX"
+        assert roles in combined
+        assert "does not enter this rate" not in combined
+        assert "without the independent confirmation required" not in combined
+    else:
+        assert "mit oder ohne externe Bestätigung" in combined
+        assert "Herkunftsteilmenge der Erfolge" in combined
+        assert "bereits genau einmal" in combined
+        assert "unbekannt und ausgeschlossen" in combined
+        assert "Target-Active Gate" in combined
+        assert "zugehört hat" in combined
+        roles = "Peer-TX → Target-RX" if direction == "rx" else "Target-TX → Peer-RX"
+        assert roles in combined
+        assert "fließt aber nicht in diese Rate ein" not in combined
+
+
 def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
     """Keep every nested English and German guidance leaf interchangeable."""
     assert set(RESULT_GUIDANCE) == {"en", "de"}

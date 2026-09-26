@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "packet_id": "MR01",
+  "packet_revision": 2,
+  "cards": {
+    "P01": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p01_endpoint_witnesses_and_excluded_cycles",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P01"
+    },
+    "P02": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p02_target_only_successes_count_once",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P02"
+    },
+    "P03": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p03_successful_normalized_snr_ranks",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P03"
+    },
+    "P04": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p04_map_uses_equal_station_weights",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P04"
+    },
+    "P05": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p05_distance_rates_reach_and_snr",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P05"
+    },
+    "P06": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p06_peer_reach_retains_zero_success_receivers",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P06"
+    },
+    "P07": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p07_complete_chronological_bin",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P07"
+    },
+    "P08": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p08_folded_denominators_empty_evidence_and_window_end",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P08"
+    },
+    "P09": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p09_folded_snr_date_weighting_and_absent_iqr",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P09"
+    },
+    "P10": {
+      "pytest_node": "tests/regression/test_milazzo_human_performance.py::test_p10_station_baselines_final_deviations_and_rendered_marker",
+      "expected_file": "reviewed_expectations.json",
+      "expected_key": "P10"
+    },
+    "B01": {
+      "pytest_node": "tests/regression/test_milazzo_reference.py::test_human_b01_normalized_pair_preserves_raw_provenance_and_direction",
+      "expected_file": "benchmark_expected.json",
+      "expected_key": "B01"
+    },
+    "B02": {
+      "pytest_node": "tests/regression/test_milazzo_reference.py::test_human_b02_histogram_weighting_and_reviewed_positive_extreme",
+      "expected_file": "benchmark_expected.json",
+      "expected_key": "B02"
+    },
+    "B03": {
+      "pytest_node": "tests/regression/test_milazzo_reference.py::test_human_b03_decode_outcomes_follow_station_history_and_separate_denominators",
+      "expected_file": "benchmark_expected.json",
+      "expected_key": "B03"
+    },
+    "B04": {
+      "pytest_node": "tests/regression/test_milazzo_reference.py::test_human_b04_map_segment_weights_station_medians_before_rounding",
+      "expected_file": "benchmark_expected.json",
+      "expected_key": "B04"
+    }
+  }
+}

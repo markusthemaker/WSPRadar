@@ -1,0 +1,9 @@
+{
+  "source": "https://db1.wspr.live/",
+  "captured_at_utc": "2026-09-25T14:28:57.182481+00:00",
+  "rows": 65647,
+  "bytes": 994075,
+  "sha256": "602e3acc6db36e6fc8e1ba00760218dbef2a1bb94679b0565295f8edaea7aa6e",
+  "scope": "Entire 40m archive band/window, all transmitters and receivers; no activity, geographic or mode filter",
+  "status": "candidate review input, not an approved regression fixture"
+}

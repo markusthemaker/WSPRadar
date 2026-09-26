@@ -220,7 +220,7 @@ def _analysis(analysis_id, title):
     else:
         analysis.update(
             absolute_mode="TX" if analysis_id.startswith("TX") else "RX",
-            absolute_method_version="opportunity-v2",
+            absolute_method_version="opportunity-v3",
         )
     return analysis
 
@@ -1224,14 +1224,15 @@ def test_completed_snapshot_validation_rejects_every_identity_boundary(
 
 
 @pytest.mark.parametrize("mode", ["RX", "TX"])
-def test_completed_performance_snapshot_rejects_pre_consolidation_method(
-    monkeypatch, tmp_path, mode,
+@pytest.mark.parametrize("old_method_version", ["opportunity-v1", "opportunity-v2"])
+def test_completed_performance_snapshot_rejects_incompatible_method(
+    monkeypatch, tmp_path, mode, old_method_version,
 ):
-    """Require a fresh run when canonical peer-cycle classification changes."""
+    """Reprocess raw evidence after consolidation or participation semantics change."""
     fake_st = _FakeStreamlit()
     old_analysis = {
         **_analysis(f"{mode}_PERFORMANCE", f"{mode} Performance"),
-        "absolute_method_version": "opportunity-v1",
+        "absolute_method_version": old_method_version,
     }
     current_analysis = {
         **old_analysis,
@@ -2129,7 +2130,7 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         "hits": [3],
         "misses": [1],
         "target_only": [2],
-        "target_observations": [5],
+        "target_observations": [3],
         "successful_snr_median": [-12.5],
         "eligible": [True],
         "rate_pct": [75.0],

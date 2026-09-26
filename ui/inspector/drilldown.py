@@ -181,14 +181,14 @@ def _build_drilldown_table(
         )
         station_df["Outcome"] = np.select(
             [
+                station_df["target_only"] > 0,
                 station_df["hit"] > 0,
                 station_df["miss"] > 0,
-                station_df["target_only"] > 0,
             ],
             [
+                "Target-only",
                 "T - Target",
                 f"{opportunity_terms['counter_short']} - {opportunity_terms['counter']}",
-                "Target-only",
             ],
             default="",
         )

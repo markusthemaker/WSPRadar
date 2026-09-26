@@ -1,9 +1,11 @@
 """Execute frozen-source reference queries with a bounded ClickHouse adapter.
 
-Scientific SELECT expressions and predicates run unchanged in SQLite; only the
-output FORMAT clause is removed. This is not native ClickHouse engine or
-geographic-distance validation. Keep fixture expectations independent of this
-adapter and application code.
+Scientific SELECT expressions and predicates run in SQLite. The output FORMAT
+clause is removed; Performance PREWHERE/WHERE clauses are combined and its
+ClickHouse typed NULL becomes SQL NULL. Scalar and aggregate compatibility
+functions retain their input arithmetic. This is not native ClickHouse engine
+or geographic-distance validation. Keep fixture expectations independent of
+this adapter and application code.
 """
 
 from contextlib import closing
@@ -75,16 +77,30 @@ def _spherical_distance_m(longitude_a, latitude_a, longitude_b, latitude_b):
 
 
 def execute_generated_sql(query, source_rows):
-    # Only the output serialization directive is removed. Scientific SQL is
-    # neither reconstructed from expected values nor translated into Python.
-    assert re.search(r"\sFORMAT CSVWithNames\s*$", query)
-    statement = re.sub(r"\sFORMAT CSVWithNames\s*$", "", query)
+    """Execute production SQL over supplied reports with dialect-only adaptation."""
+    # Adapt dialect syntax only. Scientific predicates and aggregate
+    # expressions are neither reconstructed from expectations nor evaluated
+    # by a separate Python implementation of the application algorithm.
+    assert re.search(r"\sFORMAT (?:CSVWithNames|Parquet)\s*$", query)
+    statement = re.sub(r"\sFORMAT (?:CSVWithNames|Parquet)\s*$", "", query)
+    statement = re.sub(
+        r"\bPREWHERE\b(.*?)\n[ \t]*WHERE\b", r"WHERE\1\nAND",
+        statement, flags=re.DOTALL,
+    )
+    statement = statement.replace("CAST(NULL, 'Nullable(Int16)')", "NULL")
     with closing(sqlite3.connect(":memory:")) as connection:
         connection.execute("ATTACH DATABASE ':memory:' AS wspr")
         connection.create_function("toUnixTimestamp", 1, lambda value: float(
             datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
         ))
         connection.create_function("floor", 1, math.floor)
+        connection.create_function("intDiv", 2, lambda value, divisor: int(value) // int(divisor))
+        connection.create_function("toUInt8", 1, int)
+        connection.create_function("toInt16", 1, int)
+        connection.create_function("toNullable", 1, lambda value: value)
+        connection.create_function("notEmpty", 1, lambda value: bool(value))
+        connection.create_function("if", 3, lambda condition, yes, no: yes if condition else no)
+        connection.create_function("toMinute", 1, lambda value: datetime.fromisoformat(value).minute)
         connection.create_function("geoDistance", 4, _spherical_distance_m)
         for name, argument_count, aggregate in (
             ("any", 1, _AnyValue), ("maxIf", 2, _MaximumIf),

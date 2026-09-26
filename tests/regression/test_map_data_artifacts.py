@@ -183,7 +183,7 @@ def _opportunity_map_data() -> MapData:
         "hits": [3],
         "misses": [1],
         "target_only": [2],
-        "target_observations": [5],
+        "target_observations": [3],
         "successful_snr_median": [-12.5],
         "eligible": [True],
         "rate_pct": [75.0],

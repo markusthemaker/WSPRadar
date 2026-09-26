@@ -7,10 +7,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests/regression"))
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.collections import QuadMesh
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import patheffects
@@ -18,20 +20,27 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.matplotlib_runtime import matplotlib_operation_lock, dispose_agg_figure
 from i18n import T
+from scripts.demo_pdf_footer import add_demo_pdf_footer, DEMO_PDF_FOOTER_TEXT
+from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
 from ui.plots.evidence_figures import (
     _compare_temporal_profile_values,
     _segment_temporal_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
 )
 from ui.results_export import _style_figure_for_paper
+from test_griffiths_temporal_reference import (
+    _assert_paired_rows_match_reference, _canonical_paired_rows, _prepare_reference_run,
+)
 
 OUTPUT = ROOT / "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
 PAPER = ROOT / "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
 ARCHIVE = ROOT / "tests/regression/reference_fixtures/griffiths_fig6_diurnal_v1"
 INK, MUTED, TEAL = "#172B3A", "#526572", "#008F8C"
-MAGENTA, ORANGE, BACKGROUND = "#B5366F", "#C86612", "#FCFBF8"
+MAGENTA, ORANGE, BACKGROUND = "#B5366F", "#C86612", "white"
+PAPER_URL = "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf"
 
 
 def read_json(path):
@@ -80,13 +89,16 @@ def main():
     point_annotations = read_json(PAPER / "paper_points.json")
     policy = read_json(PAPER / "comparison_policy.json")
     config = read_json(ARCHIVE / "demo.config")
-    pairs = pd.read_parquet(ARCHIVE / "expected_paired_rows.parquet")
+    replay = _prepare_reference_run(ARCHIVE, ("1h", "3h", "6h", "24h"))
+    pairs = _canonical_paired_rows(replay)
+    _assert_paired_rows_match_reference(replay)
     points = pairs.rename(columns={"evidence_utc": "plot_time", "delta_snr_db": "metric"})
     selection = config["settings"]["core_parameters"]["time_selection"]
     labels = T["en"]
     recipe = _segment_temporal_evidence_export_recipe(
-        points[["plot_time", "metric"]], "Frozen Figure 6 illustration", "1h", "Joint spots",
+        points[["plot_time", "metric"]], "Figure 6 comparison", "1h", "Joint spots",
         analysis_start_t=selection["start_utc"], analysis_end_t=selection["end_utc"],
+        reference_snr_correction_db=replay.context.reference_snr_correction_db,
         chronological_title=labels["fig_segment_chronological_delta"],
         chronological_x_label=labels["fig_segment_chronological_x"],
         chronological_unavailable_text=labels["fig_compare_chronological_unavailable"],
@@ -135,19 +147,22 @@ def main():
     figure.set_size_inches(23, 12.5)
     figure.set_dpi(180)
     figure.set_facecolor(BACKGROUND)
-    lefts, width, bottom, height = [.048, .365, .687], .255, .395, .427
+    lefts, width, bottom, height = [.048, .365, .687], .255, .400, .350
     app_axis.set_position([lefts[2], bottom, .240, height])
     app_colorbar_axis.set_box_aspect(None)
     app_colorbar_axis.set_aspect("auto")
     app_colorbar_axis.set_position([.936, bottom, .007, height])
-    app_axis.tick_params(labelsize=11)
-    app_axis.xaxis.label.set_fontsize(12)
-    app_axis.yaxis.label.set_fontsize(12)
-    app_axis.title.set_fontsize(13)
-    app_colorbar_axis.tick_params(labelsize=10)
-    app_colorbar_axis.yaxis.label.set_fontsize(11)
-    for text in app_axis.get_legend().get_texts():
-        text.set_fontsize(10)
+    app_axis.tick_params(labelsize=13)
+    app_axis.xaxis.label.set_fontsize(14)
+    app_axis.yaxis.label.set_fontsize(13)
+    app_axis.title.set_fontsize(14)
+    app_axis.title.set_y(1.025)
+    app_colorbar_axis.tick_params(labelsize=12)
+    app_colorbar_axis.yaxis.label.set_fontsize(12)
+    app_legend = app_axis.get_legend()
+    app_legend_handles = list(app_legend.legend_handles)
+    assert len(app_legend_handles) == 3
+    app_legend.remove()
     assert app_axis.get_yscale() == "function"
     median_artist = next(line for line in app_axis.lines if line.get_gid() == "compare-median-focus-center")
     np.testing.assert_array_equal(median_artist.get_ydata(), [5, 5])
@@ -164,14 +179,11 @@ def main():
     left = figure.add_axes([lefts[0], bottom, width, height], facecolor="white")
     right = figure.add_axes([lefts[1], bottom, width, height], facecolor="white")
     axes = (left, right)
-    figure.text(.048, .965, "Griffiths & Squibb Figure 6 · from the paper to WSPRadar", fontsize=26, weight="bold", color=INK)
-    figure.text(.048, .929, "G3ZIL − G4HZX  |  5–7 April 2017  |  Panels B and C use the same 6,459 frozen paired observations", fontsize=15, color=MUTED)
-    for x, title in zip(lefts, ("A  Published Figure 6", "B  Reconstruction", "C  WSPRadar view")):
-        figure.text(x, .883, title, fontsize=17, weight="bold", color=INK)
-    for x in (.332, .654):
-        figure.text(x, .883, "→", fontsize=24, ha="center", color=TEAL)
-    left.set_title("Original scatter and contours · linear dB", fontsize=13, weight="bold", pad=14)
-    right.set_title("Fixed smoothing · linear dB", fontsize=13, weight="bold", pad=14)
+    add_demo_pdf_header(figure, DEMO_PDF_HEADERS["griffiths_figure6"])
+    for x, title in zip(lefts, ("A  Original image from publication", "B  Reconstruction", "C  WSPRadar view")):
+        figure.text(x + width/2, .791, title, ha="center", fontsize=17, weight="bold", color=INK)
+    left.set_title("Original scatter and contours · linear dB", fontsize=14, weight="bold", pad=12)
+    right.set_title("Smoothed observation density · linear dB", fontsize=14, weight="bold", pad=12)
 
     calibration = features["axes"]
     scale_hour = 24 / (calibration["x_one_day_px"] - calibration["x_zero_day_px"])
@@ -204,7 +216,7 @@ def main():
                 region_box.set_path_effects([patheffects.Stroke(linewidth=3.8, foreground="white", alpha=.8),
                                             patheffects.Normal()])
             axis.add_patch(region_box)
-            axis.text((xmin+xmax)/2, ymax+.72, label, color=TEAL, fontsize=11, weight="bold",
+            axis.text((xmin+xmax)/2, ymax+.72, label, color=TEAL, fontsize=13, weight="bold",
                       ha="center", va="bottom", zorder=7,
                       bbox={"facecolor": "white", "alpha": .95, "edgecolor": "none", "pad": 1.4})
         readout = policy["branch_match"]["digitization_bound_px"]
@@ -217,10 +229,9 @@ def main():
         assert matching, feature["id"]
         right.scatter(*np.asarray(matching).T, marker="x", s=65, linewidths=2, color=ORANGE, zorder=8)
         matches.append({"id": feature["id"], "modes": matching})
-        text_x = .048 + (index % 2) * .317
-        text_y = .216 - (index // 2) * .025
-        figure.text(text_x, text_y, label, color=TEAL, fontsize=12, weight="bold")
-        figure.text(text_x+.024, text_y, feature_names[index], fontsize=11, weight="bold")
+        text_x = .048 + index * .230
+        figure.text(text_x, .225, label, color=TEAL, fontsize=13, weight="bold")
+        figure.text(text_x+.022, .225, feature_names[index], fontsize=14, weight="bold")
 
     maximum_rows, maximum_columns = np.where(density == density.max())
     right.scatter(hours[maximum_columns], snr_centers[maximum_rows], marker="*", s=155,
@@ -239,12 +250,12 @@ def main():
             if axis is app_axis:
                 anchor_hour, anchor_snr = matching_positions[0]
                 axis.annotate(label, (anchor_hour, anchor_snr), xytext=(0, 11 if anchor_snr < 0 else -11),
-                              textcoords="offset points", color=MAGENTA, fontsize=10, weight="bold",
+                              textcoords="offset points", color=MAGENTA, fontsize=12, weight="bold",
                               ha="center", va="bottom" if anchor_snr < 0 else "top", zorder=9,
                               bbox={"facecolor": "white", "alpha": .95, "edgecolor": "none", "pad": 1.2})
                 continue
             label_y = point["delta_snr_db"] + (1.3 if point["delta_snr_db"] < 0 else -1.3)
-            axis.text(point["utc_hour"], label_y, label, color=MAGENTA, fontsize=10, weight="bold",
+            axis.text(point["utc_hour"], label_y, label, color=MAGENTA, fontsize=12, weight="bold",
                       ha="center", va="bottom" if point["delta_snr_db"] < 0 else "top", zorder=9,
                       bbox={"facecolor": "white", "alpha": .95, "edgecolor": "none", "pad": 1.2})
         witness_matches.append({"id": point["id"], "matching_pairs": int(close.sum()),
@@ -252,72 +263,103 @@ def main():
     for axis in axes:
         axis.set(xlim=(0, 24), ylim=(-15, 25), xticks=np.arange(0, 25, 3),
                  yticks=np.arange(-15, 26, 5), xlabel="Time of day (UTC hour)")
-        axis.tick_params(length=4, labelsize=11)
+        axis.tick_params(length=4, labelsize=13)
+        axis.xaxis.label.set_fontsize(14)
+        axis.yaxis.label.set_fontsize(13)
     left.set_ylabel("Δ SNR, G3ZIL − G4HZX (dB)", labelpad=10)
     right.set_ylabel("Δ SNR (dB)", labelpad=10)
     right.axhline(0, color=INK, linewidth=.6, alpha=.45)
-    colorbar_axis = figure.add_axes([.49, .321, .13, .011])
+    colorbar_axis = figure.add_axes([.480, .340, .140, .010])
     colorbar = figure.colorbar(density_artist, cax=colorbar_axis, orientation="horizontal", ticks=[0, .5, 1])
-    colorbar.ax.tick_params(labelsize=9, length=2)
-    figure.text(.365, .323, "Smoothed density / maximum", fontsize=10)
+    colorbar.ax.tick_params(labelsize=11, length=2)
+    figure.text(.365, .340, "Density / maximum (B)", fontsize=12)
+
+    # One key spans the three panels. The scope of each symbol is explicit;
+    # smoothed B and unsmoothed C keep their own density color scales.
     handles = [
-        Line2D([], [], color=TEAL, linestyle="--", linewidth=2, label="R1–R4: fixed paper contour regions"),
-        Line2D([], [], color=ORANGE, marker="x", linestyle="none", markersize=8, markeredgewidth=2,
-               label="Matching density peaks"),
+        Line2D([], [], color=TEAL, linestyle="--", linewidth=2,
+               label="R1–R4: paper contour regions (A–C)"),
+        Line2D([], [], color=MAGENTA, marker="o", markerfacecolor="none", linestyle="none", markersize=9,
+               label="P1–P3: selected point matches (A–C)"),
+        Line2D([], [], color="#233842", marker=".", linestyle="none", markersize=7, alpha=.45,
+               label="Individual paired observations (B)"),
+        Line2D([], [], color=ORANGE, marker="x", linestyle="none", markersize=9, markeredgewidth=2,
+               label="Matching density peaks (B)"),
+        Line2D([], [], color="#546772", marker="x", linestyle="none", markersize=8,
+               label="Other local density peaks (B)"),
         Line2D([], [], marker="*", linestyle="none", markerfacecolor="white", markeredgecolor=INK,
-               markersize=12, label="Reconstructed global maximum"),
-        Line2D([], [], color=MAGENTA, marker="o", markerfacecolor="none", linestyle="none", markersize=8,
-               label="P1–P3: isolated scatter witnesses"),
+               markersize=13, label="Highest reconstructed density (B)"),
+        *app_legend_handles,
     ]
-    figure.legend(handles=handles, loc="upper left", bbox_to_anchor=(.045, .286), ncol=2,
-                  frameon=False, fontsize=11, columnspacing=2.6, handlelength=2.5)
-    figure.text(.687, .337, "Same observations, native WSPRadar presentation", fontsize=12, weight="bold")
-    figure.text(.687, .316, "R1–R4 map the same paper bounds onto the app’s axis.", fontsize=10.5, color=TEAL)
-    figure.text(.687, .295, "P1–P3 mark matched native spots within hourly cells.", fontsize=10.5, color=MAGENTA)
-    figure.text(.687, .270, "Unsmoothed 1-hour × 1-dB cells; pooled median +5 dB.\n"
-                "Markers: hourly medians. Band: hourly middle 50% (IQR).", fontsize=10.5, linespacing=1.6, va="top")
-    figure.text(.687, .216, "C uses the app’s median-centered nonlinear dB axis.\n"
-                "Read the dB labels; vertical pixel positions differ from A/B.\n"
-                "These medians and IQRs are calculated from frozen pairs;\n"
-                "they are not measurements extracted from the paper.", fontsize=10.5, linespacing=1.6, va="top")
-    figure.text(.048, .150, "A/B alignment: printed-axis calibration, with no fitted shift or scale. R1–R4 are contour regions, not confidence intervals.\n"
-                "Matching peaks use the fixed ±4-pixel readout + half-cell allowances; boxes show the source regions alone. P1–P3 match folded time/SNR, not identified dates or stations.",
-                fontsize=10.5, linespacing=1.6, va="top")
-    figure.text(.048, .100, "B reconstruction: frozen same-cycle pairs → production 1-hour × 1-dB count grid → fixed Gaussian comparison smoother (σ = 1 hour, 1 dB; UTC wraps).\n"
-                "The full −17 to +40 dB sample range enters smoothing; A/B display −15 to +25 dB. Faint points are native pairs; gray × mark other density peaks. C retains the full app view.",
-                fontsize=10.5, linespacing=1.6, va="top")
-    figure.text(.048, .049, "Source: Griffiths & Squibb, Practical Wireless, October 2017, p. 25, Fig. 6 (5–7 April). Frozen demo: 5 April 00:00–7 April 23:45 UTC; distance <10,000 km.\n"
-                "Illustration from the existing frozen fixture, not a fresh live run. Author smoothing, contour levels and exact population are unknown: agreement concerns selected features, not the complete distribution.",
-                fontsize=10, color=MUTED, linespacing=1.6, va="top")
+    legend_labels = [handle.get_label() for handle in handles[:6]] + [
+        "Overall median: +5 dB (C)", "Median for each UTC hour (C)",
+        "Middle 50% for each UTC hour (C)",
+    ]
+    figure.legend(handles=handles, labels=legend_labels, loc="upper left",
+                  bbox_to_anchor=(.043, .251, .910, .073), mode="expand", ncol=3,
+                  frameon=False, fontsize=14, columnspacing=2, handlelength=2.4,
+                  labelspacing=.55, borderaxespad=0)
+
+    figure.text(.048, .194, "Panel C: Same observations, native WSPRadar presentation. R1–R4 map the same paper bounds onto the app’s axis. P1–P3 mark matched native spots within hourly cells.",
+                fontsize=14, color=INK)
+    figure.text(.048, .174, "Unsmoothed 1-hour × 1-dB cells; pooled median +5 dB. Markers: hourly medians. Band: hourly middle 50% (IQR). C uses the app’s median-centered nonlinear dB axis.",
+                fontsize=14, color=INK)
+    figure.text(.048, .154, "Read the dB labels; vertical pixel positions differ from A/B. Medians and IQRs use freshly recalculated pairs; they are not measurements extracted from the paper.",
+                fontsize=14, color=INK)
+    figure.text(.048, .125, "A/B alignment: printed-axis calibration, with no fitted shift or scale. R1–R4 are contour regions, not confidence intervals.",
+                fontsize=14, color=MUTED)
+    figure.text(.048, .105, "Matching peaks use the fixed ±4-pixel readout + half-cell allowances; boxes show the source regions alone. P1–P3 match folded time/SNR, not identified dates or stations.",
+                fontsize=14, color=MUTED)
+    figure.text(.048, .076, "B: database reports → WSPRadar SQL and paired evidence → 1-hour × 1-dB grid → fixed comparison smoother (σ = 1 hour, 1 dB; UTC wraps).",
+                fontsize=14, color=MUTED)
+    figure.text(.048, .056, "A/B display −15 to +25 dB. Faint points are native pairs; gray × mark other density peaks. C retains the full app view.",
+                fontsize=14, color=MUTED)
+    figure.text(.048, .023, "Original figure: p. 25, Figure 6. Selection: 5 April 00:00-7 April 23:45 UTC; distance <10,000 km.",
+                fontsize=13, color=MUTED, url=PAPER_URL)
+    add_demo_pdf_footer(figure, right=.96, bottom=.023)
     output_path = output_directory / "figure6_evidence_comparison.png"
+    pdf_path = output_directory / "WSPRadar_Demo_Griffiths_Figure6.pdf"
     figure.savefig(output_path, dpi=180, facecolor=BACKGROUND)
     # Keep reconstruction, app artists, text and annotations vector in PDF.
     # The original publication image remains an embedded source raster.
     for artist in figure.findobj():
         if artist.get_rasterized():
             artist.set_rasterized(False)
+        if isinstance(artist, QuadMesh):
+            artist.set_edgecolor("face")
+            artist.set_linewidth(.04)
     with matplotlib.rc_context({"pdf.fonttype": 42}):
-        figure.savefig(output_path.with_suffix(".pdf"), facecolor=BACKGROUND, metadata={
-            "Title": "Griffiths and Squibb Figure 6: publication, reconstruction and WSPRadar",
+        figure.savefig(pdf_path, facecolor=BACKGROUND, metadata={
+            **demo_pdf_metadata(DEMO_PDF_HEADERS["griffiths_figure6"]),
             "Subject": "Vector reconstruction and WSPRadar artists with the original publication raster",
             "CreationDate": None, "ModDate": None,
         })
     dispose_agg_figure(figure)
     metadata = {
-        "output": output_path.name, "pdf_output": output_path.with_suffix(".pdf").name, "source_rows": len(pairs), "count_grid_shape": list(counts.shape),
+        "footer_text": DEMO_PDF_FOOTER_TEXT,
+        "output": output_path.name, "pdf_output": pdf_path.name, "source_rows": len(pairs), "count_grid_shape": list(counts.shape),
         "method": "A: calibrated source raster; B: existing fixed Gaussian policy; C: production temporal renderer and paper export theme, with identical R1-R4 paper bounds and matched native P1-P3 coordinates transformed by the native axis",
         "verified": "All 24 hourly counts, medians, Q1, Q3 and all 1392 density cells equal the existing frozen CSVs; C artist medians/IQR verified",
         "source_feature_matches": matches, "scatter_witnesses": witness_matches,
         "sample_range_db": [float(deltas.min()), float(deltas.max())],
+        "reconstruction_origin": {
+            "input": "source_rows.parquet only; expected files are assertions after calculation",
+            "stages": "generated SQL via SQLite adapter; strict-to-legacy selection; post-fetch; map; Inspector; paired evidence; temporal recipe",
+            "source_reports": replay.source_row_count, "strict_sql_rows": replay.strict_row_count,
+            "selected_sql_rows": replay.input_row_count,
+            "selected_query_sha256": hashlib.sha256(replay.analysis.query.encode("utf-8")).hexdigest(),
+            "limit": "No native ClickHouse engine, HTTP, cache/admission or provider geographic-distance validation",
+        },
+        "builder_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "input_sha256": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
                           for path in (
                               PAPER / "paper_features.json", PAPER / "paper_points.json",
                               PAPER / "comparison_policy.json", PAPER / "paper_figure6.png",
-                              ARCHIVE / "demo.config", ARCHIVE / "expected_paired_rows.parquet",
+                              ARCHIVE / "demo.config", ARCHIVE / "source_rows.parquet", ARCHIVE / "expected_paired_rows.parquet",
                               ARCHIVE / "expected_utc_hour.csv", ARCHIVE / "expected_density_utc_hour.csv",
                           )},
     }
-    (output_directory / "render_checks.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    (output_directory / "render_checks.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps({"output": str(output_path), "pairs": len(pairs), "features": len(matches),
                       "witnesses": len(witness_matches), "verified": metadata["verified"]}, indent=2))
 

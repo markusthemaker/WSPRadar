@@ -130,6 +130,29 @@ SQLite adapter and the production post-fetch/Inspector preparation. This is
 not a native ClickHouse comparison. It reads the existing TX/RX source fixtures
 and changes no scientific runtime, demo settings or expected-result files.
 
+The [shared reconstruction contract](../README.md) separates scientific
+production results from declared presentation adaptations. The colored rings
+are explicitly a **pre-gate SQL diagnostic**, included because the paper shows
+reports that are ineligible for Benchmark comparison. Their SNR components
+come from current generated SQL. The outer rings are supplied by membership
+in the actual production `apply_post_fetch_filters` output and must also map
+to the corresponding retained Inspector outcome at the exact UTC, callsign
+and full locator. The captured-source activity-witness check is a fail-closed
+assertion of the scope, not an alternative source of plotted gate flags.
+
+The lower panel takes its values and eligible population directly from the
+production `_compare_joint_evidence_points(require_paired_eligible=True)`
+projection after map and Inspector preparation. It does not recompute Delta
+SNR or recover pairs from earlier unfiltered units. Expected-result CSVs are
+not plotting inputs. A regression changes current SQL and paired-point values,
+blocks expected-file reads, and checks that the plot payload follows those
+production values; separate checks reject a retained endpoint missing from
+post-fetch output or its Inspector outcome. Diagnostic callout coordinates and
+their numeric labels also come from those current SQL endpoints. The original
+paper axes and the declared common +7 dB display shift remain presentation
+choices. These checks do not execute live provider transport, runtime cache,
+native ClickHouse or a complete interactive application session.
+
 ```powershell
 .\.venv\Scripts\python.exe -B scripts/build_milazzo_publication_overlays.py `
   --figure6 tests/regression/reference_fixtures/milazzo_publication_overlays_v1/paper_figure6.jpg `
@@ -166,6 +189,28 @@ selection coverage, rather than invented independent paper measurements.
 
 ## Vector PDF companions (2026-09-25)
 
-`figure6_rx_overlay.pdf` and `figure7_tx_overlay.pdf` preserve the existing PNG layouts, reconciliation circles, Target-Active Gate outer rings, annotations and lower paired-evidence panels. The builder command above now emits both formats. The PDF retains those generated elements and its text as vectors; the original publication JPEG remains an embedded raster with the same title mask used in the PNG. The completed PNG is never used as the PDF source.
+`WSPRadar_Demo_Milazzo_Figure6.pdf` and `WSPRadar_Demo_Milazzo_Figure7.pdf` preserve the existing PNG layouts, reconciliation circles, Target-Active Gate outer rings, annotations and lower paired-evidence panels. The builder command above now emits both formats. The PDF retains those generated elements and its text as vectors; the original publication JPEG remains an embedded raster with the same title mask used in the PNG. The completed PNG is never used as the PDF source.
 
 The PDF companions are included in the mandatory manifest inventory. Their addition changes no source images, paper anchors, endpoint reports, gate flags, numerical fixtures or PNG pixels.
+
+
+### Demo PDF filenames (26 September 2026)
+
+Embedded demo PDFs use `WSPRadar_Demo_LeadAuthor_FigureX.pdf`, with
+`_diagnostic` before `.pdf` for a diagnostic. PNG filenames are unchanged.
+The PDF content is byte-identical to the previously named output. Existing
+generation hashes describe that original rendering, not the filename update.
+
+### WSPRadar header revision (2026-09-27)
+
+Both Milazzo PDFs now begin with **WSPRadar.org reconstruction & comparison**, followed by a descriptive title of the respective RX or TX comparison. Explicit **Referenced publication:** and **Source figure:** lines attach Milazzo's authorship, the publication title and Figure 6 or Figure 7 reference to their source; a **Demo:** line states the comparison context. Presentation-only records in `config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper own this hierarchy and identify WSPRadar as the comparison author in PDF metadata. These two overlays use a compact five-line header to fit the existing page geometry; the earlier evidence-based direction correction remains directly below it. Earlier review records, source evidence, numerical expectations, scientific calculations and all body coordinates remain unchanged.
+
+### Three-panel presentation revision (2026-09-27)
+
+This subsequent presentation revision supersedes the compact geometry described above. Both PDFs and their PNG companions now follow the common demo typography and three-panel format. The five header lines retain their wording and source links, with 27-point WSPRadar and 20-point descriptive headings. The page grows proportionally from 16 × 10.8 to 24 × 16.2 inches; PNG companions are 3840 × 2592 pixels. The source publication JPEGs, scientific inputs, independent expectations, extracted anchors, matching residuals and endpoint ledgers remain byte-identical.
+
+**Panel A - Original image from publication** retains the complete source JPEG, including its original printed title. The evidence-based direction correction is centered below this figure. **Panel B - Reconstruction** plots every existing SQL endpoint at its exact UTC and common 37 dBm-scale SNR, with the same colored circles, production-retained outer rings and both TX diagnostic callouts. The original image is fully opaque underneath these markers, preserving its original dots and connecting lines and using the inverse of the existing source-only paper-axis calibration without fitting a shift or SNR offset. Its plotting area aligns vertically with the original image. The earlier source-image title mask is no longer needed: Panel A preserves the complete source, while Panel B clips its calibrated underlay to the plot limits.
+
+**Panel C - WSPRadar view** uses the production `_selected_evidence_export_recipe` and `render_selected_evidence_export_figure` with the configured three-hour station bins and exact publication interval. It retains the native chronological density, normalization, median, IQR behavior and median-centered nonlinear axis. Individually annotated Joint Spots preserve the old lower scatter's exact values and full locator identities: RX has five values (7, 7, 8, 17 and 22 dB) across DO34 and DO34ir; TX has one DO34ir value of -2 dB. The broader TX fixture's other receivers do not enter this selected-path view. Empty bins remain empty; the single TX cell cannot establish a temporal trend.
+
+Panel C sits below Panel A, with its left edge, right edge and height derived from the original graph's pixel boundaries after the source image's aspect-ratio inset. Its density scale aligns with the original figure's legend column. The median, bin-median and exact-Joint-Spot legend is directly below Panel C. The two pre-gate series use an evenly spaced row below Panel B, followed by a separate full-width outer-ring legend row and the complete explanatory text. The legends identify which symbols occur in Panel B or Panel C. Power normalization, gate counts, RX witness-scope limits, exact-cycle TX activity, full-locator pairing and offline execution provenance remain on each page. Original rasters remain embedded images; generated text, report circles, density cells and annotations remain vector graphics with embedded DejaVu fonts. `overlay_summary.json` adds presentation dimensions, selected populations, native density totals, measured layout bounds and panel roles while retaining the prior scientific/provenance fields. `test_milazzo_reference.py` checks the selected population, time boundaries, independent density-cell counts, calibrated underlay, requested panel/legend alignment, PDF structure and publication synchronization.

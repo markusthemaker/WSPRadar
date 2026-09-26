@@ -6,8 +6,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 14803,
-      "sha256": "6a11d7c341fbb6f5cba0fb9e910865166784d662e9cfb503bf816edd864c6a1f"
+      "bytes": 24560,
+      "sha256": "539c94e7f3e253a773bf1a1839cb656c3d1232a57e176020dd2e220f46259eca"
     },
     {
       "path": "comparison_policy.json",
@@ -15,34 +15,34 @@
       "sha256": "b36d245afc73cd6887d91a30d5ee5593ad1d278286d5426a59b421be51d03fcf"
     },
     {
-      "path": "figure3_evidence_comparison.pdf",
-      "bytes": 1066925,
-      "sha256": "600fc2ea1de5e077521b5c86a0f596210aacc231b451828471d8b858dd48408c"
+      "path": "WSPRadar_Demo_Griffiths_Figure3.pdf",
+      "bytes": 1870800,
+      "sha256": "83718d8622f5d375d1e513d3fa737d1f0b6980644e4c56581d138b18155779b0"
     },
     {
       "path": "figure3_evidence_comparison.png",
-      "bytes": 1717882,
-      "sha256": "9628f66f84bee934c3eff90428ee22c9d9e332bad5a3122ae6f39ce6a68d7a0b"
+      "bytes": 2058317,
+      "sha256": "5a5444bdf0e7f30d2fc402b479664f5c4fbab28a947a2834f6dd965a2d9aa53a"
     },
     {
       "path": "figure3_render_checks.json",
-      "bytes": 2262,
-      "sha256": "ed7c53215f1c5d44646bb5e2067ff49c5f18851f4667b4b22bac7d05cd48f570"
+      "bytes": 5933,
+      "sha256": "4a97184172a7b191d256f1a9b6b6925de8493bc5164a5f97f9c81fce194cc89c"
     },
     {
-      "path": "figure3_tail_diagnostic.pdf",
-      "bytes": 95824,
-      "sha256": "141b33684e996cbffe2d61d43405b5583c8ddd9bbe10cf1990d786a253a9b06e"
+      "path": "WSPRadar_Demo_Griffiths_Figure3_diagnostic.pdf",
+      "bytes": 168463,
+      "sha256": "a2d7df14fc78d7ee32b370934d3ea8d81b3c1813723b83bab8a35dc452506ccc"
     },
     {
       "path": "figure3_tail_diagnostic.png",
-      "bytes": 449645,
-      "sha256": "4367b10bf3ab751ca136429a073ae55fe47dd20599e25ed829a071347932cae0"
+      "bytes": 900089,
+      "sha256": "8d638b2e4681db4e48ff4f381ad1b5d8d60b09f8e2fbf951260575e51e6b1695"
     },
     {
       "path": "figure3_tail_report_combinations.csv",
-      "bytes": 37264,
-      "sha256": "5b1bbb535681bad740797baabdd1c41dae06ce89b0f5ff3b24f2859a98b0142c"
+      "bytes": 66582,
+      "sha256": "88896c86c890c8296c938ef09853bba341c8e5a0fb0c25dea5a996a6c76a6225"
     },
     {
       "path": "frozen_inputs.json",

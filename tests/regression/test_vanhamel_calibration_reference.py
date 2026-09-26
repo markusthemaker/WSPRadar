@@ -140,6 +140,7 @@ def _calculate_run(source_rows, *, reference_correction_db=None):
     )
     temporal = _segment_temporal_evidence_export_recipe(
         points[["plot_time", "metric"]], "Vanhamel calibration", "24h", "Joint spots",
+        reference_snr_correction_db=context.reference_snr_correction_db,
         analysis_start_t=configuration["start_utc"], analysis_end_t=configuration["end_utc"],
         chronological_title="Chronological Delta SNR ({time_bin})",
         chronological_x_label="UTC", chronological_unavailable_text="No evidence",

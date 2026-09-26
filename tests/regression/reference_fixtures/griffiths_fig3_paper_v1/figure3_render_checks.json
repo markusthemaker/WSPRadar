@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "builder": "scripts\\build_griffiths_figure3_comparisons.py",
-  "builder_sha256": "c9009eacd652f080b4bb42e0954dd40515194283b6dbe8a183b79e9cdb890e57",
+  "footer_text": "WSPRadar.org by Dr. Markus Brosch (DL1MKS)",
+  "builder_sha256": "d2120b508323b9e16e176d289fbc9b32e1de24ef89f7ce88e8d898315a0f322d",
   "input_sha256": {
     "tests\\regression\\reference_fixtures\\griffiths_fig3_paper_v1\\paper_features.json": "59e2aa2d79a9629d9e462d390e59c927c2e3441a170ee1ab71f46730234f9cab",
     "tests\\regression\\reference_fixtures\\griffiths_fig3_paper_v1\\paper_figure3.png": "0d5b114974fd301c256453d08bbe61531c094a7e8cfcfd83cd15c2a55b97543f",
@@ -17,28 +18,120 @@
     "temporal_bins": 60,
     "count_grid_sum": 57767,
     "independent_12h_summary_check": "counts, medians, Q1 and Q3 exact",
-    "production_artist_check": "all 60 median markers and both IQR curves exact; native nonlinear axis retained"
+    "production_artist_check": "all 60 median markers and both IQR curves exact; native nonlinear axis retained",
+    "tail_diagnostic_callout": {
+      "panels": [
+        "A",
+        "B"
+      ],
+      "horizontal_days_after_april1": [
+        15.25041736227045,
+        15.851419031719532
+      ],
+      "diagnostic_range_db_inclusive": [
+        -20,
+        0
+      ],
+      "publication_rectangle_pixels": [
+        751.0,
+        285.2,
+        775.0,
+        434.0
+      ],
+      "pdf_link": "WSPRadar_Demo_Griffiths_Figure3_diagnostic.pdf",
+      "scope": "Navigation to the existing expanded diagnostic; frozen paper feature and numerical expectations unchanged"
+    },
+    "reconstruction_density": {
+      "time_bin": "1h",
+      "snr_bin_width_db": 1,
+      "count_grid_sum": 57767,
+      "time_bins": 720,
+      "peak_cell_count": 30,
+      "scale": "Production relative density, linear 0-100 percent of the full-month maximum; no per-hour normalization",
+      "smoothing": "none; exact production count cells",
+      "native_markers": 57767,
+      "marker_area_points_squared": 7.0,
+      "marker_alpha": 0.3,
+      "marker_presentation": "Every production pair at its original coordinates, including coincident observations; fixed size and opacity are display choices",
+      "colorbar_scope": "Unchanged density background only; overlaid black markers also contribute visual darkness",
+      "display_limits_only_db": [
+        -20,
+        30
+      ],
+      "all_pairs_retained_before_display_clipping": true
+    }
   },
   "tail_diagnostic": {
     "diagnostic_range_db_inclusive": [
       -20,
-      -5
+      0
     ],
     "horizontal_days_after_april1": [
       15.25041736227045,
       15.851419031719532
     ],
-    "retained_strongest_pairs": 17,
-    "weaker_report_combinations": 343,
-    "total_report_combinations": 360,
+    "retained_strongest_pairs": 94,
+    "weaker_report_combinations": 554,
+    "total_report_combinations": 648,
     "weaker_by_transmitter": {
-      "HB9MHB": 342,
-      "DL9GCW": 1
+      "HB9MHB": 551,
+      "DL9GCW": 2,
+      "IZ1UKA": 1
     },
     "original_fixed_tail": {
       "retained_strongest_pairs": 0,
       "duplicate_expanded_combinations": 38
+    },
+    "worked_example": {
+      "transmitter": "HB9MHB",
+      "utc": "2017-04-16T10:46:00+00:00",
+      "target_reported_frequency_mhz": [
+        7.040194,
+        7.040125,
+        7.040094,
+        7.040033
+      ],
+      "target_reported_snr_db": [
+        -27,
+        -15,
+        -5,
+        -26
+      ],
+      "reference_reported_snr_db": [
+        -18,
+        -8
+      ],
+      "retained_delta_snr_db": 3,
+      "frequency_source": "WSPR Live database reports retrieved 2026-09-26, independently matching the documented WSPR Rocks example; frequencies absent from original source_rows.parquet",
+      "public_identity": "withheld; callsign available upon request",
+      "database_research": {
+        "captured_on": "2026-09-26",
+        "provider": "https://db1.wspr.live/",
+        "all_receiver_download_sha256": "d8cc0f74e091ce0080272b187d22a488b944d4240a1d9324bb693d503b5a793d",
+        "displayed_weaker_combinations_from_one_callsign": 551,
+        "monthly_selected_pairs_with_multiple_reports": 211,
+        "monthly_selected_pairs": 57767,
+        "monthly_median_db_with_and_without_callsign": 7,
+        "widespread_offset_hz": [
+          30,
+          31
+        ],
+        "first_widespread_cycle_utc": "2017-04-16T03:22:00Z",
+        "marked_decline_cycle_utc": "2017-04-16T15:46:00Z",
+        "evidence_boundary": "New database analysis, not a claim from the publication; physical cause unconfirmed"
+      },
+      "hypothesis_source": "https://valentfx.com/vanilla/uploads/Uploader/a9/f19334bbbcca28d72b85cb1f5be6ce.pdf",
+      "cause_in_this_example": "unconfirmed"
     }
+  },
+  "reconstruction_origin": {
+    "input": "source_rows.parquet only; expected_paired_rows is checked after calculation",
+    "stages": "generated SQL via SQLite adapter; strict-to-legacy selection; post-fetch; map; Inspector; native pairs; production temporal recipe",
+    "source_rows": 184352,
+    "strict_sql_rows": 0,
+    "selected_sql_rows": 125759,
+    "selected_query_sha256": "564358699187ed02da811592820b829ccfcf54751bf2452e411c4958539f1383",
+    "limit": "No native ClickHouse engine, HTTP, cache/admission or provider geographic-distance validation"
   },
   "pdf_representation": "Native vector reconstruction, temporal cells and annotations; original publication raster only"
 }

@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "fixture_id": "milazzo_human_review_v2",
+  "packet_id": "MR01",
+  "packet_revision": 2,
+  "approval_date_utc": "2026-09-26",
+  "decision": "verified",
+  "approval_source": "Explicit user statement in the local human evidence review task",
+  "user_statement_verbatim": "All Milazzo human evidence reviews are performed - P01 to P10 and B01 to B04. All verified. We can now use these as human verififed evidence and bake into a regression testing the production scientific processing and analysis so if in the future we introduce an error, we would spot it.",
+  "implementation_authorization": "All agreed, implement 1 to 3.",
+  "cards": {
+    "B01": {
+      "decision": "verified",
+      "title": "One pair: normalization and Delta SNR"
+    },
+    "P01": {
+      "decision": "verified",
+      "title": "Hit, Miss, Target-only - and excluded cycles"
+    },
+    "P02": {
+      "decision": "verified",
+      "title": "VE6PDQ: count the right opportunities"
+    },
+    "P03": {
+      "decision": "verified",
+      "title": "Successful SNR: median and extremes"
+    },
+    "P04": {
+      "decision": "verified",
+      "title": "Map weighting: five unequal stations"
+    },
+    "P05": {
+      "decision": "verified",
+      "title": "One distance bin, three related figures"
+    },
+    "P06": {
+      "decision": "verified",
+      "title": "Peer Reach includes zero-Hit stations"
+    },
+    "P07": {
+      "decision": "verified",
+      "title": "One complete three-hour bin"
+    },
+    "P08": {
+      "decision": "verified",
+      "title": "UTC folding at the end of the window"
+    },
+    "P09": {
+      "decision": "verified",
+      "title": "Folded SNR: each date-hour gets one vote"
+    },
+    "P10": {
+      "decision": "verified",
+      "title": "SNR deviation: subtract each station baseline"
+    },
+    "B02": {
+      "decision": "verified",
+      "title": "Histogram weights and a positive outlier"
+    },
+    "B03": {
+      "decision": "verified",
+      "title": "Decode Outcomes: which denominator?"
+    },
+    "B04": {
+      "decision": "verified",
+      "title": "Map value: two stations, three observations"
+    }
+  },
+  "approved_artifacts": {
+    "review_cards.json": "115dac8073327cdf8b8a4c5dd8320a58bd670939b81c552054af8c3f1c54e651",
+    "review_packet.pdf": "9a9567283551613404f136595397713ff03d9de699b67095b62c93c9bcb03aca",
+    "reviewed_expectations.json": "eab7940945ae06e5231a9e528d535f1b51784073c980af401248bae6dc2a1d6b",
+    "benchmark_expected.json": "8b97c3809560e77db945739517235ab82a3a9ef15ce52c167d5e99cd1d6404ed",
+    "performance.config": "0ed68b9a16e7b3a944d7c183a31033d25eca636b7321f1c952b0cb56ab2d39c6",
+    "benchmark.config": "e4af275d3752e8f2c05aa57c7252d87e2f62a0b314dc9559e7ba755daa77ec70"
+  },
+  "scope": "Human approval covers the 14 revision-2 cards and their stated arithmetic, evidence selection and interpretation. Exhaustive supporting ledgers and unprinted values are independently calculated support, not a claim of individual human review of every report.",
+  "historical_status": "Pending statements inside the byte-preserved packet are historical. This separate approval supersedes them without modifying the original packets or decisions."
+}

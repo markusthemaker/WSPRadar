@@ -133,7 +133,7 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
                 "TX Benchmark",
             ),
             (
-                "Assess how reliably the Target hears independently active transmitters.",
+                "Assess how reliably the Target RX decodes peer TX signals across confirmed opportunities.",
                 "Assess how reliably active receivers hear the Target.",
                 "Compare what the Target and Reference receivers hear under matched conditions.",
                 "Compare how the Target and Reference transmit paths are heard under matched conditions.",
@@ -149,7 +149,7 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
                 "TX-Benchmark",
             ),
             (
-                "Bewerte, wie zuverlässig das Target Sender hört, deren Aktivität unabhängig bestätigt ist.",
+                "Bewerte, wie zuverlässig der Target-RX Peer-TX-Signale innerhalb bestätigter Gelegenheiten decodiert.",
                 "Bewerte, wie zuverlässig nachweislich aktive Empfänger das Target hören.",
                 "Vergleiche, was die Target- und Referenzempfänger unter zugeordneten Bedingungen hören.",
                 "Vergleiche, wie die Target- und Referenzsendepfade unter zugeordneten Bedingungen gehört werden.",

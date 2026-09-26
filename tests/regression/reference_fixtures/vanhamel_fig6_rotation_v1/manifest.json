@@ -7,18 +7,23 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 17235,
-      "sha256": "06d6387bb58a77a75b948777094d5c18b62e0e874b51f70fca06ecfc9fdfcbdc"
+      "bytes": 28075,
+      "sha256": "5deef67c65903a524aca7857dbd8588549bd5a0214977a087f04b1dfafa3f3e5"
+    },
+    {
+      "path": "WSPRadar_Demo_Vanhamel_Figure6.pdf",
+      "bytes": 878962,
+      "sha256": "b5ef06231cadc7f5feca0f6821397484b7be5f6584ef795a927e7f2b25ed350e"
     },
     {
       "path": "capture_provenance.json",
-      "bytes": 3878,
-      "sha256": "8ceefbf05c0d8cef279f5f05d36eb4ee6e6f80b3a953be2ad1e20ce3a35c0d4a"
+      "bytes": 3955,
+      "sha256": "37f4e28c1a3182f7b3fda3c811fbe99e206ed6ad84cdca00d56d85a8bb3d6263"
     },
     {
       "path": "comparison_presentation.json",
-      "bytes": 2254,
-      "sha256": "e2a2398ab580139cfc61ab60063497be2a375db59522e965338c693cb45b4111"
+      "bytes": 10384,
+      "sha256": "195225934a2f5a0558d22c13f096e26c036474112d09d148f70b4779f7348bf6"
     },
     {
       "path": "demo.config",
@@ -34,6 +39,11 @@
       "path": "expected_density_12h.csv",
       "bytes": 3921,
       "sha256": "1ec6568e96205253af8a1ca8109fea636c6ccb3e357dfd5ee05109a8da904f98"
+    },
+    {
+      "path": "expected_density_12h_correction_aware_v1.csv",
+      "bytes": 9812,
+      "sha256": "80d49c0e8f446ceb3787c4369e4c67b57a4d1c61390b348f31d54ce9ddd67ffa"
     },
     {
       "path": "expected_halves.csv",
@@ -66,14 +76,9 @@
       "sha256": "bc3df33b05c6d0ce1b824217ac6e686d818329c44798b169604c7367aa2bea24"
     },
     {
-      "path": "figure6_overlay_1p6.pdf",
-      "bytes": 796205,
-      "sha256": "725dce6748a27a78d162a37ad156cedc1a5aa7185fbeae0a2d95113df9ed7a7b"
-    },
-    {
       "path": "figure6_overlay_1p6.png",
-      "bytes": 1625832,
-      "sha256": "151056ec47cedbd294b7348bc786cc370414472572e835a5bd65a703e8ad9c68"
+      "bytes": 1834390,
+      "sha256": "f2262759b760b380ceb2e9cada899c0b0322abd9e47d48ec77e19b5358e1dedc"
     },
     {
       "path": "observed_landmark_comparison.csv",
@@ -104,8 +109,15 @@
       "path": "source_rows.parquet",
       "bytes": 169876,
       "sha256": "8f684384f12f15a0070cd0aae3167f07545f39ac050d625c15a70b4e9f3400fe"
+    },
+    {
+      "path": "temporal_density_revision_v1.json",
+      "bytes": 1818,
+      "sha256": "4e926d3fa85785794b9287f513ba392e470a0157e3eec3548124c7a61d85f127"
     }
   ],
   "presentation_builder_path": "scripts/build_vanhamel_rotation_comparison.py",
-  "presentation_builder_sha256": "824d4b8f480a1ba16136c1e74fdf6098d1d17f1c8fa718b252e1bfecbdb7821a"
+  "presentation_builder_sha256": "1dd93fba67c5988775e2fe1403b7b3682ecf5fcdc3de5d65f3876bf6de659e86",
+  "density_revision_builder_path": "scripts/build_vanhamel_temporal_density_reference.py",
+  "density_revision_builder_sha256": "ae6570f76fd9f4606c2df1da5cc02f03bfe7e98ec47b405182584fe7a11740c3"
 }

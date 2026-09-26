@@ -9,6 +9,7 @@
         "tests/regression/test_benchmark_mode_defaults.py",
         "tests/regression/test_completed_run_contracts.py",
         "tests/regression/test_developer_credit.py",
+        "tests/regression/test_demo_pdf_headers.py",
         "tests/regression/test_documentation_state.py",
         "tests/regression/test_evidence_statistics.py",
         "tests/regression/test_export_content.py",
@@ -17,6 +18,7 @@
         "tests/regression/test_map_data.py",
         "tests/regression/test_map_data_artifacts.py",
         "tests/regression/test_opportunity_engine.py",
+        "tests/regression/test_performance_method_reference.py",
         "tests/regression/test_regression_runner.py",
         "tests/regression/test_run_lifecycle.py",
         "tests/regression/test_success_evidence_rework.py",
@@ -109,6 +111,8 @@
         "tests/regression/test_vanhamel_calibration_reference.py",
         "tests/regression/test_vanhamel_rotation_reference.py",
         "tests/regression/test_milazzo_reference.py",
+        "tests/regression/test_milazzo_human_performance.py",
+        "tests/regression/test_milazzo_provider_check.py",
         "tests/regression/test_selected_station_evidence_figure.py",
         "tests/regression/test_ui_action_styling.py"
       ]

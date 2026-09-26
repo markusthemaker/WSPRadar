@@ -112,7 +112,7 @@ def test_presentation_context_preserves_existing_absolute_terminology():
             "Elsewhere",
             "Heard by Target",
             "Heard by others only",
-            "Heard by Target without independent confirmation",
+            "Heard by Target only (included in successes)",
         ),
         (
             "en",
@@ -120,7 +120,7 @@ def test_presentation_context_preserves_existing_absolute_terminology():
             "Other Signals",
             "Target heard",
             "Other signals heard only",
-            "Target heard without independent RX-activity confirmation",
+            "Target heard only (included in successes)",
         ),
         (
             "de",
@@ -128,7 +128,7 @@ def test_presentation_context_preserves_existing_absolute_terminology():
             "Elsewhere",
             "Vom Target gehört",
             "Nur von anderen gehört",
-            "Vom Target gehört, aber nicht unabhängig bestätigt",
+            "Nur vom Target gehört (in Erfolgen enthalten)",
         ),
         (
             "de",
@@ -136,7 +136,7 @@ def test_presentation_context_preserves_existing_absolute_terminology():
             "Other Signals",
             "Target gehört",
             "Nur andere Signale gehört",
-            "Target gehört, RX-Aktivität nicht unabhängig bestätigt",
+            "Nur Target gehört (in Erfolgen enthalten)",
         ),
     ),
 )
@@ -614,8 +614,8 @@ def test_success_map_reuses_owned_peer_aggregate_for_station_rows(monkeypatch):
     assert result.station_rows is peer_rows
 
 
-def test_performance_no_eligible_station_diagnostic_counts_confirmed_opportunities_only():
-    """Target-only rows must not inflate the independently confirmed maximum."""
+def test_performance_no_eligible_station_diagnostic_includes_target_only_successes():
+    """Target RX's five decodes of peer TX K1AAA remain below minimum six."""
     source = pd.DataFrame({
         "time_slot": [1, 2, 3, 4, 5, 6, 7],
         "peer_sign": ["K1AAA"] * 5 + ["K2BBB"] * 2,
@@ -625,8 +625,8 @@ def test_performance_no_eligible_station_diagnostic_counts_confirmed_opportuniti
         "target_seen": [1] * 5 + [1, 0],
         "external_seen": [0] * 5 + [1, 1],
         "target_snr": [-10.0] * 7,
-        "opportunity": [0] * 5 + [1, 1],
-        "hit": [0] * 5 + [1, 0],
+        "opportunity": [1] * 5 + [1, 1],
+        "hit": [1] * 5 + [1, 0],
         "miss": [0] * 5 + [0, 1],
         "target_only": [1] * 5 + [0, 0],
     })
@@ -640,7 +640,7 @@ def test_performance_no_eligible_station_diagnostic_counts_confirmed_opportuniti
         center_latitude=47.0,
         center_longitude=8.0,
         min_spots=1,
-        min_opportunities=3,
+        min_opportunities=6,
         base_min_stations=2,
         tx_ab_repeat_interval_minutes=10,
         tx_ab_target_start_minute=0,
@@ -650,12 +650,12 @@ def test_performance_no_eligible_station_diagnostic_counts_confirmed_opportuniti
     assert result.map_data is None
     assert result.diagnostic.reason == PERFORMANCE_NO_ELIGIBLE_STATION
     assert dict(result.diagnostic.applied_thresholds) == {
-        "min_confirmed_opportunities_per_peer": 3,
+        "min_confirmed_opportunities_per_peer": 6,
         "min_joint_stations_per_map_segment": 2,
     }
     assert dict(result.diagnostic.measured_counts) == {
         "eligible_station_count": 0,
-        "maximum_confirmed_opportunities_per_station": 2,
+        "maximum_confirmed_opportunities_per_station": 5,
         "station_identity_count": 2,
     }
 

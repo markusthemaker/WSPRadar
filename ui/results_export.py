@@ -51,6 +51,7 @@ from core.performance_timer import (
     process_rss_bytes,
 )
 from core.presentation_context import PresentationContext
+from core.opportunity_engine import ABSOLUTE_METHOD_VERSION
 from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload, build_config_state_signature
@@ -97,7 +98,7 @@ EXPORTABLE_RESULT_FOLDERS = frozenset(
     {BENCHMARK_EXPORT_FOLDER, PERFORMANCE_EXPORT_FOLDER}
 )
 PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION = 1
-TEMPORAL_SNR_EXPORT_RENDER_VERSION = 8
+TEMPORAL_SNR_EXPORT_RENDER_VERSION = 9
 TEMPORAL_IQR_EXPORT_LINEWIDTH = 0.4
 DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION = DRILLDOWN_FOCUS_SCHEMA_VERSION
 DRILLDOWN_ZOOM_PERFORMANCE_FIGURE_EXPORTS = (
@@ -2101,6 +2102,8 @@ def _export_signature(
             key, signature,
             _map_context_export_signature(block.get("map_context")),
             PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION
+            if block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER else None,
+            ABSOLUTE_METHOD_VERSION
             if block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER else None,
         ))
     return content_signature({

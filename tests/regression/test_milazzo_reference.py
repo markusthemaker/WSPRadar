@@ -24,8 +24,10 @@ from config import BAND_MAP
 from core.analysis_runner import (
     apply_post_fetch_filters, build_analysis_batches, should_retry_without_decode_filter,
 )
+from core.compare_engine import compare_footer_counts
 from core.map_data import build_map_data_result
 from core.math_utils import locator_to_latlon
+from core.matplotlib_runtime import dispose_agg_figure
 from core.presentation_context import PresentationContext
 from i18n import T
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
@@ -39,11 +41,15 @@ from ui.inspector.view_models import build_compare_inspector_view_model
 from ui.plots.benchmark_evidence_figures import (
     _aggregate_compare_chronological_coverage, _prepare_compare_coverage_units,
 )
+from ui.plots.evidence_figures import (
+    _segment_figure_export_recipe, render_segment_insight_export_figure,
+)
 
 
 REFERENCE_DIRECTORY = Path(__file__).parent / "reference_fixtures" / "milazzo_tx_reference_v1"
 RX_REFERENCE_DIRECTORY = Path(__file__).parent / "reference_fixtures" / "milazzo_fig6_rx_v1"
 PUBLICATION_DIRECTORY = Path(__file__).parent / "reference_fixtures" / "milazzo_publication_overlays_v1"
+HUMAN_REFERENCE_DIRECTORY = Path(__file__).parent / "reference_fixtures" / "milazzo_human_review_v2"
 REPOSITORY_DIRECTORY = Path(__file__).resolve().parents[2]
 KEY_COLUMNS = ["time_slot", "peer_sign", "peer_grid"]
 PAPER_START_UTC = pd.Timestamp("2010-12-19T12:00:00Z")
@@ -153,6 +159,7 @@ def _calculate_run(source_rows, *, max_distance_km=None, configuration_document=
         latitude=latitude, longitude=longitude, source_rows=source_rows,
         strict_rows=strict_rows, sql_rows=sql_rows, processed=processed,
         stations=stations, inspector=inspector, units=units, points=points,
+        segment_rows=preparation.map_data.segment_rows,
     )
 
 
@@ -516,6 +523,247 @@ def test_three_hour_coverage_preserves_non_joint_counts_and_weighting(reference_
     assert np.sum(actual["unit_target_counts"]) == (1069 if scope == "all" else 62)
 
 
+@pytest.fixture(scope="module")
+def human_benchmark_run(verified_reference_files):
+    """Replay the approved 32-hour setup without reading observed outputs."""
+    from milazzo_human_reference import verify_human_reference_files
+
+    verify_human_reference_files(HUMAN_REFERENCE_DIRECTORY)
+    configuration = json.loads(
+        (HUMAN_REFERENCE_DIRECTORY / "benchmark.config").read_text(encoding="utf-8")
+    )
+    source_rows = pd.read_csv(
+        HUMAN_REFERENCE_DIRECTORY / "benchmark_source.csv", float_precision="round_trip",
+    )
+    return _calculate_run(source_rows, configuration_document=configuration)
+
+
+@pytest.fixture(scope="module")
+def human_benchmark_expected(human_benchmark_run):
+    """Load reviewed anchors after their complete fixture integrity check."""
+    return json.loads(
+        (HUMAN_REFERENCE_DIRECTORY / "benchmark_expected.json").read_text(encoding="utf-8")
+    )
+
+
+@pytest.fixture(scope="module")
+def human_benchmark_figure(human_benchmark_run):
+    """Feed actual station, observation and footer outputs to the native figure."""
+    run = human_benchmark_run
+    labels = T["en"]
+    footer = compare_footer_counts(run.stations, max_dist_km=run.context.max_peer_distance_km)
+    recipe = _segment_figure_export_recipe(
+        title="TX Benchmark: KP4MD vs. WB6RQN",
+        selected_segment="Full Range | All Directions",
+        is_sequential=run.analysis.is_sequential,
+        station_values=run.stations.stat_val.dropna(),
+        spot_values=run.points.metric,
+        panel_labels=[
+            run.inspector.target_only_label, labels["txt_joint"],
+            labels["leg_both_async"], run.inspector.reference_only_label,
+        ],
+        panel_y_label=labels["fig_share_percent_axis"],
+        decode_outcomes_title=labels["fig_decode_outcomes"],
+        station_medians_title=labels["fig_station_medians_delta"],
+        paired_evidence_title=labels["fig_joint_spot_delta"],
+        metric_axis_label=labels["tbl_col_delta_snr"],
+        median_label=labels["fig_median_label"],
+        mean_label=labels["fig_mean_label"],
+        no_data_label=labels["fig_no_data"],
+        panel_station_counts=[
+            footer[key] for key in ("stat_only_u", "stat_joint", "stat_both_async", "stat_only_r")
+        ],
+        panel_spot_counts=[
+            footer[key] for key in ("spot_only_u", "spot_joint", "spot_both_async", "spot_only_r")
+        ],
+        panel_series_labels=[labels["lbl_results_stations"], labels["lbl_results_spots"]],
+    )
+    figure = render_segment_insight_export_figure(recipe)
+    assert figure is not None
+    try:
+        yield SimpleNamespace(figure=figure, recipe=recipe, footer=footer)
+    finally:
+        dispose_agg_figure(figure)
+
+
+def _assert_human_benchmark_pair(run, expected_pair):
+    """Match B01's exact peer, locator and cycle before checking normalized SNR."""
+    selected = run.units[
+        run.units.peer_sign.eq(expected_pair["peer_sign"])
+        & run.units.peer_grid.eq(expected_pair["peer_grid"])
+        & run.units.evidence_utc.eq(pd.Timestamp(expected_pair["utc"]))
+    ]
+    assert len(selected) == 1
+    pair = selected.iloc[0]
+    assert pair.outcome == "joint"
+    assert pair.target_snr_db == expected_pair["target_snr_db"]
+    assert pair.reference_snr_db == expected_pair["reference_snr_db"]
+    assert pair.metric == expected_pair["delta_snr_db"]
+
+
+def test_human_benchmark_complete_native_population_matches_independent_support(human_benchmark_run):
+    """Full independently computed support is broader than sampled human checks."""
+    expected = pd.read_csv(
+        HUMAN_REFERENCE_DIRECTORY / "benchmark_expected_native_units.csv",
+        float_precision="round_trip",
+    )
+    _assert_native_units(human_benchmark_run.units, expected)
+    assert len(expected) == 1054
+    assert pd.Timestamp(human_benchmark_run.configuration["start_utc"]) == PAPER_START_UTC
+    assert pd.Timestamp(human_benchmark_run.configuration["end_utc"]) == PAPER_END_UTC
+
+
+def test_human_b01_normalized_pair_preserves_raw_provenance_and_direction(
+    human_benchmark_run, human_benchmark_expected,
+):
+    """Protect the reviewed pair's power correction, source IDs and sign."""
+    expected = human_benchmark_expected["B01"]
+    _assert_human_benchmark_pair(human_benchmark_run, expected)
+    reports = human_benchmark_run.source_rows.set_index("id")
+    for role, callsign in (("target", "KP4MD"), ("reference", "WB6RQN")):
+        report = reports.loc[expected[f"{role}_report_id"]]
+        assert report.tx_sign == callsign
+        assert report.rx_sign == expected["peer_sign"]
+        assert report.rx_loc.upper() == expected["peer_grid"].upper()
+        assert pd.Timestamp(report.time) == pd.Timestamp(expected["utc"])
+        assert report.snr - report.power + 30 == expected[f"{role}_snr_db"]
+    assert expected["delta_snr_db"] == expected["target_snr_db"] - expected["reference_snr_db"]
+
+
+def test_human_b02_histogram_weighting_and_reviewed_positive_extreme(
+    human_benchmark_figure, human_benchmark_expected,
+):
+    """Check station and Joint statistics through native bars and median lines."""
+    for distribution, recipe_key, artist_gid in (
+        ("station", "station_histogram", "station-median-histogram"),
+        ("joint", "spot_histogram", "spot-metric-histogram"),
+    ):
+        expected = human_benchmark_expected["B02"][distribution]
+        histogram = human_benchmark_figure.recipe[recipe_key]
+        assert histogram["value_count"] == expected["count"]
+        assert sum(histogram["counts"]) == expected["count"]
+        assert histogram["mean"] == pytest.approx(expected["mean"], rel=0, abs=1e-12)
+        assert histogram["median"] == expected["median"]
+        selected_bin = np.isclose(histogram["centers"], expected["positive_extreme_db"])
+        assert selected_bin.sum() == 1
+        assert histogram["counts"][selected_bin].item() == expected["positive_extreme_count"]
+
+        histogram_axes = [
+            axis for axis in human_benchmark_figure.figure.axes
+            if any(patch.get_gid() == artist_gid for patch in axis.patches)
+        ]
+        assert len(histogram_axes) == 1
+        histogram_axis = histogram_axes[0]
+        bars = [patch for patch in histogram_axis.patches if patch.get_gid() == artist_gid]
+        positive_bars = [
+            bar for bar in bars
+            if np.isclose(bar.get_x() + bar.get_width() / 2, expected["positive_extreme_db"])
+        ]
+        assert len(positive_bars) == 1
+        assert positive_bars[0].get_height() == pytest.approx(
+            100 * expected["positive_extreme_count"] / expected["count"], rel=0, abs=1e-12,
+        )
+        assert sum(bar.get_height() for bar in bars) == pytest.approx(100)
+        median_lines = [
+            line for line in histogram_axis.lines
+            if line.get_label().startswith(T["en"]["fig_median_label"] + " ")
+        ]
+        assert len(median_lines) == 1
+        np.testing.assert_array_equal(median_lines[0].get_xdata(), [expected["median"]] * 2)
+
+
+def test_human_b03_decode_outcomes_follow_station_history_and_separate_denominators(
+    human_benchmark_run, human_benchmark_figure, human_benchmark_expected,
+):
+    """Preserve reviewed station-history categories and both plotted denominators."""
+    expected = human_benchmark_expected["B03"]
+    for expected_key, recipe_key, artist_gid, footer_key in (
+        ("station_counts", "panel_station_counts", "decode-outcome-stations", "tot_stats"),
+        ("observation_counts", "panel_spot_counts", "decode-outcome-spots", "tot_spots"),
+    ):
+        counts = expected[expected_key]
+        assert human_benchmark_figure.recipe[recipe_key] == counts
+        assert human_benchmark_figure.footer[footer_key] == sum(counts)
+        bars = [
+            patch for axis in human_benchmark_figure.figure.axes for patch in axis.patches
+            if patch.get_gid() == artist_gid
+        ]
+        np.testing.assert_allclose(
+            [bar.get_height() for bar in bars], np.asarray(counts) * 100 / sum(counts),
+            rtol=0, atol=1e-12,
+        )
+    # A station with one Joint and 56 nonjoint observations contributes to the
+    # Joint station category; its nonjoint observations contribute to Async.
+    station = human_benchmark_run.stations[
+        human_benchmark_run.stations.peer_sign.eq("VE6PDQ")
+        & human_benchmark_run.stations.peer_grid.eq("DO34ir")
+    ]
+    assert len(station) == 1
+    assert tuple(station.iloc[0][["spot_count", "count_only_u", "count_only_r"]]) == (1, 56, 0)
+    outcome_axes = [
+        axis for axis in human_benchmark_figure.figure.axes
+        if any(patch.get_gid() == "decode-outcome-stations" for patch in axis.patches)
+    ]
+    assert len(outcome_axes) == 1
+    assert [tick.get_text() for tick in outcome_axes[0].get_xticklabels()] == human_benchmark_figure.recipe["panel_labels"]
+    annotations = [
+        label.get_text() for label in outcome_axes[0].texts
+        if label.get_gid() == "decode-outcome-percentage"
+    ]
+    assert annotations[1] == "39%" and annotations[5] == "4%" and annotations[6] == "73%"
+
+
+def test_human_b04_map_segment_weights_station_medians_before_rounding(
+    human_benchmark_run, human_benchmark_expected,
+):
+    """Distinguish the reviewed equal-station map statistic from pooled evidence."""
+    expected = human_benchmark_expected["B04"]
+    selected_segments = human_benchmark_run.segment_rows[
+        human_benchmark_run.segment_rows.SegmentID.eq(expected["segment_id"])
+    ]
+    assert len(selected_segments) == 1
+    segment = selected_segments.iloc[0]
+    assert segment.val == expected["segment_value_db"]
+    assert segment.cnt == expected["station_count"]
+    assert segment.total_spots == expected["joint_count"]
+    stations = human_benchmark_run.stations[
+        human_benchmark_run.stations.SegmentID.eq(expected["segment_id"])
+        & human_benchmark_run.stations.spot_count.gt(0)
+    ]
+    assert stations.set_index("peer_sign").stat_val.to_dict() == expected["station_medians_db"]
+    assert stations.stat_val.median() == expected["unrounded_segment_median_db"]
+    paired_identities = set(stations[["peer_sign", "peer_grid"]].itertuples(index=False, name=None))
+    points = human_benchmark_run.points[
+        [(station, grid) in paired_identities for station, grid in zip(
+            human_benchmark_run.points.station, human_benchmark_run.points.grid,
+        )]
+    ]
+    assert len(points) == expected["joint_count"]
+    assert points.metric.median() == expected["pooled_median_db"]
+    assert segment.val != points.metric.median()
+
+
+def test_human_b01_rejects_changed_raw_power_after_complete_production_replay(
+    human_benchmark_run, human_benchmark_expected,
+):
+    """Show the approved anchor detects a raw-power error propagated through SQL."""
+    expected = human_benchmark_expected["B01"]
+    changed_source = human_benchmark_run.source_rows.copy()
+    changed_source.loc[changed_source.id.eq(expected["target_report_id"]), "power"] += 1
+    configuration = json.loads(
+        (HUMAN_REFERENCE_DIRECTORY / "benchmark.config").read_text(encoding="utf-8")
+    )
+    changed_run = _calculate_run(changed_source, configuration_document=configuration)
+    with pytest.raises(AssertionError):
+        _assert_human_benchmark_pair(changed_run, expected)
+    changed_pair = changed_run.units[
+        changed_run.units.peer_sign.eq(expected["peer_sign"])
+        & changed_run.units.peer_grid.eq(expected["peer_grid"])
+        & changed_run.units.evidence_utc.eq(pd.Timestamp(expected["utc"]))
+    ].iloc[0]
+    assert changed_pair.metric == expected["delta_snr_db"] - 1
+
+
 def _read_rx_csv(filename):
     return pd.read_csv(RX_REFERENCE_DIRECTORY / filename, float_precision="round_trip")
 
@@ -824,6 +1072,60 @@ def test_overlay_gate_oracle_rejects_incorrect_report_flags(request, direction, 
         _assert_publication_gate_flags(changed, run.source_rows, direction)
 
 
+@pytest.mark.parametrize("direction,run_fixture", [("RX", "rx_reference_run"), ("TX", "reference_run")])
+def test_overlay_builder_projects_current_pipeline_outputs_without_expected_inputs(request, direction, run_fixture, monkeypatch):
+    from scripts import build_milazzo_publication_overlays as overlays
+
+    run = request.getfixturevalue(run_fixture)
+    changed = SimpleNamespace(**vars(run))
+    changed.sql_rows = run.sql_rows.copy()
+    changed.points = run.points.copy()
+    changed.sql_rows.loc[changed.sql_rows.has_u.gt(0), "snr_u_norm"] += 2
+    changed.points["metric"] += 2
+
+    def reject_expected_reads(*args, **kwargs):
+        pytest.fail("Overlay payload preparation must not read expected CSVs")
+
+    with monkeypatch.context() as guard:
+        guard.setattr(overlays.pd, "read_csv", reject_expected_reads)
+        original_reports = overlays.sql_endpoint_reports(run, direction)
+        changed_reports = overlays.sql_endpoint_reports(changed, direction)
+        original_pairs = overlays.paired_evidence_points(run)
+        changed_pairs = overlays.paired_evidence_points(changed)
+    target = original_reports.series.eq("KP4MD")
+    np.testing.assert_array_equal(changed_reports.loc[target, "snr_at_37_dbm"], original_reports.loc[target, "snr_at_37_dbm"] + 2)
+    np.testing.assert_array_equal(changed_reports.loc[~target, "snr_at_37_dbm"], original_reports.loc[~target, "snr_at_37_dbm"])
+    np.testing.assert_array_equal(changed_reports.passes_target_active_gate, original_reports.passes_target_active_gate)
+    np.testing.assert_array_equal(changed_pairs.metric, original_pairs.metric + 2)
+    # The lower panel is the production paired-eligibility projection. Removing
+    # a plotted point there must remove it even if an earlier unit still exists.
+    assert not original_pairs.empty
+    removed = original_pairs.index[0]
+    changed.points = run.points.drop(index=removed)
+    assert len(overlays.paired_evidence_points(changed)) == len(original_pairs) - 1
+
+
+@pytest.mark.parametrize("direction,run_fixture", [("RX", "rx_reference_run"), ("TX", "reference_run")])
+def test_overlay_gate_rings_require_both_production_retention_and_inspector_outcome(request, direction, run_fixture):
+    from scripts import build_milazzo_publication_overlays as overlays
+
+    run = request.getfixturevalue(run_fixture)
+    changed = SimpleNamespace(**vars(run))
+    unit_times = pd.to_datetime(run.units.evidence_utc, utc=True)
+    chosen = run.units[run.units.peer_sign.eq("VE6PDQ") & unit_times.ge(PAPER_START_UTC) & unit_times.lt(PAPER_END_UTC)].iloc[0]
+    chosen_slot = int(pd.Timestamp(chosen.evidence_utc).timestamp()) // 120
+    chosen_processed = run.processed.time_slot.eq(chosen_slot) & run.processed.peer_sign.eq(chosen.peer_sign) & run.processed.peer_grid.eq(chosen.peer_grid)
+    assert chosen_processed.sum() == 1
+    changed.processed = run.processed[~chosen_processed]
+    with pytest.raises(ValueError, match="additional post-fetch exclusion"):
+        overlays.sql_endpoint_reports(changed, direction)
+    changed.processed = run.processed
+    chosen_unit = run.units.evidence_utc.eq(chosen.evidence_utc) & run.units.peer_sign.eq(chosen.peer_sign) & run.units.peer_grid.eq(chosen.peer_grid)
+    changed.units = run.units[~chosen_unit]
+    with pytest.raises(ValueError, match="production Inspector units"):
+        overlays.sql_endpoint_reports(changed, direction)
+
+
 def _figure7_matches_from_source_bound_sql(sql_rows, source_rows):
     anchors = pd.read_csv(PUBLICATION_DIRECTORY / "figure7_paper_anchors.csv")
     source = _publication_source_endpoints(source_rows, "TX")
@@ -879,7 +1181,7 @@ def test_publication_images_and_figure7_calibration_are_frozen(verified_publicat
             original.verify()
     for filename in ("figure6_rx_overlay.png", "figure7_tx_overlay.png"):
         with Image.open(PUBLICATION_DIRECTORY / filename) as overlay:
-            assert overlay.size == (2560, 1728)
+            assert overlay.size == (3840, 2592)
             overlay.verify()
     assert features["figure_sha256"] == summary["source_figures"]["7"]["sha256"]
     gate = summary["target_active_gate"]
@@ -938,3 +1240,228 @@ def test_figure7_paper_oracle_rejects_broken_calculations(reference_run, mutatio
         changed = changed[~(changed.peer_sign.eq("VE6PDQ") & changed.time_slot.eq(tail_slot))]
     with pytest.raises(AssertionError):
         _figure7_matches_from_source_bound_sql(changed, reference_run.source_rows)
+
+
+@pytest.mark.parametrize("run_fixture,expected_metrics,identity_count", [
+    ("rx_reference_run", [7, 7, 8, 17, 22], 2),
+    ("reference_run", [-2], 1),
+])
+def test_publication_native_temporal_recipe_preserves_path_population_and_exact_window(
+    request, run_fixture, expected_metrics, identity_count,
+):
+    from matplotlib import dates as mdates
+    from scripts import build_milazzo_publication_overlays as overlays
+    from ui.plots.evidence_figures import _compare_temporal_profile_values
+
+    run = request.getfixturevalue(run_fixture)
+    points = overlays.paired_evidence_points(run)
+    recipe = overlays._production_temporal_recipe(run)
+    assert sorted(points.metric.tolist()) == expected_metrics
+    assert points.station.eq("VE6PDQ").all()
+    assert points.grid.nunique() == identity_count
+    assert recipe["kind"] == "selected_benchmark_temporal"
+    assert recipe["time_bin"] == "3h"
+    assert recipe["selected_identity_count"] == identity_count
+    assert recipe["analysis_start_utc_ns"] == PAPER_START_UTC.value
+    assert recipe["analysis_end_utc_ns"] == PAPER_END_UTC.value
+    assert recipe["reference_snr_correction_db"] == run.context.reference_snr_correction_db
+    profiles = recipe["prepared_profiles"]
+    counts, summaries, edges, centers = _compare_temporal_profile_values(
+        profiles["chronological"]["3h"]
+    )
+    # Independently place every unchanged production pair in its displayed cell.
+    # The last bin is two hours long; the selected window must not become 33 h.
+    expected_edges = mdates.date2num([
+        *(PAPER_START_UTC + pd.Timedelta(hours=3 * index) for index in range(11)),
+        PAPER_END_UTC,
+    ])
+    np.testing.assert_allclose(edges, expected_edges, rtol=0, atol=1e-10)
+    np.testing.assert_allclose(centers, (expected_edges[:-1] + expected_edges[1:]) / 2, rtol=0, atol=1e-10)
+    expected_counts, _, _ = np.histogram2d(
+        points.metric.to_numpy(),
+        mdates.date2num(pd.to_datetime(points.plot_time, utc=True).to_numpy()),
+        bins=(profiles["y_edges"], expected_edges),
+    )
+    np.testing.assert_array_equal(counts, expected_counts)
+    expected_bin_counts = expected_counts.sum(axis=0)
+    populated_bins = expected_bin_counts > 0
+    np.testing.assert_array_equal(summaries.loc[populated_bins, "count"], expected_bin_counts[populated_bins])
+    assert summaries.loc[~populated_bins, "count"].isna().all()
+    assert int(counts.sum()) == len(expected_metrics)
+    assert recipe["median_focus"]["median_db"] == np.median(expected_metrics)
+    if run_fixture == "reference_run":
+        assert len(run.points) == 45 > len(points) == 1
+    else:
+        assert set(points.grid) == {"DO34", "DO34ir"}
+
+
+@pytest.mark.parametrize("run_fixture", ["rx_reference_run", "reference_run"])
+def test_publication_native_temporal_recipe_excludes_other_peers_and_window_boundaries(request, run_fixture):
+    from scripts import build_milazzo_publication_overlays as overlays
+    from ui.plots.evidence_figures import _compare_temporal_profile_values
+
+    run = request.getfixturevalue(run_fixture)
+    original_recipe = overlays._production_temporal_recipe(run)
+    selected_point = overlays.paired_evidence_points(run).iloc[[0]].copy()
+    other_peer = selected_point.assign(station="OTHER", metric=101.0)
+    before_window = selected_point.assign(plot_time=PAPER_START_UTC - pd.Timedelta(minutes=2), metric=102.0)
+    at_exclusive_end = selected_point.assign(plot_time=PAPER_END_UTC, metric=103.0)
+    changed = SimpleNamespace(**vars(run))
+    changed.points = pd.concat([run.points, other_peer, before_window, at_exclusive_end], ignore_index=True)
+    changed_recipe = overlays._production_temporal_recipe(changed)
+    original_profile = original_recipe["prepared_profiles"]["chronological"]["3h"]
+    changed_profile = changed_recipe["prepared_profiles"]["chronological"]["3h"]
+    original_counts, original_summaries, original_edges, original_centers = _compare_temporal_profile_values(original_profile)
+    changed_counts, changed_summaries, changed_edges, changed_centers = _compare_temporal_profile_values(changed_profile)
+    np.testing.assert_array_equal(changed_counts, original_counts)
+    pd.testing.assert_frame_equal(changed_summaries, original_summaries)
+    np.testing.assert_array_equal(changed_edges, original_edges)
+    np.testing.assert_array_equal(changed_centers, original_centers)
+    assert changed_recipe["selected_identity_count"] == original_recipe["selected_identity_count"]
+    assert changed_recipe["median_focus"] == original_recipe["median_focus"]
+
+
+@pytest.mark.parametrize("direction", ["RX", "TX"])
+def test_publication_underlay_extent_preserves_frozen_pixel_calibration(direction):
+    from matplotlib import dates as mdates
+    from scripts import build_milazzo_publication_overlays as overlays
+
+    image_width, image_height = 1317, 656
+    if direction == "RX":
+        calibration = json.loads(
+            (RX_REFERENCE_DIRECTORY / "paper_features_original.json").read_text(encoding="utf-8")
+        )["calibration"]
+        minutes_per_pixel = calibration["minutes_from_axis_start_per_x_pixel"]
+        minutes_intercept = calibration["minutes_intercept"]
+        db_per_pixel = calibration["snr_db_per_y_pixel"]
+        db_intercept = calibration["snr_db_intercept"]
+    else:
+        # Independently frozen paper ticks: x=78..1164 spans exactly 32 h;
+        # y=104..554 spans 0..-30 dB, with no report-derived adjustment.
+        minutes_per_pixel = 1920 / (1164 - 78)
+        minutes_intercept = -78 * minutes_per_pixel
+        db_per_pixel = -30 / (554 - 104)
+        db_intercept = -104 * db_per_pixel
+    start_days = mdates.date2num(PAPER_START_UTC)
+    expected_extent = (
+        start_days + (minutes_intercept - .5 * minutes_per_pixel) / 1440,
+        start_days + (minutes_intercept + (image_width - .5) * minutes_per_pixel) / 1440,
+        db_intercept + (image_height - .5) * db_per_pixel,
+        db_intercept - .5 * db_per_pixel,
+    )
+    extent = overlays._paper_image_extent((image_width, image_height), direction)
+    np.testing.assert_allclose(extent, expected_extent, rtol=0, atol=1e-10)
+    assert extent[0] < extent[1] and extent[2] < extent[3]
+
+    pixel_x = np.array([78.0, 621.0, 1164.0])
+    pixel_y = np.array([104.0, 297.0, 554.0])
+    expected_minutes = minutes_intercept + pixel_x * minutes_per_pixel
+    expected_snr = db_intercept + pixel_y * db_per_pixel
+    endpoints = pd.DataFrame({
+        "utc": PAPER_START_UTC + pd.to_timedelta(expected_minutes, unit="min"),
+        "snr_at_37_dbm": expected_snr,
+    })
+    mapped_x, mapped_y = overlays.paper_coordinates(endpoints, direction)
+    np.testing.assert_allclose(mapped_x, pixel_x, rtol=0, atol=1e-7)
+    np.testing.assert_allclose(mapped_y, pixel_y, rtol=0, atol=1e-10)
+    # imshow's upper-origin pixel centers must land on those same report
+    # coordinates, including the half-pixel image boundary convention.
+    restored_days = extent[0] + (mapped_x + .5) / image_width * (extent[1] - extent[0])
+    restored_snr = extent[3] + (mapped_y + .5) / image_height * (extent[2] - extent[3])
+    np.testing.assert_allclose(restored_days, start_days + expected_minutes / 1440, rtol=0, atol=1e-10)
+    np.testing.assert_allclose(restored_snr, expected_snr, rtol=0, atol=1e-10)
+
+
+@pytest.mark.parametrize("figure_number", [6, 7])
+def test_publication_pdf_uses_three_panel_style_with_vector_evidence_and_linked_sources(
+    figure_number, verified_publication_files,
+):
+    from pypdf import PdfReader
+    from pypdf.generic import ContentStream
+    from config.demo_pdf_headers import DEMO_PDF_HEADERS
+    from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT
+
+    filename = f"WSPRadar_Demo_Milazzo_Figure{figure_number}.pdf"
+    source_path = PUBLICATION_DIRECTORY / filename
+    published_path = REPOSITORY_DIRECTORY / "static/reference_figures/milazzo_publication_overlays_v1" / filename
+    assert published_path.read_bytes() == source_path.read_bytes()
+    document = PdfReader(source_path)
+    assert len(document.pages) == 1
+    page = document.pages[0]
+    assert float(page.mediabox.width) == pytest.approx(24 * 72)
+    assert float(page.mediabox.height) == pytest.approx(16.2 * 72)
+    assert float(page.mediabox.width) / float(page.mediabox.height) == pytest.approx(16 / 10.8)
+    presentation = json.loads(
+        (PUBLICATION_DIRECTORY / "overlay_summary.json").read_text(encoding="utf-8")
+    )["presentation_checks"][f"figure{figure_number}"]
+    assert presentation["panel_b_underlay"]["opacity"] == 1.0
+    layout = presentation["layout_checks"]
+    original_plot = np.array(layout["panel_a_plot_bounds"])
+    native_plot = np.array(layout["panel_c_plot_bounds"])
+    density_scale = np.array(layout["panel_c_density_bounds"])
+    # Match the visible paper graph, not the larger image or requested axes box.
+    np.testing.assert_allclose(native_plot[[0, 2, 3]], original_plot[[0, 2, 3]], rtol=0, atol=1e-10)
+    assert density_scale[0] == pytest.approx(layout["panel_a_legend_left"], abs=1e-10)
+    np.testing.assert_allclose(density_scale[[1, 3]], native_plot[[1, 3]], rtol=0, atol=1e-10)
+    summary_legend = layout["panel_c_summary_legend_bounds"]
+    exact_legend = layout["panel_c_exact_legend_bounds"]
+    for legend in (summary_legend, exact_legend):
+        assert legend[1] + legend[3] < native_plot[1]
+        assert legend[0] >= native_plot[0] - 1e-10
+        assert legend[0] + legend[2] <= native_plot[0] + native_plot[2] + 1e-10
+    assert exact_legend[1] + exact_legend[3] < summary_legend[1]
+    report_legend = layout["panel_b_series_legend_bounds"]
+    gate_legend = layout["panel_b_gate_legend_bounds"]
+    for legend in (report_legend, gate_legend):
+        assert legend[1] + legend[3] < original_plot[1]
+    assert gate_legend[1] + gate_legend[3] < report_legend[1]
+    original_image = layout["panel_a_image_bounds"]
+    direction_note = layout["direction_note_bounds"]
+    assert direction_note[0] + direction_note[2] / 2 == pytest.approx(
+        original_image[0] + original_image[2] / 2, abs=1e-10,
+    )
+    assert direction_note[1] + direction_note[3] < original_image[1]
+    assert direction_note[1] > native_plot[1] + native_plot[3]
+    header = DEMO_PDF_HEADERS[f"milazzo_figure{figure_number}"]
+    text = "".join(page.extract_text().split())
+    expected_phrases = (
+        "WSPRadar.org reconstruction & comparison",
+        header.descriptive_title,
+        f"Referenced publication: {header.publication_authors}.",
+        header.publication_title,
+        f"Source figure: {header.source_figure}",
+        header.publication_details,
+        f"Demo: {header.demo_details}",
+        "Panel A - Original image from publication",
+        "Panel B - Reconstruction",
+        "Panel C - WSPRadar view",
+        DEMO_PDF_FOOTER_TEXT,
+    )
+    for phrase in expected_phrases:
+        assert "".join(phrase.split()) in text, phrase
+    assert document.metadata.author == DEMO_PDF_FOOTER_TEXT
+    assert document.metadata.title.startswith("WSPRadar.org reconstruction & comparison:")
+    links = {
+        annotation.get_object().get("/A", {}).get("/URI")
+        for annotation in page.get("/Annots", [])
+    }
+    assert {"https://wspradar.org", header.publication_url}.issubset(links)
+    resources = page["/Resources"]
+    fonts = [font.get_object() for font in resources["/Font"].values()]
+    assert fonts and all(font["/Subtype"] == "/Type0" for font in fonts)
+    assert any("DejaVuSans" in font["/BaseFont"] for font in fonts)
+    for font in fonts:
+        for descendant in font["/DescendantFonts"]:
+            descriptor = descendant.get_object()["/FontDescriptor"]
+            assert descriptor["/FontFile2"].get_data()
+    images = [
+        image.get_object()
+        for image in resources["/XObject"].values()
+        if image.get_object().get("/Subtype") == "/Image"
+    ]
+    assert images and any(image["/Width"] >= 500 and image["/Height"] >= 200 for image in images)
+    operators = {operator for _, operator in ContentStream(page.get_contents(), document).operations}
+    # Searchable text and stroked vector paths accompany the original raster;
+    # an image-only export of the completed page cannot satisfy these checks.
+    assert b"BT" in operators and (b"TJ" in operators or b"Tj" in operators)
+    assert {b"m", b"c", b"S"}.issubset(operators)

@@ -1,0 +1,1561 @@
+[
+  {
+    "id": "B01",
+    "title": "One pair: normalization and Delta SNR",
+    "minutes": 2,
+    "scope": "Benchmark | Common setup on cover. VE6PDQ (DO34ir), 20 Dec 00:22 UTC.",
+    "check_steps": [
+      "Read the two raw report rows. Subtract the reported power in dBm, then add 30 dBm, for each SNR.",
+      "Subtract Reference from Target. Tick only if the -2 dB result and direction are clear."
+    ],
+    "source_rows": {
+      "headers": [
+        "Report ID",
+        "TX callsign / locator",
+        "RX callsign / locator",
+        "Raw SNR dB",
+        "Power dBm",
+        "At 30 dBm"
+      ],
+      "rows": [
+        [
+          "44698904",
+          "KP4MD / CM98IQ",
+          "VE6PDQ / DO34IR",
+          -13,
+          37,
+          -20
+        ],
+        [
+          "44698905",
+          "WB6RQN / CM98MQ",
+          "VE6PDQ / DO34IR",
+          -15,
+          33,
+          -18
+        ]
+      ],
+      "padding": 3,
+      "widths": [
+        0.13,
+        0.23,
+        0.23,
+        0.13,
+        0.13,
+        0.15
+      ]
+    },
+    "proposed": [
+      "KP4MD: -13 - 37 + 30 = -20 dB. WB6RQN: -15 - 33 + 30 = -18 dB.",
+      "Delta SNR = -20 - (-18) = -2 dB: Reference is 2 dB stronger after normalization.",
+      "The same receiver, full locator and cycle create one Joint observation, not two independent differences."
+    ],
+    "actual": [
+      "Target -20 dB; Reference -18 dB; one Joint observation at -2 dB."
+    ],
+    "why_it_matters": "Detects sign reversal, omission of reported-power normalization and incorrect evidence units.",
+    "notes": [
+      "Power values are the archived dBm fields: 37 dBm is about 5 W and 33 dBm about 2 W. This card checks dBm arithmetic, not rounded watt conversions."
+    ],
+    "provenance": "Frozen Milazzo raw reports; independent arithmetic and production replay. Full ledgers are retained with this review pack.",
+    "visual_height": 130,
+    "roles": {
+      "Analysis direction": "TX Benchmark",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR",
+      "Reference TX": "WB6RQN / configured locator CM98 (raw reports CM98MQ)"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR",
+      "Reference TX WB6RQN -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "Each Target or Reference decode confirms its named TX transmitted and that exact peer RX received. Joint pairs require both TX reports at the same peer RX/full locator/cycle; unchanged Benchmark rules apply.",
+    "before_after": [
+      "Benchmark numerical anchors and methods unchanged; endpoint roles added."
+    ],
+    "review_status": "Prior numerical approval retained from B01; this replacement has no new human decision.",
+    "method_version": "unchanged Benchmark"
+  },
+  {
+    "id": "P01",
+    "title": "Hit, Miss, Target-only - and excluded cycles",
+    "minutes": 3,
+    "scope": "TX Performance | VE6PDQ / DO34IR; three retained examples and two excluded cycles. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Report ID",
+        "UTC",
+        "TX callsign / locator",
+        "RX callsign / locator",
+        "Activity directly confirmed"
+      ],
+      "rows": [
+        [
+          "44619841",
+          "19 Dec 14:06",
+          "KP4MD / CM98IQ",
+          "VE6PDQ / DO34IR",
+          "Target TX KP4MD + peer RX VE6PDQ"
+        ],
+        [
+          "44619843",
+          "19 Dec 14:06",
+          "N4AU / EM62VP",
+          "VE6PDQ / DO34IR",
+          "Supporting TX N4AU + peer RX VE6PDQ"
+        ],
+        [
+          "44619818",
+          "19 Dec 14:06",
+          "KP4MD / CM98IQ",
+          "NW0Q / EM38TV",
+          "Target TX KP4MD + other RX NW0Q"
+        ],
+        [
+          "44646805",
+          "19 Dec 18:00",
+          "N6RZR / CN80VK",
+          "VE6PDQ / DO34IR",
+          "Supporting TX N6RZR + peer RX VE6PDQ"
+        ],
+        [
+          "44646808",
+          "19 Dec 18:00",
+          "7L4IOU / PM95WR",
+          "VE6PDQ / DO34IR",
+          "Supporting TX 7L4IOU + peer RX VE6PDQ"
+        ],
+        [
+          "44646786",
+          "19 Dec 18:00",
+          "KP4MD / CM98IQ",
+          "WL7BDO / BP54KN",
+          "Target TX KP4MD + other RX WL7BDO"
+        ],
+        [
+          "44618722",
+          "19 Dec 13:58",
+          "KP4MD / CM98IQ",
+          "VE6PDQ / DO34IR",
+          "Target TX KP4MD + peer RX VE6PDQ"
+        ],
+        [
+          "44605242",
+          "19 Dec 12:06",
+          "WD6DBM / CM97AI",
+          "VE6PDQ / DO34IR",
+          "Supporting TX WD6DBM + peer RX VE6PDQ; no Target TX witness"
+        ],
+        [
+          "44629351",
+          "19 Dec 15:20",
+          "KP4MD / CM98IQ",
+          "K6HX / CM87",
+          "Target TX KP4MD + other RX K6HX; VE6PDQ activity unknown"
+        ]
+      ],
+      "padding": 3,
+      "widths": [
+        0.14,
+        0.14,
+        0.22,
+        0.22,
+        0.28
+      ]
+    },
+    "check_steps": [
+      "At 14:06, KP4MD -> VE6PDQ directly confirms Target TX and peer RX participation. The N4AU -> VE6PDQ report adds external provenance; a Hit does not require it.",
+      "At 18:00, N6RZR and 7L4IOU -> VE6PDQ confirm this peer RX received, while KP4MD -> WL7BDO confirms Target TX activity. No KP4MD decode at VE6PDQ gives one Miss.",
+      "At 13:58, KP4MD -> VE6PDQ alone confirms both endpoints: one Target-only Hit. At 12:06 no KP4MD report exists anywhere that cycle, so the Target-Active Gate excludes the WD6DBM report.",
+      "At 15:20, KP4MD -> K6HX confirms Target TX activity, but no report was received by VE6PDQ/DO34IR that cycle. This silent peer RX remains unknown and excluded, not a Miss."
+    ],
+    "proposed": [
+      "Three retained examples: 2 Hits, 1 Miss, 3 opportunities; 100 x 2/3 = 66.6667%. One Hit has Target-only provenance; do not add it again.",
+      "This three-row rate illustrates the arithmetic; it is not the full-window VE6PDQ rate."
+    ],
+    "actual": [
+      "Production classifies 14:06 H, 18:00 M and 13:58 H (Target-only subset). The 12:06 cycle without Target TX activity evidence and the unknown-VE6PDQ-activity path at 15:20 are excluded."
+    ],
+    "why_it_matters": "Separates Target TX activity from exact peer RX activity, and counts a valid direct decode as success without an unnecessary external-witness requirement.",
+    "expected_numeric": {
+      "example_hits": 2,
+      "example_misses": 1,
+      "example_target_only": 1,
+      "example_opportunities": 3,
+      "example_rate_pct": 66.66666666666667
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Original-method example approved; revised classification requires fresh human review.",
+    "method_version": "opportunity-v3",
+    "tables": [
+      {
+        "headers": [
+          "19 Dec UTC",
+          "Target seen",
+          "External seen",
+          "Outcome / opportunity"
+        ],
+        "rows": [
+          [
+            "14:06",
+            "yes",
+            "yes",
+            "Hit / yes"
+          ],
+          [
+            "18:00",
+            "no",
+            "yes",
+            "Miss / yes"
+          ],
+          [
+            "13:58",
+            "yes",
+            "no",
+            "Hit (Target-only subset) / yes"
+          ],
+          [
+            "12:06",
+            "no",
+            "yes",
+            "Excluded: Target-Active Gate fails"
+          ],
+          [
+            "15:20",
+            "no",
+            "no",
+            "Excluded: peer RX activity unknown"
+          ]
+        ],
+        "padding": 3
+      }
+    ],
+    "before_after": [
+      "Old examples: 1 Hit / 2 opportunities = 50%. Revised: 2 Hits / 3 opportunities = 66.6667%; 1 Miss unchanged."
+    ]
+  },
+  {
+    "id": "P02",
+    "title": "VE6PDQ: count the right opportunities",
+    "minutes": 3,
+    "scope": "TX Performance | Full 32-hour window; VE6PDQ / DO34IR. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Evidence subset",
+        "Count",
+        "In totals?",
+        "Meaning for peer RX VE6PDQ"
+      ],
+      "rows": [
+        [
+          "Externally supported Hits",
+          35,
+          "Yes: Hits + opportunities",
+          "Target TX KP4MD and another TX decoded"
+        ],
+        [
+          "Target-only Hits",
+          22,
+          "Yes: already a Hit subset",
+          "Target TX KP4MD decoded; no external report"
+        ],
+        [
+          "All Hits",
+          57,
+          "57 successes",
+          "35 + 22, not 57 + 22"
+        ],
+        [
+          "Misses",
+          22,
+          "22 opportunities",
+          "Other TX decoded here; Target TX active"
+        ],
+        [
+          "All opportunities",
+          79,
+          "79 = 57 + 22",
+          "One count per exact peer RX/cycle"
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "Add the disjoint success subsets: 35 externally supported + 22 Target-only = 57 Hits.",
+      "Add Hits and Misses once: 57 + 22 = 79 opportunities, meeting the minimum of 5.",
+      "Calculate 100 x 57/79. Target-only is already inside 57; adding it again would double-count successes."
+    ],
+    "proposed": [
+      "Expected station rate: 72.1519%, displayed 72.2%.",
+      "All 79 retained receiver-cycles enter the denominator; 22 Misses remain unchanged."
+    ],
+    "actual": [
+      "Station Insights and Drill-Down: 57 Hits, 22 Misses, 79 opportunities, 72.2%; 22 Target-only observations remain a provenance subset of Hits."
+    ],
+    "why_it_matters": "Protects station counts, global eligibility and the most important Performance denominator.",
+    "expected_numeric": {
+      "hits": 57,
+      "misses": 22,
+      "target_only": 22,
+      "opportunities": 79,
+      "rate_pct": 72.15189873417721,
+      "all_rows": 79
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "35/57 = 61.4035% -> 57/79 = 72.1519%; 22 Misses unchanged."
+    ]
+  },
+  {
+    "id": "P03",
+    "title": "Successful SNR: median and extremes",
+    "minutes": 3,
+    "scope": "TX Performance | VE6PDQ / DO34IR; all 57 successful Target decodes. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Rank",
+        "Report ID",
+        "UTC",
+        "TX callsign",
+        "RX callsign",
+        "Raw SNR",
+        "Power dBm",
+        "At 30 dBm"
+      ],
+      "rows": [
+        [
+          1,
+          "44644486",
+          "19 Dec 17:36",
+          "KP4MD",
+          "VE6PDQ",
+          -28,
+          37,
+          -35
+        ],
+        [
+          15,
+          "44776098",
+          "20 Dec 17:12",
+          "KP4MD",
+          "VE6PDQ",
+          -22,
+          37,
+          -29
+        ],
+        [
+          29,
+          "44627774",
+          "19 Dec 15:06",
+          "KP4MD",
+          "VE6PDQ",
+          -16,
+          37,
+          -23
+        ],
+        [
+          43,
+          "44773164",
+          "20 Dec 16:36",
+          "KP4MD",
+          "VE6PDQ",
+          -15,
+          37,
+          -22
+        ],
+        [
+          57,
+          "44618722",
+          "19 Dec 13:58",
+          "KP4MD",
+          "VE6PDQ",
+          -7,
+          37,
+          -14
+        ]
+      ],
+      "padding": 3,
+      "widths": [
+        0.08,
+        0.13,
+        0.16,
+        0.13,
+        0.13,
+        0.11,
+        0.12,
+        0.14
+      ]
+    },
+    "check_steps": [
+      "For each row calculate normalized SNR = reported SNR - reported power + 30. All five reports are Target TX KP4MD/CM98IQ -> peer RX VE6PDQ/DO34IR.",
+      "With 57 sorted Hits, the median is rank 29. Linear Q1 and Q3 fall exactly at ranks 15 and 43.",
+      "Include all 57 successful Target decodes, including the 22 Target-only successes. Exclude Misses from successful-SNR summaries."
+    ],
+    "proposed": [
+      "Median -23 dB; Q1 -29 dB; Q3 -22 dB; minimum -35 dB, maximum -14 dB."
+    ],
+    "actual": [
+      "Production successful-SNR summaries match median -23 dB, IQR [-29, -22] dB and range [-35, -14] dB."
+    ],
+    "why_it_matters": "Tests absolute normalized SNR separately from Delta SNR and includes the complete successful-decode population.",
+    "expected_numeric": {
+      "hit_count": 57,
+      "median_db": -23,
+      "q1_db": -29,
+      "q3_db": -22,
+      "minimum_db": -35,
+      "maximum_db": -14
+    },
+    "provenance": "Ranks independently rebuilt from raw Target TX reports, sorted by normalized SNR then UTC. Raw locators: KP4MD/CM98IQ -> VE6PDQ/DO34IR. Quartiles are a ledger check; Station Insights displays the median. Temporal IQR is checked in P07/P10.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "35 -> 57 successful samples; median -25 -> -23 dB; IQR [-28,-22] -> [-29,-22]; extremes [-33,-18] -> [-35,-14] dB."
+    ]
+  },
+  {
+    "id": "P04",
+    "title": "Map weighting: five unequal stations",
+    "minutes": 3,
+    "scope": "TX Performance | Map segment [0-2500 km] East; minimum 5 opportunities per station. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Peer RX / locator",
+        "Hits",
+        "Misses",
+        "Opportunities",
+        "Rate %"
+      ],
+      "rows": [
+        [
+          "K5XL / EM12KP",
+          4,
+          2,
+          6,
+          66.6667
+        ],
+        [
+          "KE7A / EM12KX",
+          6,
+          4,
+          10,
+          60.0
+        ],
+        [
+          "N5WY / EM12PU",
+          25,
+          30,
+          55,
+          45.4545
+        ],
+        [
+          "NW0Q / EM38TV",
+          16,
+          12,
+          28,
+          57.1429
+        ],
+        [
+          "WA5M / EM22JP",
+          5,
+          0,
+          5,
+          100.0
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "Compute the five exact ratios: 4/6, 6/10, 25/55, 16/28, 5/5.",
+      "The map gives each qualifying peer RX one equal vote: average those five exact ratios.",
+      "For the pooled diagnostic, add 56 Hits and 48 Misses, then calculate 56/104."
+    ],
+    "proposed": [
+      "Map station-balanced value = 65.8528% (displayed 65.9%).",
+      "Pooled value = 53.8462% (displayed 53.8%)."
+    ],
+    "actual": [
+      "The East map segment has 5 qualifying peer RX identities, 56 Hits and 104 opportunities: map value 65.9%, pooled diagnostic 53.8%."
+    ],
+    "why_it_matters": "A 12.01 percentage-point difference catches accidental pooling or weighting by observation count.",
+    "expected_numeric": {
+      "station_balanced_rate_pct": 65.85281385281385,
+      "pooled_rate_pct": 53.84615384615385,
+      "stations": 5,
+      "hits": 56,
+      "misses": 48
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "K5XL / EM12KP; KE7A / EM12KX; N5WY / EM12PU; NW0Q / EM38TV; WA5M / EM22JP"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX K5XL, KE7A, N5WY, NW0Q, WA5M"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "49/97 -> 56/104; station-balanced 63.9686% -> 65.8528%; pooled 50.5155% -> 53.8462%."
+    ]
+  },
+  {
+    "id": "P05",
+    "title": "One distance bin, three related figures",
+    "minutes": 3,
+    "scope": "TX Performance | All directions; exact distance 1500-2000 km. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Peer RX / locator",
+        "km",
+        "Hits",
+        "Misses",
+        "Opportunities",
+        "Rate %",
+        "Successful SNR median dB"
+      ],
+      "rows": [
+        [
+          "VE6OG / DO33",
+          1776.0,
+          13,
+          2,
+          15,
+          86.6667,
+          -20
+        ],
+        [
+          "VE6PDQ / DO34IR",
+          1895.5,
+          57,
+          22,
+          79,
+          72.1519,
+          -23
+        ],
+        [
+          "W6YQ / DN84IC",
+          1601.0,
+          5,
+          4,
+          9,
+          55.5556,
+          -22
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "All three peer RX identities qualify and have at least one Hit, so Peer Reach is 3/3 = 100%.",
+      "Average 13/15, 57/79 and 5/9 for the station-balanced rate; compare with pooled 75/103.",
+      "Sort station SNR medians -23,-22,-20. Their median is -22; interpolated quartiles are -22.5 and -21."
+    ],
+    "proposed": [
+      "Reach 100%; station-balanced 71.4580%; pooled 72.8155%.",
+      "Distance SNR trace -22 dB, IQR [-22.5, -21] dB from three station medians."
+    ],
+    "actual": [
+      "The three native distance panels match: 100% reach; 71.46% and 72.82% rates; median -22 dB and IQR [-22.5, -21] dB."
+    ],
+    "why_it_matters": "Links all three distance panels to the same independently checked station set and protects station-balanced SNR aggregation.",
+    "expected_numeric": {
+      "peer_reach_pct": 100,
+      "station_balanced_rate_pct": 71.45804031879982,
+      "pooled_rate_pct": 72.81553398058253,
+      "median_db": -22,
+      "q1_db": -22.5,
+      "q3_db": -21
+    },
+    "provenance": "Performance distances use reported locator centers. Benchmark distances use archived peer coordinates; small cross-mode distance differences do not change membership here.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\compact_distance_snr.png",
+    "visual_height": 170,
+    "visual_caption": "A marks the review area. Production plot elements; layout adapted for this card.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6OG / DO33; VE6PDQ / DO34IR; W6YQ / DN84IC"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6OG, VE6PDQ, W6YQ"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "50/78 -> 75/103; station-balanced 65.3396% -> 71.4580%; pooled 64.1026% -> 72.8155%. Reach and median unchanged; IQR updated."
+    ]
+  },
+  {
+    "id": "P06",
+    "title": "Peer Reach includes zero-Hit stations",
+    "minutes": 3,
+    "scope": "TX Performance | All directions; exact distance 4000-4500 km. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Peer RX / locator",
+        "Hits",
+        "Misses",
+        "Opportunities",
+        "Reached?"
+      ],
+      "rows": [
+        [
+          "AA9AL / FN41IM",
+          0,
+          5,
+          5,
+          "no"
+        ],
+        [
+          "KC2LFI / FN31EE",
+          2,
+          80,
+          82,
+          "yes"
+        ],
+        [
+          "N1PQ / FN42FM",
+          2,
+          14,
+          16,
+          "yes"
+        ],
+        [
+          "W1BW / FN42HL",
+          26,
+          98,
+          124,
+          "yes"
+        ],
+        [
+          "W1KBX / FN43FE",
+          0,
+          7,
+          7,
+          "no"
+        ],
+        [
+          "WJ2V / FN30DO",
+          4,
+          43,
+          47,
+          "yes"
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "All six receivers meet the five-opportunity threshold. Count four with one or more Hits.",
+      "Reach = 4/6. The separate pooled observation rate is 34/281; its denominator counts peer RX/cycle opportunities.",
+      "AA9AL and W1KBX contribute to reach and rates, but have no successful-SNR value; do not replace missing SNR with zero."
+    ],
+    "proposed": [
+      "Peer Reach = 4/6 = 66.6667%; pooled Decode Rate = 34/281 = 12.0996%."
+    ],
+    "actual": [
+      "The native reach bar is 66.7%, based on 4 of 6 receivers. Both zero-Hit receivers remain eligible."
+    ],
+    "why_it_matters": "Distinguishes path reach from observation-level success and protects zero-Hit eligible peers.",
+    "expected_numeric": {
+      "qualifying_stations": 6,
+      "reached_stations": 4,
+      "peer_reach_pct": 66.66666666666667,
+      "hits": 34,
+      "misses": 247,
+      "pooled_rate_pct": 12.099644128113878,
+      "station_balanced_rate_pct": 7.402900770600019
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\compact_distance_reach.png",
+    "visual_height": 170,
+    "visual_caption": "A marks the review area. Production plot elements; layout adapted for this card.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "AA9AL / FN41IM; KC2LFI / FN31EE; N1PQ / FN42FM; W1BW / FN42HL; W1KBX / FN43FE; WJ2V / FN30DO"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX AA9AL, KC2LFI, N1PQ, W1BW, W1KBX, WJ2V"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "Reach remains 4/6 = 66.6667%; pooled rate 30/277 = 10.8303% -> 34/281 = 12.0996%."
+    ]
+  },
+  {
+    "id": "P07",
+    "title": "One complete three-hour bin",
+    "minutes": 3,
+    "scope": "TX Performance | VE6PDQ; 20 December 00:00-03:00 UTC. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "20 Dec UTC",
+        "Outcome",
+        "SNR at 30 dBm",
+        "Target report ID",
+        "TX callsign",
+        "RX callsign"
+      ],
+      "rows": [
+        [
+          "00:10",
+          "H",
+          -23,
+          "44697734",
+          "KP4MD",
+          "VE6PDQ"
+        ],
+        [
+          "00:12",
+          "M",
+          "-",
+          "-",
+          "no Target decode",
+          "VE6PDQ"
+        ],
+        [
+          "00:22",
+          "H",
+          -20,
+          "44698904",
+          "KP4MD",
+          "VE6PDQ"
+        ],
+        [
+          "00:34",
+          "H",
+          -22,
+          "44699745",
+          "KP4MD",
+          "VE6PDQ"
+        ],
+        [
+          "00:56",
+          "H",
+          -23,
+          "44701527",
+          "KP4MD",
+          "VE6PDQ"
+        ],
+        [
+          "01:36",
+          "H",
+          -19,
+          "44704914",
+          "KP4MD",
+          "VE6PDQ"
+        ],
+        [
+          "01:48",
+          "H (Target-only)",
+          -31,
+          "44705999",
+          "KP4MD",
+          "VE6PDQ"
+        ],
+        [
+          "01:56",
+          "M",
+          "-",
+          "-",
+          "no Target decode",
+          "VE6PDQ"
+        ],
+        [
+          "02:12",
+          "M",
+          "-",
+          "-",
+          "no Target decode",
+          "VE6PDQ"
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "Count six Hits and three Misses: 6/9 = 66.6667%. One peer RX contributes a split vote of 2/3 Hit + 1/3 Miss; raw counts stay 6 and 3.",
+      "Include Target-only report 44705999 at 01:48. Sort all six SNRs: -31,-23,-23,-22,-20,-19. Median (-23-22)/2 = -22.5; Q1 -23; Q3 -20.5."
+    ],
+    "proposed": [
+      "Rate 66.6667%; opportunity count 9; station support 1.",
+      "Actual-SNR trace -22.5 dB with IQR [-23,-20.5] dB."
+    ],
+    "actual": [
+      "Production 00:00-03:00: 6 Hits, 3 Misses, 9 opportunities, 66.6667%; one station vote and the printed median/IQR."
+    ],
+    "why_it_matters": "",
+    "expected_numeric": {
+      "hits": 6,
+      "misses": 3,
+      "rate_pct": 66.66666666666667,
+      "station_hit_vote": 0.6666666666666666,
+      "station_miss_vote": 0.3333333333333333,
+      "median_db": -22.5,
+      "q1_db": -23,
+      "q3_db": -20.5
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\compact_ve6pdq_snr_chronological.png",
+    "visual_height": 170,
+    "visual_caption": "A marks the review area. Production plot elements; layout adapted for this card.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "5/8 = 62.5% -> 6/9 = 66.6667%; median -22 -> -22.5 dB; the added 01:48 Target-only success has -31 dB."
+    ],
+    "notes": [
+      "All successful source rows: Target TX KP4MD/CM98IQ -> peer RX VE6PDQ/DO34IR. Miss rows have supporting other-TX receptions at VE6PDQ plus a separate Target TX activity witness; their full report IDs are retained in the independent native ledger."
+    ],
+    "tables": [
+      {
+        "headers": [
+          "Report ID",
+          "UTC",
+          "TX callsign / locator",
+          "RX callsign / locator",
+          "Activity directly confirmed"
+        ],
+        "rows": [
+          [
+            "44697961",
+            "20 Dec 00:12",
+            "N1PQ / FN42FM",
+            "VE6PDQ / DO34IR",
+            "Supporting TX N1PQ + peer RX VE6PDQ"
+          ],
+          [
+            "44697864",
+            "20 Dec 00:12",
+            "KP4MD / CM98IQ",
+            "KZ3X / FN10WH",
+            "Target TX KP4MD + other RX KZ3X"
+          ],
+          [
+            "44706605",
+            "20 Dec 01:56",
+            "WB2JEP / FM29LV",
+            "VE6PDQ / DO34IR",
+            "Supporting TX WB2JEP + peer RX VE6PDQ"
+          ],
+          [
+            "44706574",
+            "20 Dec 01:56",
+            "KP4MD / CM98IQ",
+            "K6HVI / CN87VP",
+            "Target TX KP4MD + other RX K6HVI"
+          ],
+          [
+            "44707778",
+            "20 Dec 02:12",
+            "WA5M / EM22JP",
+            "VE6PDQ / DO34IR",
+            "Supporting TX WA5M + peer RX VE6PDQ"
+          ],
+          [
+            "44707791",
+            "20 Dec 02:12",
+            "KP4MD / CM98IQ",
+            "WB4KLJ / FM18KU",
+            "Target TX KP4MD + other RX WB4KLJ"
+          ]
+        ],
+        "padding": 3
+      }
+    ]
+  },
+  {
+    "id": "P08",
+    "title": "UTC folding at the end of the window",
+    "minutes": 3,
+    "scope": "TX Performance | VE6PDQ; compare the 12 UTC and 20 UTC hour slots. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Date",
+        "Hour",
+        "Selected date-hour?",
+        "Hit",
+        "Miss",
+        "Peer RX present?"
+      ],
+      "rows": [
+        [
+          "19 Dec",
+          "12 UTC",
+          "yes",
+          0,
+          0,
+          0
+        ],
+        [
+          "20 Dec",
+          "12 UTC",
+          "yes",
+          0,
+          2,
+          1
+        ],
+        [
+          "19 Dec",
+          "20 UTC",
+          "yes",
+          0,
+          2,
+          1
+        ],
+        [
+          "20 Dec",
+          "20 UTC",
+          "outside window",
+          0,
+          0,
+          0
+        ]
+      ],
+      "widths": [
+        0.15,
+        0.15,
+        0.24,
+        0.1,
+        0.1,
+        0.26
+      ]
+    },
+    "check_steps": [
+      "12 UTC occurs on both selected dates. Dec 19 has zero confirmed rows; it still belongs in the display denominator.",
+      "For 12 UTC: (0+2) Misses / 2 dates = 1 mean Miss; (0+1) station presences / 2 = 0.5 mean station support.",
+      "20 UTC occurs only on Dec 19 because Dec 20 20:00 is the excluded end boundary. Divide its two Misses by one date, not two."
+    ],
+    "proposed": [
+      "12 UTC: mean Misses 1, mean station support 0.5; 20 UTC: mean Misses 2, mean support 1.",
+      "Both rates are 0%; rates are calculated from pooled station outcomes, not averaged display counts."
+    ],
+    "actual": [
+      "Native folded profiles match both date denominators and mean support values in the table."
+    ],
+    "why_it_matters": "Detects both dropping zero-evidence dates and accidentally counting the end boundary as another selected hour.",
+    "expected_numeric": {
+      "hour12_date_count": 2,
+      "hour12_mean_misses": 1,
+      "hour12_mean_station_support": 0.5,
+      "hour20_date_count": 1,
+      "hour20_mean_misses": 2,
+      "hour20_mean_station_support": 1
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX. No-evidence date-hours are retained only in the folded display-date denominator; they are not invented opportunities.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "These two printed hour anchors remain numerically unchanged. Other hourly bins can change under opportunity-v3."
+    ]
+  },
+  {
+    "id": "P09",
+    "title": "Folded SNR: each date-hour gets one vote",
+    "minutes": 3,
+    "scope": "TX Performance | VE6PDQ; 16 UTC on 19 and 20 December. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Date",
+        "Peer RX",
+        "Hits",
+        "Normalized successful SNRs (sorted)",
+        "Date-hour median"
+      ],
+      "rows": [
+        [
+          "19 Dec",
+          "VE6PDQ / DO34IR",
+          5,
+          "-30, -28, -28, -28, -26",
+          -28
+        ],
+        [
+          "20 Dec",
+          "VE6PDQ / DO34IR",
+          4,
+          "-27, -24, -22, -20",
+          -23.0
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "First reduce each date-hour separately: 19 Dec median -28; 20 Dec median (-24-22)/2 = -23 dB.",
+      "Take the median of the two date-hour medians: (-28-23)/2 = -25.5 dB.",
+      "Pooling all nine raw successful SNR values instead gives -27 dB. The folded trace gives each represented date-hour one vote."
+    ],
+    "proposed": [
+      "Folded marker -25.5 dB. Only two date-hour values contribute, below the five-value threshold for a visible temporal IQR band."
+    ],
+    "actual": [
+      "At 16 UTC, the native SNR marker is -25.5 dB; 2 date-hour values contribute, so no IQR band is visible."
+    ],
+    "why_it_matters": "A 1.5 dB contrast catches raw-observation pooling while checking the sparse-IQR display rule.",
+    "expected_numeric": {
+      "date_hour_count": 2,
+      "median_db": -25.5,
+      "q1_db": -26.75,
+      "q3_db": -24.25,
+      "pooled_raw_median_db": -27,
+      "iqr_visible": false
+    },
+    "provenance": "Complete 40 m archive capture; independently calculated ledger. All printed numerical anchors were compared with the WSPRadar pipeline.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\compact_ve6pdq_snr_folded.png",
+    "visual_height": 170,
+    "visual_caption": "A marks the review area. Production plot elements; layout adapted for this card.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ / DO34IR"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "7 -> 9 successful samples; date medians [-28,-22] -> [-28,-23]; folded marker -25 -> -25.5 dB."
+    ],
+    "tables": [
+      {
+        "headers": [
+          "Report ID",
+          "UTC",
+          "TX callsign",
+          "RX callsign",
+          "SNR at 30 dBm"
+        ],
+        "rows": [
+          [
+            "44635714",
+            "19 Dec 16:12",
+            "KP4MD",
+            "VE6PDQ",
+            -26
+          ],
+          [
+            "44636841",
+            "19 Dec 16:22",
+            "KP4MD",
+            "VE6PDQ",
+            -28
+          ],
+          [
+            "44637729",
+            "19 Dec 16:30",
+            "KP4MD",
+            "VE6PDQ",
+            -30
+          ],
+          [
+            "44638590",
+            "19 Dec 16:38",
+            "KP4MD",
+            "VE6PDQ",
+            -28
+          ],
+          [
+            "44639716",
+            "19 Dec 16:48",
+            "KP4MD",
+            "VE6PDQ",
+            -28
+          ],
+          [
+            "44770367",
+            "20 Dec 16:00",
+            "KP4MD",
+            "VE6PDQ",
+            -20
+          ],
+          [
+            "44771374",
+            "20 Dec 16:12",
+            "KP4MD",
+            "VE6PDQ",
+            -24
+          ],
+          [
+            "44773164",
+            "20 Dec 16:36",
+            "KP4MD",
+            "VE6PDQ",
+            -22
+          ],
+          [
+            "44774245",
+            "20 Dec 16:50",
+            "KP4MD",
+            "VE6PDQ",
+            -27
+          ]
+        ],
+        "padding": 3
+      }
+    ],
+    "notes": [
+      "All listed reports directly confirm Target TX KP4MD/CM98IQ transmitted and peer RX VE6PDQ/DO34IR received. They include Target-only successes at 19 Dec 16:30 and 20 Dec 16:12."
+    ]
+  },
+  {
+    "id": "P10",
+    "title": "SNR deviation: subtract each station baseline",
+    "minutes": 3,
+    "scope": "TX Performance | Active scope; final partial bin, 20 December 18:00-20:00 UTC. Common setup on cover.",
+    "source_rows": {
+      "headers": [
+        "Peer RX / locator",
+        "Baseline dB",
+        "Bin median dB",
+        "Deviation dB"
+      ],
+      "rows": [
+        [
+          "VE6PDQ / DO34IR",
+          -23,
+          -33,
+          -10
+        ],
+        [
+          "N7NB / CN87UR",
+          -13.5,
+          -17,
+          -3.5
+        ],
+        [
+          "KE7MVX / CN83GG",
+          -1,
+          -4.0,
+          -3.0
+        ],
+        [
+          "VE7THZ / DN09FU",
+          -20,
+          -22.0,
+          -2.0
+        ],
+        [
+          "N7UL / CN84KA",
+          -5,
+          -3.5,
+          1.5
+        ],
+        [
+          "NN6RF / CM87UW",
+          -22.0,
+          -20,
+          2.0
+        ],
+        [
+          "N6GN / CM88OK",
+          0,
+          3.0,
+          3.0
+        ],
+        [
+          "K6JEB / CM87UX",
+          -5.0,
+          -1,
+          4.0
+        ],
+        [
+          "WB6RQN / CM98MQ",
+          -29.0,
+          -17,
+          12.0
+        ]
+      ],
+      "padding": 3
+    },
+    "check_steps": [
+      "Each baseline is the full-window successful-SNR median, requiring at least three Hits. Include Target-only successes; subtract that peer RX baseline from its bin median.",
+      "Each peer RX contributes once. Nine sorted deviations give median rank 5; linear Q1 is rank 3 and Q3 rank 7."
+    ],
+    "proposed": [
+      "Active-scope anomaly median +1.5 dB, Q1 -3 dB, Q3 +3 dB; nine station values.",
+      "VE6PDQ contributes -33-(-23) = -10 dB. This differs from its actual-SNR trace at -33 dB."
+    ],
+    "actual": [
+      "The native final-bin marker is +1.5 dB, with IQR [-3,+3] dB and 9 contributing station values."
+    ],
+    "why_it_matters": "",
+    "expected_numeric": {
+      "contributing_stations": 9,
+      "median_db": 1.5,
+      "q1_db": -3.0,
+      "q3_db": 3.0,
+      "ve6pdq_anomaly_db": -10
+    },
+    "provenance": "Independent station baselines and bin summaries match production. All nine contributors are listed; end boundary 20:00 UTC remains excluded.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\compact_temporal_snr_chronological.png",
+    "visual_height": 170,
+    "visual_caption": "A marks the review area. Production plot elements; layout adapted for this card.",
+    "roles": {
+      "Analysis direction": "TX Performance",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6PDQ / DO34IR; N7NB / CN87UR; KE7MVX / CN83GG; VE7THZ / DN09FU; N7UL / CN84KA; NN6RF / CM87UW; N6GN / CM88OK; K6JEB / CM87UX; WB6RQN / CM98MQ"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6PDQ, N7NB, KE7MVX, VE7THZ, N7UL, NN6RF, N6GN, K6JEB, WB6RQN"
+    ],
+    "activity_evidence": "A KP4MD decode confirms Target TX KP4MD and that exact peer RX. An unrelated TX decoded by that peer confirms that peer RX activity; a KP4MD report elsewhere confirms only Target TX activity, never a silent peer RX.",
+    "review_status": "Revised opportunity-v3 card: pending human review.",
+    "method_version": "opportunity-v3",
+    "before_after": [
+      "7 -> 9 contributors; median 0 -> +1.5 dB; IQR [-3.25,+1.75] -> [-3,+3] dB; VE6PDQ deviation -8 -> -10 dB."
+    ],
+    "notes": [
+      "WB6RQN/CM98MQ is a peer RX on this TX Performance card: it received Target TX KP4MD. In the Benchmark cards WB6RQN has the separate Reference TX role; station identity alone does not determine report direction."
+    ]
+  },
+  {
+    "id": "B02",
+    "title": "Histogram weights and a positive outlier",
+    "minutes": 3,
+    "scope": "Benchmark | Common setup on cover. All 30 qualifying receivers and 45 Joint observations.",
+    "check_steps": [
+      "Locate the isolated +8 dB bar in each native histogram. Check its height using the two denominators below.",
+      "Read the two central ordered values for the station distribution and the central observation for the Joint distribution. Check the proposed medians."
+    ],
+    "source_rows": {
+      "headers": [
+        "Distribution",
+        "Values counted",
+        "+8 dB entries",
+        "Central ordered value(s)"
+      ],
+      "rows": [
+        [
+          "Station Medians",
+          30,
+          1,
+          "15th=-4; 16th=-3.5"
+        ],
+        [
+          "Joint-Spot Delta SNR",
+          45,
+          1,
+          "23rd=-4"
+        ]
+      ]
+    },
+    "proposed": [
+      "Station +8 dB bar: 100/30 = 3.333...%. Joint +8 dB bar: 100/45 = 2.222...%.",
+      "Station median = (-4 + -3.5)/2 = -3.75 dB (native chart rounds to -3.8). Joint median = -4 dB."
+    ],
+    "actual": [
+      "Native histograms: one +8 dB entry in each; medians -3.8 dB (stations) and -4.0 dB (Joint)."
+    ],
+    "why_it_matters": "Protects station weighting versus observation weighting, percent denominators, exact median calculation and preservation of the isolated positive extreme.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\benchmark\\compact_benchmark_histograms.png",
+    "notes": [
+      "Human sign-off covers the selected bar and median arithmetic. Full 30/45 value lists and source IDs are independently calculated support, not claimed to have been individually reviewed.",
+      "+8 dB receiver: W6II (CN85nm), 2010-12-20T00:22:00+00:00. Source IDs 44698886 / 44698891."
+    ],
+    "provenance": "Outlier: W6II (CN85nm), 20 Dec 00:22 UTC; report IDs 44698886 / 44698891. Ordered-value lists retained in the candidate ledger.",
+    "visual_height": 190,
+    "visual_caption": "Production plot elements; layout adapted for this card. A marks the +8 dB bars.",
+    "roles": {
+      "Analysis direction": "TX Benchmark",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "30 qualifying exact receiver identities; highlighted W6II / CN85NM",
+      "Reference TX": "WB6RQN / configured locator CM98 (raw reports CM98MQ)"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX W6II / CN85NM (highlighted +8 dB)",
+      "Reference TX WB6RQN -> peer RX W6II / CN85NM (same cycle)"
+    ],
+    "activity_evidence": "Each Target or Reference decode confirms its named TX transmitted and that exact peer RX received. Joint pairs require both TX reports at the same peer RX/full locator/cycle; unchanged Benchmark rules apply.",
+    "before_after": [
+      "Benchmark numerical anchors and methods unchanged; endpoint roles added."
+    ],
+    "review_status": "Pending human review; no approval recorded.",
+    "method_version": "unchanged Benchmark",
+    "tables": [
+      {
+        "headers": [
+          "Report ID",
+          "UTC",
+          "TX callsign / locator",
+          "RX callsign / locator",
+          "Activity directly confirmed"
+        ],
+        "rows": [
+          [
+            "44698886",
+            "20 Dec 00:22",
+            "KP4MD / CM98IQ",
+            "W6II / CN85NM",
+            "KP4MD transmitted; W6II received"
+          ],
+          [
+            "44698891",
+            "20 Dec 00:22",
+            "WB6RQN / CM98MQ",
+            "W6II / CN85NM",
+            "WB6RQN transmitted; W6II received"
+          ]
+        ],
+        "padding": 3
+      }
+    ]
+  },
+  {
+    "id": "B03",
+    "title": "Decode Outcomes: which denominator?",
+    "minutes": 3,
+    "scope": "Benchmark | Common setup on cover. Complete scoped evidence; include unpaired observations.",
+    "check_steps": [
+      "Check the Joint bars: divide 30 by 76 for stations and 45 by 1,054 for observations.",
+      "VE6PDQ has 56 non-joint observations and one Joint. Its station is Joint; its non-joint observations enter Both (Async). Confirm that distinction."
+    ],
+    "source_rows": {
+      "headers": [
+        "Plotted category",
+        "Peer RX station count",
+        "Observation count"
+      ],
+      "rows": [
+        [
+          "Only KP4MD",
+          40,
+          237
+        ],
+        [
+          "Joint",
+          30,
+          45
+        ],
+        [
+          "Both (Async)",
+          5,
+          771
+        ],
+        [
+          "Only WB6RQN",
+          1,
+          1
+        ],
+        [
+          "TOTAL",
+          76,
+          1054
+        ]
+      ]
+    },
+    "proposed": [
+      "Joint stations: 100 x 30/76 = 39.47% (label 39%). Joint observations: 100 x 45/1054 = 4.269% (label 4%).",
+      "Do not insert raw 988 Only Target /45 Joint /21 Only Reference as the four plotted bars: these are cycle outcomes, while the visual categories also depend on station history."
+    ],
+    "actual": [
+      "Native labels: Joint stations 39%; Joint observations 4%; Both (Async) observations 73%."
+    ],
+    "why_it_matters": "Detects denominator swaps and confusing per-cycle outcomes with the native station-history composition.",
+    "visual_path": "C:\\Users\\marku\\Code\\WSPRadar\\output\\milazzo_review_v2\\benchmark\\compact_decode_outcomes.png",
+    "notes": [
+      "These are composition percentages, not Decode Rates or Target success rates.",
+      "Supporting station examples (Only Target, Joint, Only Reference): VE6PDQ=56,1,0; K3TEZ=9,0,3; N7ZO=0,0,1."
+    ],
+    "provenance": "Frozen Milazzo raw reports; independent arithmetic and production replay. Full ledgers are retained with this review pack.",
+    "visual_height": 190,
+    "visual_caption": "Production plot elements; layout adapted for this card.",
+    "roles": {
+      "Analysis direction": "TX Benchmark",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "76 scoped receiver identities; example VE6PDQ / DO34IR",
+      "Reference TX": "WB6RQN / configured locator CM98 (raw reports CM98MQ)"
+    },
+    "arrows": [
+      "Target TX KP4MD -> scoped peer RX (example VE6PDQ / DO34IR)",
+      "Reference TX WB6RQN -> same scoped peer RX; Joint requires same cycle"
+    ],
+    "activity_evidence": "Each Target or Reference decode confirms its named TX transmitted and that exact peer RX received. Joint pairs require both TX reports at the same peer RX/full locator/cycle; unchanged Benchmark rules apply.",
+    "before_after": [
+      "Benchmark numerical anchors and methods unchanged; endpoint roles added."
+    ],
+    "review_status": "Pending human review; no approval recorded.",
+    "method_version": "unchanged Benchmark"
+  },
+  {
+    "id": "B04",
+    "title": "Map value: two stations, three observations",
+    "minutes": 3,
+    "scope": "Benchmark | Common setup on cover. Map segment: 0-2,500 km, NNE (11.25 to 33.75 degrees).",
+    "check_steps": [
+      "Calculate the two station medians from the three listed Joint differences.",
+      "Take the median of those TWO station values. Compare with the production map value and contrast the pooled three-observation result."
+    ],
+    "source_rows": {
+      "headers": [
+        "Peer RX / locator",
+        "20 Dec UTC",
+        "Target TX KP4MD at 30dBm",
+        "Reference TX WB6RQN at 30dBm",
+        "Delta SNR"
+      ],
+      "rows": [
+        [
+          "VE6OG DO33",
+          "00:22",
+          -18.0,
+          -22.0,
+          4.0
+        ],
+        [
+          "VE6PDQ DO34ir",
+          "00:22",
+          -20.0,
+          -18.0,
+          -2.0
+        ],
+        [
+          "VE6OG DO33",
+          "01:06",
+          -22.0,
+          -13.0,
+          -9.0
+        ]
+      ]
+    },
+    "proposed": [
+      "VE6OG: median(-9,+4)=(-9+4)/2=-2.5 dB. VE6PDQ: one value=-2 dB.",
+      "Segment median=(-2.5 + -2)/2=-2.25 dB. WSPRadar stores SNR summaries to one decimal with ties-to-even rounding: -2.2 dB.",
+      "Pooled median(-9,-2,+4)=-2 dB, which is not the Benchmark map statistic. Support=2 qualifying station identities and 3 Joint observations."
+    ],
+    "actual": [
+      "Map: -2.2 dB from 2 qualifying stations and 3 Joint observations."
+    ],
+    "why_it_matters": "Checks the map uses equal station contributions and retains a distinction from the pooled Joint-Spot distribution.",
+    "notes": [
+      "Independent geography: VE6OG 1,772.78 km /17.455 degrees; VE6PDQ 1,895.44 km /15.320 degrees. Both lie within 0-2500 km and the NNE sector (11.25 to33.75 degrees).",
+      "Six original report IDs for the three pairs: 44698895/44698897; 44698904/44698905; 44702519/44702533.",
+      "Map value is an actual production segment-table output. The arithmetic table is a reviewer aid, not a native map rendering."
+    ],
+    "provenance": "VE6OG: 1,772.78 km / 17.455 degrees; VE6PDQ: 1,895.44 km / 15.320 degrees. Three pairs: IDs 44698895/44698897, 44698904/44698905, 44702519/44702533.",
+    "visual_height": 130,
+    "roles": {
+      "Analysis direction": "TX Benchmark",
+      "Target TX": "KP4MD / configured locator CM98 (raw reports CM98IQ)",
+      "Peer RX": "VE6OG / DO33 and VE6PDQ / DO34IR",
+      "Reference TX": "WB6RQN / configured locator CM98 (raw reports CM98MQ)"
+    },
+    "arrows": [
+      "Target TX KP4MD -> peer RX VE6OG / DO33 or VE6PDQ / DO34IR",
+      "Reference TX WB6RQN -> same peer RX and cycle"
+    ],
+    "activity_evidence": "Each Target or Reference decode confirms its named TX transmitted and that exact peer RX received. Joint pairs require both TX reports at the same peer RX/full locator/cycle; unchanged Benchmark rules apply.",
+    "before_after": [
+      "Benchmark numerical anchors and methods unchanged; endpoint roles added."
+    ],
+    "review_status": "Pending human review; no approval recorded.",
+    "method_version": "unchanged Benchmark",
+    "tables": [
+      {
+        "headers": [
+          "Report ID",
+          "UTC",
+          "TX callsign / locator",
+          "RX callsign / locator",
+          "Activity directly confirmed"
+        ],
+        "rows": [
+          [
+            "44698895",
+            "20 Dec 00:22",
+            "KP4MD / CM98IQ",
+            "VE6OG / DO33",
+            "KP4MD transmitted; VE6OG received"
+          ],
+          [
+            "44698897",
+            "20 Dec 00:22",
+            "WB6RQN / CM98MQ",
+            "VE6OG / DO33",
+            "WB6RQN transmitted; VE6OG received"
+          ],
+          [
+            "44698904",
+            "20 Dec 00:22",
+            "KP4MD / CM98IQ",
+            "VE6PDQ / DO34IR",
+            "KP4MD transmitted; VE6PDQ received"
+          ],
+          [
+            "44698905",
+            "20 Dec 00:22",
+            "WB6RQN / CM98MQ",
+            "VE6PDQ / DO34IR",
+            "WB6RQN transmitted; VE6PDQ received"
+          ],
+          [
+            "44702519",
+            "20 Dec 01:06",
+            "KP4MD / CM98IQ",
+            "VE6OG / DO33",
+            "KP4MD transmitted; VE6OG received"
+          ],
+          [
+            "44702533",
+            "20 Dec 01:06",
+            "WB6RQN / CM98MQ",
+            "VE6OG / DO33",
+            "WB6RQN transmitted; VE6OG received"
+          ]
+        ],
+        "padding": 3
+      }
+    ]
+  }
+]

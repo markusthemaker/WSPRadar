@@ -1,0 +1,139 @@
+{
+  "footer_text": "WSPRadar.org by Dr. Markus Brosch (DL1MKS)",
+  "output": "figure6_evidence_comparison.png",
+  "pdf_output": "WSPRadar_Demo_Griffiths_Figure6.pdf",
+  "source_rows": 6459,
+  "count_grid_shape": [
+    58,
+    24
+  ],
+  "method": "A: calibrated source raster; B: existing fixed Gaussian policy; C: production temporal renderer and paper export theme, with identical R1-R4 paper bounds and matched native P1-P3 coordinates transformed by the native axis",
+  "verified": "All 24 hourly counts, medians, Q1, Q3 and all 1392 density cells equal the existing frozen CSVs; C artist medians/IQR verified",
+  "source_feature_matches": [
+    {
+      "id": "early_night_negative_branch",
+      "modes": [
+        [
+          0.5,
+          -3.0
+        ],
+        [
+          1.5,
+          -4.0
+        ],
+        [
+          2.5,
+          -4.0
+        ],
+        [
+          2.5,
+          -1.0
+        ]
+      ]
+    },
+    {
+      "id": "morning_positive_branch",
+      "modes": [
+        [
+          6.5,
+          6.0
+        ],
+        [
+          7.5,
+          6.0
+        ],
+        [
+          8.5,
+          6.0
+        ]
+      ]
+    },
+    {
+      "id": "evening_strong_positive_island",
+      "modes": [
+        [
+          18.5,
+          6.0
+        ],
+        [
+          19.5,
+          5.0
+        ],
+        [
+          20.5,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "late_night_negative_branch",
+      "modes": [
+        [
+          22.5,
+          -3.0
+        ],
+        [
+          23.5,
+          -3.0
+        ]
+      ]
+    }
+  ],
+  "scatter_witnesses": [
+    {
+      "id": "isolated_negative_1",
+      "matching_pairs": 1,
+      "distinct_folded_coordinates": [
+        [
+          1.7666666666666666,
+          -13.0
+        ]
+      ]
+    },
+    {
+      "id": "isolated_positive_1",
+      "matching_pairs": 1,
+      "distinct_folded_coordinates": [
+        [
+          6.833333333333333,
+          22.0
+        ]
+      ]
+    },
+    {
+      "id": "isolated_negative_2",
+      "matching_pairs": 1,
+      "distinct_folded_coordinates": [
+        [
+          7.733333333333333,
+          -13.0
+        ]
+      ]
+    }
+  ],
+  "sample_range_db": [
+    -17.0,
+    40.0
+  ],
+  "reconstruction_origin": {
+    "input": "source_rows.parquet only; expected files are assertions after calculation",
+    "stages": "generated SQL via SQLite adapter; strict-to-legacy selection; post-fetch; map; Inspector; paired evidence; temporal recipe",
+    "source_reports": 18791,
+    "strict_sql_rows": 0,
+    "selected_sql_rows": 12290,
+    "selected_query_sha256": "8cf5c232b0444c50aa2165fc54f18abc2d21563ad56cadb2357be53a3854e95a",
+    "limit": "No native ClickHouse engine, HTTP, cache/admission or provider geographic-distance validation"
+  },
+  "builder_sha256": "91ada49f259d81b581019c1f356031afedaec4ed3f2f372b7f36a9b61b409e84",
+  "input_sha256": {
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_paper_v1\\paper_features.json": "caa7ce548fa5639d6e00deeac18fac02df1e1f77855640f7eb809d6f80beabaf",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_paper_v1\\paper_points.json": "bd806ddbc012eb0f1a8149cf37858c1822b0b6ff7cb28376578e9a3d166f3078",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_paper_v1\\comparison_policy.json": "086750c4bed3955953fa390a88027504a36591471fa8cc215e4ed3da74a58634",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_paper_v1\\paper_figure6.png": "bae3aebcaa32e7d4b926234216beded5db10923acca7303a8bcb562014aa4c2c",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_diurnal_v1\\demo.config": "337b8bcfe47328b42ceffe6dac5124048c3db8bed57ef8816e728d06fcec5dac",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_diurnal_v1\\source_rows.parquet": "cce5cc7bc0ab1cc5c8d352f11f4087ae487592874bbcc983b1b26ab5aefe0b64",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_diurnal_v1\\expected_paired_rows.parquet": "df10db992a7dae591de2fe7247f2daff94cb5269a630bd3535166fe800feff12",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_diurnal_v1\\expected_utc_hour.csv": "86e161edb9abc8355d265bf0c50ba41a124e314c126125df72d54aa496a09d94",
+    "tests\\regression\\reference_fixtures\\griffiths_fig6_diurnal_v1\\expected_density_utc_hour.csv": "ba3bbb184d669ced2ea1b3bae16e9a765a0316a5c6b1f090aab6372ff7a94b0b"
+  }
+}

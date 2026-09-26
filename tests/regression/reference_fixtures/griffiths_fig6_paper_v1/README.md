@@ -67,7 +67,7 @@ Each witness must match at least one current native pair within both tolerances.
 
 The archive fixture's 6,459 pairs and its exact medians/quartiles/counts remain a separate numerical regression. The paper's precise raw population, contour levels, kernel, bandwidth and normalization are unavailable, and the paper-count difference remains unresolved. Passing the external test demonstrates agreement in selected density-feature positions and qualitative density ordering at the declared resolution. It does not prove equality of entire distributions, absolute densities, sample counts, quartiles, hourly medians or causal antenna effects.
 
-Missing or altered source files fail rather than skip. Tests never refresh paper annotations or expected archive values. A mismatch or bandwidth-sensitive result must be reported and investigated separately; changing expectations to make it pass is not validation. Production SQL execution is still outside this offline replay.
+Missing or altered source files fail rather than skip. Tests never refresh paper annotations or expected archive values. A mismatch or bandwidth-sensitive result must be reported and investigated separately; changing expectations to make it pass is not validation. Since 2026-09-25 the replay executes freshly generated production SQL on frozen source reports through the bounded SQLite adapter, then the production post-fetch, map, Inspector and temporal preparation. Native ClickHouse-engine behavior and live providers remain outside its scope.
 
 ## Integration verification (2026-09-24)
 
@@ -81,7 +81,7 @@ The installed external assertions rejected five temporary erroneous results: rev
 
 ## Comparison graphics and vector PDF (2026-09-25)
 
-`figure6_evidence_comparison.png` and `figure6_evidence_comparison.pdf` retain the same A-B-C layout: original publication, fixed-policy reconstruction and the native WSPRadar folded UTC-hour view. R1-R4 contour-region labels and P1-P3 isolated-point witnesses are retained in all three panels. The PDF contains vector count-grid cells, markers, lines, annotations and text; the original publication panel remains its unchanged embedded raster. The PDF is rendered directly from the Matplotlib figure, not from the completed PNG.
+`figure6_evidence_comparison.png` and `WSPRadar_Demo_Griffiths_Figure6.pdf` retain the same A-B-C layout: original publication, fixed-policy reconstruction and the native WSPRadar folded UTC-hour view. R1-R4 contour-region labels and P1-P3 isolated-point witnesses are retained in all three panels. The PDF contains vector count-grid cells, markers, lines, annotations and text; the original publication panel remains its unchanged embedded raster. The PDF is rendered directly from the Matplotlib figure, not from the completed PNG.
 
 Regenerate both formats from the repository root into a review directory:
 
@@ -89,4 +89,38 @@ Regenerate both formats from the repository root into a review directory:
 .\.venv\Scripts\python.exe -B scripts/build_griffiths_fig6_comparison.py --output-directory tmp/griffiths_fig6_comparison_candidate
 ```
 
-The builder checks all 24 hourly counts, medians and quartiles, all 1,392 density cells, and the production median/IQR artists against the existing frozen numerical fixtures. No source coordinates, smoothing policy, acceptance tolerances or scientific data are changed by PDF export.
+The builder recalculates all 6,459 paired observations through that raw-source production replay; expected paired tables and captured SQL results never supply plotted values. It checks all 24 hourly counts, medians and quartiles, all 1,392 density cells, and the production median/IQR artists against the existing frozen numerical fixtures. `render_checks.json` records source hashes, the executed query hash and pipeline counts. Fixed Gaussian smoothing is only a declared comparison presentation; it does not enter the native paired values or change the unsmoothed WSPRadar view. No source coordinates, smoothing policy, acceptance tolerances or scientific data are changed by PDF export.
+
+
+### Demo PDF filenames (26 September 2026)
+
+Embedded demo PDFs use `WSPRadar_Demo_LeadAuthor_FigureX.pdf`, with
+`_diagnostic` before `.pdf` for a diagnostic. PNG filenames are unchanged.
+The PDF content is byte-identical to the previously named output. Existing
+generation hashes describe that original rendering, not the filename update.
+
+
+## Figure 6 presentation review (26 September 2026)
+
+Following the filename-only update above, the Figure 6 comparison was rendered
+again with its existing 23 by 12.5 inch landscape page size. It now uses a white
+background, a centered printed publication title and citation, a separate
+Figure 6 subtitle, aligned panel headings, larger type and one shared symbol
+legend across all three panels. R1-R4 descriptions appear together in order.
+The legend explicitly identifies B-only density peaks and maximum, and C-only
+median and IQR symbols; B and C retain their separate density colour scales.
+
+The public PDF no longer includes the requested frozen-demo/fixture wording
+or the sentence concerning the authors' unspecified smoothing. The documented
+comparison policy and evidence limits above remain unchanged. The public
+method notes still state B's smoothing parameters, the nonlinear C axis,
+point-matching limits and the interpretation of the contour regions.
+
+All 6,459 paired observations, 24 hourly counts/medians/quartiles, 1,392 density
+cells, four feature matches, three point witnesses and scientific input hashes
+match the previous rendering. `render_checks.json` records the updated builder
+hash. The approved beginner-oriented description is installed in the `griffiths_squibb_fig6` demo.
+
+### WSPRadar header revision (2026-09-27)
+
+The Figure 6 PDF now begins with **WSPRadar.org reconstruction & comparison**, followed by the descriptive title **SNR difference by time of day**. Explicit **Referenced publication:** and **Source figure:** lines attach the authors, publication title and Figure 6 reference to their source; a **Demo:** line retains the comparison context. Presentation-only records in `config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper own this hierarchy and identify WSPRadar as the comparison author in PDF metadata. This supersedes the earlier paper-title-first header description while preserving its review history. Source evidence, numerical expectations, scientific calculations and all body coordinates remain unchanged.

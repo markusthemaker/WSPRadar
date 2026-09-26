@@ -1,0 +1,54 @@
+{
+  "B01": {
+    "peer_sign": "VE6PDQ",
+    "peer_grid": "DO34ir",
+    "utc": "2010-12-20T00:22:00Z",
+    "target_report_id": 44698904,
+    "reference_report_id": 44698905,
+    "target_snr_db": -20,
+    "reference_snr_db": -18,
+    "delta_snr_db": -2
+  },
+  "B02": {
+    "station": {
+      "count": 30,
+      "mean": -3.9,
+      "median": -3.75,
+      "positive_extreme_db": 8,
+      "positive_extreme_count": 1
+    },
+    "joint": {
+      "count": 45,
+      "mean": -3.9555555555555557,
+      "median": -4,
+      "positive_extreme_db": 8,
+      "positive_extreme_count": 1
+    }
+  },
+  "B03": {
+    "station_counts": [
+      40,
+      30,
+      5,
+      1
+    ],
+    "observation_counts": [
+      237,
+      45,
+      771,
+      1
+    ]
+  },
+  "B04": {
+    "segment_id": "[0-2500km] NNE",
+    "station_medians_db": {
+      "VE6OG": -2.5,
+      "VE6PDQ": -2
+    },
+    "unrounded_segment_median_db": -2.25,
+    "segment_value_db": -2.2,
+    "station_count": 2,
+    "joint_count": 3,
+    "pooled_median_db": -2
+  }
+}

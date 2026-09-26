@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "promoted_on_utc": "2026-09-26",
+  "performance_method": "opportunity-v3",
+  "benchmark_method": "unchanged simultaneous reference-station Benchmark",
+  "frozen_window": {
+    "start_utc": "2010-12-19T12:00:00Z",
+    "end_utc_exclusive": "2010-12-20T20:00:00Z"
+  },
+  "copied_files": [
+    {
+      "path": "network_source.parquet",
+      "source_path": "output/milazzo_review_v1/network_source.parquet",
+      "sha256": "602e3acc6db36e6fc8e1ba00760218dbef2a1bb94679b0565295f8edaea7aa6e"
+    },
+    {
+      "path": "network_capture.json",
+      "source_path": "output/milazzo_review_v1/capture.json",
+      "sha256": "6a8063f1918be231db8f255e1a26834ad760095105283d5e0060a70a979f339a"
+    },
+    {
+      "path": "network_source_query.sql",
+      "source_path": "output/milazzo_review_v1/network_source_query.sql",
+      "sha256": "8fcf1707d8c2c944dc1e9e466e580a6ddd2da4d7a5a4a43f5f675a99149c2768"
+    },
+    {
+      "path": "performance.config",
+      "source_path": "output/milazzo_review_v1/production_performance.config",
+      "sha256": "0ed68b9a16e7b3a944d7c183a31033d25eca636b7321f1c952b0cb56ab2d39c6"
+    },
+    {
+      "path": "benchmark.config",
+      "source_path": "output/milazzo_review_v1/repository_inputs/config/demos/05_milazzo_tx_buddy.config",
+      "sha256": "e4af275d3752e8f2c05aa57c7252d87e2f62a0b314dc9559e7ba755daa77ec70"
+    },
+    {
+      "path": "benchmark_source.csv",
+      "source_path": "tests/regression/reference_fixtures/milazzo_tx_reference_v1/source_rows.csv",
+      "sha256": "d9ca950e1fc8798ddbd7af2a7cebaf46675eaadafa070517ccd380bc206e7207"
+    },
+    {
+      "path": "benchmark_capture_provenance.json",
+      "source_path": "tests/regression/reference_fixtures/milazzo_tx_reference_v1/capture_provenance.json",
+      "sha256": "9c890948b7907b8e8ee12bc90014ed2bf423b09b46d5dfebe52ead52ef075092"
+    },
+    {
+      "path": "performance_expected_ledger.csv",
+      "source_path": "output/milazzo_review_v2/independent_after_ledger.csv",
+      "sha256": "4b6fe42b00ac072caf72b806a181d0f5887cc9814349a0bb50874214af995268"
+    },
+    {
+      "path": "performance_expected_stations.csv",
+      "source_path": "output/milazzo_review_v2/independent_after_stations.csv",
+      "sha256": "79738dce48650c6c3be00bb6f848a8f9b24492ea35b373ee91e884dd8bbcae69"
+    },
+    {
+      "path": "performance_expected_profiles.json",
+      "source_path": "output/milazzo_review_v2/independent_after_profiles.json",
+      "sha256": "8ada951c0900e09ade38816b9764ef793e42edc04f641da384eeb56e2184f213"
+    },
+    {
+      "path": "benchmark_expected_native_units.csv",
+      "source_path": "output/milazzo_review_v2/benchmark/independent_32h_native_units.csv",
+      "sha256": "913565ccda343e1bdce9da190306c5fa450452e242f373ad04d17d1c1d7494f8"
+    },
+    {
+      "path": "review_cards.json",
+      "source_path": "output/milazzo_review_v2/review_cards.json",
+      "sha256": "115dac8073327cdf8b8a4c5dd8320a58bd670939b81c552054af8c3f1c54e651"
+    },
+    {
+      "path": "review_packet.pdf",
+      "source_path": "output/pdf/milazzo_human_review_cards_v2.pdf",
+      "sha256": "9a9567283551613404f136595397713ff03d9de699b67095b62c93c9bcb03aca"
+    }
+  ],
+  "expectation_derivation": {
+    "performance": "Independent raw-report arithmetic in scripts/verify_performance_method_revision.py, functions independent_evidence, independent_method and independent_profiles; no production outputs used to define expected values.",
+    "benchmark": "Independent standard-library calculator scripts/build_milazzo_reference_fixture.py; native ledger restricted to frozen 32-hour window. B01-B04 numeric anchors transcribed from human-verified review card arithmetic.",
+    "reviewed_vs_supporting": "reviewed_expectations.json contains card anchors. performance_expected_* and benchmark_expected_native_units.csv add exhaustive independently derived support."
+  },
+  "derivation_source_hashes": {
+    "scripts/verify_performance_method_revision.py": "41b72913a0af74a51d9e6b98cad1a6c3febd3227d33513ec48e4b2f2691693b4",
+    "scripts/build_milazzo_reference_fixture.py": "88ef228d39ddce741a38ef6bf1e4b2b47feee991e7dfaf753752bdb25b6d3135",
+    "output/milazzo_review_v2/build_review_cards.py": "404357aa1d278444704000b32481b100efc380a53baf04766cdfdd96dc3cb8c8",
+    "output/milazzo_review_v2/benchmark/build_cards.py": "6ee2ba5252c4bde1ddc3c77bf8a65e82c62c0850323b4df0a4a429f056f2507e"
+  },
+  "no_live_dependency": true,
+  "expectation_update_policy": "Never replace approved expectations with current production output. A scientific change requires a separate fixture revision, explicit explanation and renewed human approval.",
+  "native_sql_supplement": {
+    "source_provider": "https://db1.wspr.live/",
+    "captured_at_utc": "2026-09-23T20:48:37.573497+00:00",
+    "files": {
+      "benchmark_native_sql_capture.csv": "bce4fb4f16e4a67ff103b3c94de5cc02ed272aef522233684cffdb4d1dcc0835",
+      "benchmark_native_capture.sql": "7ef6498edc5ccde604aafd7e6f9d4d08c02240d1470199c99761b797c49727df"
+    },
+    "scope": "Machine-captured native SQL output from the same frozen Benchmark source. Not independent scientific expectations and not individually human reviewed. The optional provider check first compares scientific columns to the validated offline projection, then compares live complete query output to the corresponding frozen native rows. This preserves the native best_ref_dist diagnostic without demanding that the spherical offline adapter reproduce native geoDistance."
+  }
+}

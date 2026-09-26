@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "fixture_id": "milazzo_human_review_v2",
+  "review_revision": 2,
+  "files": [
+    {
+      "path": "approval.json",
+      "bytes": 3294,
+      "sha256": "09849b29ffb1f944e1aab8c7537841bfcebd275b4c4c68e6619b4afb0adc2d55"
+    },
+    {
+      "path": "benchmark.config",
+      "bytes": 4059,
+      "sha256": "e4af275d3752e8f2c05aa57c7252d87e2f62a0b314dc9559e7ba755daa77ec70"
+    },
+    {
+      "path": "benchmark_capture_provenance.json",
+      "bytes": 4843,
+      "sha256": "9c890948b7907b8e8ee12bc90014ed2bf423b09b46d5dfebe52ead52ef075092"
+    },
+    {
+      "path": "benchmark_expected.json",
+      "bytes": 1070,
+      "sha256": "8b97c3809560e77db945739517235ab82a3a9ef15ce52c167d5e99cd1d6404ed"
+    },
+    {
+      "path": "benchmark_expected_native_units.csv",
+      "bytes": 140553,
+      "sha256": "913565ccda343e1bdce9da190306c5fa450452e242f373ad04d17d1c1d7494f8"
+    },
+    {
+      "path": "benchmark_native_capture.sql",
+      "bytes": 1310,
+      "sha256": "7ef6498edc5ccde604aafd7e6f9d4d08c02240d1470199c99761b797c49727df"
+    },
+    {
+      "path": "benchmark_native_sql_capture.csv",
+      "bytes": 129317,
+      "sha256": "bce4fb4f16e4a67ff103b3c94de5cc02ed272aef522233684cffdb4d1dcc0835"
+    },
+    {
+      "path": "benchmark_source.csv",
+      "bytes": 287418,
+      "sha256": "d9ca950e1fc8798ddbd7af2a7cebaf46675eaadafa070517ccd380bc206e7207"
+    },
+    {
+      "path": "coverage.json",
+      "bytes": 3352,
+      "sha256": "52c3a7f5c5c5fa3b09b05b3722fc01a01587c128d36ec5b009bb5dd32828c7a6"
+    },
+    {
+      "path": "network_capture.json",
+      "bytes": 414,
+      "sha256": "6a8063f1918be231db8f255e1a26834ad760095105283d5e0060a70a979f339a"
+    },
+    {
+      "path": "network_source.parquet",
+      "bytes": 994075,
+      "sha256": "602e3acc6db36e6fc8e1ba00760218dbef2a1bb94679b0565295f8edaea7aa6e"
+    },
+    {
+      "path": "network_source_query.sql",
+      "bytes": 238,
+      "sha256": "8fcf1707d8c2c944dc1e9e466e580a6ddd2da4d7a5a4a43f5f675a99149c2768"
+    },
+    {
+      "path": "performance.config",
+      "bytes": 1007,
+      "sha256": "0ed68b9a16e7b3a944d7c183a31033d25eca636b7321f1c952b0cb56ab2d39c6"
+    },
+    {
+      "path": "performance_expected_ledger.csv",
+      "bytes": 449381,
+      "sha256": "4b6fe42b00ac072caf72b806a181d0f5887cc9814349a0bb50874214af995268"
+    },
+    {
+      "path": "performance_expected_profiles.json",
+      "bytes": 45470,
+      "sha256": "8ada951c0900e09ade38816b9764ef793e42edc04f641da384eeb56e2184f213"
+    },
+    {
+      "path": "performance_expected_stations.csv",
+      "bytes": 11987,
+      "sha256": "79738dce48650c6c3be00bb6f848a8f9b24492ea35b373ee91e884dd8bbcae69"
+    },
+    {
+      "path": "provenance.json",
+      "bytes": 5607,
+      "sha256": "e2eb8668fea84690d46d348572e0edacd4ff0bd661bd79f6d692b2c735b02587"
+    },
+    {
+      "path": "README.md",
+      "bytes": 8075,
+      "sha256": "3e02778a35f654e9e319078522fd8049c590c62a95ce3de7d61dc6902fb457fc"
+    },
+    {
+      "path": "review_cards.json",
+      "bytes": 53428,
+      "sha256": "115dac8073327cdf8b8a4c5dd8320a58bd670939b81c552054af8c3f1c54e651"
+    },
+    {
+      "path": "review_packet.pdf",
+      "bytes": 773750,
+      "sha256": "9a9567283551613404f136595397713ff03d9de699b67095b62c93c9bcb03aca"
+    },
+    {
+      "path": "reviewed_expectations.json",
+      "bytes": 2953,
+      "sha256": "eab7940945ae06e5231a9e528d535f1b51784073c980af401248bae6dc2a1d6b"
+    }
+  ]
+}

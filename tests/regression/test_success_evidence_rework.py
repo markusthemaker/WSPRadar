@@ -131,7 +131,7 @@ def _temporal_peer_rows() -> pd.DataFrame:
 
 
 def _temporal_evidence_rows() -> pd.DataFrame:
-    """Return two confirmed UTC dates plus excluded and Target-only audit rows."""
+    """Return two confirmed UTC dates plus excluded and unknown-activity rows."""
     records: list[dict[str, object]] = []
 
     def add(
@@ -181,8 +181,9 @@ def _temporal_evidence_rows() -> pd.DataFrame:
     # D is not a qualifying station and must not enter any segment layer.
     add("D", "2026-07-10T00:50:00Z", hit=1, target_snr=100.0)
 
-    # This audit-only row must not create a third represented evidence date.
-    add("A", "2026-07-12T02:00:00Z", target_snr=-3.0)
+    # Neither endpoint flag is established for this synthetic unknown row.
+    # Unlike a Target-only success, it cannot represent another evidence date.
+    add("A", "2026-07-12T02:00:00Z")
     return pd.DataFrame.from_records(records)
 
 
@@ -450,6 +451,7 @@ def _compare_temporal_recipe_for_test() -> dict[str, object]:
         "RX Benchmark Temporal Evidence",
         "1h",
         T["en"]["fig_joint_spot_count"],
+        reference_snr_correction_db=0.0,
         analysis_start_t=pd.Timestamp("2026-07-10T00:00:00Z"),
         analysis_end_t=pd.Timestamp("2026-07-11T01:00:00Z"),
         chronological_title=T["en"][

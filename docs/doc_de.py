@@ -47,7 +47,7 @@ WSPRadar decodiert diese Funknachrichten nicht und rekonstruiert aus Typ-2- und 
 
 Bei gleichzeitiger Last kann WSPRadar einen vollständigen neuen Lauf je nach verfügbarer Kapazität an **WSPRDaemon WD2** und danach **WD1** weiterleiten. Dieser geordnete Kapazitätsausgleich unterscheidet sich von einem Quellenwechsel nach einem Ausfall: Fällt eine ausgewählte Quelle aus, verwirft WSPRadar den noch nicht veröffentlichten Versuch und startet den vollständigen Lauf mit der nächsten Quelle neu. Jeder abgeschlossene Lauf bleibt an genau ein Archiv gebunden; Datensätze aus verschiedenen Quellen werden niemals zusammengeführt.
 
-Eine Einschränkung ist für jede Analyse zentral: Das Archiv erfasst erfolgreiche Decodes, aber kein vollständiges Protokoll aller Sendeversuche oder aller aktiven Empfänger. WSPRadar bildet deshalb nur dann eine <strong class="defined-term">Gelegenheit</strong>, wenn unabhängige Evidenz zeigt, dass der betreffende entfernte Sender beziehungsweise Empfänger aktiv war. Bei RX muss ein anderer geeigneter Empfänger denselben Sender decodiert haben. Bei TX muss der entfernte Empfänger ein anderes Signal auf demselben Band decodiert haben. Ohne diesen Aktivitätsnachweis wird ein fehlender Target-Spot nicht automatisch als funktechnischer Misserfolg gewertet.
+Eine Einschränkung ist für jede Analyse zentral: Das Archiv erfasst erfolgreiche Decodes, aber kein vollständiges Protokoll aller Sendeversuche oder aller aktiven Empfänger. Ein gültiger erfolgreicher Decode bestätigt unmittelbar die Beteiligung beider Endpunkte. Innerhalb eines Target-aktiven Zyklus bildet WSPRadar deshalb eine <strong class="defined-term">Gelegenheit</strong>, wenn der Target-seitige Decode gelingt oder externe Evidenz die betreffende Peer-Aktivität bestätigt. Bei RX ist der Decode des Peer-TX durch den Target-RX ein Erfolg; ein anderer geeigneter RX, der denselben Peer-TX decodiert, bestätigt dessen Sendeaktivität zur Bewertung eines fehlenden Target-RX-Decodes. Bei TX ist der Decode des Target-TX durch den Peer-RX ein Erfolg; decodiert derselbe Peer-RX einen anderen qualifizierenden TX auf demselben Band, bestätigt dies seine Empfangsaktivität zur Bewertung eines fehlenden Target-TX-Decodes. Alle Nachweise müssen zum gewählten Band, Zyklus und zur exakten Peer-Identität passen. Ohne ausreichenden Aktivitätsnachweis der Endpunkte bleibt Funkstille unbekannt und ausgeschlossen; Aktivität andernorts belegt niemals, dass ein bestimmter stiller Empfänger zugehört hat.
 
 Durch diese Unterscheidung wird aus einer Sammlung erfolgreicher Spots Evidenz, die Fragen nach praktischer Reichweite, Beständigkeit und relativer Performance stützen kann, ohne so zu tun, als sei jede fehlende Meldung ein gescheiterter Funkweg.
 
@@ -56,17 +56,17 @@ Durch diese Unterscheidung wird aus einer Sammlung erfolgreicher Spots Evidenz, 
 
 #### 0.1 Was WSPRadar zeigen kann
 
-WSPRadar ist ein WSPR-basiertes System zur Analyse und zum Benchmarking der Performance von Antennen und Stationen. Es wertet ein <strong class="defined-term">Target</strong> aus: die zu untersuchende Station, normalerweise deine Station, dargestellt entweder als vollständig aufgebaute Station oder als kontrollierter Sende- beziehungsweise Empfangspfad. Ein <strong class="defined-term">Peer</strong> ist eine entfernte Gegenstation, deren Funkweg zur Analyse beiträgt. Die <strong class="defined-term">Dekodierrate</strong> ist der Prozentsatz unabhängig bestätigter Gelegenheiten mit einem erfolgreichen Decode auf der Target-Seite: Bei RX decodiert das Target den Peer, bei TX decodiert der Peer das Target. Dabei beantwortet WSPRadar eine von zwei grundlegenden Fragen.
+WSPRadar ist ein WSPR-basiertes System zur Analyse und zum Benchmarking der Performance von Antennen und Stationen. Es wertet ein <strong class="defined-term">Target</strong> aus: die zu untersuchende Station, normalerweise deine Station, dargestellt entweder als vollständig aufgebaute Station oder als kontrollierter Sende- beziehungsweise Empfangspfad. Ein <strong class="defined-term">Peer</strong> ist eine entfernte Gegenstation, deren Funkweg zur Analyse beiträgt. Die <strong class="defined-term">Dekodierrate</strong> ist der Prozentsatz bestätigter Gelegenheiten mit einem erfolgreichen Decode auf der Target-Seite: Bei RX decodiert das Target den Peer, bei TX decodiert der Peer das Target. Dabei beantwortet WSPRadar eine von zwei grundlegenden Fragen.
 
-* <strong class="defined-term">Performance</strong> fragt, wie sich das Target innerhalb unabhängig bestätigter WSPR-Gelegenheiten verhalten hat. Sie kann die praktische Funkabdeckung, Mindestens-einmal-Reichweite, Dekodierrate, erfolgreiche Signalpegel, Distanz- und Richtungsstruktur, zeitliches Verhalten sowie Breite und Tiefe der stützenden Evidenz sichtbar machen.
+* <strong class="defined-term">Performance</strong> fragt, wie sich das Target innerhalb bestätigter WSPR-Gelegenheiten verhalten hat. Sie kann die praktische Funkabdeckung, Mindestens-einmal-Reichweite, Dekodierrate, erfolgreiche Signalpegel, Distanz- und Richtungsstruktur, zeitliches Verhalten sowie Breite und Tiefe der stützenden Evidenz sichtbar machen.
 * <strong class="defined-term">Benchmark</strong> fragt, wie sich das Target unter zugeordneten Bedingungen relativ zu einer aussagekräftigen <strong class="defined-term">Referenz</strong> verhalten hat. Er kann gepaartes Delta SNR Target minus Referenz, gemeinsame und einseitige Decode Outcomes, den Anteil paarbarer Evidenz sowie Ort und Zeit des relativen Unterschieds zeigen.
 
 Die Fragestellung bestimmt das passende Evidenzdesign:
 
 | Analyse | Fragestellung | Praktische Beispiele |
 |---|---|---|
-| <strong class="analysis-choice-single">RX Performance</strong> | Wie breit und wie beständig decodiert mein Empfänger Signale, die andernorts unabhängig bestätigt wurden? | Empfangsbereich einer neu aufgebauten Antenne oder Station erfassen; unterscheiden, ob der Empfang breit, aber wechselhaft oder schmaler und beständig ist; wiederkehrende Richtungs-, Entfernungs- oder UTC-Stunden-Muster erkennen – einschließlich Zeiträume, die eine separate Prüfung auf lokalen Störpegel oder intermittierende Hardware nahelegen. |
-| <strong class="analysis-choice-single">TX Performance</strong> | Wo, wann und wie beständig wird mein Sender von Empfängern decodiert, deren Aktivität unabhängig nachgewiesen ist? | Abbilden, wo eine QRP-Bake oder neu installierte Antenne gehört wird; erkennen, zu welchen Zeiten und in welchen Richtungen nachweislich aktive Empfänger die Station besonders beständig decodieren; nach Inbetriebnahme, Reparatur oder Standortänderung eine Ausgangsbasis schaffen und mit vergleichbaren Wiederholungsläufen prüfen, ob sich das beobachtete Verhalten später verändert. |
+| <strong class="analysis-choice-single">RX Performance</strong> | Wie breit und wie beständig decodiert mein Empfänger Signale innerhalb bestätigter Gelegenheiten? | Empfangsbereich einer neu aufgebauten Antenne oder Station erfassen; unterscheiden, ob der Empfang breit, aber wechselhaft oder schmaler und beständig ist; wiederkehrende Richtungs-, Entfernungs- oder UTC-Stunden-Muster erkennen – einschließlich Zeiträume, die eine separate Prüfung auf lokalen Störpegel oder intermittierende Hardware nahelegen. |
+| <strong class="analysis-choice-single">TX Performance</strong> | Wo, wann und wie beständig wird mein Sender von Empfängern decodiert, deren Aktivität nachgewiesen ist? | Abbilden, wo eine QRP-Bake oder neu installierte Antenne gehört wird; erkennen, zu welchen Zeiten und in welchen Richtungen nachweislich aktive Empfänger die Station besonders beständig decodieren; nach Inbetriebnahme, Reparatur oder Standortänderung eine Ausgangsbasis schaffen und mit vergleichbaren Wiederholungsläufen prüfen, ob sich das beobachtete Verhalten später verändert. |
 | <span class="analysis-choice"><span class="analysis-family">RX Benchmark</span><br><strong class="analysis-variant">Hardware A/B</strong></span> | Unterschieden sich zwei lokale Empfangspfade beim gleichzeitigen Beobachten derselben entfernten Aussendungen? | Zwei Antennen vergleichen, die jeweils eine eigene simultane Empfänger- und Decoderkette speisen, wobei das Ergebnis zunächst die vollständigen Empfangspfade beschreibt; einen Unterschied nur dann gezielt den Antennen zuschreiben, wenn die übrigen Ketten abgeglichen, charakterisiert oder durch einen Kreuztausch bestätigt wurden; eine Antenne über einen charakterisierten Verteiler an zwei Empfänger führen, um Empfänger oder Decoderpfade zu vergleichen; Vorverstärker, Filter, Speiseleitung oder Mantelwellensperre nur in einen ansonsten kontrollierten Pfad einfügen und die beiden dokumentierten vollständigen Empfangspfade benchmarken. |
 | <span class="analysis-choice"><span class="analysis-family">TX Benchmark</span><br><strong class="analysis-variant">Hardware A/B</strong></span> | Unterschieden sich zwei lokale Sendepfade bei simultanem oder eng getaktetem Betrieb? | Zwei Antennen über getrennte, kalibrierte Sendeketten speisen und mit synchronisierten Zyklen, unterscheidbaren Signalen und ausreichender Entkopplung gleichzeitig senden; einen Sender über einen kontrollierten HF-Umschalter nach festem UTC-Zeitplan abwechselnd auf zwei Antennen schalten; zwei Speiseleitungen, Anpassnetzwerke, Filter oder vollständige Sendepfade vergleichen und dabei tatsächliche Leistung, Zeitsteuerung und die übrige Kette kontrollieren. |
 | <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Referenzstation / Buddy-Test</strong></span> | Wie schneidet meine vollständige Station gegenüber einer bekannten Station ab? | <strong>RX:</strong> den eigenen Empfänger mit dem bekannten Empfänger eines Funkfreunds vergleichen, während beide in denselben Zyklen dieselben entfernten Sender beobachten; <strong>TX:</strong> den eigenen Sender mit dem Sender eines Funkfreunds an denselben entfernten Empfängern und in denselben Zyklen vergleichen; ein stabiles, gut verstandenes Buddy-Design vor und nach dokumentierten Stationsarbeiten als relative Basislinie für die Gesamtstation wiederholen, ohne die Buddy-Station als absolut kalibrierten Standard zu behandeln. |
@@ -261,8 +261,8 @@ Lege vor einer bestätigenden Wiederholung Richtung, Band, Referenzdesign, Filte
 
 | Betriebliche Fragestellung | Analyse |
 |---|---|
-| Welche unabhängig bestätigten Signale decodiert mein Empfänger, wo, wann und wie beständig? | **RX Performance** |
-| Wo und wie beständig wird mein Sender von Empfängern decodiert, deren Aktivität unabhängig nachgewiesen ist? | **TX Performance** |
+| Welche Signale decodiert mein Empfänger innerhalb bestätigter Gelegenheiten, wo, wann und wie beständig? | **RX Performance** |
+| Wo und wie beständig wird mein Sender von Empfängern decodiert, deren Aktivität nachgewiesen ist? | **TX Performance** |
 | Wie unterscheiden sich zwei lokale Empfangspfade, zwei vollständige Empfangsstationen oder mein Empfänger und eine lokale Nachbarschaftsreferenz? | **RX Benchmark** |
 | Wie unterscheiden sich zwei lokale Sendepfade, zwei vollständige Sendestationen oder mein Sender und eine lokale Nachbarschaftsreferenz? | **TX Benchmark** |
 
@@ -334,11 +334,11 @@ Verwende den Abschnitt, der zur gewählten Richtung und zum Ergebnistyp passt. E
 
 #### 2.1 RX Performance
 
-**Beantwortete Frage.** Welche Zyklen entfernter Sender, die von einem anderen geeigneten Empfänger unabhängig bestätigt wurden, decodierte auch der Target-Empfänger; wie beständig gelang dies; welchen erfolgreichen SNR beobachtete er; und wo und wann trat dieses Verhalten auf?
+**Beantwortete Frage.** Welche bestätigten Zyklen des Peer-TX decodierte der Target-RX; wie beständig gelang dies; welchen erfolgreichen SNR beobachtete er; und wo und wann trat dieses Verhalten auf?
 
 **Minimal gültiger Aufbau.** Verwende das exakte Melderufzeichen und QTH des Targets, ein Band und ein Zeitfenster mit beobachtbarer Aktivität des Target-Empfängers. Halte die Empfangskette stabil. Performance führt keine Referenz ein und isoliert kein einzelnes Bauteil des Empfangssystems.
 
-**Was WSPRadar auswertet.** Eine bestätigte RX-Gelegenheit liegt vor, wenn ein anderer geeigneter Empfänger denselben entfernten Sender im selben Target-aktiven Zyklus decodiert hat. `Vom Target gehört` bedeutet, dass auch das Target ihn decodiert hat; `Nur von anderen gehört` bedeutet, dass der unabhängige Empfänger ihn decodierte, das Target jedoch nicht. Evidenz ohne unabhängige Bestätigung bleibt prüfbar, geht aber nicht in die Dekodierrate ein. Die genaue Klassifikation steht in [Abschnitt 7.4](#sec-7-4).
+**Was WSPRadar auswertet.** Innerhalb des gewählten Bands, der exakten Peer-Identität und eines Target-aktiven Zyklus liegt eine bestätigte RX-Gelegenheit vor, wenn der Target-RX den Peer-TX decodiert oder ein anderer geeigneter RX denselben Peer-TX decodiert. `Vom Target gehört` ist ein Erfolg, unabhängig davon, ob ein anderer RX den Peer-TX ebenfalls meldet: Die Meldung des Target-RX bestätigt unmittelbar sowohl den sendenden Peer-TX als auch den empfangenden Target-RX. `Nur von anderen gehört` ist ein Miss, wenn ein anderer geeigneter RX die Aussendung des Peer-TX bestätigt, der aktive Target-RX sie aber nicht decodiert. Ein Target-only-Erfolg bleibt als Herkunftsangabe innerhalb der Erfolge und Gelegenheiten erhalten und wird niemals ein zweites Mal addiert. Fehlt ein Aktivitätsnachweis für den Target-RX, belegt die Meldung eines anderen Empfängers nicht, dass der Target-RX zugehört hat. Die genaue Klassifikation steht in [Abschnitt 7.4](#sec-7-4).
 
 **Dem Evidenzpfad folgen.** Auf der **Karte** zeigt die Sektorfarbe die stationsgleichgewichtete Dekodierrate der qualifizierenden entfernten Sender in jedem Entfernungs- und Richtungssegment. Stationsmarker und Kartenfuß unterscheiden Funkwege, die das Target mindestens einmal hörte, von Funkwegen, die nur andernorts gehört wurden. Nutze dies zunächst, um den groben RX-Empfangsbereich und Richtungsstrukturen zu lokalisieren – nicht, um allein aus der Farbe auf Empfängerempfindlichkeit zu schließen.
 
@@ -350,7 +350,7 @@ Vergleiche im **Segment-Inspektor** zunächst die Breite der Stationsbasis mit d
 
 In der **Zeitlichen Evidenz** vergleicht die Abweichung des erfolgreichen SNR jeden Senderpfad mit seinem eigenen typischen erfolgreichen Pegel während des Laufs. Werte über `0 dB` bedeuten, dass erfolgreiche Decodes auf dem jeweiligen Pfad stärker als üblich waren; Werte unter `0 dB` bedeuten schwächere erfolgreiche Decodes. Die zugehörige Stations- und Gelegenheits-Evidenz zeigt, ob sich gleichzeitig die Dekodierrate änderte und wie breit das Muster gestützt ist. Die chronologische Ansicht erkennt Veränderungen im Lauf; die gefaltete UTC-Stunden-Ansicht wiederkehrendes Tagesverhalten.
 
-Lies in **Station Insights** die Dekodierrate jedes Senders zusammen mit den Anzahlen `Vom Target gehört` und `Nur von anderen gehört`. Wähle einen typischen Funkweg, einen Ausreißer und jeden Pfad mit ungewöhnlich viel Evidenz. Die **Evidenz der ausgewählten Station** zeigt anschließend das tatsächliche erfolgreiche SNR und die Gelegenheitshistorie eines einzelnen Senderpfads statt der stationsbezogenen Zusammenfassung des Segments. **Drill-Down** prüft die beitragenden Zyklen und unterscheidet bestätigte Gelegenheiten von Target-Evidenz ohne unabhängige Bestätigung.
+Lies in **Station Insights** die Dekodierrate jedes Senders zusammen mit den Anzahlen `Vom Target gehört` und `Nur von anderen gehört`. Wähle einen typischen Funkweg, einen Ausreißer und jeden Pfad mit ungewöhnlich viel Evidenz. Die **Evidenz der ausgewählten Station** zeigt anschließend das tatsächliche erfolgreiche SNR und die Gelegenheitshistorie eines einzelnen Senderpfads statt der stationsbezogenen Zusammenfassung des Segments. **Drill-Down** prüft die beitragenden Zyklen und unterscheidet extern gestützte Erfolge von der Target-only-Herkunftsteilmenge, die bereits in Erfolgen und Gelegenheiten enthalten ist.
 
 **Typische Interpretationsmuster.** Breite Reichweite bei hoher Dekodierrate bedeutet, dass viele Funkwege offen waren und beständig decodiert wurden. Breite Reichweite bei niedrigerer Dekodierrate bedeutet, dass viele Wege mindestens einmal offen, aber wechselhaft waren. Begrenzte Reichweite bei hoher Dekodierrate bedeutet, dass weniger qualifizierende Wege offen waren, diese jedoch vergleichsweise zuverlässig funktionierten. Bleibt das erfolgreiche SNR stabil oder steigt, während die Dekodierrate fällt, können schwächere Signale unter die Decode-Schwelle gefallen sein, sodass nur stärkere erfolgreiche Decodes übrig bleiben. Ein Muster, das auf einen Azimut, Entfernungsbereich oder UTC-Zeitraum begrenzt ist, kann betrieblich nützlich sein, beschreibt aber den installierten Empfänger unter diesen Funkwegen und Bedingungen und keine kontextfreie Empfindlichkeitskennzahl.
 
@@ -358,17 +358,17 @@ Lies in **Station Insights** die Dekodierrate jedes Senders zusammen mit den Anz
 
 <p class="evidence-conclusion-label"><strong>Evidenzgerechte Schlussfolgerung.</strong></p>
 
-<blockquote class="evidence-conclusion"><p>Für diesen Target-Empfänger, dieses Band, dieses UTC-Zeitfenster und die ausgewählte Senderpopulation beschreibt RX Performance die Mindestens-einmal-Reichweite, die Dekodierrate innerhalb unabhängig bestätigter Senderzyklen, das SNR erfolgreicher Decodes sowie den geografischen und zeitlichen Umfang dieser Beobachtungen. Nenne die verwendete Gewichtung, die Unterstützung durch Stationen und Gelegenheiten und ob das Muster breit, intermittierend, richtungsabhängig, entfernungsabhängig oder wiederkehrend war.</p></blockquote>
+<blockquote class="evidence-conclusion"><p>Für diesen Target-Empfänger, dieses Band, dieses UTC-Zeitfenster und die ausgewählte Senderpopulation beschreibt RX Performance die Mindestens-einmal-Reichweite, die Dekodierrate innerhalb bestätigter Senderzyklen, das SNR erfolgreicher Decodes sowie den geografischen und zeitlichen Umfang dieser Beobachtungen. Nenne die verwendete Gewichtung, die Unterstützung durch Stationen und Gelegenheiten und ob das Muster breit, intermittierend, richtungsabhängig, entfernungsabhängig oder wiederkehrend war.</p></blockquote>
 
 <a id="sec-3-tx-performance"></a>
 
 #### 2.2 TX Performance
 
-**Beantwortete Frage.** Welche entfernten Empfänger, deren Aktivität unabhängig nachgewiesen ist, decodierten den Target-Sender; wie beständig taten sie dies; welchen erfolgreichen SNR meldeten sie; und wo und wann trat dieses Verhalten auf?
+**Beantwortete Frage.** Welche nachweislich aktiven Peer-RX decodierten den Target-TX; wie beständig taten sie dies; welchen erfolgreichen SNR meldeten sie; und wo und wann trat dieses Verhalten auf?
 
 **Minimal gültiger Aufbau.** Verwende das exakte Target-Rufzeichen und QTH, ein Band und ein Zeitfenster, in dem der Target-Sender in Betrieb war. Halte HF-Pfad, Zeitplan und tatsächliche Leistung stabil und melde die Leistung korrekt. Performance wertet die vollständige Sendestation aus und nicht ein isoliertes Bauteil.
 
-**Was WSPRadar auswertet.** Eine bestätigte TX-Gelegenheit liegt vor, wenn der entfernte Empfänger während eines Target-Sendezyklus aktiv war, nachgewiesen durch einen anderen qualifizierenden Decode auf demselben Band. `Target gehört` bedeutet, dass dieser Empfänger auch das Target decodierte; `Nur andere Signale gehört` bedeutet, dass er qualifizierende Aktivität auf demselben Band, aber nicht das Target decodierte. Eine Target-Meldung ohne unabhängige Bestätigung der Empfängeraktivität bleibt prüfbar, geht jedoch nicht in die Dekodierrate ein. Der genaue Nenner steht in [Abschnitt 7.4](#sec-7-4).
+**Was WSPRadar auswertet.** Innerhalb des gewählten Bands, der exakten Peer-Identität und eines Target-aktiven Zyklus liegt eine bestätigte TX-Gelegenheit vor, wenn der Peer-RX den Target-TX decodiert oder derselbe Peer-RX einen anderen qualifizierenden Sender auf demselben Band decodiert. `Target gehört` ist ein Erfolg, unabhängig davon, ob der Peer-RX einen weiteren Sender meldet: Seine Target-TX-Meldung bestätigt unmittelbar beide Endpunkte. `Nur andere Signale gehört` ist ein Miss, wenn dieser Peer-RX einen anderen qualifizierenden Sender meldet, den aktiven Target-TX aber nicht. Ein Target-only-Erfolg bleibt als Herkunftsangabe innerhalb der Erfolge und Gelegenheiten erhalten und wird niemals ein zweites Mal addiert. Eine Target-TX-Meldung an einem anderen Empfänger belegt die Aktivität des Target-TX, aber nicht, dass dieser bestimmte stille Peer-RX zugehört hat. Der genaue Nenner steht in [Abschnitt 7.4](#sec-7-4).
 
 **Dem Evidenzpfad folgen.** Auf der **Karte** zeigt die Sektorfarbe die stationsgleichgewichtete Dekodierrate qualifizierender aktiver Empfänger in jedem Entfernungs- und Richtungssegment. Marker und Anzahlen am Kartenfuß unterscheiden Empfänger, die das Target mindestens einmal hörten, von Empfängern, die nur andere qualifizierende Signale hörten. Nutze die Karte, um den praktischen Sendefußabdruck und Richtungsstrukturen zu lokalisieren.
 
@@ -380,7 +380,7 @@ Vergleiche im **Segment-Inspektor** die Breite der Empfängerbasis mit der Tiefe
 
 In der **Zeitlichen Evidenz** zeigt die Abweichung des erfolgreichen SNR, wann erfolgreiche Meldungen stärker oder schwächer waren als der jeweils typische erfolgreiche Pegel des Empfängerpfads. Die zugehörigen Stations- und Gelegenheitsstapel zeigen, ob eine Veränderung des erfolgreichen SNR mit einer Veränderung der praktischen Decodierbarkeit einherging und wie viel Evidenz jedes Zeit-Bin stützt. Unterscheide Veränderungen im chronologischen Verlauf von wiederkehrendem Verhalten nach UTC-Stunde.
 
-Lies in **Station Insights** die Rate jedes Empfängers zusammen mit seinen Anzahlen `Target gehört` und `Nur andere Signale gehört`. Die **Evidenz der ausgewählten Station** legt für einen Empfängerpfad das tatsächliche erfolgreiche SNR und die Gelegenheitshistorie offen. So wird sichtbar, ob die Segmentzusammenfassung viele Empfänger beschreibt oder einen funkwegspezifischen Effekt verdeckt. **Drill-Down** prüft Target-Meldungen, unabhängige Empfängeraktivität und Target-Meldungen ohne unabhängigen Nachweis der Empfängeraktivität.
+Lies in **Station Insights** die Rate jedes Empfängers zusammen mit seinen Anzahlen `Target gehört` und `Nur andere Signale gehört`. Die **Evidenz der ausgewählten Station** legt für einen Empfängerpfad das tatsächliche erfolgreiche SNR und die Gelegenheitshistorie offen. So wird sichtbar, ob die Segmentzusammenfassung viele Empfänger beschreibt oder einen funkwegspezifischen Effekt verdeckt. **Drill-Down** prüft Target-TX-Meldungen, extern bestätigte Peer-RX-Aktivität und die bereits in Erfolgen und Gelegenheiten enthaltene Target-only-Herkunftsteilmenge.
 
 **Typische Interpretationsmuster.** Breite Reichweite und hohe Dekodierrate bedeuten, dass viele qualifizierende aktive Empfänger das Target beständig hörten. Breite Reichweite bei niedrigerer Dekodierrate beschreibt einen großen, aber wechselhaften Fußabdruck. Ein anhaltender Vorteil in einem Azimut oder Entfernungsbereich kann mit dem installierten Antennensystem und Gelände vereinbar sein; eine kurze isolierte Verbesserung kann dagegen durch Ausbreitung oder Empfängerverfügbarkeit verursacht sein. Ein stabiles erfolgreiches SNR bei fallender Dekodierrate kann bedeuten, dass nur stärkere überlebende Meldungen verbleiben. Unterschiede zwischen stationsgleichgewichteter und gelegenheitsbezogener Rate zeigen, ob wenige Empfänger mit hohem Evidenzvolumen die gepoolte Sicht prägen.
 
@@ -388,7 +388,7 @@ Lies in **Station Insights** die Rate jedes Empfängers zusammen mit seinen Anza
 
 <p class="evidence-conclusion-label"><strong>Evidenzgerechte Schlussfolgerung.</strong></p>
 
-<blockquote class="evidence-conclusion"><p>Für diesen Target-Sender, dieses Band, dieses UTC-Zeitfenster und die ausgewählte Population aktiver Empfänger beschreibt TX Performance die Mindestens-einmal-Reichweite, die Dekodierrate innerhalb unabhängig bestätigter Empfängerzyklen, das erfolgreich gemeldete SNR sowie den geografischen und zeitlichen Umfang dieser Beobachtungen. Nenne Gewichtung, Unterstützung durch Empfänger und Gelegenheiten, die Grundlage der gemeldeten Leistung und ob das Muster breit, intermittierend, richtungsabhängig, entfernungsabhängig oder wiederkehrend war.</p></blockquote>
+<blockquote class="evidence-conclusion"><p>Für diesen Target-Sender, dieses Band, dieses UTC-Zeitfenster und die ausgewählte Population aktiver Empfänger beschreibt TX Performance die Mindestens-einmal-Reichweite, die Dekodierrate innerhalb bestätigter Empfängerzyklen, das erfolgreich gemeldete SNR sowie den geografischen und zeitlichen Umfang dieser Beobachtungen. Nenne Gewichtung, Unterstützung durch Empfänger und Gelegenheiten, die Grundlage der gemeldeten Leistung und ob das Muster breit, intermittierend, richtungsabhängig, entfernungsabhängig oder wiederkehrend war.</p></blockquote>
 
 <a id="sec-3-3"></a>
 <a id="sec-3-rx-benchmark"></a>
@@ -658,7 +658,7 @@ Ein vollständiger technischer Bericht nennt zusätzlich:
 
 **Formulierung für Performance**
 
-> Für dieses Target, dieses Band, dieses UTC-Zeitfenster und die ausgewählte Peer-Population beschreibt die angezeigte Dekodierrate den Anteil der unabhängig bestätigten Gelegenheiten, in denen auch das Target qualifizierende Evidenz lieferte. Gib an, ob die stationsgleichgewichtete Dekodierrate oder die Dekodierrate auf Gelegenheitsebene berichtet wird. Qualifizierende Stationen, bestätigte Gelegenheiten, geografischer Bereich und zeitliche Ansichten beschreiben Breite, Tiefe und Wiederkehr der stützenden Evidenz.
+> Für dieses Target, dieses Band, dieses UTC-Zeitfenster und die ausgewählte Peer-Population beschreibt die angezeigte Dekodierrate den Anteil der bestätigten Gelegenheiten, in denen auch das Target qualifizierende Evidenz lieferte. Gib an, ob die stationsgleichgewichtete Dekodierrate oder die Dekodierrate auf Gelegenheitsebene berichtet wird. Qualifizierende Stationen, bestätigte Gelegenheiten, geografischer Bereich und zeitliche Ansichten beschreiben Breite, Tiefe und Wiederkehr der stützenden Evidenz.
 
 Eine vollständige Performance-Aussage kann zusätzlich nennen, ob die Mindestens-einmal-Reichweite breit oder begrenzt war, ob die Beteiligung beständig oder intermittierend war, wo Entfernungs- oder Richtungsmuster auftraten, ob sich ein UTC-Stunden-Muster wiederholte und wie sich das erfolgreiche Target-SNR verhielt. Beschreibe dies als beobachtetes WSPR-Verhalten der vollständigen Station unter den ausgewählten Bedingungen und nicht als isolierten Gewinn, Empfindlichkeit oder Wirkungsgrad.
 
@@ -904,7 +904,7 @@ Erst nach diesen Prüfungen sollten Evidenzschwellen, Ausschlüsse, Sonnenstand 
 
 #### 5.2 Fehler nach Symptom eingrenzen
 
-Ein Hinweis auf ein leeres Ergebnis nennt Umfang und Evidenzparameter aus dem abgeschlossenen Lauf und nicht aus später bearbeiteten Bedienelementen. Er trennt eine beobachtete Diagnose von ihrer konfigurierten Anforderung, beispielsweise „höchster beobachteter Wert: `3` bestätigte Gelegenheiten“ und „erforderlich: mindestens `5` pro Station“. Ein konfiguriertes Minimum wird nie als beobachtete Anzahl ausgegeben; ein beobachtetes Maximum erscheint nur, wenn WSPRadar es tatsächlich berechnet und aufbewahrt hat. Bei Performance sind Target-only-Auditbeobachtungen keine bestätigten Gelegenheiten.
+Ein Hinweis auf ein leeres Ergebnis nennt Umfang und Evidenzparameter aus dem abgeschlossenen Lauf und nicht aus später bearbeiteten Bedienelementen. Er trennt eine beobachtete Diagnose von ihrer konfigurierten Anforderung, beispielsweise „höchster beobachteter Wert: `3` bestätigte Gelegenheiten“ und „erforderlich: mindestens `5` pro Station“. Ein konfiguriertes Minimum wird nie als beobachtete Anzahl ausgegeben; ein beobachtetes Maximum erscheint nur, wenn WSPRadar es tatsächlich berechnet und aufbewahrt hat. Bei Performance sind Target-only-Erfolge bestätigte Gelegenheiten und zählen für die Stationsschwellen; ihre Herkunftsanzahl ist eine Teilmenge der Erfolge und keine zusätzliche Gesamtsumme.
 
 | Symptom | Nächste Prüfungen |
 |---|---|
@@ -916,7 +916,7 @@ Ein Hinweis auf ein leeres Ergebnis nennt Umfang und Evidenzparameter aus dem ab
 | **Benchmark enthält kein Delta SNR** | Prüfe gemeinsame entfernte Peers in überlappenden Zyklen oder geplanten Paaren, Referenzbetriebszeit, Uhren, Zeitplanzuordnung, Joint-Schwelle, Filter und Bereich. |
 | **Benchmark enthält Delta SNR, aber wenig paarbare Evidenz** | Lies Joint-Evidenzanteil und Decode Outcomes; prüfe Referenzbetriebszeit, Leistung, Schwellen, Bereich und ob die gepaarte Teilmenge die breitere Stationspopulation repräsentiert. |
 | **Performance enthält nur sehr wenige Peers** | Prüfe unabhängige Netzaktivität, minimale bestätigte Gelegenheiten, Ausschlüsse, Sonnenstand, Zeitfenster und maximale Peer-Entfernung. |
-| **Viele Performance-Zeilen ohne unabhängige Bestätigung** | Die Target-Beobachtungen bleiben prüfbar, gehen aber ohne den erforderlichen unabhängigen Aktivitätsnachweis nicht in die Dekodierrate ein. |
+| **Viele Performance-Erfolge ohne externe Bestätigung** | Ein gültiger Target-Decode bestätigt selbst beide Endpunkte. Diese Target-only-Erfolge gehen einmal in die Dekodierrate ein; ihre separate Herkunftsanzahl wird nicht nochmals addiert. Ohne Target-Decode und ohne den erforderlichen externen Aktivitätsnachweis bleibt der Peer-Zyklus unbekannt und ausgeschlossen. |
 | **`Only Reference = 0`** | Prüfe die Konditionierung auf Target-Aktivität, Schwellen und aktiven Bereich; null kann korrekt sein. |
 | **Unerwartetes Vorzeichen des Delta SNR bei Hardware A/B** | Prüfe physische A/B-Zuordnung, Reihenfolge von Target und Referenz, Korrekturvorzeichen, Zeitplanphasen, tatsächliche und gemeldete Leistung sowie Kalibrierung. Gleiche einen Funkweg im Drill-Down ab. |
 | **Lokales Ergebnis verändert sich mit dem Radius** | Untersuche die lokalen Beitragenden und berichte die Radiusabhängigkeit, statt nur den günstigsten Radius auszuwählen. |
@@ -1000,7 +1000,7 @@ Das WSPR-Archiv verbindet damit eine ungewöhnliche zeitliche Tiefe und geografi
 <a id="sec-d-lo"></a>
 Lo et al. untersuchten mit WSPR-Meldungen auf 7 MHz die Greyline-Ausbreitung und warnten davor, dass für WSPR-Geräte keine maßgeblichen Betriebspläne existieren. Bevor sie einen fehlenden Funkweg interpretierten, prüften sie, ob der Sender andernorts gehört worden war oder ob der Empfänger eine andere Station gehört hatte. Außerdem betonten sie die Konsistenz von Rufzeichen und Standort sowie die Verwendung mehrerer Standorte. <a href="#ref-9">[Ref-9]</a>
 
-Dieses Prinzip der Aktivitätsprüfung ist eine direkte methodische Vorarbeit für das Target-Active Gate und die unabhängig bestätigten Gelegenheiten von WSPRadar: Funkstille sollte erst dann zu Gegen-Evidenz werden, wenn der relevante Betrieb beobachtbar ist. Lo et al. definieren jedoch weder die asymmetrische Target-Konditionierung von WSPRadar noch dessen Performance-Analyseziel, Stationsgewichtung, Decode Outcomes oder lokale Referenzen; diese bleiben WSPRadar-Designentscheidungen für andere Analysefragen.
+Dieses Prinzip der Aktivitätsprüfung ist eine direkte methodische Vorarbeit für das Target-Active Gate und die bestätigten Gelegenheiten von WSPRadar: Funkstille sollte erst dann zu Gegen-Evidenz werden, wenn der relevante Betrieb beobachtbar ist. Lo et al. definieren jedoch weder die asymmetrische Target-Konditionierung von WSPRadar noch dessen Performance-Analyseziel, Stationsgewichtung, Decode Outcomes oder lokale Referenzen; diese bleiben WSPRadar-Designentscheidungen für andere Analysefragen.
 
 <a id="sec-d-3"></a>
 #### 6.3 Wissenschaftliche Entwicklungslinie von Antennen- und Stationsvergleichen
@@ -1036,7 +1036,7 @@ Diese Systeme belegen umfangreiche Vorarbeiten bei Datenerfassung, Exploration, 
 
 WSPRadar übernimmt gesammelte WSPR-Beobachtungen, Aktivitätsprüfungen, Korrektur anhand gemeldeter Leistung, Paarbildung unter gemeinsamen Bedingungen, den Vergleich kalibrierter Empfangsketten, Datenbank-Joins sowie geografische und zeitliche Inspektion. Es führt diese Elemente in einem TX-/RX-Arbeitsablauf zusammen mit:
 
-* Performance auf Grundlage unabhängig bestätigter Gelegenheiten;
+* Performance auf Grundlage bestätigter Gelegenheiten;
 * Hardware A/B, Referenzstation und dynamischen lokalen Nachbarschafts-Benchmarks;
 * Zuordnung im selben Zyklus oder über deterministische geplante Paare;
 * Normierung anhand gemeldeter Leistung und optionaler referenzseitiger Korrektur;
@@ -1083,8 +1083,8 @@ Dieses Kapitel verwendet **Zusammenfassung** oder **deskriptive Kennzahl** für 
 
 | Design | Kleinste Vergleichseinheit | Konditionierung / Zulässigkeit | Hauptzusammenfassung | Wichtigste Grenze |
 |---|---|---|---|---|
-| RX Performance | ein Peer-Zyklus eines entfernten Senders | Target-Empfänger aktiv; derselbe Sender andernorts unabhängig decodiert | Peer-Dekodierrate, danach Mittel mit gleicher Peer-Gewichtung; gepoolte Gelegenheitsrate bleibt erhalten | bedingte Beobachtbarkeit, keine kalibrierte Empfindlichkeit |
-| TX Performance | ein Peer-Zyklus eines entfernten Empfängers | Target-Sender aktiv; Peer-Empfänger auf dem Band unabhängig aktiv | Peer-Dekodierrate, danach Mittel mit gleicher Peer-Gewichtung; gepoolte Gelegenheitsrate bleibt erhalten | bedingte Beobachtbarkeit, nicht alle Sendeversuche |
+| RX Performance | ein Peer-Zyklus eines entfernten Senders | Target-RX aktiv; Peer-TX vom Target-RX oder einem anderen geeigneten RX decodiert | Peer-Dekodierrate, danach Mittel mit gleicher Peer-Gewichtung; gepoolte Gelegenheitsrate bleibt erhalten | bedingte Beobachtbarkeit, keine kalibrierte Empfindlichkeit |
+| TX Performance | ein Peer-Zyklus eines entfernten Empfängers | Target-TX aktiv; Peer-RX decodiert Target-TX oder einen anderen qualifizierenden TX auf demselben Band | Peer-Dekodierrate, danach Mittel mit gleicher Peer-Gewichtung; gepoolte Gelegenheitsrate bleibt erhalten | bedingte Beobachtbarkeit, nicht alle Sendeversuche |
 | RX Hardware A/B / Buddy | ein Peer-Zyklus eines entfernten Senders | Target aktiv; beide Empfänger melden denselben Sender-Zyklus für Delta SNR | Stationsmedian des Delta SNR, danach Median über Stationen | vollständige Empfangspfade, sofern Ketten nicht kontrolliert sind |
 | Simultanes TX Hardware A/B / zutreffender Buddy- oder lokaler Benchmark | ein Peer-Zyklus eines entfernten Empfängers | Target aktiv; derselbe Empfänger-Zyklus für gepaartes Delta SNR | Stationsmedian des Delta SNR, danach Median über Stationen | Leistung, Kettenunterschiede und Auswahl nach Joint-Decode |
 | Sequenzielles TX Hardware A/B | ein entfernter Empfänger in einem geplanten Target-/Referenzpaar | deterministischer, überschneidungsfreier Zeitplan und vollständiges Paar im Zeitfenster | Stationsmedian des Paar-Deltas, danach Median über Stationen | zeitliche Trennung sowie Umschalt- und Zeitplaneffekte |
@@ -1159,14 +1159,25 @@ Target-Aktivität darf global nachgewiesen werden, auch wenn der Peer, der sie b
 <a id="sec-7-4"></a>
 #### 7.4 Performance-Analyseziel, Klassifikation und Zusammenfassungsgrößen
 
-Performance beschreibt die Beteiligung des Targets innerhalb unabhängig beobachtbarer Gelegenheiten der beibehaltenen Peer-Population. Die Größe ist bewusst bedingt: Gefragt wird, was das Target tat, wenn WSPRadar unabhängig belegen konnte, dass die betreffende entfernte Station oder das Signal beobachtbar war.
+Performance beschreibt die Beteiligung des Targets innerhalb beobachtbarer Gelegenheiten der beibehaltenen Peer-Population. Die Größe ist bewusst bedingt: Gefragt wird, was das Target tat, wenn ein erfolgreicher Target-seitiger Decode oder externe Evidenz die erforderliche Endpunktaktivität belegte.
 
-Für Peer $i$ und Target-aktiven Zyklus $c$ sei $O_{i,c}=1$, wenn unabhängige Aktivitätsevidenz diesen Peer-Zyklus nach Anwendung der gewählten Band-, Identitäts-, Filter- und Bereichsregeln zu einer qualifizierenden Gelegenheit macht. Sei $S_{i,c}=1$, wenn das Target in dieser Gelegenheit ebenfalls die erforderliche Evidenz erzeugt, mit $S_{i,c}\le O_{i,c}$.
+Für Peer $i$ und Target-aktiven Zyklus $c$ sei $T_{i,c}=1$, wenn ein gültiger Target-seitiger Decode vorliegt, und $E_{i,c}=1$, wenn qualifizierende externe Evidenz die Aktivität des Peer-Endpunkts bestätigt. Die gewählten Band-, exakten Peer-Identitäts-, Filter- und geografischen Bereichsregeln gelten, bevor ein Peer-Zyklus eingeht. Erfolg $S_{i,c}$, Gelegenheit $O_{i,c}$ und Miss $M_{i,c}$ sind definiert durch:
 
-* Unabhängige RX-Aktivität: Ein anderer geeigneter Empfänger meldet im selben Zyklus dieselbe Senderidentität.
-* Unabhängige TX-Aktivität: Der Peer-Empfänger meldet im selben Zyklus einen anderen Sender auf demselben Band.
+$$S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}$$
 
-Target-Evidenz ohne die für $O_{i,c}=1$ erforderliche unabhängige Aktivität bleibt prüfbar, geht aber nicht in die Dekodierrate ein. Innerhalb qualifizierender RX-Gelegenheiten unterscheidet WSPRadar zwischen Zyklen, die das Target hörte, und Zyklen, die nur andere geeignete Empfänger hörten. Bei TX unterscheidet es zwischen Zyklen, in denen der Peer-Empfänger das Target hörte, und Zyklen, in denen er nur andere qualifizierende Signale im selben Band hörte.
+Jeder gültige Erfolg liefert damit seine eigene Gelegenheit, mit $S_{i,c}\le O_{i,c}$ und $O_{i,c}=S_{i,c}+M_{i,c}$. Die Methodenkennung lautet `opportunity-v3`.
+
+* RX-Rollen: Der **Target-RX** empfängt den **Peer-TX**. Die Meldung Peer-TX → Target-RX bestätigt beide Endpunkte und ist ein Erfolg. Eine Meldung Peer-TX → anderer geeigneter RX bestätigt die Sendeaktivität dieses Peer-TX; sie stützt einen Miss nur dann, wenn auch der Target-RX im selben Zyklus nachweislich aktiv ist.
+* TX-Rollen: Der **Target-TX** sendet zum **Peer-RX**. Die Meldung Target-TX → Peer-RX bestätigt beide Endpunkte und ist ein Erfolg. Eine Meldung anderer qualifizierender TX → derselbe Peer-RX bestätigt die Empfangsaktivität dieses Peer-RX; sie stützt einen Miss nur dann, wenn auch der Target-TX im selben Zyklus nachweislich aktiv ist.
+
+Ein Target-only-Erfolg hat $T_{i,c}=1$ und $E_{i,c}=0$. Seine Herkunft bleibt als Teilmenge der Erfolge nachvollziehbar; er ist bereits genau einmal in Erfolgs- und Gelegenheitsanzahl enthalten. Externe Bestätigung zusätzlich zu einem Erfolg erzeugt keine weitere Gelegenheit. Sind beide Flags null, reicht die Endpunktaktivität nicht aus: Der Peer-Zyklus bleibt unbekannt und ausgeschlossen. Das Target-Active Gate bleibt unverändert. Aktivität andernorts belegt nicht, dass ein bestimmter stiller Target-RX oder Peer-RX zugehört hat.
+
+| Target-Decode | Externe Evidenz | Erfolg | Gelegenheit | Miss | Deutung |
+| :---: | :---: | :---: | :---: | :---: | :--- |
+| 1 | 0 | 1 | 1 | 0 | Target-only; Teilmenge der Erfolge |
+| 1 | 1 | 1 | 1 | 0 | Extern gestützter Erfolg |
+| 0 | 1 | 0 | 1 | 1 | Extern gestützter Miss in einem Target-aktiven Zyklus |
+| 0 | 0 | 0 | 0 | 0 | Aktivität unbekannt; ausgeschlossen |
 
 Für einen qualifizierenden Peer gilt:
 
@@ -1194,9 +1205,9 @@ $$Reach(g)=100\%\times\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}$$
 
 In Funkpraxis-Sprache ist dies der Prozentsatz qualifizierender Peers, bei denen das Target in mindestens einer qualifizierenden Gelegenheit erfolgreich war. Die Reichweite beschreibt Breite und nimmt mit der Beobachtungsdauer normalerweise zu; sie sagt nicht, wie beständig diese Funkwege funktionierten.
 
-Erfolgreiches Target-SNR ist nur definiert, wenn das Target decodiert oder gemeldet wurde. Es ist damit eine auf erfolgreiche Decodes bedingte Verteilung. Verpasste Gelegenheiten besitzen kein Target-SNR und erhalten keinen künstlichen Wert. Dekodierrate und erfolgreiches SNR müssen gemeinsam gelesen werden: Ein System, das zusätzliche schwache Signale decodiert, kann die praktische Reichweite verbessern und zugleich den Median der erfolgreichen SNR-Werte absenken.
+Erfolgreiches Target-SNR ist nur definiert, wenn das Target decodiert oder gemeldet wurde, einschließlich Target-only-Erfolgen. Es ist damit eine auf erfolgreiche Decodes bedingte Verteilung. Mediane, IQR und Extremwerte verwenden alle beibehaltenen Erfolge nach unveränderter Zusammenfassung auf die stärkste Meldung und unveränderter Normierung. Dieselbe Klassifikation gilt für Stationsschwellen, beide Gewichtungen der Dekodierrate, Karten, Mindestens-einmal-Reichweite, chronologische und gefaltete Profile, Station Insights, Evidenz der ausgewählten Station, Drill-Down und Exporte. Verpasste Gelegenheiten besitzen kein Target-SNR und erhalten keinen künstlichen Wert. Dekodierrate und erfolgreiches SNR müssen gemeinsam gelesen werden: Ein System, das zusätzliche schwache Signale decodiert, kann die praktische Reichweite verbessern und zugleich den Median der erfolgreichen SNR-Werte absenken.
 
-Das Performance-Analyseziel ist somit die bedingte Beteiligung des Targets unter unabhängig beobachtbaren Gelegenheiten in der beibehaltenen Population und unter der gewählten Gewichtung. Es ist weder unbedingte Empfängerempfindlichkeit noch die Erfolgswahrscheinlichkeit sämtlicher Sendeversuche oder der absolute Wirkungsgrad der Station.
+Das Performance-Analyseziel ist somit die bedingte Beteiligung des Targets unter beobachtbaren Gelegenheiten in der beibehaltenen Population und unter der gewählten Gewichtung. Es ist weder unbedingte Empfängerempfindlichkeit noch die Erfolgswahrscheinlichkeit sämtlicher Sendeversuche oder der absolute Wirkungsgrad der Station.
 
 <a id="sec-7-5"></a>
 #### 7.5 Leistungsnormierung, Korrektur und Benchmark-Delta-SNR
@@ -1249,7 +1260,7 @@ WSPRadar verwendet eine hierarchische Aggregation: Zuerst wird die Evidenz inner
 **Performance**
 
 1. Jeden zulässigen Peer-Zyklus klassifizieren.
-2. Qualifizierende Target-Erfolge und Gegen-Evidenz nach Peer-Identität zusammenfassen; Target-Beobachtungen ohne unabhängige Bestätigung getrennt für die Prüfung bewahren.
+2. Alle qualifizierenden Target-Erfolge und extern gestützten Misses nach Peer-Identität zusammenfassen. Target-only-Herkunft als Teilmenge der Erfolge bewahren, ohne sie nochmals zu den Gesamtsummen zu addieren.
 3. Die Mindestanzahl an Gelegenheiten anwenden.
 4. Für jeden Peer eine Dekodierrate $r_i$ berechnen.
 5. Das gleichgewichtete Peer-Mittel $R_{station}$ berechnen.
@@ -1396,7 +1407,9 @@ Der kandidatenverknüpfte **`Ausreißerfokus`** verwendet die vollständige beib
 
 IQR- und Min-Max-Darstellungen sind deskriptive Streuungsmaße und keine Konfidenzintervalle. Ein IQR-Band wird nur gezeichnet, wenn mindestens fünf Werte zum jeweiligen Bin beitragen; der Median bleibt auch bei weniger Werten sichtbar. Leere Bins bleiben fehlend und werden nicht zu künstlichen Nullbeobachtungen.
 
-Benchmark-Histogramme verwenden normalerweise 1-dB-Klassen, 0,5 dB nur bei einem klaren Halb-dB-Raster und gröbere Klassen bei großen Wertebereichen, damit die Bin-Anzahl begrenzt bleibt. Zeitliche Dichtezellen verwenden ganzzahlige dB-Klassen. Jedes Dichtepanel wird unabhängig normiert:
+Benchmark-Histogramme verwenden normalerweise 1-dB-Klassen, 0,5 dB nur bei einem klaren Halb-dB-Raster und gröbere Klassen bei großen Wertebereichen, damit die Bin-Anzahl begrenzt bleibt. Zeitliche Benchmark-Dichtezellen bleiben 1 dB hoch und folgen der angewandten Referenz-SNR-Korrektur. Für das korrigierte Delta SNR `d` und die numerische Korrektur `c` lautet die ideale Zuordnungsregel in der unkorrigierten Vergleichskoordinate `k = floor(d + c + 0.5)`; die folgende numerische Konvention wertet diese Koordinate mit 0,1 dB Auflösung aus. Zelle `k` ist bei `k - c` zentriert und umfasst das halboffene Intervall `[k - 0.5 - c, k + 0.5 - c)`: Die untere Grenze gehört zur Zelle, die obere zur nächsten Zelle, auch bei negativen Werten. Die Addition von `c` zur Bestimmung der Zugehörigkeit ist ausschließlich eine Koordinatentransformation; sie wendet die Korrektur nicht erneut auf die gespeicherten Beobachtungen, Mediane oder Quartile an. Bei derselben beibehaltenen Population verschiebt eine Änderung von `c` das Dichtegitter gemeinsam mit den korrigierten Beobachtungen; Belegungszahlen der Zellen und Farben der relativen Dichte bleiben erhalten. Nicht ganzzahlige Beobachtungen, einschließlich Vergleichen mit dem lokalen Median, müssen nicht in den Zellzentren liegen.
+
+Ausschließlich für die Zellzuordnung wird `d + c` vor Bestimmung der ganzzahligen Zell-ID auf das nächste Zehntel Dezibel gerundet; bei einem exakten halben Zehntel wird das gerade Zehntel gewählt. Ein ausschließlich an diesen Rundungsmittelpunkten wirksamer Float64-Rundungsfehlerbereich verhindert, dass Korrekturrauschen unterschiedliche Zehntel auswählt. Damit ist die Auflösung der Zuordnung ausdrücklich auf 0,1 dB begrenzt; numerisches Rauschen wie `-0.7000000000000028` bei einem korrigierten Wert, der bei `-0,7 dB` erwartet wird, wird aufgefangen. Unterschiede unterhalb dieser Zuordnungsauflösung können derselben Zelle zugewiesen werden. Exakte Halb-dB-Koordinaten bei dieser Auflösung gehören zur oberen Zelle, auch bei negativen Werten. Die ursprünglichen korrigierten Beobachtungen und ihre Statistiken werden durch diese Gitterkonvention nicht gerundet. Eine nicht ganzzahlige Beobachtung mit voller Präzision kann deshalb bis zu 0,05 dB außerhalb der zugewiesenen Zellgrenze liegen; der Achsenbereich umfasst weiterhin die Beobachtung selbst. Diese zeitliche Darstellungskonvention ersetzt die Ganzzahlrundung zur nächsten geraden Zahl bei Gleichstand; deshalb können sich Zuordnungen exakt auf Halb-dB-Grenzen auch ohne Korrektur ändern. Gewöhnliche Histogramme, Performance-Ansichten und Drill-Down-Abbildungen mit nativen Einzelpunkten bleiben unverändert. Jedes Dichtepanel wird unabhängig normiert:
 
 $$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$
 
@@ -1404,7 +1417,7 @@ Dabei ist $n_{cell}$ die Evidenzanzahl in einer Dichtezelle. Die Division durch 
 
 `100` bezeichnet damit die am stärksten belegte Zelle dieses Panels und nicht 100 % der gesamten Evidenz. Dichtefarben erlauben keinen Vergleich des absoluten Evidenzvolumens zwischen unabhängig normierten Panels; dafür sind die Stützzahlen maßgeblich.
 
-Zeitliche Benchmark-Ansichten und Histogramme verwenden eine rein darstellungsbezogene monotone Skala, die um den Bereichsmedian $M$ zentriert ist. Bei großer Spannweite liegen gleichmäßige visuelle Schritte bei $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ und $M\pm30$ dB; ein Randanker liegt bei $M\pm60$ dB und wird bei Bedarf fortgesetzt. Wenn jede erforderliche Abweichung höchstens `10 dB` beträgt, lauten die engeren Anker $M$, $M\pm1$, $M\pm3$, $M\pm6$ und $M\pm10$ dB; Fortsetzungsanker liegen bei $M\pm20$ und $M\pm40$ dB. Der erforderliche Bereich umfasst die zutreffenden Rohgrenzen des Histogramms beziehungsweise die gerundeten Heatmap-Klassengrenzen, eine Mindesthalbspanne von `3 dB` und den absoluten Wert `0 dB`, damit Target-Referenz-Gleichheit sichtbar bleibt. Die Ankerabbildung verändert ausschließlich die dargestellten Abstände: Rohe Delta-SNR-Werte, Bin-Zuordnung, Anzahlen, Mediane und Quartile bleiben unverändert. Wegen der nichtlinearen vertikalen Abbildung ist die **Balkenlänge** entlang der Prozentachse – nicht die dargestellte Fläche – die quantitative Kodierung.
+Zeitliche Benchmark-Ansichten und Histogramme verwenden eine rein darstellungsbezogene monotone Skala, die um den Bereichsmedian $M$ zentriert ist. Bei großer Spannweite liegen gleichmäßige visuelle Schritte bei $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ und $M\pm30$ dB; ein Randanker liegt bei $M\pm60$ dB und wird bei Bedarf fortgesetzt. Wenn jede erforderliche Abweichung höchstens `10 dB` beträgt, lauten die engeren Anker $M$, $M\pm1$, $M\pm3$, $M\pm6$ und $M\pm10$ dB; Fortsetzungsanker liegen bei $M\pm20$ und $M\pm40$ dB. Der erforderliche Bereich umfasst die zutreffenden Rohgrenzen des Histogramms beziehungsweise die durch die Korrektur verschobenen zeitlichen Zellgrenzen, eine Mindesthalbspanne von `3 dB` und den absoluten Wert `0 dB`, damit Target-Referenz-Gleichheit sichtbar bleibt. Die Ankerabbildung verändert ausschließlich die dargestellten Abstände: Rohe Delta-SNR-Werte, Bin-Zuordnung, Anzahlen, Mediane und Quartile bleiben unverändert. Wegen der nichtlinearen vertikalen Abbildung ist die **Balkenlänge** entlang der Prozentachse – nicht die dargestellte Fläche – die quantitative Kodierung.
 
 Performance-Ansichten des erfolgreichen SNR bleiben auf einer linearen dB-Achse.
 
@@ -1614,7 +1627,7 @@ WSPRadar stützt begrenzte deskriptive und vergleichende Aussagen über beibehal
 
 Verwende den Ergebnistyp, der zur Aussage passt:
 
-* **Performance** stützt das konditionale Verhalten des Targets innerhalb unabhängig bestätigter Gelegenheiten und seine Mindestens-einmal-Reichweite während des ausgewählten Zeitfensters.
+* **Performance** stützt das konditionale Verhalten des Targets innerhalb bestätigter Gelegenheiten und seine Mindestens-einmal-Reichweite während des ausgewählten Zeitfensters.
 * **Benchmark-Delta-SNR** stützt die gepaarte Beschreibung Target minus Referenz innerhalb der Joint-Teilmenge.
 * **Decode Outcomes** stützen Aussagen über Paarbarkeit und einseitige Evidenz.
 * **Entfernungs- oder Richtungsstruktur** stützt Aussagen über beobachtete Funkwegsegmente und nicht über einen direkten Abstrahlwinkel oder ein Gewinnmuster.
@@ -1627,8 +1640,8 @@ Berichte Richtung, Band, UTC-Zeitfenster, Nachbarschaftsradius, geografischen Be
 | Vermeiden | Evidenzgerechte Formulierung |
 |---|---|
 | „Antenne A hat 3 dBi mehr Gewinn.“ | „Pfad A ergab gegenüber B ein stationsgleichgewichtetes medianes Delta SNR von +3,0 dB für die gepaarte Evidenz in diesem Band, Zeitfenster und Segment.“ |
-| „Die Empfindlichkeit meines Empfängers beträgt 72 %.“ | „Die stationsgleichgewichtete Dekodierrate des Target-Empfängers betrug 72 % unter qualifizierenden Peer-Zyklen, die andernorts unabhängig bestätigt wurden.“ |
-| „Performance sollte nahe 100 % liegen.“ | „Die Dekodierrate ist durch unabhängig bestätigte Gelegenheiten bedingt; 100 % ist kein zu erwartender Ausgangswert.“ |
+| „Die Empfindlichkeit meines Empfängers beträgt 72 %.“ | „Die stationsgleichgewichtete Dekodierrate des Target-Empfängers betrug 72 % unter qualifizierenden Peer-Zyklen, die durch einen Target-Decode oder externe Aktivitätsevidenz bestätigt wurden.“ |
+| „Performance sollte nahe 100 % liegen.“ | „Die Dekodierrate ist durch bestätigte Gelegenheiten bedingt; 100 % ist kein zu erwartender Ausgangswert.“ |
 | „A ist statistisch signifikant besser.“ | „Der deskriptive gepaarte Median begünstigte A in der ausgewählten Evidenz; ein Signifikanztest wurde nicht durchgeführt.“ |
 | „Die Antenne hat einen flacheren Abstrahlwinkel.“ | „Der beobachtete Vorteil konzentrierte sich auf die angegebenen größeren Entfernungssegmente; der Abstrahlwinkel wurde nicht gemessen.“ |
 | „A ist effizienter, weil es mehr exklusive Decodes hatte.“ | „A erzeugte unter den dokumentierten Leistungs-, Zeitplan- und Netzwerkbedingungen mehr einseitige Decode-Evidenz; der Wirkungsgrad wurde nicht isoliert.“ |
@@ -1651,7 +1664,7 @@ Wichtige Daten- und Designgrenzen sind:
 
 * von Nutzern gemeldete Rufzeichen, Locator und Leistungen können falsch sein;
 * Archive enthalten erfolgreiche Decodes und keine vollständigen Versuchsprotokolle;
-* Performance ist auf unabhängig beobachtbare Gelegenheiten konditioniert;
+* Performance ist auf beobachtbare Gelegenheiten konditioniert;
 * die Konditionierung auf Target-Aktivität ist asymmetrisch;
 * erfolgreiches Target-SNR ist auf erfolgreiche Decodes zensiert;
 * Benchmark-Delta-SNR wird durch die gemeinsame Beobachtung beider Seiten ausgewählt;

@@ -25,9 +25,9 @@ from core.math_utils import locator_to_latlon
 from core.tx_ab_schedule import tx_ab_schedule_sql
 
 
-ABSOLUTE_METHOD_VERSION = "opportunity-v2"
+ABSOLUTE_METHOD_VERSION = "opportunity-v3"
 OPPORTUNITY_SLOT_SECONDS = 120
-OPPORTUNITY_OUTCOME_CATEGORIES = ("H", "M", "T", "")
+OPPORTUNITY_OUTCOME_CATEGORIES = ("H", "M", "")
 OPPORTUNITY_QUERY_COLUMNS = (
     "time_slot",
     "peer_sign",
@@ -333,10 +333,18 @@ def prepare_opportunity_rows(
     owns_input: bool = False,
 ) -> pd.DataFrame:
     """
-    Normalize server evidence and classify every peer-cycle as H, M, or T.
+    Normalize server evidence and classify every peer-cycle as Hit or Miss.
 
-    ``opportunity`` is independently confirmed evidence. ``target_only`` is
-    retained separately and never contributes to the denominator.
+    A Target decode directly confirms both endpoints: in RX, the peer TX
+    transmitted and the Target RX received; in TX, the Target TX transmitted
+    and the peer RX received. Within the query's Target-active band/cycle gate,
+    external reports confirm the peer TX's transmission (RX) or that exact
+    peer RX's listening activity (TX). Activity at another receiver cannot
+    establish that a silent peer RX was listening.
+    ``hit`` includes every Target decode; ``opportunity`` is the union of
+    Target and external evidence. ``target_only`` is a provenance subset of
+    hits, never an additional outcome or count. Absence of both evidence flags
+    means unknown activity, excluded from both numerator and denominator.
     Canonical peer-cycle collisions combine evidence flags and Target SNR by
     maximum, preserving the server query's aggregation before classification.
     """
@@ -409,10 +417,10 @@ def prepare_opportunity_rows(
         return _empty_processed_opportunity_rows()
 
     with _timed_span(timing_collector, "opportunity outcome columns"):
-        work["opportunity"] = work["external_seen"].astype("int8")
-        work["hit"] = (
-            (work["target_seen"] == 1) & (work["external_seen"] == 1)
+        work["opportunity"] = (
+            (work["target_seen"] == 1) | (work["external_seen"] == 1)
         ).astype("int8")
+        work["hit"] = work["target_seen"].astype("int8")
         work["miss"] = (
             (work["target_seen"] == 0) & (work["external_seen"] == 1)
         ).astype("int8")
@@ -420,8 +428,8 @@ def prepare_opportunity_rows(
             (work["target_seen"] == 1) & (work["external_seen"] == 0)
         ).astype("int8")
         work["outcome"] = np.select(
-            [work["hit"] == 1, work["miss"] == 1, work["target_only"] == 1],
-            ["H", "M", "T"],
+            [work["hit"] == 1, work["miss"] == 1],
+            ["H", "M"],
             default="",
         )
         work["target_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").round(1)
@@ -436,10 +444,11 @@ def aggregate_opportunity_peers(
     *,
     min_opportunities: int,
 ) -> pd.DataFrame:
-    """Aggregate immutable peer-cycle evidence into peer-level O/H/M/T rates.
+    """Aggregate immutable peer-cycle evidence into peer-level O/H/M rates.
 
-    Successful-SNR medians use hit rows only. Evidence bounds include every
-    retained row, including Target-only observations, and are converted from
+    Successful-SNR medians use all hit rows, including Target-only successes.
+    Target-only counts retain provenance without adding to hits or opportunities.
+    Evidence bounds include every retained row and are converted from
     canonical 120-second UTC slots after aggregation to avoid a row-sized
     timestamp column.
     """
@@ -556,11 +565,12 @@ def opportunity_footer_counts(
 ) -> dict[str, int]:
     """Return visible qualified station and denominator-evidence counts for Success maps.
 
-    Target counts are successful independently confirmed observations (hits), while
+    Target counts are all successful Target observations (hits), while
     counter counts are misses confirmed by Elsewhere evidence in RX or Other Signals
     in TX. Stations are assigned to Target when they have at least one hit and to
     counter-only otherwise. Ineligible identities, out-of-scope identities, and
-    Target-only observations are excluded because they do not enter Success Rate.
+    unknown-activity rows are excluded. Target-only successes already enter hits
+    and must not be added again from the provenance count.
     """
     if peer_df is None or peer_df.empty:
         return {

@@ -105,8 +105,10 @@ Neither the dated tail nor any occupied-region witness classifies an event
 under the optional outlier detector. No soil-moisture or antenna-effect causal
 claim is tested. Exact medians and IQR remain separately checked against the
 reviewed archive and independent arithmetic, not against paper-derived
-quantiles. This offline replay starts with frozen SQL-result rows and does
-not execute SQL or query a live provider.
+quantiles. Since 2026-09-25 this offline replay starts with frozen source
+reports and executes newly generated production SQL through the bounded
+SQLite adapter before post-fetch, map, Inspector and temporal preparation.
+It does not query a live provider or validate the native ClickHouse engine.
 
 `manifest.json` inventories all required fixture files with sizes and hashes;
 missing or altered files fail rather than skip. The shared reference module
@@ -206,10 +208,32 @@ aligned panels, preserving the month-long time axis at a readable width:
 
 - **A: Publication.** The complete original Figure 3 image, including the
   separate blue soil-moisture series and its right-hand axis.
-- **B: Reconstruction.** Every one of the 57,767 frozen WSPRadar paired
-  observations as an unbinned black scatter on the paper's linear dB and
-  calendar ranges. No time shift, SNR offset, jitter or synthetic moisture
-  series is fitted. The paper's displayed range clips both tails; the retained
+- **B: Reconstruction.** Every one of the 57,767 WSPRadar paired
+  observations freshly recalculated from frozen raw reports contributes to the
+  production **1-hour by 1-dB count grid**, shown in grayscale on the paper's
+  linear dB and calendar ranges. The scale is linear from zero to 100 percent
+  of the full-month maximum cell count; empty cells are white. There is no
+  per-hour normalization or smoothing. **All 57,767 original paired observations**
+  are also drawn as black dots at their native time and Delta SNR, including
+  coincident observations. Fixed marker area **7 points squared** and opacity
+  **0.30** make them larger and darker than the initial density presentation's
+  2.5-point-squared, 0.20-opacity markers in one/two-pair cells. The density
+  background and its linear grayscale are unchanged. Its colorbar describes
+  that background only; overlapping black markers add visual darkness without
+  altering the represented counts. Production rounding and time-bin edges
+  validate marker alignment; no observation is thinned, jittered or removed
+  from the density or scatter population.
+  This replaces the earlier unbinned scatter presentation, whose coincident
+  points and small markers obscured dense regions. No time shift, SNR offset,
+  jitter or synthetic moisture
+  series is fitted. The calculation executes current generated SQL, then the
+  production post-fetch, map, Inspector and paired-evidence path. Expected
+  paired rows only assert the resulting values; they never supply the plot.
+  The hourly grid contains all 57,767 pairs, and summing each twelve adjacent
+  hourly columns exactly reproduces C's 12-hour counts. Publication darkness
+  remains qualitative because the paper's marker opacity and raster processing
+  are unknown; the grayscale is not fitted to its appearance.
+  The paper's displayed range clips both tails; the retained
   observations themselves are not clipped or filtered before rendering C.
 - **C: WSPRadar view.** The actual chronological temporal export renderer and
   white export theme, using 12-hour bins. Its production artists retain the
@@ -218,6 +242,15 @@ aligned panels, preserving the month-long time axis at a readable width:
   pixel positions between B and C. The 60 bin counts, medians and quartiles
   are independently recalculated from the same pairs and checked against
   the production recipe and displayed artists during generation.
+
+Matching magenta dashed rectangles in comparison panels A and B mark the
+existing expanded negative-tail diagnostic interval, **-20 through -5 dB**
+on 16 April. The publication rectangle uses the frozen axis calibration to
+show the same physical interval as the reconstruction rectangle. Both callouts
+and the footer link to the sibling `WSPRadar_Demo_Griffiths_Figure3_diagnostic.pdf`, described as
+**repeated RX reports and weaker-report combinations**. This is a navigation
+annotation, not a new paper-derived assertion or proof of the authors' exact
+duplicate-handling procedure. Panel C and the numerical expectations are unchanged.
 
 `figure3_tail_diagnostic.png` and its PDF sibling separately extend the
 diagnostic inspection to **-20 through -5 dB, inclusive**. The horizontal
@@ -244,10 +277,123 @@ Regenerate the graphics and their diagnostic ledger with:
 .\.venv\Scripts\python.exe scripts/build_griffiths_figure3_comparisons.py
 ```
 
-The builder also writes `figure3_render_checks.json` with input hashes,
-production-artist checks and diagnostic counts. It does not rewrite numerical
+The builder also writes `figure3_render_checks.json` with source-input and
+generated-query hashes, pipeline row counts, production-artist checks and
+diagnostic counts. Strongest pairs in both graphics come from production;
+the alternate all-combinations tail join remains explicitly independent.
+The builder does not rewrite numerical
 reference oracles or the manifest; update the manifest only after reviewing
 regenerated outputs. The PDFs are rendered from the same Matplotlib artists,
 with native vector text, scatter, density cells and curves. Only the original
 publication image remains raster; converting it to PDF cannot restore vector
 source detail that the publication did not supply. PNG copies remain available.
+
+
+## Reviewed demo presentation (2026-09-26)
+
+This revision supersedes the display layout and expanded diagnostic range in the
+2026-09-25 presentation record above; the earlier record remains preserved.
+Both comparison PDFs now use a square 17-by-17-inch page, the printed article
+title and complete author/publication citation, with a subordinate Figure 3
+heading. The complete title, citation, subtitle and context block is centered. Panel A clips only the decorative outer image frame for display;
+`paper_figure3.png` is unchanged and retains the full original pixel content.
+Panel headings have consistent clearance, the chronological chart title is
+integrated into C's heading, and the compact footer is separated from C.
+The footer explicitly distinguishes the demo's 24-hour default from C's
+12-hour bins. Reconstruction and production evidence values are unchanged.
+
+The diagnostic now displays -20 through 0 dB, inclusive, using the same
+source-derived horizontal interval. It contains **648 report combinations:
+94 retained strongest-report pairs and 554 additional weaker-report
+combinations**, including 551 weaker combinations for HB9MHB, two for DL9GCW
+and one for IZ1UKA. Twenty-five retained pairs are exactly 0 dB. These are
+counts within the displayed range; they do not describe the entire day.
+`figure3_tail_report_combinations.csv` records these 648 classified combinations.
+The nested source-feature boxes and their original/expanded-window labels are
+omitted from the diagnostic presentation. The original source-feature checks
+remain unchanged: zero strongest pairs and 38 all-combinations witnesses in
+the original strict negative-tail region. Matching navigation callouts in
+comparison panels A/B now use the same -20 through 0 dB diagnostic range.
+
+A four-row example shows the reported G3ZIL frequencies and SNRs for HB9MHB at
+2017-04-16 10:46 UTC. Frequencies come from the WSPR Rocks example documented
+in `docs/duplicate_report_snr_policy.md`; the raw fixture does not contain
+frequency fields. The builder independently checks all four G3ZIL SNRs, both
+G4HZX SNRs, equal 43 dBm reported power, eight all-combinations differences
+and the retained +3 dB strongest-report difference against database rows.
+The text explains that +3 dB is above the displayed range while five weaker
+combinations appear inside it. Multiple reports need not be identical rows.
+
+The possible explanation of weaker offset-frequency decodes is explicitly a
+hypothesis: unwanted sidebands from modulation or mixing in the transmitter
+or receiving chain. Its supporting primary report is Griffiths, Elmore and
+Robinett, *Some Observations While Using the KiwiSDR to Spot WSPR Stations*,
+sections 4 and 7:
+<https://valentfx.com/vanilla/uploads/Uploader/a9/f19334bbbcca28d72b85cb1f5be6ce.pdf>.
+Those observations establish plausible mechanisms generally; they do not
+identify the cause of the HB9MHB example. The PDF includes a clickable source.
+The visible copy uses “database” and omits fixture-freezing terminology; all
+source provenance, policies and independent numerical expectations remain in
+the fixture and generated machine-readable render checks.
+
+
+Focused verification of this presentation revision: **88 passed, 3 expected
+failures and 3 pre-existing configuration failures** across the Griffiths
+reference and configuration-package modules. The three configuration failures
+expect four unrelated demos already absent from the active demo directory
+before this edit. The Griffiths scientific checks have no unexpected failure;
+the original three expected publication/production discrepancies remain.
+Both final PDFs were rendered and visually inspected, and both MediaBox and
+CropBox are 1224 by 1224 points with no rotation. Title centering preserves all
+numerical render-check results. Source hashes, compiler and whitespace checks,
+and the seven-PDF static-link synchronization check passed. This was focused
+verification, not a complete regression-suite or live-provider run.
+
+
+The worked-example explanation now explicitly identifies the table as four
+G3ZIL reports and the two G4HZX reports as not shown. It connects these
+reports to the eight possible differences and the single strongest-report
+pair. This explanatory-copy refinement preserves all data and other layout.
+The diagnostic was re-rendered and visually checked; all numerical render
+checks and the diagnostic CSV remain identical.
+
+
+### Anonymized diagnostic research update (2026-09-26)
+
+The public diagnostic now states that one transmitting callsign accounts for
+551 of the 554 additional weaker-report combinations in its displayed window,
+with the callsign available upon request. The worked-example heading and its
+explanation also omit that identity. Underlying source rows, audit identities,
+pairing rules and all numerical expectations remain unchanged.
+
+The added explanation reports matching 30-31 Hz weaker components across the
+wider receiver network and the widespread episode's observed 03:22 UTC onset
+and marked 15:46 UTC decline. It distinguishes the leading interpretation of
+additional transmitted spectral components from an unconfirmed physical cause
+and the unresolved possibility of a shared decoding artifact. Monthly context
+states that 211 of 57,767 selected paired cycles contain multiple reports and
+that excluding the one callsign leaves the monthly median at +7 dB.
+
+The frequency values were independently checked against database reports
+retrieved on 2026-09-26. Additional research provenance is recorded in the
+render-check JSON. The page retains its square 1224-by-1224-point format,
+original worked arithmetic, plot population and publication-method caveat.
+
+
+The reviewed diagnostic layout now places the two-entry legend directly beneath
+panel B. Full-width explanatory paragraphs use measured text wrapping, and
+all text below the panels is one point larger. The existing wording, numbers,
+anonymization, one-page square format and diagnostic evidence remain intact.
+
+
+### Demo PDF filenames (26 September 2026)
+
+Embedded demo PDFs use `WSPRadar_Demo_LeadAuthor_FigureX.pdf`, with
+`_diagnostic` before `.pdf` for a diagnostic. PNG filenames are unchanged.
+Both Figure 3 PDFs were rendered with the renamed PDF outputs; the comparison
+also displays and links to the renamed diagnostic. Scientific inputs and
+numerical checks are unchanged.
+
+### WSPRadar header revision (2026-09-27)
+
+Both Figure 3 PDFs now begin with **WSPRadar.org reconstruction & comparison**, followed by the descriptive title of the comparison or diagnostic. Explicit **Referenced publication:** and **Source figure:** lines attach the authors, publication title and Figure 3 reference to their source; a **Demo:** line retains the relevant comparison context. Presentation-only records in `config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper own this hierarchy and identify WSPRadar as the comparison author in PDF metadata. This supersedes the earlier paper-title-first header descriptions while preserving their review history. Source evidence, numerical expectations, scientific calculations and all body coordinates remain unchanged.

@@ -301,6 +301,25 @@ Streamlit serves these files locally and on deployments through the existing
 inside the PDFs; reconstructed points, bars, axes and annotations retain vector
 geometry. Keep the PNG companions for visual review until explicitly removed.
 
+Author demo PDF headers through the presentation-only records in
+`config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper.
+The centered header identifies the sheet as **WSPRadar.org reconstruction & comparison**,
+followed by its descriptive title, labelled publication citation and source figure,
+and a demo-context line; the cited authors belong to the publication reference,
+while PDF document properties identify WSPRadar as the comparison author.
+Follow `config/demo_pdf_style.md` and preserve the existing scientific content,
+panel geometry and source attribution when changing this authoring metadata.
+
+Reconstruction builders follow the
+[publication reconstruction contract](tests/regression/reference_fixtures/README.md):
+frozen source reports enter the generated SQL and production post-fetch,
+map/Inspector, pairing and figure-preparation stages. Independent expected
+outputs check those results; they never supply the plotted observations.
+Paper-style rebinning/smoothing and deliberate pre-gate or duplicate-report
+diagnostics are separately identified. The offline SQL adapter and downstream
+scientific pipeline are exercised; live transport, caches and native ClickHouse
+engine behavior are outside this reconstruction check.
+
 ## Running the Application
 
 Start Streamlit from the repository root:
@@ -460,6 +479,151 @@ changes to it are exercised by the Streamlit regression suite.
 
 ## Testing and Checks
 
+### Performance endpoint-participation contract (2026-09-25)
+
+RX and TX Performance use `opportunity-v3`: `hit = target_seen`,
+`opportunity = target_seen OR external_seen`, and
+`miss = external_seen AND NOT target_seen`. Target-only is a provenance subset
+of successes, not an additional outcome or total. A peer TX decoded by the
+Target RX confirms both endpoints in RX; a Target TX decoded by the peer RX
+confirms both in TX. External reports confirm that exact peer TX's transmission
+(RX) or peer RX's listening activity (TX), within the unchanged Target-active,
+same-band and same-cycle scope. Activity elsewhere does not establish that a
+silent receiver was listening. Unknown activity remains excluded.
+
+`tests/regression/test_performance_method_reference.py` supplies hand-authored
+raw reports and arithmetic for both directions. Generated production SQL runs
+through the bounded SQLite/ClickHouse-function adapter before real post-fetch,
+map, Inspector, temporal/folded, Drill-Down and export preparation. This verifies
+the generated expressions and predicates; it does not establish native
+ClickHouse engine equivalence. Completed `opportunity-v1`/`opportunity-v2`
+results and old Inspector/figure/export cache identities are incompatible;
+unchanged raw query evidence remains reusable for reprocessing.
+
+`scripts/verify_performance_method_revision.py` independently reconstructs the
+frozen Milazzo Performance consequences from configuration and raw reports,
+then checks production processing. Its separate output directory preserves the
+original review packet, source archive, expectations and human-review status;
+the affected cards must be regenerated and reviewed in the ongoing review task.
+
+Verification on 2026-09-25 under the existing Python 3.12.14 environment:
+the canonical foreground runner completed with **3,179 passed, 1 skipped and
+3 expected failures** in 445.71 seconds, exit 0. The absent generated export
+fixture remains skipped; the three established Griffiths publication
+disagreements remain expected failures. The existing Matplotlib
+pending-deprecation warning is unchanged. Full repository compilation,
+whitespace checking and the 87-module/five-chunk manifest validation passed.
+All 303 protected review/reference files retained their starting SHA-256 hashes.
+The initial full run exposed two stale Classic Input caption assertions; both
+were deliberately updated to the revised method before the successful full run.
+
+### Human-verified Milazzo regression reference (2026-09-26)
+
+The user explicitly approved all revision-2 Milazzo cards **P01–P10 and
+B01–B04** on 26 September 2026. The permanent fixture
+`tests/regression/reference_fixtures/milazzo_human_review_v2` preserves that
+approval separately from the original packets, the reviewed PDF/card definitions,
+exact Performance/Benchmark configurations, raw reports and independent expected
+ledgers. Historical pending-review wording in the byte-preserved packet is
+superseded by the new fixture's `approval.json`; earlier review records remain
+unchanged. The human-reviewed anchors and the independently derived exhaustive
+supporting values are explicitly distinguished.
+
+`test_milazzo_human_performance.py` exercises P01–P10 from the full 65,647-report
+Performance capture. The human-card tests in `test_milazzo_reference.py` exercise
+B01–B04 from the frozen Benchmark source and exact 32-hour review configuration.
+Each replay validates configuration, generates SQL, evaluates it against raw
+reports through the bounded offline adapter, and calls production processing,
+station/map aggregation and Inspector/figure preparation. Expected files are
+assertion inputs only. Selected Matplotlib artist checks cover the scientific
+values actually drawn, including P10's final +1.5 dB marker and P09's sparse-IQR
+rule. These tests are mandatory in every complete local regression run, including
+the fixed serial fallback chunks; a missing fixture fails rather than skips.
+Focused runs still execute only their explicitly selected modules.
+
+The separate `scripts/verify_milazzo_clickhouse.py` command is an occasional,
+read-only check against a real configured ClickHouse provider. Run it before
+completing a major development effort, or earlier when changing SQL/dialect or
+provider behavior. It compares generated query results with the frozen reference
+after local scientific verification. It does not upload fixture data, modify the
+provider, use cached results or refresh expectations. It is **not** invoked by
+the normal regression runner and adds no GitHub CI job. An unavailable provider
+or unequal result is reported as an unsuccessful check; investigate query
+semantics and possible upstream archive changes before changing expectations.
+
+```powershell
+# Validate the offline reference and save the exact query plan; no requests.
+.\.venv\Scripts\python.exe scripts/verify_milazzo_clickhouse.py --dry-run
+# Explicit major-effort check against one provider; four read-only requests.
+.\.venv\Scripts\python.exe scripts/verify_milazzo_clickhouse.py --provider wspr_live
+# Scope a check explicitly when comparing providers or investigating a failure.
+.\.venv\Scripts\python.exe scripts/verify_milazzo_clickhouse.py --provider wd2 --analysis performance
+.\.venv\Scripts\python.exe scripts/verify_milazzo_clickhouse.py --provider wspr_live --analysis benchmark
+```
+
+Each invocation creates a new timestamped `output/milazzo_clickhouse_*` report
+directory; `--output-directory` can specify another new directory. It records
+input/code/query hashes and expected/actual query rows. A dry-run success is not
+a live-provider verification. The native Benchmark capture supplies only the
+`best_ref_dist` comparison baseline after its other columns have been checked
+against the independent offline result; this preserves the native geographic
+diagnostic despite the adapter's documented spherical approximation.
+
+`--analysis` defaults to `both`; `performance` or `benchmark` sends only that
+analysis's two strict/fallback queries and records a separately named scoped
+success. Provider HTTP errors retain bounded diagnostic text. Do not interpret a
+successful subset as a complete pass, or assume different providers have
+identical historical coordinate metadata.
+
+The offline tests remain deterministic. A real-provider comparison exercises
+native execution on the provider's current historical archive; it is not a
+native ClickHouse replay of an immutable local database. The source/configuration
+checksums and query results in its report identify the exact comparison. A
+deliberate change to an approved scientific expectation requires a separately
+reviewed fixture revision, not automatic snapshot regeneration.
+
+Verification on 2026-09-26: the canonical complete foreground run reported
+**3,221 passed, 1 skipped, 3 expected failures and 1 existing Matplotlib warning**
+in **397.49 seconds**, with exit code 0. All 89 regression modules are assigned
+exactly once across the five fallback chunks. Full Python compilation and
+whitespace checks passed. All 303 protected original review/reference files
+remain byte-identical. The new approval/reference is separate from those files.
+
+The explicit live comparisons matched Performance's strict/fallback outputs
+on **WD2 (0 / 5,541 rows)** and Benchmark's outputs on its original capture
+provider, **wspr.live (0 / 1,610 rows)**. These are separately scoped provider
+checks, not a four-query pass on a single provider. wspr.live rejected the
+Performance query with HTTP 500 / `TOO_DEEP_SUBQUERIES` (maximum 2); WD2's
+Benchmark output had the same identities, flags, SNRs and counts but different
+peer coordinates and `best_ref_dist`. That cross-provider comparison correctly
+failed. No scientific expectations or tolerances were changed to hide it.
+Local diagnostic reports are retained under
+`output/milazzo_clickhouse_2026-09-26_wd2`,
+`output/milazzo_clickhouse_2026-09-26_benchmark_wspr_live` and
+`output/milazzo_clickhouse_2026-09-26_performance_provider_diagnostic`.
+
+### Running checks
+
+The correction-aware temporal-density change on 2026-09-26 was verified with
+the complete foreground runner: **3,222 passed, 1 skipped, 1 existing warning,
+8 failed and 85 setup errors in 488.11 seconds** (exit 1). All eight failures
+are in `test_config_package.py` and depend on already renamed or removed demo
+files/IDs. The 85 setup errors are in the Griffiths and Milazzo publication
+fixtures: five PNGs were already deleted while their manifests still require
+them. These unrelated checkout changes were retained. No new correction-grid
+regression failed. The final targeted rerun passed **50 selected checks** after
+updating older test mocks to include explicit numerical correction metadata.
+Full compilation, whitespace, README synchronization, independent Vanhamel
+density-only oracle reproduction, final PDF visual review and all seven
+published reference-PDF synchronization checks passed. The frozen Vanhamel
+production replay preserves 1,441 pairs, the 3 dB step and scientific statistics;
+all 476 density counts/masks are unchanged and corrected cell edges equal
+zero-correction edges minus 1.6 dB. Its first occupied span is -4.1 to +1.9 dB.
+This verifies the local frozen-data and rendering paths; no live provider or
+full interactive browser session was run for this change.
+Final English/German documentation and PDF/rendering checks passed **108 tests
+in 11.55 seconds** after the last terminology-precision adjustment.
+
 Run the complete regression suite on Windows through the foreground-only
 repository runner:
 
@@ -544,7 +708,56 @@ manifest, changed-test compilation and whitespace checks passed. The prior
 archive fixtures and application runtime were unchanged; no full-suite,
 browser, live-provider or SQL-execution run was performed for this addition.
 
-Latest complete regression verification on 2026-09-25 covered the publication
+The Figure 3 tail-discrepancy annotation update on 2026-09-25 passed the focused
+module set with **96 passed, 3 xfailed, 1 existing warning in 63.26 seconds**.
+Matching calibrated rectangles and sibling-PDF links in A/B were visually
+checked. Panel C remains pixel-identical, diagnostic artifacts byte-identical,
+and numerical provenance unchanged. All fixture manifests, published PDF
+copies, link annotations, changed-source compilation and whitespace checks
+passed. No scientific runtime or numerical expectation changed.
+
+The subsequent Figure 3 paper-style marker update on 2026-09-25 passed the same
+focused module set with **96 passed, 3 xfailed, 1 existing warning in 66.31
+seconds**. Assertions now preserve every original pair coordinate and coincident
+observation in the larger-dot overlay while keeping the linear density unchanged.
+Panels A/C remain pixel-identical and the separate tail artifacts byte-identical.
+Compilation, whitespace, vector PDF inspection and published-copy checks passed;
+no scientific runtime or numerical expectation changed.
+
+Focused Figure 3 density-presentation verification on 2026-09-25 reported
+**96 passed, 3 xfailed, 1 existing warning in 64.70 seconds** across the Griffiths
+references, segment temporal rendering, evidence statistics and demo PDF-link
+integrity. Two new cases check exact production hourly density, its equivalence
+to the 12-hour grid, global scaling and native sparse-marker coordinates at time
+and rounding boundaries. Changed-source compilation, whitespace, PDF integrity
+and visual checks passed. Panels A/C remain pixel-identical, and the separate
+tail graphics/ledger remain byte-identical. Scientific runtime and numerical
+expectations are unchanged; this isolated presentation update used focused
+verification rather than another complete-suite run.
+
+Latest complete regression verification on 2026-09-25 covered production-pipeline
+publication reconstruction, including 13 additional cases protecting raw-source
+replay, expected-input isolation and propagation of changed production evidence.
+The complete foreground Windows runner reported:
+
+```text
+3153 passed, 1 skipped, 3 xfailed, 1 warning in 345.11 seconds
+```
+
+The skip, three strict expected failures and Matplotlib warning remain those
+documented below. All eleven reference-fixture manifests (187 file entries),
+97 unchanged frozen scientific inputs/expectations, full source compilation and
+whitespace checks passed. All seven regenerated comparison PDFs were visually
+reviewed and checked for their single original-publication raster and searchable
+native plot/text content. Their static copies match the fixture sources. PNG
+companions remain available. The generated SQL is executed through the bounded
+offline SQLite adapter; this run does not claim live-provider or native
+ClickHouse verification. No scientific runtime algorithm, demo setting or
+independent numerical oracle changed. The existing static route and browser
+checks below were not repeated because their implementation and URLs are
+unchanged.
+
+Earlier complete regression verification on 2026-09-25 covered the publication
 comparison PDF additions, expanded Figure 3 tail review, demo PDF links and all
 existing reference fixtures. The complete foreground Windows runner reported:
 
@@ -1035,14 +1248,18 @@ fixtures.
 Scientific reference datasets use the separate
 `tests/regression/reference_fixtures/` directory. The mandatory
 `test_griffiths_temporal_reference.py` replays the first G3ZIL/G4HZX demo from
-frozen SQL-result rows through production post-fetch filtering, station
-aggregation, paired evidence and temporal recipes. It compares all 57,767
+frozen source reports through generated production SQL, post-fetch filtering,
+station aggregation, paired evidence and temporal recipes. It compares all 57,767
 paired observations and the daily, three-hour and folded UTC-hour profiles with
 fixed reviewed expectations. Missing or corrupt reference files fail rather
 than skip. The fixture README records the paper comparison, captured provider
 and historical decode provenance, checksums, and baseline-update rules.
-This offline test starts after SQL aggregation; it does not execute SQL or
-validate upstream power normalization, provider selection or mode decoding.
+Since 2026-09-25 this offline test also executes the generated normalization
+and aggregation SQL through the bounded SQLite compatibility adapter, using
+the production strict/fallback decision. Captured SQL-result rows now serve
+only as an additional assertion target. Native ClickHouse behavior, exact
+database geographic distances, provider selection and the physical meaning of
+historical mode codes remain outside this check.
 The paper corroborates the approximate count and temporal pattern; it does not
 supply the fixture's exact expected numerical values.
 
@@ -1060,7 +1277,8 @@ daytime advantage, but its density contours are not exact hourly medians.
 Its fixture README distinguishes the independently reconstructed source
 expectations from the publication's approximate evidence and documents the
 remaining paper-count difference. Both reference cases are mandatory, run
-offline and share the production replay helpers; neither executes database SQL.
+offline and share the production source-to-evidence replay helpers. Their
+generated SQL executes against frozen source rows without a live database.
 
 A separate `reference_fixtures/griffiths_fig6_paper_v1` provides executable
 external expectations extracted from the original Figure 6 image. Four

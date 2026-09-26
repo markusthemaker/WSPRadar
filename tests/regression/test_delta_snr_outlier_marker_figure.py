@@ -43,6 +43,7 @@ def _benchmark_temporal_recipe(*, kind="segment_benchmark_temporal"):
         "Benchmark temporal evidence",
         "3h",
         "Joint spot count",
+        reference_snr_correction_db=0.0,
         analysis_start_t=pd.Timestamp("2026-07-01T00:00:00Z"),
         analysis_end_t=pd.Timestamp("2026-07-03T00:00:00Z"),
         chronological_title="Delta SNR over time ({time_bin})",

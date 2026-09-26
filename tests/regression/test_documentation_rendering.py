@@ -189,10 +189,10 @@ def test_scientific_methods_keep_bilingual_section_and_formula_parity():
 
     assert english_anchors == german_anchors
     assert english_formulas == german_formulas
-    assert len(english_formulas) == 29
+    assert len(english_formulas) == 30
     assert len(english_outlier_formulas) == 13
     assert english_outlier_formulas == german_outlier_formulas
-    assert len(english_formulas) - len(english_outlier_formulas) == 16
+    assert len(english_formulas) - len(english_outlier_formulas) == 17
 
 
 def test_outlier_method_keeps_mnemonic_notation_inside_section_7_11():
@@ -260,13 +260,13 @@ def test_bilingual_preface_introduces_target_peer_and_decode_rate():
 
     assert "the station under test, normally your station" in english_preface
     assert '<strong class="defined-term">peer</strong>' in english_preface
-    assert "percentage of independently confirmed opportunities" in english_preface
+    assert "percentage of confirmed opportunities" in english_preface
     assert "the Target decoded the peer in RX" in english_preface
     assert "the peer decoded the Target in TX" in english_preface
 
     assert "die zu untersuchende Station, normalerweise deine Station" in german_preface
     assert '<strong class="defined-term">Peer</strong>' in german_preface
-    assert "Prozentsatz unabhängig bestätigter Gelegenheiten" in german_preface
+    assert "Prozentsatz bestätigter Gelegenheiten" in german_preface
     assert "Bei RX decodiert das Target den Peer" in german_preface
     assert "bei TX decodiert der Peer das Target" in german_preface
 
@@ -617,8 +617,8 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
     assert "| Analysis | Question | Practical examples |" in DOC_EN
     assert "| What you want to learn | WSPRadar approach |" not in DOC_EN
     for operating_question in (
-        "How broadly and consistently does my receiver decode signals that were independently confirmed elsewhere?",
-        "Where, when and how consistently is my transmitter decoded by receivers independently shown to be active?",
+        "How broadly and consistently does my receiver decode signals across confirmed opportunities?",
+        "Where, when and how consistently is my transmitter decoded by receivers shown to be active?",
         "Did two local receive paths differ while observing the same remote transmissions?",
         "Did two local transmit paths differ under simultaneous or tightly scheduled operation?",
         "How does my complete station compare with one known station?",
@@ -833,9 +833,11 @@ def test_english_playbooks_define_performance_opportunities_and_tx_ab_timing():
     )[1].split('<a id="sec-3-tx-benchmark-buddy"></a>', 1)[0]
 
     assert "confirmed RX opportunity" in rx_performance
-    assert "independent confirmation" in rx_performance
+    assert "whether or not another RX also reports the peer TX" in rx_performance
+    assert "both the transmitting peer TX and the receiving Target RX" in rx_performance
     assert "confirmed TX opportunity" in tx_performance
-    assert "independent receiver-activity confirmation" in tx_performance
+    assert "whether or not the peer RX also reports another transmitter" in tx_performance
+    assert "not that this particular silent peer RX was listening" in tx_performance
     assert "deterministic schedule" in sequential_tx
     assert "one-to-one Scheduled A/B Pairs automatically" in sequential_tx
     assert "actual recurrence" in DOC_EN
@@ -1334,6 +1336,13 @@ def test_results_chapter_is_question_led_and_uses_the_shared_evidence_path():
 def test_bilingual_manuals_define_performance_opportunities_and_weighting():
     """Keep Performance denominators and complementary weighting auditable."""
     english_contract = (
+        r"$$S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}$$",
+        "`opportunity-v3`",
+        "Target-only success",
+        "already included once in both the success count and the opportunity count",
+        "peer TX → Target RX",
+        "Target TX → peer RX",
+        "particular silent Target RX or peer RX was listening",
         r"$$n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}$$",
         r"$$r_i=100\%\times\frac{h_i}{n_i}$$",
         r"$$R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i$$",
@@ -1348,6 +1357,13 @@ def test_bilingual_manuals_define_performance_opportunities_and_weighting():
         "Missed opportunities have no Target SNR and no synthetic value",
     )
     german_contract = (
+        r"$$S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}$$",
+        "`opportunity-v3`",
+        "Target-only-Erfolg",
+        "genau einmal in Erfolgs- und Gelegenheitsanzahl enthalten",
+        "Peer-TX → Target-RX",
+        "Target-TX → Peer-RX",
+        "bestimmter stiller Target-RX oder Peer-RX zugehört hat",
         r"$$n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}$$",
         r"$$r_i=100\%\times\frac{h_i}{n_i}$$",
         r"$$R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i$$",
@@ -1595,11 +1611,24 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
 
 
 def test_end_user_manuals_omit_internal_interval_boundary_convention():
-    """Keep deterministic interval-boundary mechanics out of operator guidance."""
-    assert "half-open" not in DOC_EN
+    """Keep time mechanics out; the density-cell contract is documented explicitly."""
+    english_outside_density = DOC_EN.split('<a id="sec-7-8-5"></a>')[0] + DOC_EN.split('<a id="sec-7-9"></a>')[1]
+    german_outside_density = DOC_DE.split('<a id="sec-7-8-5"></a>')[0] + DOC_DE.split('<a id="sec-7-9"></a>')[1]
+    assert "half-open" not in english_outside_density
     assert "start <= time < end" not in DOC_EN
-    assert "halboffen" not in DOC_DE
+    assert "halboffen" not in german_outside_density
     assert "start <= geplanter Start < end" not in DOC_DE
+
+
+@pytest.mark.parametrize("manual", [DOC_EN, DOC_DE], ids=["en", "de"])
+def test_manuals_define_correction_aware_temporal_density_coordinates(manual):
+    density_section = manual.split('<a id="sec-7-8-5"></a>')[1].split('<a id="sec-7-9"></a>')[0]
+    assert "`k = floor(d + c + 0.5)`" in density_section
+    assert "`k - c`" in density_section
+    assert "`[k - 0.5 - c, k + 0.5 - c)`" in density_section
+    assert "1 dB" in density_section
+    assert "Performance" in density_section
+    assert "Drill-Down" in density_section
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
@@ -1954,7 +1983,7 @@ def test_bilingual_manuals_distinguish_empty_result_diagnostics():
     assert "highest observed: `3` confirmed opportunities" in DOC_EN
     assert "required: at least `5` per station" in DOC_EN
     assert "A configured minimum is never presented as an observed count" in DOC_EN
-    assert "Target-only audit observations are not confirmed opportunities" in DOC_EN
+    assert "Target-only successes are confirmed opportunities and contribute to station thresholds" in DOC_EN
     assert "No qualifying Benchmark result remains" in DOC_EN
     assert "does not invent observed Benchmark maxima" in DOC_EN
 
@@ -1968,7 +1997,7 @@ def test_bilingual_manuals_distinguish_empty_result_diagnostics():
     assert "höchster beobachteter Wert: `3` bestätigte Gelegenheiten" in DOC_DE
     assert "erforderlich: mindestens `5` pro Station" in DOC_DE
     assert "Ein konfiguriertes Minimum wird nie als beobachtete Anzahl ausgegeben" in DOC_DE
-    assert "Target-only-Auditbeobachtungen keine bestätigten Gelegenheiten" in DOC_DE
+    assert "Target-only-Erfolge bestätigte Gelegenheiten und zählen für die Stationsschwellen" in DOC_DE
     assert "Kein qualifizierendes Benchmark-Ergebnis bleibt erhalten" in DOC_DE
     assert "keine beobachteten Benchmark-Maxima" in DOC_DE
 

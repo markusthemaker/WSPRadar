@@ -48,7 +48,7 @@ The first complete new-module run exposed only a test-setup omission of outcome-
 
 ## Comparison graphics and vector PDF (2026-09-25)
 
-`figure4_histogram_overlay.png` and `figure4_histogram_overlay.pdf` retain the same A-B-C layout: original Figure 4, reconstruction in the paper's coarse bins, and the WSPRadar 1 dB percent-of-sample histogram. The residual comparison stays below panel B. The PDF contains vector bars, lines, labels and residuals; only the original publication panel is an embedded raster. It is rendered directly from the Matplotlib figure, not from the completed PNG.
+`figure4_histogram_overlay.png` and `WSPRadar_Demo_Zander_Figure4.pdf` retain the same A-B-C layout: original Figure 4, reconstruction in the paper's coarse bins, and the WSPRadar 1 dB percent-of-sample histogram. The residual comparison stays below panel B. The PDF contains vector bars, lines, labels and residuals; only the original publication panel is an embedded raster. It is rendered directly from the Matplotlib figure, not from the completed PNG.
 
 Regenerate both formats from the repository root into a review directory:
 
@@ -57,3 +57,74 @@ Regenerate both formats from the repository root into a review directory:
 ```
 
 The builder verifies all 166 pairs, the production 1 dB histogram counts and percentages, and the coarse-bin residual allowance before rendering. PDF export does not change frozen paper evidence, binning policy or expected numerical results.
+
+## Production-derived comparison inputs (2026-09-25)
+
+The comparison now follows the shared [reference comparison contract](../README.md). Its plotted reconstruction and WSPRadar histogram start with `zander_experiment_a_v1/source_rows.csv` and the frozen demo configuration, then execute the current generated SQL, production post-fetch filters, map preparation, Inspector identity selection, same-cycle pairing and Joint-Spot histogram recipe. `_calculate_run` in `test_zander_experiment_a_reference.py` is the reusable offline entry point shared by the regression and figure builder. SQL runs through the bounded SQLite adapter, not a live provider or native ClickHouse engine; the HTTP/cache path is outside this check.
+
+Panel B rebins the actual production 1 dB histogram counts into the paper's fixed coarse regions, then divides by the complete sample count and region width. This is a paper-style presentation, not a replacement scientific pipeline. Panel C uses the production histogram centers and counts as percent-of-sample bars. Generated marker values, statistics and histogram heights never come from `expected_*` files. Those independent files are opened only by a separate verification step that can reject the computed figure before rendering. The numerical reconstruction still has 166 Joint pairs and production-histogram mean -6.78313253 dB. The separately labeled review sample standard deviation, 3.51463845 dB, is a supplemental paper-comparison calculation with denominator n-1 over those actual production pairs; it is not supplied by the WSPRadar histogram recipe.
+
+`figure4_comparison_provenance.json` records pipeline stages, separate source and assertion-only hashes, the generated-query hash, observed sample/statistics and display rules. New regression cases forbid expected-result reads during plot-input construction, change a raw-report SNR, change a production SQL normalized-SNR result, and corrupt an expected histogram. The first two mutations must alter the calculated plotted distributions and fail verification; corrupt expectations must reject the comparison without modifying its computed values. Scientific source rows, external paper annotations, tolerances and independent expected results remain unchanged.
+
+
+### Demo PDF filenames (26 September 2026)
+
+Embedded demo PDFs use `WSPRadar_Demo_LeadAuthor_FigureX.pdf`, with
+`_diagnostic` before `.pdf` for a diagnostic. PNG filenames are unchanged.
+The PDF content is byte-identical to the previously named output. Existing
+generation hashes describe that original rendering, not the filename update.
+
+### Demo #6 presentation review (26 September 2026)
+
+The subsequent style review follows `config/demo_pdf_style.md`. The centered
+header gives the printed paper title, author, linked arXiv reference, Figure 4
+subtitle and demo selectors. The white page uses DejaVu Sans, readable panel
+headings and explanatory text, separate legends centered beneath Panels B and C,
+and the standard WSPRadar credit. Physical dimensions are 24 by 14.4 inches; the previously
+reviewed 5:3 aspect ratio is unchanged.
+
+Panel A retains the complete original raster. Panel B retains the unchanged
+paper-style rebinning and digitized-bar comparison. Panel C now retains the
+actual right-hand axis produced by `render_segment_insight_export_figure`,
+with the common white-paper export theme: native blue bars, red dashed median,
+mean annotation, 1 dB bins, percentages, linear axes, limits and tick policy.
+Its median key moves into the legend below Panel C, and its exact current English
+figure/axis labels come from `i18n.py`. Font sizing and panel placement are
+presentation adjustments only. The residual diagnostic remains below Panel B.
+
+Calculated display values have at most two decimal places. The reconstructed
+mean and sample standard deviation are displayed to one decimal place as -6.8
+and 3.5 dB, following the annotated review. Small residuals use units of
+`10^-4 per dB`: the maximum is displayed as 1.41, preserving its meaning instead
+of rounding it to zero. The shaded residual band still represents the original
+readout allowance of +/-5.00 in those units; its explanatory caption was removed
+as requested. Native one-decimal summary formatting and the source raster's
+printed statistics are retained. Full numerical precision remains in the
+provenance and independent reference files; the arXiv identifier is unchanged.
+
+The public page explains Joint Spots, the Target-minus-Reference sign, density
+versus percent-of-sample bars. The reconstruction limits remain documented above.
+Technical SQL-adapter and assertion-only provenance remains documented above and in
+`figure4_comparison_provenance.json`. The novice demo description now uses the
+current `Segment Inspector -> Benchmark Evidence` route and distinguishes the
+Joint-Spot histogram from the equally weighted Station Medians histogram.
+No demo settings, source observations, frozen paper annotations, binning policy
+or independent numerical expectations changed in this presentation review.
+
+The annotated review also removed the statements about all nine regions meeting
+the allowance and the meaning of sample spread, plus the bottom LIMIT and SOURCE
+lines. The linked publication title and citation in the header, the READ line,
+the standard WSPRadar credit and the residual diagnostic are retained. Full
+precision calculations and the demo description are unchanged by these PDF edits.
+
+The reconstruction now labels its sample standard deviation `Sample σ` to match
+the paper's symbol for an estimated sample standard deviation. This is a notation
+change only: the reconstruction still uses `ddof=1` (denominator `n-1`), and the
+paper's unspecified denominator convention remains an evidence limitation as
+documented above.
+
+### WSPRadar header revision (2026-09-27)
+
+The Figure 4 PDF now begins with **WSPRadar.org reconstruction & comparison**, followed by the approved descriptive title **SNR differences between a short portable vertical and a reference vertical**. Explicit **Referenced publication:** and **Source figure:** lines attach Zander's authorship, the publication title and Figure 4 reference to their source; a **Demo:** line retains the Experiment A comparison context. Presentation-only records in `config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper own this hierarchy and identify WSPRadar as the comparison author in PDF metadata. This supersedes the earlier paper-title-first header description while preserving its review history. Source evidence, numerical expectations, scientific calculations and all body coordinates remain unchanged.
+
+The subsequent spacing refinement moves only the source-figure line downward, giving the publication, source-figure and demo lines equal baseline gaps of 25.0072 pt. All wording, font sizes, title positions, publication/demo endpoints and figure body are retained.

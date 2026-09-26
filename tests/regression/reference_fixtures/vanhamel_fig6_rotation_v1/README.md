@@ -18,9 +18,9 @@ The paper's text states a **1.2 dB** receiver-chain correction. The [authors' in
 
 The published landmarks were read independently, but the choice of the 1.6 dB reconstruction was informed by the website and subsequent graphical comparison. Therefore this is a reconciled reference corpus, not a blind validation of a previously fixed correction. Keep the original graphical tolerance; do not tighten it to the observed approximately 0.1 dB residuals. Offset-invariant checks such as the largest peak-to-trough span add useful external support. The paper readout for that span is 15.8 dB with a conservative ±0.8 dB combined allowance; the raw-derived span is 16.0 dB.
 
-`observed_landmark_comparison.csv` records the already-performed comparison and is explicitly **observed**, not an independent external expected-results table. `figure6_overlay_1p6.png` and `figure6_overlay_1p6.pdf` are human-review artifacts with three aligned panels: **A** shows the original published image using the fixed tick calibration, **B** reconstructs all three traces from actual WSPRadar paired results at every reception, and **C** shows the production Selected Station Evidence chronological figure with white export styling and **12h bins**. Seven independently read landmarks remain ringed in A and B. The reconstruction is not a pixel-difference test or an exact digitization of the paper. No translation, amplitude scaling or time warp was fitted; choosing the correction is the separate decision described above.
+`observed_landmark_comparison.csv` records the already-performed comparison and is explicitly **observed**, not an independent external expected-results table. `figure6_overlay_1p6.png` and `WSPRadar_Demo_Vanhamel_Figure6.pdf` are human-review artifacts with four aligned panels: **A** shows the original published image using the fixed tick calibration, **B** reconstructs all three traces from actual WSPRadar paired results at every reception, **C** projects the same native density values behind the unchanged black Delta-SNR trace on exact reception-number bin spans, and **D** shows the production Selected Station Evidence chronological figure with white export styling and **12h bins**. Seven independently read landmarks remain ringed in A and B. The reconstruction is not a pixel-difference test or an exact digitization of the paper. No translation, amplitude scaling or time warp was fitted; choosing the correction is the separate decision described above.
 
-Panels A and B use the same linear reception-number and dB axis limits. For the two antenna traces, B removes the common +7 dB reported-power normalization from WSPRadar's endpoint values to display reported SNR, retaining the Reference's +1.6 dB correction. All 1,441 selected pairs report transmitter power 23 dBm, so that common display shift leaves every paired difference unchanged. Panel C keeps WSPRadar's actual UTC coordinates, median-centered nonlinear axis, 12h density cells, bin medians and IQR. Its different horizontal axis represents elapsed time rather than reception number; sparse and empty periods therefore retain their actual duration. These visual adaptations do not change the independent numerical expectations, including the retained 20-slice summaries.
+Panels A and B use the same linear reception-number and dB axis limits. For the two antenna traces, B removes the common +7 dB reported-power normalization from WSPRadar's endpoint values to display reported SNR, retaining the Reference's +1.6 dB correction. All 1,441 selected pairs report transmitter power 23 dBm, so that common display shift leaves every paired difference unchanged. Panel D keeps WSPRadar's actual UTC coordinates, median-centered nonlinear axis, 12h density cells, bin medians and IQR. Its different horizontal axis represents elapsed time rather than reception number; sparse and empty periods therefore retain their actual duration. These visual adaptations do not change the independent numerical expectations, including the retained 20-slice summaries.
 
 The PDF is generated from the plotting objects, not converted from the PNG. Only the original publication image is raster; the reconstruction, WSPRadar density cells, colorbar, lines, markers, axes and labels remain vector graphics. `comparison_presentation.json` records the presentation builder, rendering boundary and observed landmark positions; it is not an independent oracle.
 
@@ -54,11 +54,15 @@ These are independently implemented calculations of the defined contract, not a 
 | `expected_paired_rows.csv` | The 1,441 selected M7AEO/IO82 pairs; reception number, cycle/UTC, raw and normalized SNR, power, source ids and geometry. |
 | `expected_reception_slices_20.csv` | Twenty archive-derived reception-order slices with counts, endpoints and distribution summaries. |
 | `expected_12h.csv` | All 28 actual chart intervals, including empty intervals, with counts and distribution summaries. |
-| `expected_density_12h.csv` | The complete 28 × 17 time/difference grid: integer difference centers −7 through +9 dB, including zero cells. |
+| `expected_density_12h.csv` | Preserved legacy complete 28 × 17 time/difference grid: integer difference centers −7 through +9 dB, including zero cells; superseded for active density geometry by the versioned presentation-only revision below. |
+| `expected_density_12h_correction_aware_v1.csv` | Current complete 28 × 17 grid: uncorrected comparison-coordinate bin IDs −5 through +11, corrected physical centres −6.6 through +9.4 dB, explicit half-open edges and every zero/nonzero count. |
+| `temporal_density_revision_v1.json` | Independent density-only derivation, source hashes, contract and first-bin comparison; original scientific expectations remain unchanged. |
 | `expected_halves.csv` | Equal elapsed-time halves and the separate published reception-750 split. |
 | `expected_summary.json` | Population, selection, correction, timing, binning and whole-series audit values. |
 
 Reception slices use `zero_based_reception_index * 20 // N`. The first contains 73 pairs and each remaining slice 72. This is a reception-count partition, not equal elapsed time; a slice spanning reception 750 deliberately mixes the two orientation phases. These exact medians and quantiles are archive-derived expectations, not statistics extracted from the figure's raster.
+
+The following paragraph records the original density policy; the correction-aware revision below supersedes only its density-membership and cell-coordinate statements.
 
 The chart bins begin at the configured window start, **17:15 UTC**, and advance in 12-hour steps. The final interval is shortened to the exact configured end. They are not midnight/noon UTC bins. Each interval is left-closed and right-open. Empty intervals 1, 17 and 25 have count zero and blank summary values; the production chart can represent the empty summary count as NaN, while the complete density grid has zero counts. The density metric is nearest integer `round(delta_snr_db)`, with half-even tie handling; no exact half-integer ties occur for this corpus. Metric centers are labels, not lower edges. Counts are paired-observation counts, not probability densities.
 
@@ -88,8 +92,67 @@ Regenerate only the comparison PNG, vector PDF and presentation metadata with th
 
 This builder runs the existing offline production-SQL regression harness against `source_rows.csv`, checks the resulting paired trace against the independent frozen expectation, and renders the real production chronological chart. It does not refresh any `expected_*` file or paper feature. Review the candidate graphics before installing them and updating their manifest entries.
 
+The plotting payload is prepared before any expected-results CSV is read. `prepare_reconstruction` selects the actual eligible production Joint Spot projection and joins its exact UTC/callsign/full-locator identities to production Inspector endpoint values. The expected paired CSV is read only by the separate `assert_reference_reconstruction` check and never supplies plotted SNR, Delta SNR, medians, IQR or density. A regression deliberately changes production endpoint/difference values, blocks expected-file reads during preparation, and verifies that both reconstructed traces and the production chart summaries change; the independent oracle then rejects the altered result. This follows the [shared reconstruction contract](../README.md).
+
 ## Source attribution and reuse
 
 The PDF cover labels the publication **CC BY**. Printed page1 explicitly grants Creative Commons Attribution reuse, and its license hyperlinks identify [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copyright ©2022 Jurgen Vanhamel et al. The reproduced `paper_figure6.png` is an RGB conversion of the embedded Figure6 image. `figure6_overlay_1p6.png` and its PDF sibling adapt that image by displaying its original traces with calibrated axes and landmark rings, alongside reconstructed evidence and the WSPRadar temporal view. Credit for the original figure remains with the cited authors; these adaptations are not presented as author-endorsed.
 
 The paper's license does not confer a license on the separate WSPR archive. The raw files contain factual reception reports from the publicly queryable `db1.wspr.live` service; no separate provider license statement was captured with the response. Preserve the provider/query provenance when redistributing this fixture. No private correspondence, email attachment or full paper PDF is included.
+
+
+### Demo PDF filenames (26 September 2026)
+
+Embedded demo PDFs use `WSPRadar_Demo_LeadAuthor_FigureX.pdf`, with
+`_diagnostic` before `.pdf` for a diagnostic. PNG filenames are unchanged.
+The PDF content is byte-identical to the previously named output. Existing
+generation hashes describe that original rendering, not the filename update.
+
+
+### Four-panel mapping update (26 September 2026)
+
+Panel C is an explanatory coordinate projection of Panel D’s native density mesh. The builder assigns each production paired timestamp to its existing half-open UTC bin and verifies membership counts against both the production summary and count grid. Reception support edges are `0.5 + cumulative paired counts`; repeated edges preserve empty UTC bins without inventing reception width. The native density values, masks, vertical cell boundaries, global normalization and colormap are reused unchanged. All 1,441 paired Delta-SNR values remain unsmoothed.
+
+The strips use one-based bin numbers 1–28. Empty bins 2, 18 and 26 are hatched only in Panel D. The final bin spans 05:15–07:00 UTC on 15 May, a clipped 1 h 45 min interval. The bin grid still begins at 17:15 UTC on 1 May and alternates 17:15/05:15 boundaries. Panel C uses a linear dB axis; Panel D retains the native nonlinear axis and production median/IQR rendering. Shared colours summarize each whole bin, not a separate distribution at every reception.
+
+The enlarged 22 × 20.2125 inch page preserves the previous 16:14.7 aspect ratio. Scientific sources, expected tables, paper features, original figure and observed-landmark records are unchanged. The current presentation metadata and manifest identify this new generation; the earlier filename-only rename record remains historical.
+
+
+### Figure 6 review refinements (26 September 2026)
+
+The shared trace/landmark legend uses one full-width row. Panel C places reception numbers above the plot and matching UTC-bin numbers below, adjacent to Panel D. The black trace is shown without additional minimum/maximum markers.
+
+The next two paragraphs preserve the reviewed pre-fix geometry and its diagnosis. The correction-aware revision below supersedes their descriptions of the active renderer.
+
+The native density rounds each Delta-SNR value to an integer-centred, 1 dB cell and paints that count across the whole time bin. Every plotted reception contributes to the same density grid. For bin 1, receptions 1–99 range from -3.6 to +1.4 dB, while their occupied density cells span -4.5 to +1.5 dB. The extra painted extent is cell geometry; no missing observations lie beyond the black trace. The existing values, masks, colours and density normalization remain unchanged.
+
+The +1.6 dB reference correction places this dataset’s Delta-SNR values at integer +0.4 dB. With the native integer-centred cells, each value lies 0.9 dB above its cell’s lower edge and 0.1 dB below its upper edge. This accounts for the asymmetric visual padding. The painted extent is a histogram interval, not an exact minimum/maximum envelope. Recentring those cells on the corrected measurement grid would be a separate change to the production renderer and both Panels C and D.
+
+
+### Correction-aware temporal density revision (26 September 2026)
+
+The permanent production renderer now forms the 1 dB cell ID in the uncorrected comparison coordinate: `k = floor(d + c + 0.5)` for the already corrected Delta SNR `d` and authoritative numerical Reference correction `c`. It then draws `[k - 0.5 - c, k + 0.5 - c)`. Adding `c` is membership-coordinate arithmetic only: the stored Delta SNR, paired values, bin medians, Q1 and Q3 are not modified. The approved membership-only resolution first rounds the temporary uncorrected comparison coordinate to 0.1 dB (nearest tenth, ties-to-even), then applies the half-open whole-dB convention, assigning an exact half-dB boundary to the upper cell, including negative boundaries. Only at half-tenth rounding midpoints, an 8-ULP-scaled float64 arithmetic guard resolves correction noise; values beyond that narrow guard retain their side of the quantizer. Values below the declared 0.1 dB display resolution may intentionally share membership. No observation, stored corrected metric, median or quartile is rounded by this density policy.
+
+A replay of the same frozen raw reports at corrections 0 and +1.6 dB retains all 1,441 observations and every timestamp/paired identity. Reference SNR increases once by 1.6 dB; every Delta SNR, median and quartile decreases by 1.6 dB. Comparison-coordinate cell IDs, membership, counts, masks and relative-density values are unchanged in both chronological and folded recipes. Corrected edges equal zero-correction edges minus 1.6 dB. For this integer-report dataset, that is +0.4 dB relative to the previous corrected-density geometry, with unchanged counts and colours. In the first UTC bin the same observations span -3.6 to +1.4 dB and the occupied cells now span -4.1 to +1.9 dB.
+
+The independent scientific expectations, original `expected_density_12h.csv`, original `expected_summary.json` and all raw sources remain byte-identical. The new `expected_density_12h_correction_aware_v1.csv` and `temporal_density_revision_v1.json` supersede only the legacy density-coordinate expectations. Their standard-library calculator reads raw report SNR and power, uses frozen independently derived pair identities/timestamps and computes exact Decimal comparison coordinates, membership and edges. It does not import the production helper or refresh the scientific oracles. Reproduce only these two new files with:
+
+```powershell
+.\.venv\Scripts\python.exe -S scripts/build_vanhamel_temporal_density_reference.py --reference-directory tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1 --output-directory tmp/vanhamel_density_revision
+```
+
+The unchanged seven paper landmarks, full paired trace, twenty reception slices, 28 UTC intervals, three empty bins, final 1 h 45 min bin and 3 dB before/after median step remain separately checked. Panels A and B retain their existing source/trace presentation. Panel C retains the exact black trace, reception-number scale above, matching bin-number scale below and no added extrema circles; it reuses Panel D's fixed production density mesh. Panel D remains the native UTC view with its nonlinear axis, median and IQR. The shared single-row trace legend and approved page layout remain unchanged. No PDF-specific density shift is applied.
+
+### Balanced-margin layout follow-up (26 September 2026)
+
+At the user's request, all four aligned panels and the shared legend now extend 76 points farther to the right; the shared colour bar moves by the same amount. The page size, aspect ratio, typography, text, trace coordinates, density values and scientific expectations remain unchanged. Including the outer axis labels, the PDF's measured left/right content margins are 43.148/43.133 points. The publication image and plotted panels are therefore horizontally wider than the immediately preceding approved rendering; this follow-up supersedes pixel-identity claims for that earlier layout. Demo #5 (`vanhamel_rx_buddy`) already links the stable published PDF path, which now serves this revised layout.
+
+### WSPRadar header revision (2026-09-27)
+
+The Figure 6 PDF now begins with **WSPRadar.org reconstruction & comparison**, followed by the descriptive title **Antenna rotation: from individual receptions to 12-hour evidence**. Explicit **Referenced publication:** and **Source figure:** lines attach the authors, publication title and Figure 6 reference to their source; a **Demo:** line retains the comparison context. Presentation-only records in `config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper own this hierarchy and identify WSPRadar as the comparison author in PDF metadata. Earlier presentation records remain preserved. Source evidence, numerical expectations, scientific calculations and all body coordinates remain unchanged from the balanced-margin layout above.
+
+The subsequent header refinement abbreviates the cited given names to J. Vanhamel, W. Machiels and H. Lamy. Publication, source-figure and demo lines all use 15 pt type with equal 35 pt baseline spacing; the enlarged citation spans approximately the plot width. The main headings, complete publication title, source reference, demo details and figure body are retained.
+
+The compact-spacing follow-up replaces those 35 pt baseline intervals with 23.1 pt intervals, giving approximately 8 pt of visible whitespace between the three supporting lines. The gap from the descriptive subtitle to the publication line matches that whitespace. The demo line moves upward by 42.5 pt to increase separation from Panel A; wording, fonts, horizontal placement, page dimensions and the complete figure body remain unchanged.
+
+The final publication-gap refinement moves those three supporting lines downward together by 7.21 pt. The visible gap before the publication line now matches the approximately 15.31 pt gap between the main heading and descriptive subtitle, while the supporting lines retain their compact 23.1 pt baseline intervals. All text, typography, horizontal placement and figure-body pixels remain unchanged.

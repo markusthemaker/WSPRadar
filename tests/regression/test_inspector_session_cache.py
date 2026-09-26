@@ -432,6 +432,8 @@ def _render_segment_temporal_for_test(
             "time_bin_options": ("3h", "6h"),
             "time_bin_default": "3h",
         }
+    if is_compare:
+        temporal_bundle["base_recipe"]["reference_snr_correction_db"] = 1.6
     if include_compare_coverage:
         temporal_bundle["coverage_recipe"] = {
             "kind": "benchmark_temporal_evidence_coverage",
@@ -454,7 +456,7 @@ def _render_segment_temporal_for_test(
         },
         is_compare=is_compare,
         is_sequential=False,
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         outlier_model=outlier_model,
     )
@@ -501,6 +503,8 @@ def test_compare_segment_temporal_keeps_one_combined_figure(monkeypatch):
         inspector_scope.render_segment_temporal_evidence_export_figure
     )
     assert recipe["time_bin"] == "6h"
+    assert recipe["reference_snr_correction_db"] == 1.6
+    assert result["export_recipe"] is recipe
     assert "delta_snr_outlier_markers" not in recipe
     assert render_call["cache_key"] == (
         "segment",
@@ -585,7 +589,10 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
         }
     )
     selected_bundle = {
-        "base_recipe": {"kind": "selected_benchmark_temporal"},
+        "base_recipe": {
+            "kind": "selected_benchmark_temporal",
+            "reference_snr_correction_db": 0.0,
+        },
         "coverage_recipe": None,
         "time_agg_options": ("3h",),
         "time_agg_default": "3h",
@@ -682,7 +689,7 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
         run_id=17,
         scope_token="active-scope",
         cache_key=("selected-base",),
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         outlier_model=FakeOutlierModel(),
         analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
@@ -691,6 +698,8 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
 
     adaptive_cache_key = (
         "selected-base",
+        "correction-aware-temporal-grid-v1",
+        0.0,
         "adaptive-time-bin-policy-v1",
         ("2m", "10m", "30m", "1h", "2h", "3h", "6h"),
         "10m",
@@ -701,6 +710,7 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
     assert len(rendered_calls) == 1
     rendered_recipe, render_call = rendered_calls[0]
     assert rendered["export_recipe"] is rendered_recipe
+    assert rendered_recipe["reference_snr_correction_db"] == 0.0
     assert rendered_recipe["delta_snr_outlier_markers"][
         "candidate_signature"
     ] == "selected-candidate-signature"
@@ -781,7 +791,7 @@ def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
         run_id=17,
         scope_token="active-scope",
         cache_key=("selected-base",),
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         outlier_model=None,
         analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
@@ -790,6 +800,8 @@ def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
 
     adaptive_cache_key = (
         "selected-base",
+        "correction-aware-temporal-grid-v1",
+        0.0,
         "adaptive-time-bin-policy-v1",
         ("2m", "10m", "30m", "1h", "2h", "3h", "6h"),
         "10m",
@@ -899,7 +911,7 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
             t=T["en"],
             is_compare=True,
             is_sequential=False,
-            analysis_context=SimpleNamespace(),
+            analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
             language="en",
         )
 
@@ -948,7 +960,7 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
             run_id=17,
             scope_token="all",
             cache_key=("selected",),
-            analysis_context=SimpleNamespace(),
+            analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
             language="en",
             analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
             analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
@@ -956,6 +968,8 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
 
     adaptive_selected_cache_key = (
         "selected",
+        "correction-aware-temporal-grid-v1",
+        0.0,
         "adaptive-time-bin-policy-v1",
         ("2m", "10m", "30m", "1h", "2h", "3h", "6h"),
         "10m",
@@ -1190,7 +1204,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
         run_id=7,
         scope_token="all",
         cache_key=("selected",),
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
         analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
@@ -1282,7 +1296,7 @@ def test_one_sided_selected_path_renders_empty_absolute_frame_and_coverage(
         run_id=7,
         scope_token="all",
         cache_key=("selected",),
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         thresholded_station_rows=pd.DataFrame(
             {
@@ -2945,7 +2959,7 @@ def test_selected_station_evidence_accepts_enabled_multiple_identities(
         run_id=7,
         scope_token="all",
         cache_key=("selected",),
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         outlier_model=SimpleNamespace(
             marker_recipe=lambda _station_identities: None
@@ -3094,6 +3108,7 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
             "Observed-scale Benchmark Temporal Evidence",
             "6h",
             "Joint spot count",
+            reference_snr_correction_db=0.0,
             analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
             analysis_end_t=pd.Timestamp("2026-08-01T00:00Z"),
             chronological_title="Delta SNR over Time ({time_bin})",
@@ -3291,7 +3306,7 @@ def test_missing_benchmark_selected_artifact_retains_selected_export_identity(mo
     )
     context = SimpleNamespace(
         translations=T["en"], analysis_id="RX_COMP", run_id=17,
-        analysis_context=SimpleNamespace(), presentation_context=SimpleNamespace(language="en"),
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0), presentation_context=SimpleNamespace(language="en"),
         analysis_start_t=None, analysis_end_t=None, parquet_path="retired.parquet",
         timing_collector=None, is_sequential=False,
     )

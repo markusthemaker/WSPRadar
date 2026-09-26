@@ -25,7 +25,7 @@ from config.delta_snr_outlier import (DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD, DeltaSnrOutlierDetectionPolicy)
 from core.artifact_store import ARTIFACT_STORE, read_parquet_artifact
 from core.compare_engine import compare_footer_counts
-from core.opportunity_engine import (OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
+from core.opportunity_engine import (ABSOLUTE_METHOD_VERSION, OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
     OPPORTUNITY_SEGMENT_VIEW_COLUMNS, opportunity_utc_from_time_slot)
 from core.performance_timer import log_performance_event
 from ui.inspector import selection_state as inspector_selection
@@ -82,7 +82,7 @@ from ui.inspector.presentation import (
     selected_success_context_line,
 )
 
-INSPECTOR_CACHE_VERSION = 48
+INSPECTOR_CACHE_VERSION = 50
 INSPECTOR_CACHE_NAMESPACE_LIMITS = {
     "options": INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
     "segment": INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
@@ -758,6 +758,7 @@ class InspectorPreparation:
         segment_cache_key = (
             INSPECTOR_CACHE_VERSION,
             "opportunity",
+            ABSOLUTE_METHOD_VERSION,
             SUCCESS_DISTANCE_BINNING_VERSION,
             SUCCESS_SNR_BASELINE_VERSION,
             analysis_id,
@@ -902,6 +903,11 @@ class InspectorPreparation:
         selected_seg = scope.selected_segment
         df_seg = scope_rows
         is_outlier_reporting_enabled = outlier_detection_policy is not None
+        # Match the applied one-decimal correction in build_analysis_batches,
+        # including directly constructed contexts outside the UI adapter.
+        applied_reference_snr_correction_db = round(
+            float(analysis_context.reference_snr_correction_db), 1,
+        )
         reference_snr_correction_notice = configured_snr_correction_notice(
             analysis_context, t, is_compare=True, is_sequential=is_sequential,
         )
@@ -926,6 +932,7 @@ class InspectorPreparation:
             INSPECTOR_CACHE_VERSION,
             "comparison",
             analysis_id,
+            applied_reference_snr_correction_db,
             tuple(selected_ranges),
             tuple(selected_directions),
             bool(is_sequential),
@@ -1159,6 +1166,9 @@ class InspectorPreparation:
                                 temporal_count_label,
                                 analysis_start_t=analysis_start_t,
                                 analysis_end_t=analysis_end_t,
+                                reference_snr_correction_db=(
+                                    applied_reference_snr_correction_db
+                                ),
                                 reference_snr_correction_notice=(
                                     reference_snr_correction_notice
                                 ),
@@ -1268,6 +1278,11 @@ class InspectorPreparation:
                 "when outlier reporting is disabled."
             )
         identity_labels = identity_meta["identity"].tolist()
+        # Keep recipe geometry aligned with the numerical correction applied
+        # by the scientific query, not a higher-precision direct context value.
+        applied_reference_snr_correction_db = round(
+            float(analysis_context.reference_snr_correction_db), 1,
+        )
         reference_snr_correction_notice = configured_snr_correction_notice(
             analysis_context,
             t,
@@ -1285,6 +1300,8 @@ class InspectorPreparation:
         )
         cache_key = (
             *cache_key,
+            "correction-aware-temporal-grid-v1",
+            applied_reference_snr_correction_db,
             "adaptive-time-bin-policy-v1",
             tuple(adaptive_time_agg_options),
             adaptive_time_agg_default,
@@ -1333,6 +1350,9 @@ class InspectorPreparation:
                 is_sequential,
                 analysis_start_t=analysis_start_t,
                 analysis_end_t=analysis_end_t,
+                reference_snr_correction_db=(
+                    applied_reference_snr_correction_db
+                ),
                 reference_snr_correction_notice=(
                     reference_snr_correction_notice
                 ),
@@ -1479,6 +1499,7 @@ class InspectorPreparation:
         selected_cache_key = (
             INSPECTOR_CACHE_VERSION,
             "opportunity",
+            ABSOLUTE_METHOD_VERSION,
             "selected-success-temporal-v1",
             SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
             SUCCESS_SNR_REPRESENTATION_ACTUAL,

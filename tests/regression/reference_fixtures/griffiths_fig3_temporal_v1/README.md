@@ -42,8 +42,8 @@ The attached WSPRadar screenshots show daily medians/IQR and a 3-hour view over 
 ## Files
 
 - `demo.config`, `analysis_context.json`: exact selected case.
-- `input_sql_rows.parquet`: 125,759 SQL-aggregated rows before normal post-fetch filtering; input to the mandatory offline regression test.
-- `source_rows.parquet`, `source_rows_query.sql`, `query_legacy.sql`: original endpoint observations and query provenance, retained for any later SQL-level test.
+- `input_sql_rows.parquet`: 125,759 captured SQL-aggregated rows before normal post-fetch filtering; now an assertion target for the fresh SQL calculation, never a pipeline input.
+- `source_rows.parquet`, `source_rows_query.sql`, `query_legacy.sql`: 184,352 original endpoint observations and query provenance. The source reports are the input to the mandatory offline regression; SQL is generated afresh by the current application.
 - `expected_paired_rows.parquet`: 57,767 sorted native paired units with time, peer identity, both normalized SNR components and Delta SNR.
 - `expected_24h.csv`, `expected_3h.csv`, `expected_utc_hour.csv`: numeric curve summaries. Quartiles use linear interpolation at index `(n-1)*p`; even-sample medians average the two central values.
 - `expected_density_*.csv`: exact histogram counts by temporal bin and 1 dB Delta-SNR bin. Raw counts are preferable to normalized colors as a scientific check; the renderer can normalize each panel by its maximum.
@@ -54,7 +54,7 @@ The attached WSPRadar screenshots show daily medians/IQR and a 3-hour view over 
 
 ## Installed regression test
 
-1. Read the fixed config/context and `input_sql_rows.parquet`. Run the existing post-fetch filters and the same scope/paired-eligibility selection used by Segment Inspector. Do not query a live provider.
+1. Read the fixed config/context and `source_rows.parquet`. Generate current production SQL, execute its strict query and applicable legacy fallback with the bounded SQLite compatibility adapter, then run the existing post-fetch filters and the same scope/paired-eligibility selection used by Segment Inspector. Compare SQL group identities, normalized SNR maxima and report counts against the captured SQL result. Do not query a live provider.
 2. Rebuild native paired evidence through the production evidence builder. Compare sorted identities, times, both SNR components and Delta SNR against `expected_paired_rows.parquet`.
 3. Build the existing 24-hour, 3-hour and folded-hour numerical profiles. Compare every bin count, median, Q1 and Q3 against the expected CSVs, and the density matrices against their expected count tables. The included means provide an additional human-readable/paper-comparison statistic; the displayed profile does not currently store means.
 4. Require exactly 57,767 total Joint Spots and +7 dB global median. The count sum must be identical for every binning. Require one unchanged folded-hour result regardless of chronological bin selection.
@@ -68,7 +68,7 @@ Expectations must be immutable during tests and never regenerated automatically 
 
 With identical frozen input and configuration, a changed numeric result is an unexpected behavior change and should fail regression testing until explained. It does not automatically prove the scientific method is false: a deliberate correction may appropriately change the baseline. Conversely, passing this case does not prove correctness for every dataset or experimental interpretation.
 
-This fixture's exact expected values are a reviewed WSPRadar baseline with independently recomputed summary arithmetic and approximate paper corroboration. It is not an author-supplied independent numerical oracle. The installed regression starts after database aggregation; it covers post-fetch selection, Delta SNR construction and temporal binning, but not SQL execution. That scope is deliberate and keeps the first test small and useful.
+This fixture's exact expected values are a reviewed WSPRadar baseline with independently recomputed summary arithmetic and approximate paper corroboration. It is not an author-supplied independent numerical oracle. Since 2026-09-25 the installed regression starts with frozen source reports and covers generated SQL aggregation, post-fetch selection, Delta SNR construction and temporal binning. The SQLite adapter retains the scientific SELECT expressions and predicates, removing only the output FORMAT directive; it is not native ClickHouse-engine or provider geographic-distance validation.
 
 
 ## Running and maintaining the reference
@@ -85,7 +85,18 @@ The baseline also records the complete post-fetch population: 124,622 rows, comp
 
 The source and expected Parquet files are copied byte-for-byte from the reviewed capture. Text files use UTF-8 without BOM and LF line endings under a scoped Git attributes rule; the installed manifest hashes those canonical bytes. Keep source-revision and code hashes as historical provenance, not assertions against the current checkout. No automatic fixture-regeneration command is included. A reviewed change to fixture text or expected values must explicitly refresh its manifest entry; scientific expected values must never be regenerated merely to make a failing test pass.
 
-Original capture commands and upstream artifacts used the earlier location under `tmp/`; the checked-in files here are self-contained and do not depend on that temporary directory. The source archive remains available for future SQL validation, but this module does not claim to execute SQL, validate the historical mode interpretation, test provider failover or recalculate normalization performed upstream in SQL.
+Original capture commands and upstream artifacts used the earlier location under `tmp/`; the checked-in files here are self-contained and do not depend on that temporary directory. Current SQL performs grouping, strongest-report reduction and reported-power normalization from that source archive. The offline run does not validate historical physical mode interpretation, live providers, HTTP retries, cache/admission behavior or native database-engine geography.
+
+## Raw-source replay and graphic provenance (2026-09-25)
+
+The same replay helper feeds both scientific regression assertions and the
+Figure 3/Figure 6 comparison builders. Reconstructed scatter and temporal
+profiles come from newly calculated production paired evidence. Expected
+paired tables and captured SQL output are read only to accept or reject that
+calculation; they never replace its result. An isolation check forbids all
+non-source Parquet reads during replay. A controlled raw-report SNR change
+must alter the computed pair and density grid and fail the unchanged oracle.
+The earlier post-SQL-only integration results below are historical records.
 
 
 ## Integration verification (2026-09-24)

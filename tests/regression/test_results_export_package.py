@@ -699,6 +699,24 @@ def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
     ) != results_export._export_signature({"RX_ABS": shown_block})
 
 
+@pytest.mark.parametrize("mode", ["RX", "TX"])
+def test_performance_method_version_invalidates_exports_without_changing_benchmark(monkeypatch, mode):
+    """Retire processed Performance ZIP/figure cache identity after a method change."""
+    performance_blocks = {f"{mode}_ABS": {
+        "analysis_id": f"{mode}_ABS",
+        "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
+    }}
+    benchmark_blocks = {f"{mode}_COMP": {
+        "analysis_id": f"{mode}_COMP", "mode_folder": "benchmark",
+    }}
+    monkeypatch.setattr(results_export, "ABSOLUTE_METHOD_VERSION", "opportunity-v2")
+    old_performance_signature = results_export._export_signature(performance_blocks)
+    benchmark_signature = results_export._export_signature(benchmark_blocks)
+    monkeypatch.setattr(results_export, "ABSOLUTE_METHOD_VERSION", "opportunity-v3")
+    assert results_export._export_signature(performance_blocks) != old_performance_signature
+    assert results_export._export_signature(benchmark_blocks) == benchmark_signature
+
+
 def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
     """Invalidate prepared ZIPs when temporal SNR rendering changes on reload."""
     blocks = {
@@ -733,6 +751,27 @@ def test_temporal_evidence_layout_version_changes_export_signature(monkeypatch):
 
     assert len(version_one_signature) == 64
     assert version_one_signature != results_export._export_signature(blocks)
+
+
+@pytest.mark.parametrize("recipe_key", (
+    "segment_temporal_evidence_figure_recipe", "selected_evidence_figure_recipe",
+))
+def test_temporal_numerical_correction_changes_export_signature_with_unchanged_footer(recipe_key):
+    """Do not reuse a ZIP when numerical cell translation changes independently of copy."""
+    recipe = {
+        "kind": "segment_benchmark_temporal",
+        "schema_version": 6,
+        "reference_snr_correction_db": 0.0,
+        "reference_snr_correction_notice": "Unchanged localized footer",
+    }
+    blocks = {"RX_COMP": {
+        "analysis_id": "RX_COMP",
+        "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+        recipe_key: recipe,
+    }}
+    zero_correction_signature = results_export._export_signature(blocks)
+    recipe["reference_snr_correction_db"] = 1.6
+    assert results_export._export_signature(blocks) != zero_correction_signature
 
 
 def test_success_distance_render_version_changes_export_signature(monkeypatch):
@@ -1398,10 +1437,12 @@ def test_high_resolution_compare_exports_receive_exact_registered_marker_recipes
     selected_markers = {"candidate_signature": "selected", "markers": [2]}
     segment_recipe = {
         "kind": "segment_benchmark_temporal",
+        "reference_snr_correction_db": 1.6,
         "delta_snr_outlier_markers": segment_markers,
     }
     selected_recipe = {
         "kind": "selected_benchmark_temporal",
+        "reference_snr_correction_db": -1.2,
         "delta_snr_outlier_markers": selected_markers,
     }
     received_recipes = []
@@ -1444,6 +1485,7 @@ def test_high_resolution_compare_exports_receive_exact_registered_marker_recipes
         "figure_selected_station_evidence.png",
     ) == b"selected"
     assert received_recipes == [segment_recipe, selected_recipe]
+    assert [recipe["reference_snr_correction_db"] for recipe in received_recipes] == [1.6, -1.2]
     assert received_recipes[0]["delta_snr_outlier_markers"] is segment_markers
     assert received_recipes[1]["delta_snr_outlier_markers"] is selected_markers
 
