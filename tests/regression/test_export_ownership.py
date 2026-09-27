@@ -308,7 +308,7 @@ def test_footer_never_publishes_a_stale_queued_package(monkeypatch, change_durin
     )
     monkeypatch.setattr(results_export, "st", fake_streamlit)
     monkeypatch.setattr(results_export, "render_result_guidance_popover", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(results_export, "render_config_save_control", lambda **_kwargs: None)
+    monkeypatch.setattr(results_export, "render_config_save_control_content", lambda **_kwargs: None)
     captured = []
     def prepare(_translations, *, payload):
         captured.append(payload)

@@ -131,7 +131,7 @@ Wait for the smoke check's `Return this archive:` line and inspect its `report.m
 
 ### Diagnose the scope-rendering crash before the next load run
 
-The Codespaces smoke on 2026-09-27 passed all 19 then-current harness tests but reproduced `'setIn' cannot be called on an ElementNode` during scope exploration with one user. Its protocol log shows the preceding download fragment had completed about 3.5 seconds before scope selection began. This establishes a browser rendering failure, not a successful capacity result or evidence of memory exhaustion. The application fix is still unresolved.
+The Codespaces smoke on 2026-09-27 passed all 19 then-current harness tests but reproduced `'setIn' cannot be called on an ElementNode` during scope exploration with one user. Its protocol log shows the preceding download fragment had completed about 3.5 seconds before scope selection began. This establishes a browser rendering failure, not a successful capacity result or evidence of memory exhaustion. The application fix was unresolved at that point; the subsequent structural trace and targeted change are recorded below.
 
 For the replacement diagnostic bundle, upload the new `multiuser-load-transfer.zip` into `/workspaces/WSPRadar/` and extract into a new unused directory:
 
@@ -155,6 +155,35 @@ python tests/manual/multi_user_load_test/run.py --smoke --trace-ui-deltas
 ```
 
 `--trace-ui-deltas` retains bounded structural message records and cached-message summaries: UI paths, block/element types, run/fragment IDs, outgoing rerun requests and fingerprints of changed widget states. It records no table contents, image bytes, Markdown bodies or raw widget values. On a browser error it writes the browser stack and the structural trace immediately, followed by the usual screenshots and diagnostics. This instrumentation adds overhead and is for diagnosis, so omit it from later memory-baseline runs. Return the complete result ZIP even if this diagnostic passes; do not start the ten-user run until the scope failure has been reviewed.
+
+### Validate the Inspector fragment-ownership fix
+
+The diagnostic result `20260927-123400-59eec8` reproduced the crash with exports disabled, after all 97 manual-harness unit tests passed in Codespaces. Initial analysis, time-bin selection, station selection and Drill-Down succeeded; changing the direction scope to ENE failed. The interaction period ended after 14.94 seconds, so this is incomplete load evidence. The sampled server RSS reached 343.5 MiB during interaction while at least 9,816 MiB of host memory remained available in that phase.
+
+The trace identifies the first invalid UI update. The Inspector wrapper is at `0/6/3/0/3/1/2`. Its child `5` was a Markdown element in the preceding completed station run (record 382). Scope selection excluded that station and removed its selected-evidence sections, moving the result-footer columns from child `7` to child `5`. After a second Inspector rerun request arrived during rendering, record 442 delivered a nested Save Configuration fragment block beneath `5/1/0` without first delivering its new parent columns. The browser consequently tried to descend through the old Markdown element. Streamlit 1.64.0's pending-message queue retains other fragment IDs when clearing the interrupted parent's deltas; that source behavior explains how the child updates can survive without their parents. The trace records the resulting missing parents, not the server's intermediate queue contents.
+
+The application now renders the results-footer Save Configuration content directly in the existing Inspector fragment. Its parents and descendants therefore share one fragment owner. The top-level save control keeps its independent fragment and both placements retain the same save workflow. This change is prepared but has not yet passed a Codespaces browser run; it is not a claimed resolution or capacity result. The workload still performs no exports by default, and its scope interaction sequence is unchanged.
+
+Upload the replacement `multiuser-load-transfer.zip` into `/workspaces/WSPRadar/` and use a new, unused extraction directory:
+
+```bash
+cd /workspaces/WSPRadar
+source /workspaces/WSPRadar/.venv/bin/activate
+python -m zipfile -e multiuser-load-transfer.zip wspradar-load-test-fragment-owner
+cd wspradar-load-test-fragment-owner
+mkdir -p .test
+python -m pip install -r requirements-dev.txt -r tests/manual/multi_user_load_test/requirements.txt
+```
+
+Application and browser requirements are unchanged. The development requirements additionally ensure pytest is available for the focused application regressions. Run each command only after the preceding one succeeds:
+
+```bash
+python -m pytest tests/regression/test_config_save.py tests/regression/test_export_admission.py tests/regression/test_export_ownership.py tests/regression/test_results_export_package.py -q
+python -m unittest discover -s tests/manual/multi_user_load_test -p 'test_*.py'
+python tests/manual/multi_user_load_test/run.py --smoke --trace-ui-deltas
+```
+
+Return the smoke result ZIP for review, even if it passes. The trace should establish that footer Save Configuration deltas share the Inspector's fragment ID through the previously failing scope transition. After that smoke is confirmed, run the ten-user command below without `--trace-ui-deltas` to obtain the ordinary memory baseline. Local tests, compilation, application/browser startup and whitespace checks remain deferred at the operator's request. These focused checks and the smoke do not replace the full regression suite required before release or GitHub submission.
 
 ## Codespaces setup and ten-user run
 

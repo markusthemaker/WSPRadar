@@ -60,7 +60,7 @@ from ui.export_payloads import InspectorExportPayload, MapExportPayload
 from ui.export_registry import (
     ExportPackagePayload, ExportRegistry, RegisteredExportBlock, split_export_block,
 )
-from ui.config_save import render_config_save_control
+from ui.config_save import render_config_save_control_content
 from ui.share_analysis import render_share_analysis_browser
 from ui.result_guidance import (
     RESULT_GUIDANCE_DOWNLOAD,
@@ -2874,7 +2874,7 @@ def render_download_all_results(t):
                     width="stretch",
                 )
     with save_column:
-        render_config_save_control(
+        render_config_save_control_content(
             popover_key="config_save_results_trigger",
             form_scope="results",
         )

@@ -219,8 +219,13 @@ correction intent/value. Population- or evidence-changing scientific callbacks
 also release both Performance and Benchmark selected-station identities because
 the former path may not survive the new run. Result-view-only controls do not.
 
-`ui/config_save.py` renders the interactive save workflow as a Streamlit
-fragment. It collects the profile title, optional description and stable ID,
+`ui/config_save.py` renders the interactive save workflow in an independent
+Streamlit fragment for the top-level control and directly in the existing
+Segment Inspector fragment for the results-footer control. The shared plain
+renderer keeps footer containers and their descendants under one fragment
+owner. This avoids orphaned nested-fragment updates when scope changes move
+the footer and a queued rerun discards its pending parent-container messages
+(observed with Streamlit 1.64.0). It collects the profile title, optional description and stable ID,
 then prepares bytes from the current durable inspector state without rerunning
 the scientific analysis. The serialized `time_selection` always carries the
 same quantized absolute UTC boundaries held by the canonical editor state and

@@ -1,4 +1,4 @@
-"""Fragment-scoped saved-config preparation and download controls."""
+"""Saved-config controls with explicit ownership of their fragment boundary."""
 
 from __future__ import annotations
 
@@ -96,6 +96,28 @@ def render_config_save_control(
     selections changed by the independent Segment Inspector fragment. Callers
     can disable the control while a transient editor branch is incomplete.
     """
+    render_config_save_control_content(
+        popover_key=popover_key,
+        form_scope=form_scope,
+        is_configuration_ready=is_configuration_ready,
+    )
+
+
+def render_config_save_control_content(
+    *,
+    popover_key="config_save_top_trigger",
+    form_scope=None,
+    is_configuration_ready=True,
+):
+    """Render the shared save workflow in the caller's current fragment.
+
+    The result footer already belongs to the Segment Inspector fragment. Keep
+    its containers and save controls under that same owner: when a scope rerun
+    moves the footer and is interrupted, Streamlit 1.64 can retain a nested
+    fragment's deltas after dropping its parent's pending container deltas.
+    The top-level placement uses ``render_config_save_control`` for its own
+    independent fragment boundary.
+    """
     session_state = st.session_state
     language = session_state.get("lang", "en")
     translations = T[language]
@@ -180,8 +202,9 @@ def render_config_save_control(
                 session_state[_PREPARED_SIGNATURE_KEY] = prepared_signature
                 st.success(translations["msg_config_prepared"])
                 if profile_changed and had_prepared_results:
-                    # The results download is outside this save fragment. Its
-                    # already displayed bytes must be replaced after the commit.
+                    # The results download can be outside this fragment or
+                    # already rendered earlier in it. Refresh the app so its
+                    # displayed bytes are replaced after the metadata commit.
                     st.rerun(scope="app")
             except ValueError as exc:
                 log_config_validation_error(exc, operation="save")

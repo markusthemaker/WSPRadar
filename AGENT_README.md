@@ -475,7 +475,8 @@ Useful files when tracing behavior:
 - `ui/guided_inputs/`: validated flow loading/evaluation, transient Guided
   state, summaries, and Streamlit accordion composition.
 - `ui/config_io.py` and `ui/config_save.py`: shared versioned-config semantics,
-  fragment-scoped profile/save controls, and canonical absolute UTC-window
+  profile/save controls scoped to an independent top-level fragment or the
+  existing Inspector fragment, and canonical absolute UTC-window
   writing.
 - `ui/time_window.py`: once-per-session absolute UTC defaults, widget-state
   quantization, and effective-window validation.

@@ -66,7 +66,8 @@ def test_results_save_form_uses_distinct_widget_keys_with_shared_profile_data():
     assert config_save._PROFILE_TITLE_WIDGET_KEY not in session_state
 
 
-def test_incomplete_configuration_disables_save_control(monkeypatch):
+@pytest.mark.parametrize("placement", ["standalone-fragment", "parent-fragment-content"])
+def test_incomplete_configuration_disables_save_control(monkeypatch, placement):
     """Do not open Save Config while Classic Benchmark design is incomplete."""
     popover_calls = []
 
@@ -79,13 +80,43 @@ def test_incomplete_configuration_disables_save_control(monkeypatch):
     )
     monkeypatch.setattr(config_save, "st", fake_streamlit)
 
-    config_save.render_config_save_control.__wrapped__(
+    renderer = (
+        config_save.render_config_save_control.__wrapped__
+        if placement == "standalone-fragment"
+        else config_save.render_config_save_control_content
+    )
+    renderer(
         is_configuration_ready=False,
     )
 
     assert len(popover_calls) == 1
     assert popover_calls[0][1]["disabled"] is True
+    assert popover_calls[0][1]["on_change"] == "rerun"
 
+
+def test_standalone_save_fragment_delegates_unchanged_options_to_shared_content(monkeypatch):
+    """Retain the independent top-level save fragment without duplicating its form."""
+    calls = []
+    monkeypatch.setattr(
+        config_save,
+        "render_config_save_control_content",
+        lambda **kwargs: calls.append(kwargs),
+    )
+
+    config_save.render_config_save_control.__wrapped__(
+        popover_key="independent_save",
+        form_scope="standalone",
+        is_configuration_ready=False,
+    )
+
+    assert calls == [{
+        "popover_key": "independent_save",
+        "form_scope": "standalone",
+        "is_configuration_ready": False,
+    }]
+
+
+@pytest.mark.parametrize("placement", ["standalone-fragment", "parent-fragment-content"])
 @pytest.mark.parametrize(
     "prepare_clicked,profile_changed,has_prepared_results,reject_save,expect_rerun",
     [
@@ -99,7 +130,7 @@ def test_incomplete_configuration_disables_save_control(monkeypatch):
 )
 def test_profile_save_refreshes_outer_download_only_after_changed_commit(
     monkeypatch, prepare_clicked, profile_changed, has_prepared_results,
-    reject_save, expect_rerun,
+    reject_save, expect_rerun, placement,
 ):
     class OpenPopover:
         open = True
@@ -169,11 +200,16 @@ def test_profile_save_refreshes_outer_download_only_after_changed_commit(
     monkeypatch.setattr(config_save, "log_config_validation_error", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(config_save, "format_config_validation_error", lambda error, _labels: str(error))
 
+    renderer = (
+        config_save.render_config_save_control.__wrapped__
+        if placement == "standalone-fragment"
+        else config_save.render_config_save_control_content
+    )
     if expect_rerun:
         with pytest.raises(AppRerunRequested):
-            config_save.render_config_save_control.__wrapped__()
+            renderer()
     else:
-        config_save.render_config_save_control.__wrapped__()
+        renderer()
 
     committed = prepare_clicked and not reject_save
     assert reruns == (["app"] if expect_rerun else [])

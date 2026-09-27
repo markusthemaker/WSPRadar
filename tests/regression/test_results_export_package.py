@@ -1192,7 +1192,7 @@ def test_results_footer_always_renders_redundant_save_control(
     )
     monkeypatch.setattr(
         results_export,
-        "render_config_save_control",
+        "render_config_save_control_content",
         lambda **kwargs: captured["save_calls"].append(kwargs),
     )
 
@@ -1234,6 +1234,116 @@ def test_results_footer_always_renders_redundant_save_control(
         if kind == "columns"
     )
     assert heading_events[0][0] < columns_index
+
+
+_RESULTS_FOOTER_FRAGMENT_OWNERSHIP_APP = r'''
+import streamlit as st
+from streamlit.runtime.scriptrunner import get_script_run_ctx
+from i18n import T
+from ui import results_export
+
+context = get_script_run_ctx()
+original_enqueue = context._enqueue
+captured_deltas = []
+
+def capture_message(message):
+    if message.WhichOneof("type") == "delta":
+        captured_deltas.append(message.SerializeToString())
+    original_enqueue(message)
+
+@st.fragment
+def inspector():
+    st.markdown("Scope controls")
+    if st.session_state["show_selected_views"]:
+        with st.container():
+            st.markdown("Selected station evidence")
+        with st.container():
+            st.markdown("Drill-Down Data")
+    results_export.render_download_all_results(T["en"])
+
+context._enqueue = capture_message
+try:
+    inspector()
+finally:
+    context._enqueue = original_enqueue
+st.session_state["captured_footer_deltas"] = captured_deltas
+'''
+
+
+@pytest.mark.parametrize("is_prepared", [False, True])
+def test_results_save_deltas_keep_parent_fragment_ownership_when_selected_views_disappear(
+    monkeypatch, is_prepared,
+):
+    """An interrupted Inspector cannot retain Save children after dropping their columns.
+
+    A scope change can remove both selected-station sections, moving the result
+    controls into a slot that previously contained Markdown. Capture actual
+    Streamlit deltas at both positions and apply the real queue's fragment-clear
+    rule: every Save descendant must be discarded with its Inspector parents.
+    """
+    from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
+    from streamlit.runtime.forward_msg_queue import ForwardMsgQueue
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setattr(
+        results_export, "_ensure_current_export_state",
+        lambda: {"RX_ABS": {"mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER}},
+    )
+    monkeypatch.setattr(results_export, "_export_signature", lambda *_args: "current-signature")
+    application = AppTest.from_string(_RESULTS_FOOTER_FRAGMENT_OWNERSHIP_APP, default_timeout=15)
+    application.session_state["lang"] = "en"
+    application.session_state["val_analysis_direction"] = "rx"
+    application.session_state["run_id"] = 42
+    if is_prepared:
+        application.session_state[results_export.EXPORT_ZIP_SIGNATURE_KEY] = "current-signature"
+        application.session_state[results_export.EXPORT_ZIP_BYTES_KEY] = b"prepared evidence"
+        application.session_state[results_export.EXPORT_ZIP_FILENAME_KEY] = "results.zip"
+
+    save_paths = []
+    inspector_paths = []
+    for show_selected_views in (True, False):
+        application.session_state["show_selected_views"] = show_selected_views
+        application.run()
+        assert not application.exception
+        messages = []
+        for serialized_message in application.session_state["captured_footer_deltas"]:
+            message = ForwardMsg()
+            message.ParseFromString(serialized_message)
+            messages.append(message)
+        inspector_root = messages[0]
+        assert inspector_root.delta.WhichOneof("type") == "add_block"
+        inspector_id = inspector_root.delta.fragment_id
+        inspector_path = tuple(inspector_root.metadata.delta_path)
+        assert inspector_id
+        save_popovers = [
+            message for message in messages
+            if message.delta.WhichOneof("type") == "add_block"
+            and message.delta.add_block.id.endswith("-config_save_results_trigger")
+        ]
+        assert len(save_popovers) == 1
+        save_path = tuple(save_popovers[0].metadata.delta_path)
+        assert save_path[:len(inspector_path)] == inspector_path
+        assert {message.delta.fragment_id for message in messages} == {inspector_id}
+
+        blocks_by_path = {
+            tuple(message.metadata.delta_path): message
+            for message in messages if message.delta.WhichOneof("type") == "add_block"
+        }
+        for prefix_length in range(len(inspector_path), len(save_path)):
+            ancestor = blocks_by_path[save_path[:prefix_length]]
+            assert ancestor.delta.fragment_id == inspector_id
+
+        pending_messages = ForwardMsgQueue()
+        for message in messages:
+            pending_messages.enqueue(message)
+        pending_messages.clear(retain_lifecycle_msgs=True, fragment_ids_this_run=[inspector_id])
+        assert pending_messages.flush() == []
+        save_paths.append(save_path)
+        inspector_paths.append(inspector_path)
+
+    assert inspector_paths[0] == inspector_paths[1]
+    footer_child_index = len(inspector_paths[0])
+    assert save_paths[0][footer_child_index] == save_paths[1][footer_child_index] + 2
 
 
 def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
@@ -1278,7 +1388,7 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
     )
     monkeypatch.setattr(
         results_export,
-        "render_config_save_control",
+        "render_config_save_control_content",
         lambda **_kwargs: None,
     )
     monkeypatch.setattr(

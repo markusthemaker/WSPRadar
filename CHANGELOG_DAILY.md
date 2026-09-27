@@ -34,6 +34,19 @@ This changelog summarizes major project changes by the date of the change (UTC),
   overhead is disclosed separately from ordinary memory baselines. Updated
   coverage/report expectations and tests; execution of this follow-up remains
   deferred to Codespaces.
+  The next Codespaces run passed all 97 manual-harness tests, then reproduced
+  the scope crash with exports disabled. Its structural trace identifies a
+  nested Save Configuration block below the old Markdown footer position,
+  without its newly positioned parent columns. Streamlit 1.64's interrupted
+  parent-fragment queue clearing can discard those parent deltas while
+  retaining the child fragment's deltas. The results-footer save workflow now
+  renders in the existing Inspector fragment; its independent top-level save
+  fragment remains. Added direct fragment-ownership and save-behavior regression
+  coverage, updated existing export-test stubs and the Codespaces instructions.
+  This application change has only been source-reviewed locally; focused
+  regressions, browser confirmation and the ten-user measurement remain
+  pending in Codespaces. No capacity or memory-ceiling claim follows from the
+  failed 14.94-second diagnostic workload.
 
 - **Temporary artifact cleanup:** removed the root `tmp/` scratch tree after
   inventory and hash verification, preserving 418 useful source, derivation,

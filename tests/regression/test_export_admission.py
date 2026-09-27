@@ -255,7 +255,7 @@ def test_invalid_required_evidence_never_publishes_download(monkeypatch, tmp_pat
     monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda *_args, **_kwargs: b"map")
     monkeypatch.setattr(results_export, "_render_inspector_png_for_block", lambda *_args: None)
     monkeypatch.setattr(results_export, "render_result_guidance_popover", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(results_export, "render_config_save_control", lambda **_kwargs: None)
+    monkeypatch.setattr(results_export, "render_config_save_control_content", lambda **_kwargs: None)
     downloads = []
     fake_st.markdown = lambda *_args, **_kwargs: None
     fake_st.columns = lambda *_args, **_kwargs: [_Context(), _Context(), _Context()]
