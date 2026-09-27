@@ -4,6 +4,17 @@ This changelog summarizes major project changes by the date of the change (UTC),
 
 ## 2026-09-27
 
+- **Temporary artifact cleanup:** removed the root `tmp/` scratch tree after
+  inventory and hash verification, preserving 418 useful source, derivation,
+  review and verification files in a documented external archive. Added ignore
+  rules for `.tmp/` and `output/`, contributor/PDF-author cleanup instructions,
+  and `.tmp/` defaults for the two diagnostic report writers that previously
+  created root `output/`. Automatically cleaned system temporary directories
+  are preferred; review scratch must be removed when its task is complete.
+  Retained the user's deletion of three tracked `output/` previews.
+  Verification: 20 focused provider-check tests passed; a real offline dry run
+  created its report under `.tmp/`; both changed scripts compiled successfully.
+
 - **Persistent on-demand demo query cache:** valid demo query Parquet files now
   survive indefinitely on retained disk instead of expiring after 24 hours.
   Provider, exact SQL and explicit raw-cache format version identify reusable

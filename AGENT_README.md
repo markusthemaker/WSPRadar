@@ -367,6 +367,20 @@ archive historical material outside the checkout with an inventory and hashes.
 Do not delete a directory while a process or another task is using it. Routine
 cleanup of PDF scratch does not include `.test/` or `.wspr_cache/`.
 
+The 2026-09-27 scratch cleanup removed the former root `tmp/` after inventory
+and hash verification. It retained 418 files of historical source, derivation,
+review and verification evidence in the local archive
+`%USERPROFILE%\Documents\WSPRadar-Archives\WSPRadar-tmp-evidence-20260927T113845Z.zip`
+(32,521,717 bytes; SHA-256
+`9885133ed45b6cf14bc4f42a468aa7790ebb76ee751a40e3f9ab6c22d5c9f178`).
+The ZIP contains a README and complete original-file inventory, preserving
+the original `tmp/` relative paths. This includes the one-off
+`build_griffiths_fig6_reference_20260924.py` derivation referenced in historical
+Griffiths fixture provenance, the Zander live-window capture, the Milazzo review
+packet and completed-run reports. It is an external historical archive, not a
+runtime dependency or a newly approved scientific reference. Required current
+fixtures and published PDFs remain in the repository.
+
 The principal boundary is:
 
 ```text
