@@ -1563,8 +1563,10 @@ def test_segment_heading_precedes_accessibly_labelled_scope_selectors():
     ]
     assert 'placeholder=lbl_dist' in distance_selector
     assert 'label_visibility="collapsed"' in distance_selector
+    assert 'select_all=False' in distance_selector
     assert 'placeholder=lbl_dir' in direction_selector
     assert 'label_visibility="collapsed"' in direction_selector
+    assert 'select_all=False' in direction_selector
 
 
 def test_loading_scope_selectors_also_hide_redundant_visible_labels():

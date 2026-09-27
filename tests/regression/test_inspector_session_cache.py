@@ -1915,6 +1915,40 @@ def test_segment_time_bin_prompt_renders_above_full_width_selector(monkeypatch):
     )
 
 
+@pytest.mark.parametrize("row_count", [5, 150001])
+@pytest.mark.parametrize("has_selection_callback", [False, True])
+def test_compact_dataframe_keeps_all_rows_and_automatic_loading(
+    row_count, has_selection_callback,
+):
+    """Large evidence tables stay complete without forcing lazy selection tables."""
+    dataframe = pd.DataFrame({"evidence_row": range(row_count)})
+    calls = []
+    selection_event = SimpleNamespace(selection=SimpleNamespace(rows=[0]))
+
+    def render_table(received_dataframe, **kwargs):
+        calls.append((received_dataframe, kwargs))
+        return selection_event
+
+    def selection_callback():
+        return None
+
+    on_select = selection_callback if has_selection_callback else "ignore"
+    result = inspector_common.render_compact_dataframe(
+        SimpleNamespace(dataframe=render_table),
+        dataframe,
+        on_select=on_select,
+        selection_mode="single-row",
+    )
+
+    received_dataframe, options = calls[0]
+    assert received_dataframe is dataframe
+    assert len(received_dataframe) == row_count
+    assert options["lazy"] is None
+    assert options["on_select"] is on_select
+    assert options["selection_mode"] == "single-row"
+    assert result is selection_event
+
+
 def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
     monkeypatch,
 ):
@@ -1988,6 +2022,8 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
     )
 
     performance_call, compare_call = fake_streamlit.dataframe_calls
+    assert performance_call["lazy"] is None
+    assert compare_call["lazy"] is None
     assert performance_call["height"] == (
         inspector_common.COMPACT_DATAFRAME_HEIGHT_PX
     )

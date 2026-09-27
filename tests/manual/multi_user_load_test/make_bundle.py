@@ -28,6 +28,7 @@ HARNESS_FILES = frozenset({
     "README.md", "requirements.txt", "app_entry.py", "metrics.py", "replay.py",
     "run.py", "make_bundle.py", "test_lifecycle.py", "test_metrics.py",
     "test_replay.py", "test_bundle.py", "test_summary.py", "test_startup.py",
+    "test_interactions.py", "ui_trace.py", "test_ui_trace.py",
 })
 SOURCE_SUFFIXES = frozenset({".py", ".toml", ".config", ".json", ".txt"})
 EXCLUDED_DIRECTORIES = frozenset({

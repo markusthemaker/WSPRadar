@@ -55,6 +55,8 @@ BUTTON_SELECTION_JAVASCRIPT = """element => {
 def parse_arguments(arguments=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--users", type=int, default=10)
+    parser.add_argument("--export-users", type=int, default=0,
+                        help="First N users each export once after a full exploration cycle; default: none.")
     parser.add_argument("--duration-seconds", type=float, default=900,
                         help="Interaction period AFTER every session has completed a run.")
     parser.add_argument("--cooldown-seconds", type=float, default=300)
@@ -72,6 +74,8 @@ def parse_arguments(arguments=None):
     parser.add_argument("--browser-channel", default=None,
                         help="Optional installed browser channel, e.g. msedge on Windows.")
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--trace-ui-deltas", action="store_true",
+                        help="Diagnostic smoke: retain bounded UI structure and browser stack traces; no table/image payloads.")
     parser.add_argument("--smoke", action="store_true",
                         help="One user, 120 seconds interacting, 10 seconds recovery.")
     arguments = parser.parse_args(arguments)
@@ -84,6 +88,8 @@ def parse_arguments(arguments=None):
         arguments.idle_seconds = 2
     if not 1 <= arguments.users <= 100:
         parser.error("--users must be between 1 and 100")
+    if not 0 <= arguments.export_users <= arguments.users:
+        parser.error("--export-users must be between 0 and --users after smoke settings are applied")
     for field in ("duration_seconds", "sample_seconds", "think_seconds", "idle_seconds",
                   "action_timeout_seconds", "startup_timeout_seconds"):
         if not 0 < getattr(arguments, field) <= 86400:
@@ -100,6 +106,49 @@ def utc_now():
 
 def write_json(path, content):
     path.write_text(json.dumps(content, indent=2, default=str) + "\n", encoding="utf-8")
+
+
+def observe_script_message(session, message):
+    """Track full and fragment runs without accepting interrupted runs as done."""
+    from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
+
+    message_type = message.WhichOneof("type")
+    if message_type == "new_session":
+        session["script_starts"] += 1
+        session["script_run_id"] = message.new_session.script_run_id
+        session["script_fragment_ids"] = list(message.new_session.fragment_ids_this_run)
+        session["last_script_status"] = None
+    elif message_type == "script_finished":
+        status = message.script_finished
+        session["last_script_status"] = ForwardMsg.ScriptFinishedStatus.Name(status)
+        if status in (ForwardMsg.FINISHED_SUCCESSFULLY,
+                      ForwardMsg.FINISHED_FRAGMENT_RUN_SUCCESSFULLY):
+            session["finished_script_start"] = session["script_starts"]
+        elif status == ForwardMsg.FINISHED_WITH_COMPILE_ERROR:
+            session["protocol_error"] = "Streamlit reported a script compile error; see server.log"
+            session["failure_event"].set()
+        # EARLY_FOR_RERUN leaves the action pending for the replacement run.
+    elif message_type == "session_status_changed":
+        session["script_is_running"] = message.session_status_changed.script_is_running
+
+
+def script_diagnostics(session):
+    return {name: session.get(name) for name in (
+        "action_phase", "action_details", "script_starts", "expected_script_start", "finished_script_start",
+        "script_run_id", "script_fragment_ids", "last_script_status", "script_is_running",
+        "protocol_error", "browser_errors",
+    )}
+
+
+def expect_script_run(session, phase):
+    """Arm immediately before a real action, never for an unavailable control."""
+    session["action_phase"] = phase
+    session["expected_script_start"] = session["script_starts"] + 1
+
+
+def is_bulk_scope_option(label):
+    """The English replay UI's native bulk command is not an application value."""
+    return label == "Select all" or re.fullmatch(r"Select \d+ matches", label) is not None
 
 
 def validate_source_syntax(source_files, repository=REPOSITORY):
@@ -486,6 +535,7 @@ class Experiment:
             writer = None
             while not self.monitor_stop.is_set():
                 sample = await asyncio.to_thread(sampler.sample, self.phase, self.active_users)
+                sample["workload_users"] = sum(session.get("workload_running", False) for session in self.sessions)
                 self.samples.append(sample)
                 if writer is None:
                     writer = csv.DictWriter(stream, fieldnames=list(sample))
@@ -496,6 +546,7 @@ class Experiment:
                     rss = sample.get("server_rss_bytes")
                     available = sample.get("system_available_ram_bytes")
                     print(f"[{utc_now()}] {self.phase}: users={self.active_users}; "
+                          f"workload_users={sample['workload_users']}; "
                           f"server RSS={format_mib(rss)}; available={format_mib(available)}", flush=True)
                     previous_progress = time.monotonic()
                 try:
@@ -504,23 +555,70 @@ class Experiment:
                     pass
 
     async def settle(self, page):
-        """Wait for the real Streamlit script to finish, then reject visible failures."""
+        """Wait for the latest expected run and a quiet, error-free rendered page."""
         session = next(session for session in self.sessions if session["page"] is page)
         deadline = time.monotonic() + self.arguments.action_timeout_seconds
-        while (session["script_completions"] < session["expected_completions"]
-               or session["script_is_running"]):
+        quiet_since = None
+        quiet_script_start = None
+        while True:
+            self.raise_session_failure(session)
+            rendered = await page.evaluate("""() => {
+                const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+                const exception = Array.from(document.querySelectorAll('[data-testid="stException"]')).find(visible);
+                return {
+                    exception: exception ? exception.innerText : null,
+                    running: Array.from(document.querySelectorAll('[data-testid="stStatusWidget"]'))
+                        .some(el => visible(el) && /Running|Rerunning/i.test(el.innerText))
+                };
+            }""")
+            if rendered["exception"]:
+                raise RuntimeError(f"Application execution failed: {rendered['exception'][:2500]}")
+            has_finished = (
+                session["script_starts"] >= session["expected_script_start"]
+                and session["finished_script_start"] == session["script_starts"]
+                and session["last_script_status"] in (
+                    "FINISHED_SUCCESSFULLY", "FINISHED_FRAGMENT_RUN_SUCCESSFULLY")
+                and not session["script_is_running"] and not rendered["running"]
+            )
+            if has_finished:
+                if quiet_since is None or quiet_script_start != session["script_starts"]:
+                    quiet_since = time.monotonic()
+                    quiet_script_start = session["script_starts"]
+                elif time.monotonic() - quiet_since >= 0.25:
+                    self.raise_session_failure(session)
+                    return
+            else:
+                quiet_since = None
             if time.monotonic() >= deadline:
-                raise TimeoutError("Streamlit did not confirm script completion for the browser action")
+                raise TimeoutError(f"Streamlit did not complete the expected browser action: {script_diagnostics(session)}")
             await asyncio.sleep(0.05)
-        await page.wait_for_timeout(250)
-        await page.wait_for_function("""() => {
-            const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-            return !Array.from(document.querySelectorAll('[data-testid="stStatusWidget"]'))
-                .some(el => visible(el) && /Running|Rerunning/i.test(el.innerText));
-        }""", timeout=self.arguments.action_timeout_seconds * 1000)
-        failures = page.locator('[data-testid="stException"]')
-        if await failures.count():
-            raise RuntimeError((await failures.first.inner_text())[:2500])
+
+    def raise_session_failure(self, session):
+        if session["browser_errors"]:
+            raise RuntimeError(f"Browser execution failed: {session['browser_errors'][-1]}")
+        if session.get("protocol_error"):
+            raise RuntimeError(session["protocol_error"])
+        if session["page"].is_closed():
+            raise RuntimeError("Browser page closed during the workload")
+
+    async def run_guarded_action(self, session, operation):
+        """Interrupt even a blocked DOM wait on a fatal browser/protocol error."""
+        action_task = asyncio.create_task(operation())
+        failure_task = asyncio.create_task(session["failure_event"].wait())
+        try:
+            completed, _ = await asyncio.wait(
+                [action_task, failure_task], timeout=self.arguments.action_timeout_seconds,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            self.raise_session_failure(session)
+            if action_task not in completed:
+                raise TimeoutError(f"Browser action exceeded its deadline: {script_diagnostics(session)}")
+            return await action_task
+        finally:
+            for task in (action_task, failure_task):
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(action_task, failure_task, return_exceptions=True)
 
     async def wait_for_initial_results(self, session):
         """Reject visible application failures while waiting for a real result."""
@@ -535,6 +633,8 @@ class Experiment:
                 raise RuntimeError("Browser page closed before the initial analysis completed")
             if session["browser_errors"]:
                 raise RuntimeError(f"Browser error during initial analysis: {session['browser_errors'][-1]}")
+            if session.get("protocol_error"):
+                raise RuntimeError(session["protocol_error"])
             exception = page.locator('[data-testid="stException"]').first
             if await exception.is_visible():
                 message = await exception.inner_text(timeout=5000)
@@ -565,9 +665,17 @@ class Experiment:
         page.set_default_timeout(self.arguments.action_timeout_seconds * 1000)
         session = {"user": user + 1, "scenario": scenario["id"], "context": context,
                    "page": page, "export_verified": False,
-                   "script_completions": 0, "expected_completions": 1,
+                   "script_starts": 0, "expected_script_start": 1, "finished_script_start": 0,
+                   "script_run_id": None, "script_fragment_ids": [], "last_script_status": None,
+                   "protocol_error": None, "failure_event": asyncio.Event(), "action_phase": "initial_analysis",
+                   "action_details": {}, "ui_trace": None,
+                   "workload_running": False,
+                   "closing": False,
                    "script_is_running": False, "browser_errors": [],
                    "configuration": json.loads((self.output / scenario["config_path"]).read_text(encoding="utf-8"))["settings"]}
+        if getattr(self.arguments, "trace_ui_deltas", False):
+            from ui_trace import UITrace
+            session["ui_trace"] = UITrace()
         self.sessions.append(session)
         def observe_frame(payload):
             # Observe real browser traffic only. Completion acknowledgements are
@@ -577,15 +685,53 @@ class Experiment:
             message = ForwardMsg()
             message.ParseFromString(payload)
             message_type = message.WhichOneof("type")
-            if message_type == "script_finished":
-                session["script_completions"] += 1
-            elif message_type == "session_status_changed":
-                session["script_is_running"] = message.session_status_changed.script_is_running
-        page.on("websocket", lambda websocket: websocket.on("framereceived", observe_frame))
+            if message_type in {"new_session", "script_finished", "session_status_changed"}:
+                previous_protocol_error = session["protocol_error"]
+                observe_script_message(session, message)
+                if session["protocol_error"] and not previous_protocol_error:
+                    self.event(user + 1, "script_protocol_error", "failed", error=session["protocol_error"])
+                with (self.output / "script_events.jsonl").open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({"timestamp_utc": utc_now(), "user": user + 1,
+                                             "message": message_type, **script_diagnostics(session)}) + "\n")
+            if session["ui_trace"] is not None:
+                session["ui_trace"].observe(
+                    message, script_run_id=session["script_run_id"],
+                    fragment_ids=session["script_fragment_ids"], action_phase=session["action_phase"],
+                )
+        def observe_sent_frame(payload):
+            if session["ui_trace"] is None or not isinstance(payload, bytes):
+                return
+            from streamlit.proto.BackMsg_pb2 import BackMsg
+            message = BackMsg()
+            message.ParseFromString(payload)
+            session["ui_trace"].observe_back_message(
+                message, script_run_id=session["script_run_id"],
+                fragment_ids=session["script_fragment_ids"], action_phase=session["action_phase"],
+            )
+
+        def observe_websocket(websocket):
+            websocket.on("framereceived", observe_frame)
+            if session["ui_trace"] is not None:
+                websocket.on("framesent", observe_sent_frame)
+        page.on("websocket", observe_websocket)
         def observe_page_error(error):
             session["browser_errors"].append(str(error))
+            session["failure_event"].set()
             self.event(user + 1, "browser_page_error", "failed", error=str(error))
+            if session["ui_trace"] is not None:
+                # Snapshot synchronously at the error, before queued replacement
+                # runs or cleanup can obscure the original structural transition.
+                write_json(self.output / f"user-{user + 1:02d}-browser-error-{len(session['browser_errors']):03d}-ui.json", {
+                    "error": str(error), "stack": str(getattr(error, "stack", ""))[:16000],
+                    "script": script_diagnostics(session), "trace": session["ui_trace"].snapshot(),
+                })
         page.on("pageerror", observe_page_error)
+        def observe_page_close():
+            session["failure_event"].set()
+            if not session["closing"]:
+                self.event(user + 1, "browser_page_closed", "failed",
+                           error="The browser page closed before harness cleanup")
+        page.on("close", observe_page_close)
         started = time.monotonic()
         try:
             await page.goto(f"http://127.0.0.1:{port}/?{scenario['query_string']}", wait_until="domcontentloaded")
@@ -602,6 +748,9 @@ class Experiment:
 
     async def capture_failure(self, session, action):
         stem = f"user-{session['user']:02d}-{action}-{len(self.failures):03d}"
+        write_json(self.output / f"{stem}-script.json", script_diagnostics(session))
+        if session.get("ui_trace") is not None:
+            write_json(self.output / f"{stem}-ui.json", session["ui_trace"].snapshot())
         with contextlib.suppress(Exception):
             await session["page"].screenshot(path=str(self.output / f"{stem}.png"), full_page=False, timeout=10000)
         with contextlib.suppress(Exception):
@@ -639,6 +788,7 @@ class Experiment:
             return "unavailable", {"reason": "No inactive time-bin button with a readable selection state; see widget diagnostics"}
         control = controls.nth(candidates[iteration % len(candidates)])
         choice = (await control.inner_text()).strip()
+        expect_script_run(session, "time_bin")
         await control.click()
         await self.settle(page)
         if await control.evaluate(BUTTON_SELECTION_JAVASCRIPT) is not True:
@@ -670,7 +820,9 @@ class Experiment:
         # Streamlit's Glide scroller overlays its canvas. Dispatch a real mouse
         # click at the row marker through that overlay; no widget state injection.
         # The repository's compact table uses a 35px header and 35px rows.
+        expect_script_run(session, "station")
         await page.mouse.click(bounds["x"] + 17, bounds["y"] + 35 * (index + 1.5))
+        await self.settle(page)
         await page.wait_for_function("""({callsign, before}) => {
             const el = document.querySelector('[class*="st-key-results_evidence_level_4_"]');
             return el && el.innerText !== before && el.innerText.includes(callsign);
@@ -700,7 +852,8 @@ class Experiment:
         candidates = []
         for index, option_label in enumerate(labels):
             option = options.nth(index)
-            if option_label.strip() and option_label.strip() not in previous_selection:
+            if (option_label.strip() and not is_bulk_scope_option(option_label.strip())
+                    and option_label.strip() not in previous_selection):
                 if (await option.get_attribute("aria-disabled") != "true"
                         and await option.get_attribute("aria-selected") != "true"):
                     candidates.append(index)
@@ -709,6 +862,11 @@ class Experiment:
             return "unavailable", {"reason": "Scope has no alternative option"}
         index = candidates[iteration % len(candidates)]
         label = labels[index].strip()
+        session["action_details"] = {
+            "scope_option": label, "previous_selection": previous_selection[:1000],
+            "previous_scope": previous_scope[:1000],
+        }
+        expect_script_run(session, "scope")
         await options.nth(index).click()
         await page.keyboard.press("Escape")
         await self.settle(page)
@@ -722,16 +880,19 @@ class Experiment:
         page = session["page"]
         prepare = page.get_by_role("button", name=re.compile(r"Prepare All Results for Download$"))
         if await prepare.count() and await prepare.first.is_visible():
+            expect_script_run(session, "export_prepare")
             await prepare.first.click()
-        else:
-            # Reusing a prepared download does not necessarily rerun Streamlit.
-            session["expected_completions"] = session["script_completions"]
+            await self.settle(page)
         download = page.get_by_role("button", name=re.compile(r"Download Prepared Results$")).first
         await download.wait_for(state="visible", timeout=self.arguments.startup_timeout_seconds * 1000)
         await self.settle(page)
+        # Both production download buttons use Streamlit's default on_click="rerun".
+        # This is a separate run from preparing the archive, including on reuse.
+        expect_script_run(session, "export_download")
         async with page.expect_download(timeout=self.arguments.action_timeout_seconds * 1000) as pending:
             await download.click()
         artifact = await pending.value
+        await self.settle(page)
         path = self.output / "downloads" / f"user-{session['user']:02d}.zip"
         path.parent.mkdir(exist_ok=True)
         await artifact.save_as(str(path))
@@ -758,8 +919,11 @@ class Experiment:
 
     async def perform_action(self, session, action, iteration):
         started = time.monotonic()
-        session["expected_completions"] = session["script_completions"] + (action != "drilldown")
-        try:
+        session["action_phase"] = f"before_{action}"
+        session["action_details"] = {}
+
+        async def operation():
+            await self.settle(session["page"])
             if action == "time_bin":
                 status, details = await self.change_time_bin(session, iteration)
             elif action == "station":
@@ -776,35 +940,72 @@ class Experiment:
                     status, details = "ok", {}
                 else:
                     status, details = "unavailable", {"reason": "No station is selected for Drill-Down"}
+            self.raise_session_failure(session)
+            return status, details
+
+        try:
+            self.raise_session_failure(session)
+            status, details = await self.run_guarded_action(session, operation)
             self.event(session["user"], action, status, time.monotonic() - started, **details)
             if status == "unavailable":
                 await self.capture_failure(session, action)
             return status
         except Exception as exc:
-            self.event(session["user"], action, "failed", time.monotonic() - started, error=str(exc))
+            self.event(session["user"], action, "failed", time.monotonic() - started,
+                       error=str(exc), script=script_diagnostics(session))
             await self.capture_failure(session, action)
             return "failed"
 
     async def interact(self, session, deadline):
+        session["workload_running"] = True
+        workload_started = time.monotonic()
         rng = random.Random(self.arguments.seed + session["user"])
-        actions = ("time_bin", "station", "export", "scope", "time_bin", "station", "drilldown", "export")
+        actions = ("time_bin", "station", "drilldown", "scope", "time_bin", "station", "drilldown", "scope")
         iteration = 0
+        scope_iteration = 3
+        should_export = session["user"] <= getattr(self.arguments, "export_users", 0)
+        export_attempted = False
         resumed_after_idle = False
         await asyncio.sleep(min(session["user"] * 0.4, max(0, deadline - time.monotonic())))
         while time.monotonic() < deadline:
-            status = await self.perform_action(session, actions[iteration % len(actions)], iteration)
+            if should_export and not export_attempted and iteration >= len(actions):
+                action = "export"
+                export_attempted = True
+            else:
+                action = actions[iteration % len(actions)]
+            action_iteration = scope_iteration if action == "scope" else iteration
+            status = await self.perform_action(session, action, action_iteration)
             if resumed_after_idle:
                 self.event(session["user"], "idle_resume", status,
                            idle_seconds=self.arguments.idle_seconds)
                 resumed_after_idle = False
-            iteration += 1
+            if status == "failed":
+                session["workload_running"] = False
+                self.event(session["user"], "interaction_stopped", "failed",
+                           reason="The session remains open for memory observation; no further actions are attempted.",
+                           workload_seconds=time.monotonic() - workload_started,
+                           remaining_seconds=max(0, deadline - time.monotonic()))
+                return
+            if action == "scope":
+                scope_iteration += 1
+            if action != "export":
+                iteration += 1
             # Once per cycle, pause longer and then resume the same connected result.
             pause = self.arguments.think_seconds * rng.uniform(0.6, 1.4)
-            if iteration % len(actions) == 4:
+            if action != "export" and iteration % len(actions) == 4:
                 pause = self.arguments.idle_seconds
                 self.event(session["user"], "reading_pause", "ok", planned_seconds=round(pause, 2))
                 resumed_after_idle = True
-            await asyncio.sleep(min(pause, max(0, deadline - time.monotonic())))
+            with contextlib.suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(session["failure_event"].wait(),
+                                       min(pause, max(0, deadline - time.monotonic())))
+        session["workload_running"] = False
+        try:
+            self.raise_session_failure(session)
+        except Exception as exc:
+            self.event(session["user"], "interaction_stopped", "failed", error=str(exc),
+                       workload_seconds=time.monotonic() - workload_started, remaining_seconds=0)
+            await self.capture_failure(session, "interaction_end")
 
     def _record_cleanup_failure(self, operation, exception):
         detail = f"{type(exception).__name__}: {exception}"
@@ -828,10 +1029,19 @@ class Experiment:
         pending_users = await self._finish_cleanup_tasks(
             user_tasks, "user_task_cleanup", timeout_seconds=10, cancel=True, report_errors=False,
         )
+        for session in self.sessions:
+            session["closing"] = True
+            if session.get("ui_trace") is not None:
+                try:
+                    write_json(self.output / f"user-{session['user']:02d}-ui-final.json", session["ui_trace"].snapshot())
+                except Exception as exception:
+                    self._record_cleanup_failure("ui_trace_capture", exception)
         context_closes = [asyncio.create_task(session["context"].close(), name=f"close-user-{session['user']}")
                           for session in self.sessions if session.get("context") is not None]
         await self._finish_cleanup_tasks(context_closes, "context_cleanup", timeout_seconds=10)
         self.active_users = 0
+        for session in self.sessions:
+            session["workload_running"] = False
         if browser is not None:
             await self._finish_cleanup_tasks(
                 [asyncio.create_task(browser.close(), name="close-browser")],
@@ -1026,19 +1236,32 @@ def build_summary(experiment, fatal_error):
             "median_seconds": statistics.median(durations) if durations else None,
             "p95_seconds": percentile(durations, 0.95)}
 
-    required_actions = ("initial_analysis", "time_bin", "station", "scope", "export", "drilldown", "idle_resume")
+    required_actions = ("initial_analysis", "time_bin", "station", "scope", "drilldown", "idle_resume")
+    export_users = getattr(experiment.arguments, "export_users", 0)
+    selected_export_users = list(range(1, export_users + 1))
     per_user_coverage = {}
     for user in range(1, experiment.arguments.users + 1):
         successful_actions = {row["action"] for row in experiment.actions
                               if row.get("user") == user and row.get("status") == "ok"}
-        user_coverage = {action: action in successful_actions for action in required_actions}
+        user_required_actions = (*required_actions, "export") if user <= export_users else required_actions
+        user_coverage = {action: action in successful_actions for action in (*required_actions, "export")}
         per_user_coverage[str(user)] = {
             "actions": user_coverage,
-            "complete": all(user_coverage.values()),
-            "missing_actions": [action for action, covered in user_coverage.items() if not covered],
+            "export_required": user <= export_users,
+            "complete": all(user_coverage[action] for action in user_required_actions),
+            "missing_actions": [action for action in user_required_actions if not user_coverage[action]],
         }
     coverage = {action: all(user["actions"][action] for user in per_user_coverage.values())
                 for action in required_actions}
+    successful_export_users = [user for user in selected_export_users
+                               if per_user_coverage[str(user)]["actions"]["export"]]
+    export_policy = {
+        "requested_users": export_users,
+        "selected_user_ids": selected_export_users,
+        "maximum_exports_per_selected_user": 1,
+        "successful_users": len(successful_export_users),
+        "complete": len(successful_export_users) == export_users,
+    }
 
     server_session_ids = set()
     completed_session_ids = set()
@@ -1147,13 +1370,17 @@ def build_summary(experiment, fatal_error):
             "session_count_verified": sufficient_sessions,
             "server_checkpoint_parse_errors": checkpoint_parse_errors,
             "requested_interaction_seconds": experiment.arguments.duration_seconds,
+            "diagnostic_ui_tracing": bool(getattr(experiment.arguments, "trace_ui_deltas", False)),
             "observed_interaction_seconds": observed_seconds,
             "interaction_duration_verified": duration_complete,
             "fatal_error": fatal_error, "failure_count": failure_count,
             "status": "passed" if not incomplete_reasons else "incomplete_or_failed",
             "incomplete_reasons": incomplete_reasons,
             "required_actions_per_user": list(required_actions),
+            "export_policy": export_policy,
             "per_user_coverage": per_user_coverage,
+            "stopped_session_workloads": [row for row in experiment.actions
+                                          if row["action"] == "interaction_stopped"],
             "action_coverage": coverage, "memory_coverage": memory_coverage,
             "metric_diagnostic_sample_count": diagnostic_sample_count,
             "metric_diagnostics": dict(sorted(diagnostic_counts.items())),
@@ -1175,6 +1402,10 @@ def write_report(output, summary):
              f"Requested users: {summary['requested_users']}; unique server sessions: {summary['server_session_count']}; sessions with completed results: {summary['completed_server_session_count']}.",
              f"Interaction period after initial results: requested {summary['requested_interaction_seconds']} seconds; observed {observed_label} seconds.", "",
              "A pass confirms workload and measurement coverage. It does not certify a safe memory ceiling or rule out leaks."]
+    export_policy = summary["export_policy"]
+    lines += ["", f"Exploration workload: {summary['requested_users']} users; users selected for one optional export after their first exploration cycle: {export_policy['requested_users']}; successful exports by selected users: {export_policy['successful_users']}."]
+    if summary["diagnostic_ui_tracing"]:
+        lines += ["", "UI structural tracing was enabled. Its instrumentation overhead makes this a diagnostic run, not an ordinary memory baseline."]
     if summary["incomplete_reasons"]:
         lines += ["", "## Incomplete evidence or failures", ""]
         lines += [f"- {reason}" for reason in summary["incomplete_reasons"]]
@@ -1196,7 +1427,12 @@ def write_report(output, summary):
     lines += ["", "## Coverage for each user", "", "| User | Initial run | Time bin | Station | Scope | Export | Drill-down | Idle resume |",
               "| ---: | --- | --- | --- | --- | --- | --- | --- |"]
     for user, coverage in summary["per_user_coverage"].items():
-        cells = ["ok" if coverage["actions"][action] else "missing" for action in summary["required_actions_per_user"]]
+        cells = []
+        for action in ("initial_analysis", "time_bin", "station", "scope", "export", "drilldown", "idle_resume"):
+            if action == "export" and not coverage["export_required"]:
+                cells.append("not requested")
+            else:
+                cells.append("ok" if coverage["actions"][action] else "missing")
         lines.append(f"| {user} | {' | '.join(cells)} |")
     lines += ["", "## Action timings", "", "| Action | Successful | Failed | Unavailable | Median / p95 seconds |",
               "| --- | ---: | ---: | ---: | --- |"]

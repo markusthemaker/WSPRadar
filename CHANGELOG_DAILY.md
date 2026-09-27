@@ -4,6 +4,37 @@ This changelog summarizes major project changes by the date of the change (UTC),
 
 ## 2026-09-27
 
+- **Streamlit 1.64.0 and Codespaces interaction compatibility:** pinned the
+  runtime version across deployment, development and load-test setup. Retained
+  Full Range / All Directions defaults while disabling native multiselect bulk
+  selection. Kept automatic lazy loading for read-only tables above 150,000
+  rows and documented native search/CSV limits in both manuals and the
+  regenerated README. The optional
+  legacy pyplot renderer now uses locked figure serialization plus `st.image`,
+  preserves requested cropping and honors the helper's DPI instead of
+  Streamlit's previous implicit 200 DPI; the default fast image path is intact.
+  The manual load harness now distinguishes full/fragment success from an
+  interrupted rerun, waits separately for preparation and download reruns,
+  interrupts blocked actions on browser errors and retires failed interaction
+  loops while retaining their pages until cleanup. Added run lifecycle
+  diagnostics, retained-session versus workload counts, regression cases and
+  updated Linux transfer instructions. Verification: source review only;
+  local tests, compilation, app startup and browser checks were explicitly
+  deferred by the operator. Codespaces smoke/load validation and renderer
+  regression execution remain pending; the earlier ElementNode crash is not
+  claimed resolved.
+  Codespaces follow-up: all 19 initial harness interaction tests passed, but
+  one-user exploration still reproduced the ElementNode browser failure during
+  a scope fragment after the preceding download fragment had completed.
+  Changed the default workload to result exploration without downloads;
+  `--export-users` enables one optional export per selected user after the first
+  complete exploration cycle. Added diagnostic-only bounded incoming UI-path
+  and outgoing widget-fingerprint traces plus browser stacks to identify the
+  actual structural collision before choosing an application fix. Diagnostic
+  overhead is disclosed separately from ordinary memory baselines. Updated
+  coverage/report expectations and tests; execution of this follow-up remains
+  deferred to Codespaces.
+
 - **Temporary artifact cleanup:** removed the root `tmp/` scratch tree after
   inventory and hash verification, preserving 418 useful source, derivation,
   review and verification files in a documented external archive. Added ignore

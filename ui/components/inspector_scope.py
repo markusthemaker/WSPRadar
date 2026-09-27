@@ -102,6 +102,7 @@ def render_scope_controls(context: InspectorContext, options_view_model, *, sess
             key=dist_key,
             placeholder=lbl_dist,
             label_visibility="collapsed",
+            select_all=False,
             on_change=inspector_selection.update_explicit_all_multiselect,
             args=(
                 session_state,
@@ -131,6 +132,7 @@ def render_scope_controls(context: InspectorContext, options_view_model, *, sess
             key=dir_key,
             placeholder=lbl_dir,
             label_visibility="collapsed",
+            select_all=False,
             on_change=inspector_selection.update_explicit_all_multiselect,
             args=(
                 session_state,

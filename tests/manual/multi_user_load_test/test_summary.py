@@ -13,7 +13,7 @@ except ImportError:
     import run
 
 
-REQUIRED_ACTIONS = ("initial_analysis", "time_bin", "station", "scope", "export", "drilldown", "idle_resume")
+REQUIRED_ACTIONS = ("initial_analysis", "time_bin", "station", "scope", "drilldown", "idle_resume")
 
 
 class SummaryTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class SummaryTests(unittest.TestCase):
         self.output = Path(self.temporary_directory.name)
         self.experiment = SimpleNamespace(
             output=self.output,
-            arguments=SimpleNamespace(users=2, duration_seconds=60, baseline_seconds=5,
+            arguments=SimpleNamespace(users=2, export_users=0, duration_seconds=60, baseline_seconds=5,
                                       cooldown_seconds=5, sample_seconds=5),
             started_at="2026-09-27T09:00:00+00:00",
             interaction_started_at="2026-09-27T09:00:05+00:00",
@@ -65,6 +65,58 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(summary["observed_interaction_seconds"], 60)
         self.assertTrue(summary["per_user_coverage"]["2"]["complete"])
         self.assertIn("memory ceiling", " ".join(summary["limitations"]))
+
+    def test_default_exploration_needs_no_exports_and_reports_them_as_not_requested(self):
+        del self.experiment.arguments.export_users
+        summary = self.summary()
+        self.assertEqual(summary["status"], "passed")
+        self.assertNotIn("export", summary["required_actions_per_user"])
+        self.assertNotIn("export", summary["action_coverage"])
+        self.assertEqual(summary["export_policy"], {
+            "requested_users": 0,
+            "selected_user_ids": [],
+            "maximum_exports_per_selected_user": 1,
+            "successful_users": 0,
+            "complete": True,
+        })
+        self.assertFalse(summary["per_user_coverage"]["1"]["export_required"])
+        self.assertFalse(summary["per_user_coverage"]["1"]["actions"]["export"])
+        run.write_report(self.output, summary)
+        report = (self.output / "report.md").read_text(encoding="utf-8")
+        self.assertEqual(report.count("not requested"), 2)
+
+    def test_only_selected_users_require_an_export(self):
+        self.experiment.arguments.export_users = 1
+        summary = self.summary()
+        self.assertEqual(summary["status"], "incomplete_or_failed")
+        self.assertEqual(summary["per_user_coverage"]["1"]["missing_actions"], ["export"])
+        self.assertTrue(summary["per_user_coverage"]["2"]["complete"])
+        self.assertFalse(summary["export_policy"]["complete"])
+        self.experiment.actions.append({"user": 1, "action": "export", "status": "ok", "duration_seconds": 1})
+        summary = self.summary()
+        self.assertEqual(summary["status"], "passed")
+        self.assertEqual(summary["export_policy"]["selected_user_ids"], [1])
+        self.assertEqual(summary["export_policy"]["successful_users"], 1)
+        self.assertTrue(summary["export_policy"]["complete"])
+        self.assertFalse(summary["per_user_coverage"]["2"]["export_required"])
+
+    def test_an_unselected_users_export_does_not_cover_the_selected_user(self):
+        self.experiment.arguments.export_users = 1
+        self.experiment.actions.append({"user": 2, "action": "export", "status": "ok", "duration_seconds": 1})
+        summary = self.summary()
+        self.assertEqual(summary["status"], "incomplete_or_failed")
+        self.assertEqual(summary["export_policy"]["successful_users"], 0)
+        self.assertEqual(summary["per_user_coverage"]["1"]["missing_actions"], ["export"])
+
+    def test_ui_tracing_is_reported_as_diagnostic_instrumentation(self):
+        self.assertFalse(self.summary()["diagnostic_ui_tracing"])
+        self.experiment.arguments.trace_ui_deltas = True
+        summary = self.summary()
+        self.assertTrue(summary["diagnostic_ui_tracing"])
+        run.write_report(self.output, summary)
+        report = (self.output / "report.md").read_text(encoding="utf-8")
+        self.assertIn("instrumentation overhead", report)
+        self.assertIn("not an ordinary memory baseline", report)
 
     def test_one_users_action_does_not_cover_another_user(self):
         self.experiment.actions = [record for record in self.experiment.actions
@@ -155,6 +207,7 @@ class SummaryTests(unittest.TestCase):
 
     def test_fatal_or_recorded_failure_prevents_pass_despite_coverage(self):
         self.assertEqual(self.summary(fatal_error="monitor failed")["status"], "incomplete_or_failed")
+        self.experiment.arguments.export_users = 1
         self.experiment.actions.append({"user": 1, "action": "export", "status": "failed", "duration_seconds": 1})
         summary = self.summary()
         self.assertEqual(summary["failure_count"], 1)

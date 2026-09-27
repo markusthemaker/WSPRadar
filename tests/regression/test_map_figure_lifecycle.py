@@ -1779,9 +1779,15 @@ def test_preview_renderer_returns_the_displayed_png_bytes(monkeypatch):
     from ui import matplotlib_renderer
 
     displayed = []
+    monkeypatch.setenv(matplotlib_renderer.MATPLOTLIB_RENDER_MODE_ENV, "image")
     monkeypatch.setattr(matplotlib_renderer.st, "image", lambda image, **kwargs: displayed.append(image))
     figure = Figure(figsize=(2, 1), facecolor="black")
     figure.add_subplot(111).plot([0, 1], [0, 1])
+
+    def reject_savefig(*_args, **_kwargs):
+        pytest.fail("The default uncropped preview must retain its direct canvas path")
+
+    monkeypatch.setattr(figure, "savefig", reject_savefig)
     try:
         image_bytes = matplotlib_renderer.render_matplotlib_figure(figure, dpi=40)
     finally:
@@ -1789,3 +1795,61 @@ def test_preview_renderer_returns_the_displayed_png_bytes(monkeypatch):
 
     assert image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
     assert displayed == [image_bytes]
+
+
+@pytest.mark.parametrize("render_mode", ["pyplot", "st.pyplot"])
+@pytest.mark.parametrize("bbox_inches", [None, "tight"])
+@pytest.mark.parametrize("dpi", [40, 80])
+def test_legacy_preview_preserves_bounds_and_requested_dpi_without_pyplot_kwargs(
+    monkeypatch, render_mode, bbox_inches, dpi,
+):
+    """Keep caller-selected cropping and DPI instead of Streamlit's tight/200 defaults."""
+    from ui import matplotlib_renderer
+
+    monkeypatch.setenv(matplotlib_renderer.MATPLOTLIB_RENDER_MODE_ENV, render_mode)
+    displayed = []
+    monkeypatch.setattr(
+        matplotlib_renderer.st, "image",
+        lambda image, **kwargs: displayed.append((image, kwargs)),
+    )
+
+    def reject_pyplot(*_args, **_kwargs):
+        pytest.fail("The legacy preview must not pass savefig options through st.pyplot")
+
+    def reject_canvas_preview(*_args, **_kwargs):
+        pytest.fail("The legacy preview must retain explicit savefig serialization")
+
+    monkeypatch.setattr(matplotlib_renderer.st, "pyplot", reject_pyplot)
+    monkeypatch.setattr(matplotlib_renderer, "_draw_figure_preview_image", reject_canvas_preview)
+    figure = Figure(figsize=(2, 1), dpi=72, facecolor="black")
+    axis = figure.add_axes([0.2, 0.2, 0.6, 0.6])
+    line, = axis.plot([0, 1], [2, 4])
+    axis.set_xlabel("Time")
+    expected_buffer = BytesIO()
+    try:
+        figure.savefig(
+            expected_buffer,
+            format="png",
+            dpi=dpi,
+            bbox_inches=bbox_inches,
+            facecolor=figure.get_facecolor(),
+            edgecolor=figure.get_edgecolor(),
+        )
+        result = matplotlib_renderer.render_matplotlib_figure(
+            figure, width=420, bbox_inches=bbox_inches, dpi=dpi,
+        )
+
+        assert result is None  # The legacy Inspector mode remains uncached.
+        assert len(displayed) == 1
+        image_bytes, display_options = displayed[0]
+        assert display_options == {"width": 420}
+        with Image.open(expected_buffer) as expected_image, Image.open(BytesIO(image_bytes)) as displayed_image:
+            assert displayed_image.size == expected_image.size
+            np.testing.assert_array_equal(np.asarray(displayed_image), np.asarray(expected_image))
+            if bbox_inches is None:
+                assert displayed_image.size == (2 * dpi, dpi)
+        assert figure.dpi == 72
+        np.testing.assert_array_equal(line.get_ydata(), [2, 4])
+        assert matplotlib_renderer.matplotlib_render_span_label("figure") == "savefig + st.image figure"
+    finally:
+        dispose_matplotlib_figure(figure)

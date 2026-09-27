@@ -852,6 +852,8 @@ The two exclusion defaults apply only to untouched interactive setups. A Perform
 | **`Zoom window`**, **`Center date (UTC)`**, **`Center time (UTC)`**, **`← Earlier`**, **`Later →`**, **`Outlier Focus`** and **`Filter table`** | Optional native-time Drill-Down plots and centered table interval for exactly one selected station; table filtering affects displayed rows only | No | No |
 | `Prepare All Results for Download` | Export package and current inspection selections | n/a | No |
 
+Read-only evidence tables with more than 150,000 displayed rows load rows as you scroll. In this mode, the browser table's built-in search and direct CSV download are unavailable. Use **`Filter table`** to narrow the displayed Drill-Down rows and **`Prepare All Results for Download`** to obtain the reproducibility package. **Station Insights** remains selectable so you can open a station's evidence.
+
 The chronological choices and the default used when no explicit compatible saved choice exists are:
 
 | Complete run duration | Offered bins | Default |

@@ -839,6 +839,10 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
         for dataframe_call in fake_streamlit.dataframe_calls
     )
     assert all(
+        dataframe_call["lazy"] is None
+        for dataframe_call in fake_streamlit.dataframe_calls
+    )
+    assert all(
         dataframe_call["height"]
         == inspector_common.COMPACT_DATAFRAME_HEIGHT_PX
         for dataframe_call in fake_streamlit.dataframe_calls

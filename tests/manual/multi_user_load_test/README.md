@@ -1,6 +1,6 @@
 # WSPRadar multi-user load test
 
-This harness runs the actual application with separate headless browser sessions and frozen provider responses. It measures application-server memory, browser/load-generator memory, disk use, interactions, rendering, and exports without directing a load test at public WSPR databases or the deployed WSPRadar service.
+This harness runs the actual application with separate headless browser sessions and frozen provider responses. It measures application-server memory, browser/load-generator memory, disk use, interactions, rendering, and optional exports without directing a load test at public WSPR databases or the deployed WSPRadar service.
 
 Start with one user, then three users. Use the same source snapshot for the ten-user Codespaces run: a 15-minute workload followed by five minutes of observation after the browsers close. Setup and startup add time beyond those 20 minutes. The output ZIP is the artifact to return for analysis. All commands in this README use Linux Bash, as provided by GitHub Codespaces.
 
@@ -8,7 +8,7 @@ The 15-minute interaction timer starts only after every requested session has fi
 
 ## What the test establishes
 
-- The real Streamlit application, analysis pipeline, figures, Inspector interactions, and export preparation run against deterministic replay data.
+- The real Streamlit application, analysis pipeline, figures, Inspector interactions, and, when enabled, export preparation run against deterministic replay data.
 - Each browser context has independent session state. The application's existing analysis and export queues remain in place.
 - Provider requests that cannot be satisfied by the replay fixture fail closed. Do not alter the harness to fall back to a public database.
 - Frozen data makes runs comparable and avoids provider load. It does not measure upstream latency, provider failover, database freshness, or every possible query/data shape.
@@ -43,6 +43,14 @@ The application's root `requirements.txt` pins Streamlit to **1.64.0**, shared b
 The Linux commands use Playwright's installed Chromium browser. `--browser-channel` is only needed when deliberately using a different, already installed supported browser; retain the recorded browser version when comparing results.
 
 The harness locates time-bin controls inside the Segment Inspector by their visible labels and verifies the selected state. It supports accessibility state, React Aria's `data-selected` marker, and the older Streamlit `kind` marker. Scope changes use keyboard navigation to open the native multiselect, then verify both the selected values and the rendered active-scope summary after the application finishes. A missing control or unverifiable state is printed as `UNAVAILABLE` and makes workload coverage incomplete. It is not counted as a successful interaction. These selectors avoid relying exclusively on styling attributes that can differ between installed Streamlit versions; keep `versions.json` with every result.
+
+The scope controls retain WSPRadar's explicit **Full Range** and **All Directions** defaults and disable Streamlit's separate native **Select all** command. The harness also excludes native bulk commands from its candidate options. Read-only Inspector tables retain Streamlit 1.64.0's automatic lazy loading above 150,000 rows; Station Insights retains interactive row selection. Lazy loading reduces browser transfers for large tables but does not move ordinary pandas DataFrames out of server memory.
+
+The default workload concentrates on exploring completed results: time-bin changes, station selection, Drill-Down, distance/direction scope changes and returning after connected idle periods. It performs no exports by default (`--export-users 0`). Set `--export-users 1` to add one prepared download by the first user after that user's first complete exploration cycle; other users continue exploring. Each selected export user downloads at most once during the run. One exporting user out of ten is a separate 10% export-participation scenario, not a simulation of 1% usage; with ten users the main exploration run is the more useful baseline for an estimated rare export workflow. The report requires export coverage only for the explicitly selected export users.
+
+Each rerun-triggering action waits for a new Streamlit run and its successful full-script or fragment completion. An interrupted run that requests another rerun is not accepted as completion, and a compile error fails promptly. Export preparation and clicking the prepared download have separate completion expectations. A short quiet interval and visible error checks follow completion; time-bin, station and scope actions still verify the resulting UI state. The action timeout covers the complete action, including its DOM and download waits. A browser error interrupts a pending action rather than waiting for its normal timeout.
+
+After a failed action, that user's interaction loop stops and its page stays open until shared cleanup; the harness does not reload or replace it. `users` / `active_users` counts initialized sessions retained until cleanup, while `workload_users` counts sessions whose interaction loop is still running (including their planned reading pauses). `interaction_stopped` records the stopped workload's duration and remaining scheduled time. Failures always make the report incomplete. If all users stop early, the run proceeds to cleanup and recovery early and reports the shortened interaction duration; it does not claim a completed 15-minute workload. These changes improve test sequencing and diagnostics, but do not establish that the previously observed `ElementNode` browser crash is fixed.
 
 Validate fixture preparation and then run the short smoke check:
 
@@ -100,6 +108,54 @@ For a later source bundle, choose a new extraction folder so that stale files ca
 
 When a replacement bundle changes only application or harness code and both requirements files are unchanged, you can reuse the working Linux environment from the original Codespaces checkout. Activate it before changing directories, for example `source /workspaces/WSPRadar/.venv/bin/activate`, then enter the fresh extraction folder and run the test there. This uses that environment's actual interpreter and installed browser; it does not copy an environment or mix packages through `PYTHONPATH`. Otherwise, create and install the snapshot's own environment as described below.
 
+### Continue the existing Codespace with the Streamlit 1.64.0 update
+
+Upload the newly rebuilt `multiuser-load-transfer.zip` into `/workspaces/WSPRadar/`. The previously supplied ZIP predates the approved scope and harness fixes. Preserve earlier result folders and use the new extraction folder below only if it does not already exist; if it does, choose a different unused folder name in both commands. This update pins the Streamlit version already recorded in the last Codespaces result, so the existing Linux environment and Chromium installation can be reused after reinstalling the declared requirements:
+
+```bash
+cd /workspaces/WSPRadar
+source /workspaces/WSPRadar/.venv/bin/activate
+python -m zipfile -e multiuser-load-transfer.zip wspradar-load-test-streamlit164
+cd wspradar-load-test-streamlit164
+python -m pip install -r requirements.txt -r tests/manual/multi_user_load_test/requirements.txt
+```
+
+Then run the new isolated harness regression cases in Codespaces, followed by the real browser smoke check only if those cases pass:
+
+```bash
+python -m unittest discover -s tests/manual/multi_user_load_test -p test_interactions.py
+python tests/manual/multi_user_load_test/run.py --smoke
+```
+
+Wait for the smoke check's `Return this archive:` line and inspect its `report.md`. Proceed to the ten-user command below only when the report is `passed`; otherwise return the smoke result ZIP first. These changes were prepared without running local tests or starting a local application/browser, at the operator's request. The Codespaces smoke and load runs exercise the default image renderer; the optional legacy `pyplot` setting now serializes the figure explicitly and uses `st.image`, and its added renderer regression cases remain separate from that default-mode smoke coverage.
+
+### Diagnose the scope-rendering crash before the next load run
+
+The Codespaces smoke on 2026-09-27 passed all 19 then-current harness tests but reproduced `'setIn' cannot be called on an ElementNode` during scope exploration with one user. Its protocol log shows the preceding download fragment had completed about 3.5 seconds before scope selection began. This establishes a browser rendering failure, not a successful capacity result or evidence of memory exhaustion. The application fix is still unresolved.
+
+For the replacement diagnostic bundle, upload the new `multiuser-load-transfer.zip` into `/workspaces/WSPRadar/` and extract into a new unused directory:
+
+```bash
+cd /workspaces/WSPRadar
+source /workspaces/WSPRadar/.venv/bin/activate
+python -m zipfile -e multiuser-load-transfer.zip wspradar-load-test-ui-trace
+cd wspradar-load-test-ui-trace
+```
+
+The requirements are unchanged from the previous Streamlit 1.64.0 bundle, so reuse the existing Linux environment and Chromium installation. Run the harness tests in Codespaces first; their intentionally simulated failures can print `FAILED` diagnostics even when unittest's final result is `OK`:
+
+```bash
+python -m unittest discover -s tests/manual/multi_user_load_test -p 'test_*.py'
+```
+
+If the tests end with `OK`, run this one-user diagnostic, which performs no downloads:
+
+```bash
+python tests/manual/multi_user_load_test/run.py --smoke --trace-ui-deltas
+```
+
+`--trace-ui-deltas` retains bounded structural message records and cached-message summaries: UI paths, block/element types, run/fragment IDs, outgoing rerun requests and fingerprints of changed widget states. It records no table contents, image bytes, Markdown bodies or raw widget values. On a browser error it writes the browser stack and the structural trace immediately, followed by the usual screenshots and diagnostics. This instrumentation adds overhead and is for diagnosis, so omit it from later memory-baseline runs. Return the complete result ZIP even if this diagnostic passes; do not start the ten-user run until the scope failure has been reviewed.
+
 ## Codespaces setup and ten-user run
 
 The checked-in development container supplies Python 3.10 and the application's native packages. In the source directory you will test, use the Linux environment setup below. If you already completed the Linux setup above in this same directory, activate `.venv` and go straight to the smoke check; if you just extracted a new source snapshot, create its own environment first unless reusing the unchanged Linux environment as described above:
@@ -130,6 +186,8 @@ The test is not an HTTP request-rate test against the Streamlit health endpoint.
 By default, each invocation creates a unique directory under `.test/multiuser-load/`, named with its timestamp and a unique suffix, and writes a sibling result ZIP. The terminal prints the exact paths. `--output` can select a new explicit output directory; use a different directory for every invocation.
 
 The result package includes the measurement series (`metrics.csv`), action records (`actions.jsonl`), machine/source/dependency metadata, `summary.json`, `report.md`, the server log, and any captured failure screenshots. Failure captures also include visible page text and `*-widgets.json` files containing control labels and DOM attributes, including selection and menu-opening state, to diagnose frontend-version differences. Raw replay caches and downloaded analysis ZIP payloads are excluded from the return package.
+
+`script_events.jsonl` records observed run starts, full/fragment completion status, run IDs, fragment IDs and the active action phase. Each failure also includes a `*-script.json` snapshot with the expected and observed run sequence and sticky browser/protocol errors. Keep these records with the result ZIP so a queued or interrupted rerun can be distinguished from a UI assertion failure. `summary.json` separately lists stopped session workloads; successful initial analyses alone do not establish successful concurrent exploration.
 
 Download the printed result ZIP through the Codespaces Explorer: find the file, right-click it, and choose **Download**. Return that ZIP, including failed-run diagnostics if the test failed. Keep the one-user, three-user, and ten-user ZIPs together so that source and environment differences can be checked before comparing them.
 

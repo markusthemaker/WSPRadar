@@ -849,6 +849,8 @@ Die beiden Ausschluss-Standardwerte gelten nur für unveränderte interaktive Ko
 | **`Zoom-Zeitfenster`**, **`Datum der Fenstermitte (UTC)`**, **`Uhrzeit der Fenstermitte (UTC)`**, **`← Früher`**, **`Später →`**, **`Ausreißerfokus`** und **`Tabelle filtern`** | Optionale Drill-Down-Abbildungen in nativer Zeitauflösung und zentriertes Tabellenintervall für genau eine ausgewählte Station; die Tabellenfilterung betrifft nur angezeigte Zeilen | Nein | Nein |
 | `Alle Ergebnisse zum Download vorbereiten` | Exportpaket und aktuelle Inspektor-Auswahlen | nicht zutreffend | Nein |
 
+Evidenztabellen ohne Zeilenauswahl laden bei mehr als 150.000 angezeigten Zeilen weitere Zeilen beim Scrollen nach. In diesem Modus sind die eingebaute Suche der Browsertabelle und ihr direkter CSV-Download nicht verfügbar. Verwende **`Tabelle filtern`**, um die angezeigten Drill-Down-Zeilen einzugrenzen, und **`Alle Ergebnisse zum Download vorbereiten`**, um das Reproduzierbarkeitspaket zu erhalten. In **Station Insights** bleibt die Zeilenauswahl verfügbar, damit du die Evidenz einer Station öffnen kannst.
+
 Für chronologische Ansichten werden folgende Bins angeboten; der Standard gilt, wenn keine ausdrückliche kompatible Auswahl geladen wurde:
 
 | Vollständige Laufdauer | Angebotene Bins | Standard |

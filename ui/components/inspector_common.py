@@ -115,12 +115,16 @@ def supports_dataframe_selection_default():
         return False
 
 
-def render_compact_dataframe(container, dataframe, **kwargs):
+def render_compact_dataframe(container, dataframe, *, lazy=None, **kwargs):
     """Render a scrollable table with five visible body rows plus its header."""
+    # Retain Streamlit's automatic lazy delivery for large read-only tables.
+    # With lazy=None, tables using on_select remain eager and selectable.
+    # The viewport height does not limit the evidence rows passed to Streamlit.
     return container.dataframe(
         dataframe,
         height=COMPACT_DATAFRAME_HEIGHT_PX,
         row_height=COMPACT_DATAFRAME_ROW_HEIGHT_PX,
+        lazy=lazy,
         **kwargs,
     )
 
