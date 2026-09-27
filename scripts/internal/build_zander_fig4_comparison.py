@@ -10,7 +10,7 @@ import json
 import sys
 from types import SimpleNamespace
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT), str(ROOT / "tests/regression")]
 import matplotlib
 matplotlib.use("Agg")
@@ -24,9 +24,9 @@ import pandas as pd
 from PIL import Image
 from test_zander_experiment_a_reference import _calculate_run
 from core.matplotlib_runtime import matplotlib_operation_lock
-from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
+from scripts.internal.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
-from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
+from scripts.internal.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
 from i18n import T
 from ui.plots.evidence_figures import render_segment_insight_export_figure
 from ui.results_export import _style_figure_for_paper

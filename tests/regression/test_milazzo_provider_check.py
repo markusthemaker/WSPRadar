@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from scripts import verify_milazzo_clickhouse as checker
+from scripts.internal import verify_milazzo_clickhouse as checker
 
 
 def _query_rows():

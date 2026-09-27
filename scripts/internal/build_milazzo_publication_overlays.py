@@ -27,13 +27,13 @@ import pandas as pd
 from PIL import Image
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.analysis_context import solar_path_state
 from core.matplotlib_runtime import synchronized_matplotlib
-from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
-from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
+from scripts.internal.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
+from scripts.internal.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
 from i18n import T
 from ui.plots.evidence_figures import (
     _selected_evidence_export_recipe,

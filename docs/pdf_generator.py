@@ -213,12 +213,12 @@ def _replace_pdf_math(md_text, translations):
             "\n"
             r"B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2},\qquad"
             "\n"
-            r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}"
+            r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon"
             "\n"
         ): _formula(
             "B = (B<sub>pre</sub> + B<sub>post</sub>) / 2, "
             "&nbsp;&nbsp;|B<sub>pre</sub> - B<sub>post</sub>| "
-            "&le; H<sub>max</sub>"
+            "&le; H<sub>max</sub> + &epsilon;"
         ),
         (
             "\n"
@@ -270,11 +270,11 @@ def _replace_pdf_math(md_text, translations):
             "\n"
             r"W_i^P=\max(60,2C_i)\ \mathrm{minutes},\qquad"
             "\n"
-            r"F=\min(1\ \mathrm{dB},D_{\min})"
+            r"F=\min(1\ \mathrm{dB},D_{\min}-\varepsilon)"
             "\n"
         ): _formula(
             "W<sup>P</sup><sub>i</sub> = max(60, 2 C<sub>i</sub>) min, "
-            "&nbsp;&nbsp;F = min(1 dB, D<sub>min</sub>)"
+            "&nbsp;&nbsp;F = min(1 dB, D<sub>min</sub> - &epsilon;)"
         ),
         r"r^P_{i,u}=D_{i,u}-B^P_{i,k(u)}": _formula(
             "r<sup>P</sup><sub>i,u</sub> = D<sub>i,u</sub> - "
@@ -307,31 +307,31 @@ def _replace_pdf_math(md_text, translations):
         ),
         (
             "\n"
-            r"|m_E|\geq D_{\min},\qquad"
+            r"|m_E|\geq D_{\min}-\varepsilon,\qquad"
             "\n"
             r"|z_E|\geq Z_{\min},\qquad"
             "\n"
-            r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max},\qquad"
+            r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon,\qquad"
             "\n"
             r"\operatorname{agree}(E)\geq\frac{2}{3}"
             "\n"
         ): _formula(
-            "|m<sub>E</sub>| &ge; D<sub>min</sub>, "
+            "|m<sub>E</sub>| &ge; D<sub>min</sub> - &epsilon;, "
             "&nbsp;&nbsp;|z<sub>E</sub>| &ge; Z<sub>min</sub>, "
             "<br/>|B<sub>pre</sub> - B<sub>post</sub>| "
-            "&le; H<sub>max</sub>, &nbsp;&nbsp;agree(E) &ge; 2 / 3"
+            "&le; H<sub>max</sub> + &epsilon;, &nbsp;&nbsp;agree(E) &ge; 2 / 3"
         ),
         (
             "\n"
             r"\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad"
             "\n"
-            r"|r_{i,u}|\geq D_{\min},\qquad"
+            r"|r_{i,u}|\geq D_{\min}-\varepsilon,\qquad"
             "\n"
             r"|z_{i,u}|\geq Z_{\min}"
             "\n"
         ): _formula(
             "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>), "
-            "&nbsp;&nbsp;|r<sub>i,u</sub>| &ge; D<sub>min</sub>, "
+            "&nbsp;&nbsp;|r<sub>i,u</sub>| &ge; D<sub>min</sub> - &epsilon;, "
             "&nbsp;&nbsp;|z<sub>i,u</sub>| &ge; Z<sub>min</sub>"
         ),
         decode_rate_rx_formula: _formula(
@@ -403,6 +403,8 @@ def _replace_pdf_math(md_text, translations):
         md_text = md_text.replace(f"${latex}$", html)
 
     inline_formula_replacements = {
+        r"\varepsilon": "&epsilon;",
+        r"\varepsilon=0.01\ \mathrm{dB}": "&epsilon; = 0.01 dB",
         r"A_c": "A<sub>c</sub>",
         r"A_c=1": "A<sub>c</sub> = 1",
         r"b": "b",

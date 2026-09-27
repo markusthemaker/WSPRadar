@@ -1,5 +1,7 @@
 """Regression contracts for pure Delta-SNR outlier export tables."""
 
+from dataclasses import replace
+
 import pandas as pd
 import pytest
 
@@ -11,6 +13,7 @@ from ui.inspector.outlier_candidates import (
     DeltaSnrOutlierModel,
     DeltaSnrOutlierReportEntry,
     OutlierStationIdentity,
+    detect_delta_snr_outlier_candidates,
 )
 from ui.inspector.outlier_export import (
     DELTA_SNR_OUTLIER_EXPORT_SCHEMA_VERSION,
@@ -395,6 +398,148 @@ def test_cycle_scores_strong_gates_and_inclusive_boundaries_are_exact():
         -20.0,
         -20.0,
     ]
+
+
+@pytest.mark.parametrize("departure_sign", [1.0, -1.0])
+@pytest.mark.parametrize("is_sequential", [False, True])
+def test_tolerant_departure_export_matches_native_qualifying_units_without_rounding(
+    departure_sign,
+    is_sequential,
+):
+    """Keep raw dB values while exporting the detector's inclusive 0.01 dB gate."""
+    anchor_utc = pd.Timestamp("2021-05-09T12:00:00Z")
+    event_values = [
+        departure_sign * value for value in (6.25, 5.995, 5.989, 5.99, 6.25)
+    ]
+    event_times = [anchor_utc + pd.Timedelta(minutes=2 * index) for index in range(5)]
+    points = [
+        (offset_minutes, 0.0)
+        for offset_minutes in (-300, -270, -240, -210, -180, -150, -120, -90)
+    ]
+    points.extend((2 * index, value) for index, value in enumerate(event_values))
+    points.extend(
+        (offset_minutes, 0.0)
+        for offset_minutes in (90, 120, 150, 180, 210, 240, 270, 300)
+    )
+    comparison_units = pd.DataFrame(
+        [
+            {
+                "peer_sign": "PA0O",
+                "peer_grid": "JO33HG",
+                "evidence_utc": anchor_utc + pd.Timedelta(minutes=offset_minutes),
+                "outcome": "joint",
+                "paired_eligible": True,
+                "target_snr_db": -20.0 + delta_snr_db,
+                "reference_snr_db": -20.0,
+                "metric": delta_snr_db,
+            }
+            for offset_minutes, delta_snr_db in points
+        ]
+    )
+    original_units = comparison_units.copy(deep=True)
+    policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=6.0,
+        minimum_robust_z=3.0,
+        maximum_baseline_difference_db=3.0,
+    )
+    model = detect_delta_snr_outlier_candidates(
+        comparison_units,
+        analysis_start_utc=anchor_utc - pd.Timedelta(hours=8),
+        analysis_end_utc=anchor_utc + pd.Timedelta(hours=8),
+        paired_unit_cadence_minutes=2.0,
+        detection_policy=policy,
+    )
+
+    assert len(model.candidates) == 1
+    candidate = model.candidates[0]
+    assert candidate.paired_unit_count == 5
+    expected_qualifying_times = [event_times[index] for index in (0, 1, 3, 4)]
+    assert [unit.evidence_utc for unit in candidate.qualifying_units] == (
+        expected_qualifying_times
+    )
+    qualifying_recipe = model.qualifying_unit_marker_recipe()
+    assert qualifying_recipe is not None
+    assert qualifying_recipe["detector_version"] == "native-residual-episode-v8"
+    assert qualifying_recipe["qualifying_unit_count"] == 4
+    assert model.cache_token[0] == "native-residual-episode-v8"
+
+    tables = _export_tables(model, comparison_units, is_sequential=is_sequential)
+    evidence = tables.paired_evidence
+    assert evidence["meets_strong_anchor_gates"].tolist() == [
+        True, True, False, True, True
+    ]
+    assert pd.to_datetime(
+        evidence.loc[evidence["meets_strong_anchor_gates"], "utc"],
+        utc=True,
+    ).tolist() == expected_qualifying_times
+    assert evidence["delta_snr_db"].tolist() == event_values
+    assert evidence["departure_from_local_baseline_db"].tolist() == event_values
+    assert evidence["target_snr_db"].tolist() == [
+        -20.0 + value for value in event_values
+    ]
+    assert evidence["corrected_reference_snr_db"].tolist() == [-20.0] * 5
+    assert evidence["cycle_robust_z_score"].tolist() == [
+        0.6745 * value / 0.5 for value in event_values
+    ]
+    assert tables.event_paths.iloc[0]["observed_median_delta_snr_db"] == (
+        departure_sign * 5.995
+    )
+    assert evidence["paired_unit_type"].unique().tolist() == [
+        OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR
+        if is_sequential else OUTLIER_EXPORT_JOINT_SPOT
+    ]
+    assert tuple(tables.event_paths.columns) == OUTLIER_EVENT_PATH_COLUMNS
+    assert tuple(evidence.columns) == OUTLIER_PAIRED_EVIDENCE_COLUMNS
+    assert policy.signature_tuple == (6.0, 3.0, 3.0)
+    assert policy.as_dict() == {
+        "minimum_departure_db": 6.0,
+        "minimum_robust_z": 3.0,
+        "maximum_baseline_difference_db": 3.0,
+    }
+    metadata = build_delta_snr_outlier_export_metadata(model, tables)
+    assert metadata["schema_version"] == 1
+    assert metadata["result_status"] == "candidates"
+    assert metadata["paired_evidence_row_count"] == 5
+    pd.testing.assert_frame_equal(comparison_units, original_units)
+
+
+@pytest.mark.parametrize("departure_sign", [1.0, -1.0])
+def test_departure_tolerance_does_not_relax_export_robust_z_gate(departure_sign):
+    """A tolerated dB departure still fails a robust-z score below its gate."""
+    delta_snr_values = tuple(departure_sign * value for value in (8.0, 5.995, 8.0))
+    candidate = _candidate(
+        "PA0O",
+        "JO33HG",
+        (
+            "2021-05-09T01:40:00Z",
+            "2021-05-09T01:42:00Z",
+            "2021-05-09T01:44:00Z",
+        ),
+        delta_snr_values,
+        baseline_db=0.0,
+        robust_spread_db=0.6745 * 5.995 / 2.995,
+    )
+    policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=6.0,
+        minimum_robust_z=3.0,
+        maximum_baseline_difference_db=3.0,
+    )
+    model = replace(_model(_report_entry(candidate)), detection_policy=policy)
+    tables = _export_tables(
+        model,
+        _comparison_units((candidate, delta_snr_values)),
+        is_sequential=False,
+    )
+
+    evidence = tables.paired_evidence
+    assert evidence["meets_strong_anchor_gates"].tolist() == [True, False, True]
+    assert evidence.iloc[1]["cycle_robust_z_score"] == pytest.approx(
+        departure_sign * 2.995
+    )
+    assert evidence["delta_snr_db"].tolist() == list(delta_snr_values)
+    assert evidence["departure_from_local_baseline_db"].tolist() == list(
+        delta_snr_values
+    )
 
 
 def test_impulse_is_one_joint_spot_with_start_and_end_boundary():

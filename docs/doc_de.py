@@ -741,6 +741,8 @@ Versionierte Konfigurationen speichern die zutreffenden wissenschaftlichen Einst
 
 Beide Eingabeansichten enden mit derselben abschließenden Konfigurationsübersicht. Im Zustand **`Prüfung — startbereit ✓`** liegen `RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern` erst nach gültiger Konfiguration innerhalb dieses Bereichs. Der Prüfbereich bleibt beim Start des Laufs und nach seinem Abschluss geöffnet; auch der Laufstatus bleibt bei **`Complete`** geöffnet. In der klassischen Eingabe wird beim Start einer gewöhnlichen Analyse oder einer Demo kein Konfigurationsbereich automatisch geschlossen; einzelne Bereiche lassen sich weiterhin manuell schließen und wieder öffnen. Die geführte Eingabe darf frühere abgeschlossene Schritte weiterhin kompakt darstellen, ihr abschließender Prüfbereich bleibt jedoch geöffnet.
 
+Nach dem Laden einer Demo in der geführten Eingabe öffnet `Einstellungen Schritt für Schritt durchgehen` die Einrichtungsschritte zur Prüfung. `Direkt zu Prüfen und starten` öffnet den abschließenden Prüfbereich und startet die Analyse sofort mit den aktuellen gültigen Einstellungen; ein zweiter Klick auf `RX-Analyse starten` / `TX-Analyse starten` ist nicht erforderlich. Die Abkürzung bleibt unverfügbar, solange erforderliche Einstellungen unvollständig sind oder bereits eine Analyse läuft. Das Laden der Demo selbst startet weiterhin keine Analyse.
+
 Nach dem angenommenen Start einer Analyse springt die Seite zum Laufstatus unterhalb der Prüfung. Sobald das erste Kartenbild bereitsteht, springt sie zu diesem Ergebnis, während Segment-Inspektor und Drill-Down-Daten automatisch weiter vorbereitet werden. Der Status erreicht **`Complete`** erst, wenn alle Ergebnisansichten bereitstehen. Jeder automatische Sprung erfolgt einmal pro Startauftrag; wer während der Wartezeit selbst scrollt oder an eine andere Stelle navigiert, verhindert den Sprung zur Karte. Interaktionen mit den Ergebnisansichten und die erneute Anzeige eines abgeschlossenen Laufs lösen diese automatischen Sprünge nicht erneut aus.
 
 **Konfigurationskompatibilität.** Gespeicherte Dateien bewahren die Eingaben und dauerhaften Ansichtsoptionen, die für die ausgewählte Analyse gelten. Ungültige oder nicht unterstützte Dateien werden abgelehnt, statt stillschweigend neu interpretiert zu werden. Das formale JSON-Schema ist der maßgebliche vollständige Vertrag gespeicherter Konfigurationen; [Abschnitt 8.4](#sec-8-4) bietet eine knappe, betriebsbezogene Zusammenfassung ausgewählter öffentlicher Bezeichnungen. Das Laden oder Speichern einer Konfiguration erzeugt kein zusätzliches Ergebnis; ausgeführt wird nur die ausgewählte Performance- oder Benchmark-Analyse.
@@ -879,7 +881,9 @@ Die Delta-SNR-Ausreißererkennung für Benchmark ist eine optionale fachkundige 
 | **`Minimaler robuster z-Wert`** | `3.0`; einschließlich `0.1`–`100.0` | $Z_{\min}$ | Verlangt, dass sowohl der Ereignismedian als auch jeder berichtete Grenzanker diesen absoluten robusten lokalen Streuungswert erreichen. Der Wert ist deskriptiv und weder eine kalibrierte Wahrscheinlichkeit noch ein konventionelles gaußsches Signifikanzniveau. |
 | **`Maximaler Unterschied zwischen Baseline davor/danach (dB)`** | `3.0`; einschließlich `0.1`–`100.0 dB` | $H_{\max}$ | Verwirft einen Kandidaten, wenn sich die Flankenmediane vor und nach dem Ereignis um mehr als diesen Betrag unterscheiden, damit eine instabile oder verschobene Baseline nicht als vorübergehende Auslenkung berichtet wird. |
 
-Die Standardkombination priorisiert große absolute Auslenkungen: Die 6-dB-Schwelle setzt die feste Untergrenze, während der robuste z-Wert weiterhin verlangt, dass die Auslenkung auch im Verhältnis zur lokalen robusten Streuung des Funkwegs groß ist.
+Die Vergleiche für Abweichung und Baseline-Unterschied verwenden eine feste Toleranz von `0.01 dB`, wie in [Abschnitt 7.11](#sec-7-11) definiert; die konfigurierten Schwellen und internen Evidenzwerte bleiben ungerundet. Für den Vergleich des robusten z-Werts gilt keine solche Toleranz.
+
+Die Standardkombination priorisiert große absolute Auslenkungen: Die 6-dB-Schwelle setzt die nominelle Untergrenze, während der robuste z-Wert weiterhin verlangt, dass die Auslenkung auch im Verhältnis zur lokalen robusten Streuung des Funkwegs groß ist.
 
 Der Schalter und die drei Schwellen werden gespeichert, soweit sie für die Analyse gelten. Ihre Änderung kennzeichnet die Konfiguration als geändert, startet aber nicht automatisch eine Analyse; berechne ein neues Ergebnis mit der normalen richtungsabhängigen Aktion **`RX-Analyse starten`** / **`TX-Analyse starten`**. Alle drei Schwellen gelten unverändert für Spot-Impulse, kurze Ausbrüche und anhaltende Auslenkungen. Für längere Ereignisse gibt es weder einen Dauerbonus noch eine schwächere Schwelle. Ein kleineres $D_{\min}$ oder $Z_{\min}$ beziehungsweise ein größeres $H_{\max}$ macht die Berichterstattung großzügiger; die jeweils umgekehrte Änderung macht sie selektiver. Lege die Schwellen für eine bestätigende Untersuchung vor Sichtung der Kandidaten fest und sichere sie, statt sie so lange anzupassen, bis ein gewünschtes Ereignis erscheint.
 
@@ -1491,6 +1495,9 @@ Die Notation gilt nur für diesen Abschnitt, abgesehen von den drei bereits in [
 | $C_i,G_i,F$ | `C` = cadence, `G` = gap, `F` = floor: typische Funkwegkadenz, größte interne Lücke und vorläufige Gruppierungsuntergrenze |
 | $W_i^P,W_i^B$ | `W` = width: Ausschlussbreiten der Pilot- und abschließenden Baseline |
 | $E,m_E,z_E,\operatorname{agree}(E)$ | `E` = event, `m` = median, `agree` = agreement: Ereigniskandidat, medianes Residuum, robuster Ereignis-z-Wert und Anteil der Vorzeichenübereinstimmung |
+| $\varepsilon$ | feste Vergleichstoleranz von `0.01 dB` für die Mindestabweichung und den maximalen Baseline-Unterschied |
+
+Der Detektor verwendet $\varepsilon=0.01\ \mathrm{dB}$ ausschließlich beim Vergleich einer absoluten Abweichung mit $D_{\min}$ oder eines Baseline-Unterschieds davor/danach mit $H_{\max}$. Interne Evidenzwerte und konfigurierte Schwellen werden dabei nicht gerundet. Dieselbe Toleranz gilt für die Ereignisqualifikation, starke Grenzanker und einzeln qualifizierende native Einheiten. Robuste z-Werte, die MAD/IQR-Skalenschätzung und die Regeln zur Vorzeichenübereinstimmung bleiben unverändert; für den Vergleich des robusten z-Werts gilt keine Toleranz.
 
 **1. Evidenz und Auflösung.** Nur native gepaarte Einheiten liefern Delta-SNR-Werte für den Detektor. Einseitige Outcomes besitzen keinen gepaarten Wert und können kein Ereignis qualifizieren; ihre Zeitpunkte tragen jedoch zur Kadenzschätzung bei, und die Outcomes bleiben Diagnosekontext. Die Erkennung läuft für jeden Funkweg $i$ getrennt und vor der Darstellungsaggregation der **Zeitlichen Evidenz**. Ein anderes Darstellungs-Bin kann deshalb kein Ereignis erzeugen, zusammenführen, teilen oder entfernen. Ist **`ΔSNR-Ausreißerkandidaten melden`** ausgeschaltet, wird der Detektor nicht ausgeführt, und dem Ergebnis werden keine Ausreißerbegriffe hinzugefügt.
 
@@ -1507,7 +1514,7 @@ Das abschließende erwartete lokale Delta SNR gewichtet beide Flanken gleich, w�
 
 $$
 B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2},\qquad
-\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}
+\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon
 $$
 
 Die gleiche Gewichtung verhindert, dass die Flanke mit mehr belegten Zellen dominiert. Fehlt einer Flanke die erforderliche Stützung oder scheitert das Stabilitätskriterium, bleibt der Funkweg für diesen Kandidaten unklassifiziert, und es wird kein Ereignis berichtet.
@@ -1549,8 +1556,10 @@ Um Kandidaten zu bilden, ohne dass der geprüfte Punkt seinen eigenen Erwartungs
 
 $$
 W_i^P=\max(60,2C_i)\ \mathrm{minutes},\qquad
-F=\min(1\ \mathrm{dB},D_{\min})
+F=\min(1\ \mathrm{dB},D_{\min}-\varepsilon)
 $$
+
+Der Term `1 dB` bleibt exakt: Die Toleranz geht nur über die tolerierte Mindestabweichung in diese frühe Gruppierungsregel ein, damit die Gruppierung keine strengere Abweichungsanforderung als die abschließende Qualifikation stellt. Sie wird weder vom festen Term `1 dB` noch vom unten beschriebenen `1-dB`-Kriterium zur Erweiterung der Ereignisränder abgezogen.
 
 Die Pilot-Anpassung verwendet dieselbe Flankenreichweite von sechs Stunden, mindestens vier belegte Zellen auf jeder Seite und das Stabilitätskriterium $H_{\max}$. Eine native Einheit $u$ in Zelle $k(u)$ erhält nur dann ein Pilot-Residuum, wenn diese Zelle gestützte Flanken besitzt:
 
@@ -1579,9 +1588,9 @@ $$
 Das Ereignis qualifiziert sich nur, wenn jedes Kriterium erfüllt ist:
 
 $$
-|m_E|\geq D_{\min},\qquad
+|m_E|\geq D_{\min}-\varepsilon,\qquad
 |z_E|\geq Z_{\min},\qquad
-\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max},\qquad
+\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon,\qquad
 \operatorname{agree}(E)\geq\frac{2}{3}
 $$
 
@@ -1593,7 +1602,7 @@ Nach der Qualifikation ist eine native Einheit nur dann ein starker Grenzanker, 
 
 $$
 \operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad
-|r_{i,u}|\geq D_{\min},\qquad
+|r_{i,u}|\geq D_{\min}-\varepsilon,\qquad
 |z_{i,u}|\geq Z_{\min}
 $$
 

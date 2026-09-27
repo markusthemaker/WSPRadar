@@ -19,7 +19,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import zipfile
 
-REPOSITORY = Path(__file__).resolve().parents[1]
+REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY))
 sys.path.insert(0, str(REPOSITORY / "tests" / "regression"))
 
@@ -32,7 +32,7 @@ from core.map_data_artifacts import MapDataArtifactPaths, write_map_data_artifac
 from core.map_models import MapData
 from core.presentation_context import PresentationContext
 from i18n import T
-from scripts import build_regression_fixture_from_demo_folder as fixture_builder
+from scripts.internal import build_regression_fixture_from_demo_folder as fixture_builder
 from test_milazzo_reference import _calculate_run, _assert_native_units
 from ui import results_export
 from ui.config_io import apply_config_state_values, validate_config_document

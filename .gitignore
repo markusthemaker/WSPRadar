@@ -7,3 +7,6 @@ __pycache__/
 /tmp/
 /.tmp/
 /output/
+# Unpacked demo exports are local intake; keep their operating instructions.
+/tests/demo/*
+!/tests/demo/README.md

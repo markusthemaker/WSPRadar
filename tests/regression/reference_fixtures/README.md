@@ -6,6 +6,21 @@ regressions. They do not become independent validation merely by resembling a
 publication: the paper-derived features and separately calculated reference
 expectations remain the independent checking side of the comparison.
 
+## Current maintenance command locations
+
+Specialist builders, scientific verification tools, PDF helpers and the PDF
+publisher now live in `scripts/internal/`. The complete current command index is
+[scripts/README.md](../../../scripts/README.md). For a fixture instruction that
+names `scripts/build_*.py` or `scripts/verify_*.py`, use the same filename under
+`scripts/internal/`; its documented arguments and scientific inputs are unchanged.
+`scripts/sync_reference_figure_pdfs.py` likewise moved under `scripts/internal/`.
+
+Individual frozen fixture READMEs can be covered by their manifests' file hashes.
+Those READMEs, provenance paths and historical builder hashes are preserved as
+part of the original evidence package. This index supplies the current command
+locations without rewriting that frozen record. The routine regression runner
+and README synchronizer remain directly under `scripts/`.
+
 ## Required reconstruction path
 
 ```text
@@ -75,7 +90,7 @@ manifest. Preserve the source reports, publication annotations, scientific
 configuration and independent numerical expectations. Keep native generated
 plots and text as vectors; original publication raster panels stay raster.
 
-Finally run `python scripts/sync_reference_figure_pdfs.py` to refresh the copies
-served by demo links, and `python scripts/sync_reference_figure_pdfs.py --check`
+Finally run `python scripts/internal/sync_reference_figure_pdfs.py` to refresh the copies
+served by demo links, and `python scripts/internal/sync_reference_figure_pdfs.py --check`
 to verify that all published copies match the reviewed fixture PDFs. This
 publication step does not depend on the retained PNG companions.

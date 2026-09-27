@@ -5,7 +5,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.text import Text
 
 from config.demo_pdf_headers import DEMO_PDF_HEADER_TITLE, DemoPdfHeader
-from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT
+from scripts.internal.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT
 
 
 class _CenteredHeaderLine(Artist):

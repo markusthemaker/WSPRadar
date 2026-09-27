@@ -110,6 +110,56 @@ class BundleTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 collect_bundle_paths(repository, [])
 
+    def test_inventory_preserves_unstaged_script_moves_without_adding_neighbors(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = Path(temporary_directory)
+            internal_directory = repository / "scripts/internal"
+            internal_directory.mkdir(parents=True)
+            moved_script = internal_directory / "build_example.py"
+            moved_script.write_text("retained_builder = True\n", encoding="utf-8")
+            (internal_directory / "private_helper.py").write_text("private = True\n", encoding="utf-8")
+            included, excluded = collect_bundle_paths(repository, ["scripts/build_example.py"])
+            self.assertEqual(included, ["scripts/internal/build_example.py"])
+            self.assertEqual(excluded, ["scripts/build_example.py"])
+
+    def test_inventory_does_not_treat_a_second_existing_script_as_a_move(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = Path(temporary_directory)
+            internal_directory = repository / "scripts/internal"
+            internal_directory.mkdir(parents=True)
+            for script in (repository / "scripts/example.py", internal_directory / "example.py"):
+                script.write_text("example = True\n", encoding="utf-8")
+            included, excluded = collect_bundle_paths(repository, ["scripts/example.py"])
+            self.assertEqual(included, ["scripts/example.py"])
+            self.assertEqual(excluded, [])
+
+    def test_inventory_includes_the_linked_load_test_history(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = Path(temporary_directory)
+            history = repository / "tests/manual/multi_user_load_test/HISTORY.md"
+            history.parent.mkdir(parents=True)
+            history.write_text("# Historical diagnostics\n", encoding="utf-8")
+            included, excluded = collect_bundle_paths(repository, [])
+            self.assertEqual(included, ["tests/manual/multi_user_load_test/HISTORY.md"])
+            self.assertEqual(excluded, [])
+
+    def test_inventory_includes_approved_guides_without_private_notes(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = Path(temporary_directory)
+            approved_guides = [
+                "scripts/README.md",
+                "docs/verification-history.md",
+                "docs/relocation-ledgers/engineering-verification-history.md",
+                "config/demos_backlog/README.md",
+            ]
+            for name in [*approved_guides, "docs/private-notes.md"]:
+                guide = repository / name
+                guide.parent.mkdir(parents=True, exist_ok=True)
+                guide.write_text("# Guide\n", encoding="utf-8")
+            included, excluded = collect_bundle_paths(repository, [])
+            self.assertEqual(included, sorted(approved_guides))
+            self.assertEqual(excluded, [])
+
     def test_source_digest_is_ordered_portable_and_excludes_snapshot_and_images(self):
         records = [
             {"path": "ui\\panel.py", "sha256": "b"},

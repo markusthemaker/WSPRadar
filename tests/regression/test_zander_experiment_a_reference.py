@@ -388,7 +388,7 @@ def test_paper_oracle_rejects_sign_shift_and_aggregation_changes(reference_run):
 
 
 def test_comparison_plot_inputs_read_raw_reports_but_never_expected_results(monkeypatch, reference_run):
-    from scripts import build_zander_fig4_comparison as builder
+    from scripts.internal import build_zander_fig4_comparison as builder
 
     read_csv = pd.read_csv
     opened_names = []
@@ -410,7 +410,7 @@ def test_comparison_plot_inputs_read_raw_reports_but_never_expected_results(monk
 
 @pytest.mark.parametrize("mutation_stage", ["raw_report_snr", "production_sql_snr"])
 def test_comparison_plot_values_follow_raw_and_production_mutations(monkeypatch, reference_run, mutation_stage):
-    from scripts import build_zander_fig4_comparison as builder
+    from scripts.internal import build_zander_fig4_comparison as builder
 
     baseline = builder.build_comparison_inputs(reference_run.source_rows.copy())
     witness = reference_run.points.loc[reference_run.points.metric.eq(-7)].iloc[0]
@@ -459,7 +459,7 @@ def test_comparison_plot_values_follow_raw_and_production_mutations(monkeypatch,
 
 
 def test_comparison_expected_results_can_only_reject_computed_plot_values(monkeypatch, reference_run):
-    from scripts import build_zander_fig4_comparison as builder
+    from scripts.internal import build_zander_fig4_comparison as builder
 
     comparison = builder.build_comparison_inputs(reference_run.source_rows.copy())
     before = comparison.differences.copy()

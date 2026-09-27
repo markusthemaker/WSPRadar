@@ -12,7 +12,7 @@ import re
 import shutil
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LINK_PREFIX = "app/static/reference_figures/"
 PDF_LINK_PATTERN = re.compile(r"\]\((app/static/reference_figures/[^)\s]+)\)")
 SAFE_NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\Z")

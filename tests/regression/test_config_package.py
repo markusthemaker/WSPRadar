@@ -52,7 +52,7 @@ from config.demo_profiles import (
     resolve_demo_profile_text,
 )
 from i18n import GUIDED_INPUTS
-from scripts.sync_reference_figure_pdfs import (
+from scripts.internal.sync_reference_figure_pdfs import (
     collect_reference_pdf_paths,
     sync_reference_figure_pdfs,
 )

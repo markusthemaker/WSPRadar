@@ -13,6 +13,10 @@ from config.delta_snr_outlier import (
 )
 from config.demo_profiles import prepare_demo_description_markdown
 from i18n import GUIDED_INPUTS
+from ui.analysis_submission_state import (
+    begin_main_analysis_submission,
+    get_analysis_submission,
+)
 from ui.run_lifecycle import handoff_input_view_submission
 from ui.analysis_question_state import apply_analysis_question_choice
 from ui.callbacks import reset_audit, reset_experiment_definition
@@ -74,6 +78,7 @@ class GuidedRenderResult:
     available_nodes: tuple[str, ...]
     is_ready: bool
     review_actions_slot: Any | None
+    demo_run_action_slot: Any | None = None
 
 
 def _activate_step(node_id: str) -> None:
@@ -230,6 +235,35 @@ def _open_demo_node(node_id: str) -> None:
         PARAMETER_SETTINGS_ANCHOR_ID,
         should_scroll=True,
     )
+
+
+def _guided_run_is_ready(available_nodes: tuple[str, ...], review_node: str) -> bool:
+    """Apply the same completion gate to Review and the demo run shortcut."""
+    return bool(
+        available_nodes
+        and available_nodes[-1] == review_node
+        and all(
+            is_guided_node_complete(node_id, st.session_state)
+            for node_id in available_nodes[:-1]
+        )
+    )
+
+
+def _skip_to_review_and_run() -> None:
+    """Open the configured Review step and request the ordinary validated Run."""
+    if get_analysis_submission(st.session_state) is not None:
+        return
+    flow = load_guided_input_flow()
+    available_nodes = available_flow_nodes(
+        flow,
+        guided_facts(st.session_state),
+        lambda node_id: is_guided_node_complete(node_id, st.session_state),
+    )
+    if not _guided_run_is_ready(available_nodes, flow["terminal_node"]):
+        return
+    _open_demo_node(flow["terminal_node"])
+    st.session_state.configuration_changed_since_run = False
+    begin_main_analysis_submission(st.session_state)
 
 
 def _open_classic_view() -> None:
@@ -439,13 +473,28 @@ CONTROL_RENDERERS = {
 }
 
 
+def render_guided_demo_run_action(slot, guided_content, *, is_ready: bool) -> None:
+    """Refresh the shortcut in place when its submission finishes."""
+    is_busy = get_analysis_submission(st.session_state) is not None
+    slot.button(
+        guided_content["messages"]["demo_skip_to_review"],
+        # A separate disabled widget can be replaced by the ready action in
+        # the same script without registering the same widget key twice.
+        key="guided_demo_skip_to_review_busy" if is_busy else "guided_demo_skip_to_review",
+        type="primary",
+        disabled=not is_ready or is_busy,
+        on_click=_skip_to_review_and_run,
+        width="stretch",
+    )
+
+
 def _render_demo_metadata(
     guided_content,
     *,
     walkthrough_node: str,
-    review_node: str,
-) -> None:
-    """Render one first-position demo context panel without duplicating metadata."""
+    is_ready: bool,
+) -> Any | None:
+    """Render demo context and return a busy shortcut's completion slot."""
     profile_key = st.session_state.get("guided_loaded_demo_profile")
     profile = st.session_state.get("loaded_config_profile")
     if not profile_key or not isinstance(profile, dict):
@@ -472,14 +521,17 @@ def _render_demo_metadata(
                 width="stretch",
             )
             st.caption(messages["demo_skip_to_review_help"])
-            st.button(
-                messages["demo_skip_to_review"],
-                key="guided_demo_skip_to_review",
-                type="primary",
-                on_click=_open_demo_node,
-                args=(review_node,),
-                width="stretch",
+            demo_run_action_slot = st.empty()
+            render_guided_demo_run_action(
+                demo_run_action_slot, guided_content, is_ready=is_ready,
             )
+    # Completed-result rerenders create their token after Guided renders. An
+    # already-ready shortcut must not be registered again in that same script.
+    return (
+        demo_run_action_slot
+        if get_analysis_submission(st.session_state) is not None
+        else None
+    )
 
 
 def render_guided_inputs(t) -> GuidedRenderResult:
@@ -511,10 +563,11 @@ def render_guided_inputs(t) -> GuidedRenderResult:
         facts,
         lambda node_id: is_guided_node_complete(node_id, st.session_state),
     )
-    _render_demo_metadata(
+    is_ready = _guided_run_is_ready(available_nodes, flow["terminal_node"])
+    demo_run_action_slot = _render_demo_metadata(
         guided_content,
         walkthrough_node=available_nodes[0],
-        review_node=flow["terminal_node"],
+        is_ready=is_ready,
     )
     first_incomplete = next(
         (
@@ -532,14 +585,6 @@ def render_guided_inputs(t) -> GuidedRenderResult:
     force_collapsed = bool(
         st.session_state.get("guided_collapse_all", False)
         or st.session_state.get("guided_demo_metadata_open", False)
-    )
-    is_ready = bool(
-        available_nodes
-        and available_nodes[-1] == flow["terminal_node"]
-        and all(
-            is_guided_node_complete(node_id, st.session_state)
-            for node_id in available_nodes[:-1]
-        )
     )
     should_expand_stale_review = bool(
         is_ready
@@ -608,4 +653,6 @@ def render_guided_inputs(t) -> GuidedRenderResult:
                     width="stretch",
                 )
 
-    return GuidedRenderResult(available_nodes, is_ready, review_actions_slot)
+    return GuidedRenderResult(
+        available_nodes, is_ready, review_actions_slot, demo_run_action_slot,
+    )

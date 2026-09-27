@@ -741,6 +741,8 @@ Versioned configurations store the applicable scientific settings and supported 
 
 Both input views finish with the same terminal configuration summary. Its **`Review — ready to run ✓`** state places `Run RX Analysis` / `Run TX Analysis` and `Save Config` inside that panel only after the configuration is valid. The Review panel remains open while the run starts and after it finishes, and the run-status panel remains open when it reaches **`Complete`**. Classic does not automatically collapse any configuration panel when either an ordinary or demo analysis starts; operators can still collapse or reopen individual panels manually. Guided may continue to compact earlier completed steps, but its terminal Review panel remains open.
 
+After loading a demo in Guided, `Walk me through the setup` opens the setup steps for review. `Skip to review and run` opens the terminal Review panel and immediately starts the analysis with the current valid settings; no second click on `Run RX Analysis` / `Run TX Analysis` is needed. The shortcut remains unavailable while required settings are incomplete or an analysis is already in progress. Loading the demo itself still does not start an analysis.
+
 After an accepted Run action, the page moves to the processing-status panel below Review. As soon as the first map image is ready, it moves to that result while Segment Inspector and Drill-Down data continue preparing automatically. The status reaches **`Complete`** only after all result views are ready. Each automatic move occurs once per submission; scrolling or navigating elsewhere while waiting cancels the move to the map. Result-view interactions and redisplaying a completed run do not restart these automatic moves.
 
 **Configuration compatibility.** Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The formal JSON Schema is the authoritative exhaustive saved-configuration contract; [Section 8.4](#sec-8-4) gives a concise operator-facing summary of selected public identifiers. Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
@@ -879,7 +881,9 @@ Benchmark Delta SNR outlier detection is an optional expert analysis over retain
 | **`Minimum robust z-score`** | `3.0`; `0.1`–`100.0` inclusive | $Z_{\min}$ | Requires the event median and every reported boundary anchor to meet this absolute robust local-variability score. The score is descriptive, not a calibrated probability or conventional Gaussian significance level. |
 | **`Maximum pre/post baseline difference (dB)`** | `3.0`; `0.1`–`100.0 dB` inclusive | $H_{\max}$ | Rejects a candidate when the pre-event and post-event flank medians differ by more than this magnitude, so an unstable or shifted baseline is not reported as a temporary excursion. |
 
-The default combination prioritizes large absolute movements: the 6 dB gate sets the hard floor, while the robust z-score gate still requires that movement to be large relative to the path's local robust variability.
+The departure and baseline-difference comparisons use a fixed `0.01 dB` tolerance, as defined in [Section 7.11](#sec-7-11); the configured thresholds and internal evidence values remain unrounded. The robust z-score comparison has no such tolerance.
+
+The default combination prioritizes large absolute movements: the 6 dB gate sets the nominal floor, while the robust z-score gate still requires that movement to be large relative to the path's local robust variability.
 
 The toggle and three thresholds are saved when applicable. Changing any of them marks the configuration as changed but does not automatically start an analysis; calculate a new result with the normal direction-specific **`Run RX Analysis`** / **`Run TX Analysis`** action. All three thresholds apply unchanged to Spot impulses, Short bursts and Sustained excursions. There is no duration bonus or weaker threshold for a longer event. Lowering $D_{\min}$ or $Z_{\min}$, or increasing $H_{\max}$, makes reporting more permissive; the opposite choices make it more selective. For confirmatory use, set and record the thresholds before inspecting the candidate events rather than tuning them until a desired event appears.
 
@@ -1478,6 +1482,9 @@ The notation is local to this section except for the three control symbols alrea
 | $C_i,G_i,F$ | typical path Cadence, maximum internal Gap and provisional grouping Floor |
 | $W_i^P,W_i^B$ | Pilot- and final-Baseline exclusion Widths |
 | $E,m_E,z_E,\operatorname{agree}(E)$ | candidate Event, its Median residual, event robust z-score and sign-agreement fraction |
+| $\varepsilon$ | fixed `0.01 dB` comparison tolerance for the minimum-departure and maximum-baseline-difference gates |
+
+The detector applies $\varepsilon=0.01\ \mathrm{dB}$ only when comparing an absolute departure with $D_{\min}$ or a pre/post baseline difference with $H_{\max}$. It does not round internal evidence values or configured thresholds. The same tolerance applies to event qualification, strong boundary anchors and individually qualifying native units. Robust z-scores, MAD/IQR scale estimation and sign-agreement rules remain unchanged; the robust-z comparison receives no tolerance.
 
 **1. Evidence and resolution.** Only native paired units supply detector Delta SNR. One-sided outcomes have no paired value and cannot qualify an event, although their times contribute to cadence estimation and the outcomes remain diagnostic context. Detection runs independently for each path $i$ before Temporal Evidence display aggregation. Changing a display bin cannot create, merge, split or remove an event. When **`Report ΔSNR outlier candidates`** is off, the detector is not run and no outlier semantics are added to the result.
 
@@ -1494,7 +1501,7 @@ The final expected local Delta SNR gives the two flanks equal weight, while the 
 
 $$
 B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2},\qquad
-\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}
+\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon
 $$
 
 Equal flank weighting prevents the side with more populated cells from dominating. If either flank lacks support or the stability gate fails, the path remains unclassified for that candidate and no event is reported.
@@ -1536,8 +1543,10 @@ To seed candidates without allowing the point under test to define its own expec
 
 $$
 W_i^P=\max(60,2C_i)\ \mathrm{minutes},\qquad
-F=\min(1\ \mathrm{dB},D_{\min})
+F=\min(1\ \mathrm{dB},D_{\min}-\varepsilon)
 $$
+
+The `1 dB` term remains exact: the tolerance enters this early grouping rule only through the tolerated minimum departure, so grouping cannot impose a stricter departure requirement than final qualification. It is not subtracted from the fixed `1 dB` term or from the `1 dB` shoulder-expansion criterion below.
 
 The pilot fit uses the same six-hour flank reach, four-populated-cell minimum on each side and $H_{\max}$ stability gate. A native unit $u$ in cell $k(u)$ receives a pilot residual only when that cell has supported flanks:
 
@@ -1566,9 +1575,9 @@ $$
 The event qualifies only when every gate holds:
 
 $$
-|m_E|\geq D_{\min},\qquad
+|m_E|\geq D_{\min}-\varepsilon,\qquad
 |z_E|\geq Z_{\min},\qquad
-\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max},\qquad
+\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon,\qquad
 \operatorname{agree}(E)\geq\frac{2}{3}
 $$
 
@@ -1580,7 +1589,7 @@ After qualification, a native unit is a strong boundary anchor only when:
 
 $$
 \operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad
-|r_{i,u}|\geq D_{\min},\qquad
+|r_{i,u}|\geq D_{\min}-\varepsilon,\qquad
 |z_{i,u}|\geq Z_{\min}
 $$
 

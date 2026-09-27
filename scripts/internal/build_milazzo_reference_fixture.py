@@ -127,7 +127,7 @@ def calculate_reference(source_path, config_path, output_directory):
     config_path = Path(config_path).resolve()
     output_directory = Path(output_directory).resolve()
     installed_references = (
-        Path(__file__).resolve().parent.parent / "tests" / "regression" / "reference_fixtures"
+        Path(__file__).resolve().parents[2] / "tests" / "regression" / "reference_fixtures"
     ).resolve()
     if output_directory.is_relative_to(installed_references):
         raise ValueError("Build into a separate candidate directory, outside installed reference_fixtures")

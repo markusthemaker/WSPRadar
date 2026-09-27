@@ -14,6 +14,9 @@ LEGACY_BURST_MINIMUM_DEPARTURE_DB = 3.0
 LEGACY_BURST_MINIMUM_ROBUST_Z = 3.5
 DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD = 0.1
 DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD = 100.0
+# Fixed detector-method allowance for dB acceptance comparisons only. Never
+# round observations or apply this allowance to robust z, MAD, or sign tests.
+DELTA_SNR_OUTLIER_COMPARISON_TOLERANCE_DB = 0.01
 
 DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD = (
     (
@@ -40,6 +43,21 @@ LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS = (
     "delta_snr_outlier_burst_minimum_robust_z",
     "delta_snr_outlier_sustained_minimum_robust_z",
 )
+
+
+def minimum_departure_comparison_bound_db(minimum_departure_db: float) -> float:
+    """Return the inclusive departure bound without changing the saved gate."""
+    return minimum_departure_db - DELTA_SNR_OUTLIER_COMPARISON_TOLERANCE_DB
+
+
+def maximum_baseline_difference_comparison_bound_db(
+    maximum_baseline_difference_db: float,
+) -> float:
+    """Return the inclusive stability bound without rounding either baseline."""
+    return (
+        maximum_baseline_difference_db
+        + DELTA_SNR_OUTLIER_COMPARISON_TOLERANCE_DB
+    )
 
 
 @dataclass(frozen=True)
@@ -82,6 +100,18 @@ class DeltaSnrOutlierDetectionPolicy:
             object.__setattr__(self, field_name, numeric_value)
 
     @property
+    def minimum_accepted_departure_db(self) -> float:
+        """Inclusive dB departure bound; internal evidence retains its precision."""
+        return minimum_departure_comparison_bound_db(self.minimum_departure_db)
+
+    @property
+    def maximum_accepted_baseline_difference_db(self) -> float:
+        """Inclusive dB stability bound shared by pilot and final baselines."""
+        return maximum_baseline_difference_comparison_bound_db(
+            self.maximum_baseline_difference_db
+        )
+
+    @property
     def signature_tuple(self) -> tuple[float, ...]:
         """Return stable ordered scientific values for cache/signature identity."""
         return tuple(
@@ -120,6 +150,7 @@ __all__ = [
     "DEFAULT_MAXIMUM_BASELINE_DIFFERENCE_DB",
     "DEFAULT_MINIMUM_DEPARTURE_DB",
     "DEFAULT_MINIMUM_ROBUST_Z",
+    "DELTA_SNR_OUTLIER_COMPARISON_TOLERANCE_DB",
     "DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD",
     "DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD",
     "DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD",
@@ -127,5 +158,7 @@ __all__ = [
     "LEGACY_BURST_MINIMUM_DEPARTURE_DB",
     "LEGACY_BURST_MINIMUM_ROBUST_Z",
     "LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS",
+    "maximum_baseline_difference_comparison_bound_db",
+    "minimum_departure_comparison_bound_db",
     "VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY",
 ]

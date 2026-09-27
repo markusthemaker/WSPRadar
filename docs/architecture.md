@@ -99,7 +99,7 @@ operating risks. The Streamlit application neither imports nor starts it.
 | `config/guided_input_flow.schema.json` | Strict Draft 2020-12 schema for the declarative Guided Input flow. |
 | `config/json_utils.py` | Shared strict UTF-8 JSON decoder rejecting duplicate keys and non-finite numbers. |
 | `config/plot_constants.py` | Map extent, projection/render constants, colors, and scientific display constants. |
-| `config/demo_pdf_headers.py` | Presentation-only titles, source citations, demo-context text and header layouts for authored comparison PDFs. Interpreted by `scripts/demo_pdf_header.py`; not used for scientific selection or runnable demo configuration. |
+| `config/demo_pdf_headers.py` | Presentation-only titles, source citations, demo-context text and header layouts for authored comparison PDFs. Interpreted by `scripts/internal/demo_pdf_header.py`; not used for scientific selection or runnable demo configuration. |
 | `config/__init__.py` | Compatibility re-exports for configuration consumers. |
 
 User-saved configuration files and demos share the version-1
@@ -325,6 +325,11 @@ registered renderers, while the separate bilingual `GUIDED_INPUTS` structure in
 `i18n.py` owns Guided explanations and choice consequences. Built-in demos are
 load-only in Guided Input so their metadata and preset settings can be reviewed;
 Classic retains the immediate demo-run action.
+After loading, Guided offers a walkthrough that opens the setup steps and a
+separate **Skip to review and run** action that opens terminal Review and submits
+the current valid settings through the ordinary main Run token lifecycle. The
+shortcut is unavailable for incomplete Guided settings or an in-flight
+submission; loading alone still starts no analysis.
 
 ### Context Boundary
 
@@ -755,6 +760,11 @@ Earth land, ocean, coastline, and border data, plus distance rings and compass
 features. Rendered static basemaps are stored in the derived-analysis namespace.
 Same-key construction is coordinated and publication uses a unique temporary
 path followed by atomic replacement.
+The cached live-preview background uses the same complete four- or six-character
+Target QTH center as the station and sector overlays and the high-resolution
+export. Its cache identity includes that full center, so distinct six-character
+subsquare centers within one grid-4 do not reuse a background projected around
+a different origin.
 
 `core/presentation_context.py` keeps canonical scientific success terms and explicit
 direction-aware presentation terms in one immutable presentation-only bundle.
@@ -1113,7 +1123,7 @@ imputed or classified.
 
 Residuals enter permissive same-sign temporal grouping before any final event
 threshold is applied. The grouping floor is 1 dB under the default policy and
-falls with a configured shared departure threshold below 1 dB, so
+falls with the tolerated shared departure threshold when that is below 1 dB, so
 every accepted public departure threshold can seed a candidate without making
 the grouping floor stricter when the qualification gates are raised. A moderate
 sustained displacement therefore does not need to contain a strict single-spot
@@ -1140,11 +1150,11 @@ The episode's absolute median residual must meet the configured minimum
 departure, its absolute robust z-score must meet the configured minimum, and
 the absolute difference between the candidate-excluded pre- and post-baseline
 medians must not exceed the configured maximum. Defaults are 6 dB, 3, and 3 dB
-respectively. No duration multiplier, evidence-count boost, reduced effective
-threshold, or separate impulse/burst/sustained gate is applied. Every episode
+respectively. No duration multiplier, evidence-count boost, duration-dependent
+threshold reduction, or separate impulse/burst/sustained gate is applied. Every episode
 must additionally retain at least two-thirds same-sign native-unit support as a
 structural grouping-coherence invariant. Detector version
-`native-residual-episode-v7` always tests the complete refined provisional
+`native-residual-episode-v8` always tests the complete refined provisional
 episode first. A qualifying interval is then bounded by native units that have
 the episode sign and individually meet both the configured absolute-departure
 and robust-z gates against the same final baseline and spread. The reported
@@ -1154,6 +1164,18 @@ class, median, peak and component diagnostics, and is retested against the
 unchanged episode-level gates. Its baseline and flank support are not refitted,
 avoiding boundary-selection feedback. One surviving anchor is a Spot impulse;
 no surviving qualifying anchored interval is reported.
+
+`config/delta_snr_outlier.py` owns a fixed 0.01 dB comparison tolerance for
+minimum absolute departure and maximum pre/post baseline difference. These
+comparisons admit departures at least `minimum_departure_db - 0.01` and baseline
+differences at most `maximum_baseline_difference_db + 0.01`, consistently for
+events, strong anchors and individually qualifying native units. Internal
+evidence values and configured thresholds remain unrounded; robust-z
+comparisons, MAD/IQR scale estimation and sign agreement are unchanged. The
+early grouping floor is `min(1.0, minimum_departure_db - 0.01)`, so it cannot
+reject evidence solely by imposing a stricter configured departure gate. No
+tolerance is subtracted from its fixed 1 dB term or the fixed 1 dB shoulder
+expansion criterion.
 
 Only when the complete interval cannot yield a qualifying strongly anchored
 event does the detector reuse its final candidate-excluded baseline and flank
@@ -1375,6 +1397,16 @@ only the retained projected rows for the selected identities and never starts
 another provider query. The complete Station Insights population and the
 segment-level statistics, Comparison Evidence, and temporal evidence remain
 unchanged.
+
+The explicit Full Range / All Directions multiselect callbacks retain one
+ordered raw selection event and its normalized result per run-scoped widget.
+Streamlit 1.64 can resend the same selection when a dropdown closes before the
+server's normalized value reaches the browser. An exact replay with the same
+option context and unchanged prior normalized selection reuses that result;
+it cannot reverse a specific choice back to All. Ordering distinguishes that
+replay from deliberately adding All after a specific choice. Recreating the
+widget clears this transient record. Durable scope selections and saved
+configuration fields retain their existing format and meaning.
 
 For Performance, the section contains one compact selected-path context, the
 independent selected-station chronological-bin control, and two full-width figures.
@@ -1761,8 +1793,9 @@ boundary; the documentation controller owns fragments from that boundary
 downward. Passive scrolling replaces the current fragment without adding
 browser-history entries. Guided Continue replaces a stale manual fragment with
 the parameter-settings anchor without forcing a scroll. Loading a demo and
-either demo navigation action (Walkthrough or Skip) may request a one-shot
-scroll to the appropriate application region. A fresh main-button, demo, or URL
+the Guided walkthrough may request a one-shot scroll to the parameter-settings
+region. The Guided **Skip to review and run** action opens terminal Review and
+uses the ordinary main Run submission navigation. A fresh main-button, demo, or URL
 submission mounts the controller before analysis execution and arms two
 submission-token-bound milestones: the processing panel below Review, then the
 first successfully rendered map. The map anchor and readiness marker must match
@@ -2295,10 +2328,12 @@ capabilities.
    processes. Several replicas sharing one egress IP can therefore exceed a
    provider limit even when each local counter is compliant. Artifact file locks
    only coordinate processes sharing the same cache filesystem.
-3. **Streamlit security settings:** `.streamlit/config.toml` disables CORS and
-   XSRF protection. The deployment reason is not documented in code. Restoring
-   protection requires deployment testing, but the current state is a real public
-   deployment risk.
+3. **Streamlit security settings:** `.streamlit/config.toml` enables CORS and
+   XSRF protection, following Streamlit's documented defaults. The VS Code
+   launcher uses the same configuration without disabling overrides. App loading,
+   configuration uploads and reconnecting after idle periods still require
+   verification on the deployed Community Cloud app after this configuration
+   change; enabling the settings is not itself a deployment test.
 4. **Unbounded persistent cache size:** TTL cleanup exists for ordinary queries
    and session artifacts, but there are no byte/file quotas; published demo-query
    entries and derived basemaps do not expire. Obsolete demo-query format
@@ -2428,7 +2463,7 @@ capabilities.
    assertions protect the reviewed marker, weighting and IQR contracts. This
    is additional human-reviewed archive evidence, distinct from the paper-only
    Figures 6/7 reconciliation and from individually reviewed raw reports.
-   `scripts/verify_milazzo_clickhouse.py` provides a separate, explicitly invoked
+   `scripts/internal/verify_milazzo_clickhouse.py` provides a separate, explicitly invoked
    read-only provider comparison before major development completion. It checks
    actual ClickHouse query results against the frozen reference without running
    on routine regressions or in GitHub CI. Upstream archive drift and a query

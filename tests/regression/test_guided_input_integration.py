@@ -535,7 +535,10 @@ def test_benchmark_terminology_uses_three_bulleted_definitions():
         )
 
 
-def test_guided_demo_metadata_is_localized_and_initially_expanded(monkeypatch):
+@pytest.mark.parametrize("is_ready,is_busy", [(True, False), (False, False), (True, True)])
+def test_guided_demo_metadata_is_localized_and_initially_expanded(
+    monkeypatch, is_ready, is_busy,
+):
     """Render demo context before steps using the selected profile language."""
     session_state = _canonical_state(
         lang="de",
@@ -549,6 +552,8 @@ def test_guided_demo_metadata_is_localized_and_initially_expanded(monkeypatch):
             },
         },
     )
+    if is_busy:
+        begin_main_analysis_submission(session_state)
     expander = Mock(return_value=_NullContext())
     markdown = Mock()
     caption = Mock()
@@ -566,13 +571,14 @@ def test_guided_demo_metadata_is_localized_and_initially_expanded(monkeypatch):
             container=container,
             info=info,
             button=button,
+            empty=Mock(return_value=SimpleNamespace(button=button)),
         ),
     )
 
     renderer._render_demo_metadata(
         GUIDED_INPUTS["de"],
         walkthrough_node="synthetic-start",
-        review_node="synthetic-review",
+        is_ready=is_ready,
     )
 
     expander.assert_called_once_with(
@@ -601,10 +607,10 @@ def test_guided_demo_metadata_is_localized_and_initially_expanded(monkeypatch):
     }
     assert review_call.args == (messages["demo_skip_to_review"],)
     assert review_call.kwargs == {
-        "key": "guided_demo_skip_to_review",
+        "key": "guided_demo_skip_to_review_busy" if is_busy else "guided_demo_skip_to_review",
         "type": "primary",
-        "on_click": renderer._open_demo_node,
-        "args": ("synthetic-review",),
+        "disabled": not is_ready or is_busy,
+        "on_click": renderer._skip_to_review_and_run,
         "width": "stretch",
     }
 
@@ -638,10 +644,10 @@ def test_known_reference_guidance_uses_informational_callout(monkeypatch):
     warning.assert_not_called()
 
 
-def test_guided_demo_actions_only_open_the_requested_flow_node(monkeypatch):
+def test_guided_demo_walkthrough_only_opens_the_requested_flow_node(monkeypatch):
     """Navigate from demo context without changing preset or run identity."""
     flow = renderer.load_guided_input_flow()
-    for destination in (flow["start_node"], flow["terminal_node"]):
+    for destination in (flow["start_node"],):
         session_state = _canonical_state(
             active_demo_profile="example",
             guided_loaded_demo_profile="example",
@@ -678,6 +684,65 @@ def test_guided_demo_actions_only_open_the_requested_flow_node(monkeypatch):
             page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
             should_scroll=True,
         )
+
+
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+def test_guided_demo_shortcut_opens_review_and_submits_once(monkeypatch, direction):
+    """Reuse normal Run validation without changing settings or demo identity."""
+    session_state = _canonical_state(
+        guided_use_case=f"{direction}_performance",
+        val_analysis_direction=direction,
+        active_demo_profile="example",
+        guided_loaded_demo_profile="example",
+        guided_demo_metadata_open=True,
+        configuration_changed_since_run=True,
+    )
+    original_state = deepcopy(session_state)
+    _install_shared_streamlit_state(monkeypatch, session_state)
+
+    renderer._skip_to_review_and_run()
+    token = get_analysis_submission(session_state).token
+    renderer._skip_to_review_and_run()
+    request = claim_analysis_submission_request(session_state)
+
+    assert request.token == token
+    assert request.source == "main_button"
+    assert session_state.guided_active_node == "review_and_run"
+    assert session_state.guided_demo_metadata_open is False
+    assert session_state.guided_collapse_all is False
+    assert session_state.configuration_changed_since_run is False
+    for key, value in original_state.items():
+        if key not in {
+            "guided_active_node", "guided_demo_metadata_open", "configuration_changed_since_run",
+        }:
+            assert session_state[key] == value
+    renderer._skip_to_review_and_run()
+    assert claim_analysis_submission_request(session_state) is None
+    assert get_analysis_submission(session_state).token == token
+
+
+@pytest.mark.parametrize("invalid_values", [
+    {"val_callsign": "!"},
+    {"val_end_d": date(2026, 6, 30)},
+    {"guided_use_case": "rx_benchmark", "val_comp_mode": "reference_station"},
+    {"val_min_opportunities": 0},
+])
+def test_guided_demo_shortcut_rechecks_readiness_before_submission(
+    monkeypatch, invalid_values,
+):
+    """Retained demo metadata cannot bypass invalid current configuration."""
+    session_state = _canonical_state(
+        guided_loaded_demo_profile="example",
+        guided_demo_metadata_open=True,
+        **invalid_values,
+    )
+    original_state = deepcopy(session_state)
+    _install_shared_streamlit_state(monkeypatch, session_state)
+
+    renderer._skip_to_review_and_run()
+
+    assert session_state == original_state
+    assert claim_analysis_submission_request(session_state) is None
 
 
 def test_guided_continue_advances_without_requesting_a_browser_scroll(monkeypatch):
@@ -751,7 +816,7 @@ def test_demo_metadata_precedes_steps_but_ready_review_remains_open(monkeypatch)
         "metadata",
         {
             "walkthrough_node": "use_case",
-            "review_node": "review_and_run",
+            "is_ready": True,
         },
     )
     step_events = [event for event in events if event[0] == "step"]
@@ -2228,7 +2293,7 @@ def page_region_application(monkeypatch):
 
     monkeypatch.setattr(run_controller, "render_analysis_run", render_tiny_results)
 
-    def create(input_view):
+    def create(input_view, **overrides):
         application = AppTest.from_file(
             str(REPOSITORY_ROOT / "app.py"), default_timeout=60,
         )
@@ -2238,14 +2303,75 @@ def page_region_application(monkeypatch):
             run_mode="RX",
             _test_layout_result_count=2,
         )
+        initial_state.update(overrides)
         for key, value in initial_state.items():
             application.session_state[key] = value
         application.run()
         assert list(application.exception) == []
-        assert rendered_slot_paths
+        if initial_state["run_mode"]:
+            assert rendered_slot_paths
         return application, rendered_slot_paths
 
     return create
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("result_family", ["performance", "benchmark"])
+def test_guided_demo_shortcut_starts_analysis_with_one_click(
+    page_region_application, language, direction, result_family,
+):
+    """The real Guided button opens Review and enters the controller once."""
+    application, rendered_slot_paths = page_region_application(
+        "guided",
+        lang=language,
+        run_mode=None,
+        guided_use_case=f"{direction}_{result_family}",
+        val_analysis_direction=direction,
+        val_comp_mode="reference_station" if result_family == "benchmark" else "none",
+        guided_reference_design="reference_station" if result_family == "benchmark" else None,
+        val_ref_callsign="G1XYZ",
+        val_ref_qth="JO01",
+        active_demo_profile="example",
+        guided_loaded_demo_profile="example",
+        guided_demo_metadata_open=True,
+        configuration_changed_since_run=True,
+        loaded_config_profile={
+            "title": {"en": "Demo", "de": "Demo"},
+            "description": {"en": "Demo settings", "de": "Demo-Einstellungen"},
+        },
+    )
+    assert rendered_slot_paths == []
+    shortcut = application.button(key="guided_demo_skip_to_review")
+    assert shortcut.label == GUIDED_INPUTS[language]["messages"]["demo_skip_to_review"]
+    assert shortcut.disabled is False
+
+    shortcut.click().run()
+
+    assert list(application.exception) == []
+    assert len(rendered_slot_paths) == 1
+    assert application.session_state["run_mode"] == direction.upper()
+    assert application.session_state["run_id"] != 17
+    assert application.session_state["active_demo_profile"] == "example"
+    assert application.session_state["guided_active_node"] == "review_and_run"
+    assert application.session_state["guided_demo_metadata_open"] is False
+    # AppTest exposes expanders with custom icons through its status collection.
+    reviews = [
+        expander for expander in (*application.expander, *application.status)
+        if GUIDED_INPUTS[language]["summaries"]["review_ready"].format(step=6) == expander.label
+    ]
+    assert len(reviews) == 1
+    assert reviews[0].proto.expanded is True
+    assert application.button(key="guided_demo_skip_to_review").disabled is False
+    assert "_analysis_submission_requested_token" not in application.session_state
+    assert GUIDED_INPUTS[language]["messages"]["configuration_changed"] not in [
+        warning.value for warning in application.warning
+    ]
+    run_id = application.session_state["run_id"]
+    application.run()
+    assert list(application.exception) == []
+    assert application.session_state["run_id"] == run_id
+    assert application.button(key="guided_demo_skip_to_review").disabled is False
 
 
 def _assert_application_region_contents(

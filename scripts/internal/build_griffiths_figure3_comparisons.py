@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests/regression"))
 
@@ -31,8 +31,8 @@ from PIL import Image
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.matplotlib_runtime import dispose_agg_figure, matplotlib_operation_lock
 from i18n import T
-from scripts.demo_pdf_footer import add_demo_pdf_footer, DEMO_PDF_FOOTER_TEXT
-from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
+from scripts.internal.demo_pdf_footer import add_demo_pdf_footer, DEMO_PDF_FOOTER_TEXT
+from scripts.internal.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
 from ui.plots.evidence_figures import (
     _compare_temporal_profile_values,
     _prepare_temporal_metric_rows,

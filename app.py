@@ -42,7 +42,7 @@ from ui.callbacks import (
 )
 from ui.classic_inputs import render_classic_inputs
 from ui.components.config_panel import render_metadata_expander
-from ui.guided_inputs.renderer import render_guided_inputs
+from ui.guided_inputs.renderer import render_guided_demo_run_action, render_guided_inputs
 from ui.page_navigation import (
     PAGE_TOP_ANCHOR_ID,
     PARAMETER_SETTINGS_ANCHOR_ID,
@@ -634,6 +634,16 @@ with results_region:
                 st.session_state.pop(analysis_navigation_state_key, None)
             run_analysis_button_slot.empty()
             render_run_analysis_button(is_busy=False)
+            if (
+                guided_render_result is not None
+                and guided_render_result.demo_run_action_slot is not None
+            ):
+                guided_render_result.demo_run_action_slot.empty()
+                render_guided_demo_run_action(
+                    guided_render_result.demo_run_action_slot,
+                    GUIDED_INPUTS[st.session_state.lang],
+                    is_ready=guided_render_result.is_ready,
+                )
 
 
     if submission_initialization_failed:

@@ -18,7 +18,8 @@ textColor = "#e0e0e0"
 font = "monospace"
 
 [server]
-enableCORS = false
-enableXsrfProtection = false
+# Keep Streamlit's origin and request-forgery protections enabled.
+enableCORS = true
+enableXsrfProtection = true
 # Serve the bundled browser fonts without a third-party stylesheet request.
 enableStaticServing = true

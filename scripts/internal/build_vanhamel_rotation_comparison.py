@@ -25,15 +25,15 @@ import pandas as pd
 from PIL import Image
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests/regression"))
 
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.matplotlib_runtime import dispose_agg_figure, synchronized_matplotlib
 from i18n import T
-from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
-from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
+from scripts.internal.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT, add_demo_pdf_footer
+from scripts.internal.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
 from test_vanhamel_rotation_reference import _calculate_run, _assert_exact_trace
 from ui.plots.evidence_figures import (
     _selected_evidence_export_recipe,

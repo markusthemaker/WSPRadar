@@ -57,6 +57,8 @@ def parse_arguments(arguments=None):
     parser.add_argument("--users", type=int, default=10)
     parser.add_argument("--export-users", type=int, default=0,
                         help="First N users each export once after a full exploration cycle; default: none.")
+    parser.add_argument("--vary-scope", action="store_true",
+                        help="Also change distance/direction scope for diagnostics; default: retain Full Range and All Directions.")
     parser.add_argument("--duration-seconds", type=float, default=900,
                         help="Interaction period AFTER every session has completed a run.")
     parser.add_argument("--cooldown-seconds", type=float, default=300)
@@ -70,6 +72,9 @@ def parse_arguments(arguments=None):
     parser.add_argument("--startup-timeout-seconds", type=float, default=600)
     parser.add_argument("--seed", type=int, default=27092026)
     parser.add_argument("--scenarios", default="benchmark-large,performance")
+    parser.add_argument("--performance-replay", type=Path,
+                        default=REPOSITORY / ".test" / "multiuser-datasets" / "griffiths-performance",
+                        help="Directory captured once with capture.py; required for the Griffiths Performance scenario.")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--browser-channel", default=None,
                         help="Optional installed browser channel, e.g. msedge on Windows.")
@@ -737,9 +742,10 @@ class Experiment:
             await page.goto(f"http://127.0.0.1:{port}/?{scenario['query_string']}", wait_until="domcontentloaded")
             await self.wait_for_initial_results(session)
             await self.settle(page)
+            initial_scope = await self.verify_initial_scope(page)
             self.active_users += 1
             self.event(user + 1, "initial_analysis", "ok", time.monotonic() - started,
-                       scenario=scenario["id"])
+                       scenario=scenario["id"], initial_scope=initial_scope)
         except Exception as exc:
             self.event(user + 1, "initial_analysis", "failed", time.monotonic() - started,
                        scenario=scenario["id"], error=str(exc))
@@ -768,16 +774,34 @@ class Experiment:
             }))""")
             write_json(self.output / f"{stem}-widgets.json", widgets)
 
+    async def verify_initial_scope(self, page):
+        """Require the replay's broad initial scope before counting a ready user."""
+        panel = page.locator('[class*="st-key-results_evidence_level_2_"]').first
+        selections = [text.strip() for text in await panel.locator(
+            '[data-testid="stMultiSelect"]').all_inner_texts()]
+        scope_summary = await panel.locator('.result-scope-summary > p').first.inner_text()
+        expected_selections = ["Full Range", "All Directions"]
+        expected_summary = "Active scope · Full Range · All Directions"
+        if selections != expected_selections or scope_summary != expected_summary:
+            raise RuntimeError(
+                "Initial results did not retain Full Range and All Directions; "
+                f"observed selections={str(selections)[:500]!r}; active scope={scope_summary[:250]!r}"
+            )
+        return {"selections": selections, "active_scope": scope_summary}
+
     async def change_time_bin(self, session, iteration):
         page = session["page"]
-        # Scope to the application's Segment Inspector, excluding controls for a
-        # selected station or the input editor. Do not depend on a styling kind.
-        panel = page.locator('[class*="st-key-results_evidence_level_2_"]').first
+        successful_changes = session.get("successful_time_bin_actions", 0)
+        panel_name, level = (("segment_inspector", 2) if successful_changes % 2 == 0
+                             else ("selected_station", 4))
+        # Alternate the two evidence views and exclude the input editor. A
+        # missing selected-station control must not silently become a scope bin.
+        panel = page.locator(f'[class*="st-key-results_evidence_level_{level}_"]').first
         controls = panel.locator('button, [role="radio"]').filter(
-            has_text=re.compile(r"^(30m|1h|2h|3h|6h|12h|24h)$"))
+            has_text=re.compile(r"^\d+(?:m|h)$"))
         count = await controls.count()
         if count == 0:
-            return "unavailable", {"reason": "No time-bin buttons in the Segment Inspector"}
+            return "unavailable", {"reason": f"No time-bin buttons in {panel_name}", "panel": panel_name}
         candidates = []
         for index in range(count):
             candidate = controls.nth(index)
@@ -785,7 +809,7 @@ class Experiment:
                 if await candidate.evaluate(BUTTON_SELECTION_JAVASCRIPT) is False:
                     candidates.append(index)
         if not candidates:
-            return "unavailable", {"reason": "No inactive time-bin button with a readable selection state; see widget diagnostics"}
+            return "unavailable", {"reason": "No inactive time-bin button with a readable selection state; see widget diagnostics", "panel": panel_name}
         control = controls.nth(candidates[iteration % len(candidates)])
         choice = (await control.inner_text()).strip()
         expect_script_run(session, "time_bin")
@@ -793,7 +817,8 @@ class Experiment:
         await self.settle(page)
         if await control.evaluate(BUTTON_SELECTION_JAVASCRIPT) is not True:
             raise RuntimeError(f"Time-bin button {choice!r} did not become selected after the application completed")
-        return "ok", {"choice": choice, "control_count": count}
+        session["successful_time_bin_actions"] = successful_changes + 1
+        return "ok", {"choice": choice, "control_count": count, "panel": panel_name}
 
     async def change_station(self, session, iteration):
         page = session["page"]
@@ -872,8 +897,15 @@ class Experiment:
         await self.settle(page)
         selected_text = (await widget.inner_text()).strip()
         selected_scope = await scope_summary.inner_text()
+        session["action_details"].update({
+            "observed_selection": selected_text[:1000],
+            "observed_scope": selected_scope[:1000],
+        })
         if selected_text == previous_selection or label not in selected_text or selected_scope == previous_scope:
-            raise RuntimeError(f"Scope option {label!r} did not change both the selected values and active scope")
+            raise RuntimeError(
+                f"Scope option {label!r} did not change both the selected values and active scope; "
+                f"observed selection={selected_text[:250]!r}; active scope={selected_scope[:250]!r}"
+            )
         return "ok", {"choice": label}
 
     async def export(self, session):
@@ -960,7 +992,10 @@ class Experiment:
         session["workload_running"] = True
         workload_started = time.monotonic()
         rng = random.Random(self.arguments.seed + session["user"])
-        actions = ("time_bin", "station", "drilldown", "scope", "time_bin", "station", "drilldown", "scope")
+        actions = ("time_bin", "station", "drilldown")
+        if getattr(self.arguments, "vary_scope", False):
+            actions += ("scope",)
+        actions *= 2
         iteration = 0
         scope_iteration = 3
         should_export = session["user"] <= getattr(self.arguments, "export_users", 0)
@@ -992,7 +1027,7 @@ class Experiment:
                 iteration += 1
             # Once per cycle, pause longer and then resume the same connected result.
             pause = self.arguments.think_seconds * rng.uniform(0.6, 1.4)
-            if action != "export" and iteration % len(actions) == 4:
+            if action != "export" and iteration % len(actions) == len(actions) // 2:
                 pause = self.arguments.idle_seconds
                 self.event(session["user"], "reading_pause", "ok", planned_seconds=round(pause, 2))
                 resumed_after_idle = True
@@ -1236,7 +1271,13 @@ def build_summary(experiment, fatal_error):
             "median_seconds": statistics.median(durations) if durations else None,
             "p95_seconds": percentile(durations, 0.95)}
 
-    required_actions = ("initial_analysis", "time_bin", "station", "scope", "drilldown", "idle_resume")
+    vary_scope = bool(getattr(experiment.arguments, "vary_scope", False))
+    required_actions = ("initial_analysis", "time_bin", "station")
+    if vary_scope:
+        required_actions += ("scope",)
+    required_actions += ("drilldown", "idle_resume")
+    tracked_actions = ("initial_analysis", "time_bin", "station", "scope", "drilldown", "idle_resume", "export")
+    required_time_bin_panels = ("segment_inspector", "selected_station")
     export_users = getattr(experiment.arguments, "export_users", 0)
     selected_export_users = list(range(1, export_users + 1))
     per_user_coverage = {}
@@ -1244,15 +1285,24 @@ def build_summary(experiment, fatal_error):
         successful_actions = {row["action"] for row in experiment.actions
                               if row.get("user") == user and row.get("status") == "ok"}
         user_required_actions = (*required_actions, "export") if user <= export_users else required_actions
-        user_coverage = {action: action in successful_actions for action in (*required_actions, "export")}
+        user_coverage = {action: action in successful_actions for action in tracked_actions}
+        successful_time_bin_panels = {row.get("panel") for row in experiment.actions
+                                     if row.get("user") == user and row.get("action") == "time_bin"
+                                     and row.get("status") == "ok"}
+        time_bin_panels = {panel: panel in successful_time_bin_panels for panel in required_time_bin_panels}
         per_user_coverage[str(user)] = {
             "actions": user_coverage,
+            "scope_required": vary_scope,
             "export_required": user <= export_users,
-            "complete": all(user_coverage[action] for action in user_required_actions),
+            "time_bin_panels": time_bin_panels,
+            "missing_time_bin_panels": [panel for panel, complete in time_bin_panels.items() if not complete],
+            "complete": (all(user_coverage[action] for action in user_required_actions)
+                         and all(time_bin_panels.values())),
             "missing_actions": [action for action in user_required_actions if not user_coverage[action]],
         }
     coverage = {action: all(user["actions"][action] for user in per_user_coverage.values())
                 for action in required_actions}
+    coverage["time_bin"] = all(all(user["time_bin_panels"].values()) for user in per_user_coverage.values())
     successful_export_users = [user for user in selected_export_users
                                if per_user_coverage[str(user)]["actions"]["export"]]
     export_policy = {
@@ -1354,8 +1404,10 @@ def build_summary(experiment, fatal_error):
     if not sufficient_sessions:
         incomplete_reasons.append(f"Only {len(completed_session_ids)} unique server sessions recorded completed results; {experiment.arguments.users} required.")
     for user, user_coverage in per_user_coverage.items():
-        if not user_coverage["complete"]:
+        if user_coverage["missing_actions"]:
             incomplete_reasons.append(f"User {user} is missing successful actions: {', '.join(user_coverage['missing_actions'])}.")
+        if user_coverage["missing_time_bin_panels"]:
+            incomplete_reasons.append(f"User {user} is missing successful time-bin changes in: {', '.join(user_coverage['missing_time_bin_panels'])}.")
     if not duration_complete:
         incomplete_reasons.append("The recorded completed interaction period is missing or shorter than requested.")
     for phase, phase_coverage in memory_coverage.items():
@@ -1377,6 +1429,12 @@ def build_summary(experiment, fatal_error):
             "status": "passed" if not incomplete_reasons else "incomplete_or_failed",
             "incomplete_reasons": incomplete_reasons,
             "required_actions_per_user": list(required_actions),
+            "required_time_bin_panels_per_user": list(required_time_bin_panels),
+            "scope_policy": {
+                "vary_scope": vary_scope,
+                "initial_selected_ranges": "all",
+                "initial_selected_directions": "all",
+            },
             "export_policy": export_policy,
             "per_user_coverage": per_user_coverage,
             "stopped_session_workloads": [row for row in experiment.actions
@@ -1388,6 +1446,8 @@ def build_summary(experiment, fatal_error):
             "limitations": ["Frozen offline provider query replay; upstream availability and SQL engine throughput are not tested.",
                 "Browser generator and application share host CPU and memory; process groups are reported separately.",
                 "This duration does not establish hour-scale retention, 100-user capacity or Community Cloud performance.",
+                ("Scope changes are exercised; narrower selections can reduce the displayed evidence during this run."
+                 if vary_scope else "Full Range and All Directions remain fixed; scope-changing controls are not exercised."),
                 "Passed means required interactions and measurement coverage completed; it does not certify a memory ceiling or rule out memory leaks.",
                 "Sampled RSS can miss brief peaks and double-count shared pages across processes; private committed bytes and USS have different meanings.",
                 "Working-set changes and allocator-retained memory are not themselves proof of a leak or successful reclamation.",
@@ -1404,6 +1464,10 @@ def write_report(output, summary):
              "A pass confirms workload and measurement coverage. It does not certify a safe memory ceiling or rule out leaks."]
     export_policy = summary["export_policy"]
     lines += ["", f"Exploration workload: {summary['requested_users']} users; users selected for one optional export after their first exploration cycle: {export_policy['requested_users']}; successful exports by selected users: {export_policy['successful_users']}."]
+    if summary["scope_policy"]["vary_scope"]:
+        lines += ["", "Scope policy: start with Full Range and All Directions, then exercise distance and direction changes (--vary-scope)."]
+    else:
+        lines += ["", "Scope policy: retain Full Range and All Directions throughout exploration. Scope changes are not requested or required for this run."]
     if summary["diagnostic_ui_tracing"]:
         lines += ["", "UI structural tracing was enabled. Its instrumentation overhead makes this a diagnostic run, not an ordinary memory baseline."]
     if summary["incomplete_reasons"]:
@@ -1424,13 +1488,16 @@ def write_report(output, summary):
               "| --- | --- | ---: | --- | --- |"]
     for phase, coverage in summary["memory_coverage"].items():
         lines.append(f"| {phase} | {coverage['required']} | {coverage['valid_memory_sample_count']} / {coverage['sample_count']} | {coverage['sampled_span_seconds']} / {coverage['minimum_sampled_span_seconds']} | {coverage['complete']} |")
-    lines += ["", "## Coverage for each user", "", "| User | Initial run | Time bin | Station | Scope | Export | Drill-down | Idle resume |",
+    lines += ["", "## Coverage for each user", "", "| User | Initial run | Time bins (both panels) | Station | Scope | Export | Drill-down | Idle resume |",
               "| ---: | --- | --- | --- | --- | --- | --- | --- |"]
     for user, coverage in summary["per_user_coverage"].items():
         cells = []
         for action in ("initial_analysis", "time_bin", "station", "scope", "export", "drilldown", "idle_resume"):
-            if action == "export" and not coverage["export_required"]:
+            if ((action == "export" and not coverage["export_required"])
+                    or (action == "scope" and not coverage["scope_required"])):
                 cells.append("not requested")
+            elif action == "time_bin":
+                cells.append("ok" if all(coverage["time_bin_panels"].values()) else "missing")
             else:
                 cells.append("ok" if coverage["actions"][action] else "missing")
         lines.append(f"| {user} | {' | '.join(cells)} |")
@@ -1486,7 +1553,8 @@ def main(arguments=None):
         print(f"Available host memory: {format_mib(available)}", flush=True)
         if available < 2 * 1024**3:
             print("WARNING: less than 2 GiB available. Memory pressure may distort timings; prefer --users 1 locally.", flush=True)
-        run_owned_preparation([sys.executable, str(HARNESS_DIRECTORY / "replay.py"), "--prepare", str(output)],
+        run_owned_preparation([sys.executable, str(HARNESS_DIRECTORY / "replay.py"), "--prepare", str(output),
+                               "--scenarios", options.scenarios, "--performance-replay", str(options.performance_replay)],
                               cwd=REPOSITORY, timeout_seconds=900)
         manifest = json.loads((output / "scenarios.json").read_text(encoding="utf-8"))
         requested = options.scenarios.split(",")

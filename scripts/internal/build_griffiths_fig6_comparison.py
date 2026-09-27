@@ -5,7 +5,7 @@ import hashlib
 import json
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests/regression"))
 
@@ -23,8 +23,8 @@ from PIL import Image
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.matplotlib_runtime import matplotlib_operation_lock, dispose_agg_figure
 from i18n import T
-from scripts.demo_pdf_footer import add_demo_pdf_footer, DEMO_PDF_FOOTER_TEXT
-from scripts.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
+from scripts.internal.demo_pdf_footer import add_demo_pdf_footer, DEMO_PDF_FOOTER_TEXT
+from scripts.internal.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
 from ui.plots.evidence_figures import (
     _compare_temporal_profile_values,
     _segment_temporal_evidence_export_recipe,

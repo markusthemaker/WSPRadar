@@ -1,4 +1,8 @@
 from pathlib import Path
+import json
+import shlex
+
+import toml
 
 from config import APP_URL
 
@@ -26,3 +30,22 @@ def test_static_entrypoint_declares_the_canonical_public_url():
 
     assert '<link rel="canonical" href="https://wspradar.org/">' in entrypoint
     assert '<meta property="og:url" content="https://wspradar.org/" />' in entrypoint
+
+
+def test_public_server_protections_are_enabled_without_editor_overrides():
+    server_configuration = toml.loads(
+        (REPOSITORY_ROOT / ".streamlit/config.toml").read_text(encoding="utf-8")
+    )["server"]
+    assert server_configuration["enableCORS"] is True
+    assert server_configuration["enableXsrfProtection"] is True
+
+    editor_configuration = json.loads(
+        (REPOSITORY_ROOT / ".vscode/tasks.json").read_text(encoding="utf-8")
+    )
+    launch_tasks = [task for task in editor_configuration["tasks"] if task["label"] == "Start Streamlit Server"]
+    assert len(launch_tasks) == 1
+    launch_arguments = shlex.split(launch_tasks[0]["command"])
+    assert not any(
+        argument.split("=", 1)[0] in {"--server.enableCORS", "--server.enableXsrfProtection"}
+        for argument in launch_arguments
+    )

@@ -10,8 +10,8 @@ import pytest
 
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.matplotlib_runtime import matplotlib_operation_lock
-from scripts.demo_pdf_header import add_demo_pdf_header
-from scripts.sync_reference_figure_pdfs import collect_reference_pdf_paths
+from scripts.internal.demo_pdf_header import add_demo_pdf_header
+from scripts.internal.sync_reference_figure_pdfs import collect_reference_pdf_paths
 
 
 ROOT = Path(__file__).resolve().parents[2]

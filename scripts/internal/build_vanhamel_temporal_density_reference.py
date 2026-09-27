@@ -88,7 +88,7 @@ def calculate_density_reference(reference_directory, output_directory):
         "legacy_density_expectation": "expected_density_12h.csv is retained unchanged; its corrected-coordinate labels -7..9 become comparison-coordinate IDs -5..11, preserving every count",
         "unchanged_scientific_expectations": "All original expected_* files remain byte-identical; this file and the new density CSV supersede only the legacy grid geometry",
         "input_sha256": {name: hashlib.sha256((reference_directory / name).read_bytes()).hexdigest() for name in ("source_rows.csv", "expected_paired_rows.csv", "demo.config", "expected_density_12h.csv")},
-        "calculator_path": "scripts/build_vanhamel_temporal_density_reference.py",
+        "calculator_path": "scripts/internal/build_vanhamel_temporal_density_reference.py",
         "calculator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
     output_directory = Path(output_directory)

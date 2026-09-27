@@ -1,8 +1,9 @@
 """Package current WSPRadar source for an isolated Codespaces load-test run.
 
-Reads the working-tree contents of tracked files plus an explicit manual-harness
-allowlist. Git metadata, local environments, caches, reports and secrets are
-excluded. No commit, branch, staging area or tracked source file is changed.
+Reads the working-tree contents of tracked files, approved same-name script
+relocations into scripts/internal/, and explicit harness/documentation allowlists.
+Git metadata, local environments, caches, reports and secrets are excluded.
+No commit, branch, staging area or tracked source file is changed.
 """
 
 from __future__ import annotations
@@ -25,10 +26,17 @@ REPOSITORY_ROOT = next(
 )
 HARNESS_PATH = "tests/manual/multi_user_load_test"
 HARNESS_FILES = frozenset({
-    "README.md", "requirements.txt", "app_entry.py", "metrics.py", "replay.py",
+    "README.md", "HISTORY.md", "requirements.txt", "app_entry.py", "metrics.py", "replay.py",
     "run.py", "make_bundle.py", "test_lifecycle.py", "test_metrics.py",
     "test_replay.py", "test_bundle.py", "test_summary.py", "test_startup.py",
     "test_interactions.py", "ui_trace.py", "test_ui_trace.py",
+    "capture.py", "test_capture.py",
+})
+DOCUMENTATION_PATHS = frozenset({
+    "scripts/README.md",
+    "docs/verification-history.md",
+    "docs/relocation-ledgers/engineering-verification-history.md",
+    "config/demos_backlog/README.md",
 })
 SOURCE_SUFFIXES = frozenset({".py", ".toml", ".config", ".json", ".txt"})
 EXCLUDED_DIRECTORIES = frozenset({
@@ -90,6 +98,22 @@ def validated_source_path(repository: Path, relative_name: str) -> Path:
 def collect_bundle_paths(repository: Path, tracked_names: list[str]) -> tuple[list[str], list[str]]:
     """Select current files; deleted tracked files remain absent in the bundle."""
     names = {name.replace("\\", "/") for name in tracked_names if name}
+    # Keep the linked maintenance guides available in an uncommitted snapshot.
+    names.update(name for name in DOCUMENTATION_PATHS if (repository / name).exists())
+    # Include the approved scripts/ -> scripts/internal/ moves before they are
+    # staged. Only a missing tracked Python script can supply a matching name;
+    # unrelated untracked helpers are never swept into the source snapshot.
+    for tracked_name in tuple(names):
+        tracked_path = PurePosixPath(tracked_name)
+        if (
+            len(tracked_path.parts) == 2
+            and tracked_path.parts[0] == "scripts"
+            and tracked_path.suffix == ".py"
+            and not (repository / tracked_name).exists()
+        ):
+            relocated_name = f"scripts/internal/{tracked_path.name}"
+            if (repository / relocated_name).exists():
+                names.add(relocated_name)
     harness_directory = repository / HARNESS_PATH
     if harness_directory.is_dir():
         for path in harness_directory.iterdir():

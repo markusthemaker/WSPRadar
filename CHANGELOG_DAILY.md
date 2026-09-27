@@ -4,6 +4,65 @@ This changelog summarizes major project changes by the date of the change (UTC),
 
 ## 2026-09-27
 
+- **Repository maintenance organization and browser protections:** moved 18
+  specialist fixture, reference, PDF and verification tools into
+  `scripts/internal/`, preserving routine Git commands, regression launchers and
+  README synchronization at `scripts/`. Updated imports and repository-root
+  resolution; frozen fixture bytes, provenance paths and hashes remain intact.
+  Added command/directory indexes, ignored local demo-export intake, documented
+  inactive demo drafts, and separated current load-test and engineering
+  instructions from preserved investigation/verification history. Source bundles
+  retain the harness history and unstaged same-name internal-script relocations.
+  Enabled Streamlit CORS and XSRF protection and removed disabling VS Code launch
+  overrides following explicit approval. Added configuration and source-bundle
+  regression cases. Verification: source review only; executable regression,
+  compilation, whitespace and deployment/browser checks remain deferred under
+  the instruction to use Codespaces instead of local checks. Existing earlier
+  verification records do not cover these later changes.
+
+- **Regression verification scope:** made relevant test subsets the default,
+  including bounded scientific, cache and export fixes. Complete runs are
+  reserved for demonstrated major changes, concrete release qualification,
+  substantial manual restructuring or an explicit request. Routine PR/GitHub
+  submissions no longer trigger a full run. Documented explicit-module pytest
+  selection and targeted expansion; the existing runners are unchanged.
+
+- **Delta-SNR detector boundary consistency:** introduced one fixed `0.01 dB`
+  acceptance tolerance for minimum departure and maximum pre/post baseline
+  difference, shared by episode qualification, qualifying native units,
+  validation and export classification. This prevents the reproduced ordinary
+  float32 versus demo float64 correction-boundary differences from discarding
+  otherwise eligible events. Retained evidence, configured thresholds, medians,
+  MAD and robust z-scores remain unrounded; the robust-z gate is unchanged.
+  Early grouping follows the tolerated departure bound when it is below the
+  independent 1 dB grouping floor, without relaxing that fixed floor or the
+  shoulder-expansion rule. Detector version `native-residual-episode-v8`
+  distinguishes the changed method in caches and export provenance without a
+  saved-configuration or export-schema change. Updated both manuals, generated
+  README, architecture guidance and PDF formula rendering.
+  Verification: 121 focused detector/export checks, 219 documentation/marker/
+  cache checks and 2 generated-PDF tolerance checks passed. The complete
+  foreground suite passed with 3,436 passed, 3 existing expected failures,
+  no failures or skips, and 1 existing Matplotlib warning in 483.67 seconds
+  (exit 0). Full Python compilation, README synchronization and CRLF-aware
+  whitespace checks passed.
+
+- **Map centering and Local Median footer:** live cached backgrounds now share
+  the exact Target QTH center used by station/sector overlays and exported maps.
+  Six-character locators retain their subsquare center; four-character locators
+  retain their grid-square center. Full-locator cache labels and the existing
+  coordinate-based identity keep distinct centers separate while preserving
+  reuse for identical maps. Removed the misleading maximum Reference distance
+  annotation from live/export maps and both language catalogs. The configured
+  neighborhood radius, Reference-distance evidence, Drill-Down columns and
+  scientific calculations remain unchanged.
+  Verification: 67 focused map checks passed; real dark/light production maps
+  were rendered and visually inspected. The complete foreground suite passed
+  with 3,401 passed, 3 existing expected failures, no failures or skips and
+  1 existing Matplotlib warning in 433.07 seconds (exit 0). Full Python
+  compilation, manual/README synchronization and CRLF-aware whitespace checks
+  passed. Task-specific visual diagnostics were removed after inspection.
+
 - **Streamlit 1.64.0 and Codespaces interaction compatibility:** pinned the
   runtime version across deployment, development and load-test setup. Retained
   Full Range / All Directions defaults while disabling native multiselect bulk
@@ -47,6 +106,53 @@ This changelog summarizes major project changes by the date of the change (UTC),
   regressions, browser confirmation and the ten-user measurement remain
   pending in Codespaces. No capacity or memory-ceiling claim follows from the
   failed 14.94-second diagnostic workload.
+  The first focused Codespaces regression run for the fragment fix recorded
+  170 passed, 2 failed and 3 warnings in 6.02 seconds; both new ownership cases
+  passed. The two failures came from the empty export fixture's inferred-object
+  station columns becoming Arrow null fields, incompatible with a string
+  station predicate. Declared those fixture identity columns as strings so
+  their schema survives empty slicing. Application preparation already skips
+  empty evidence before artifact publication; runtime readers and fail-closed
+  export behavior are unchanged. Fixture-repair execution and browser smoke
+  confirmation remain pending in Codespaces; the existing application snapshot
+  can proceed to the diagnostic smoke without another source transfer.
+  Diagnostic `20260927-124830-b087e9` then completed both scope fragment runs
+  without a browser error and confirmed common Inspector ownership for the
+  footer save deltas. It exposed a separate selection reversal: an identical
+  widget snapshot resent 55 ms later changed ENE back to All Directions.
+  The explicit-All callbacks now retain the last ordered raw selection event
+  and its normalized result, making exact replays stable while preserving a
+  deliberate later All selection. Added callback and Streamlit integration
+  coverage, actual-selection diagnostics in the harness and updated Linux
+  instructions. Interaction timing and assertions remain unchanged. The new
+  callback change and empty-fixture repair still require Codespaces execution;
+  the failed 15.51-second diagnostic is not a capacity measurement.
+  Following the operator's workload refinement, the default memory test now
+  keeps Full Range / All Directions and cycles station choices, segment and
+  selected-station time bins, Drill-Down viewing and connected idle/resume.
+  Direction/distance changes remain available through `--vary-scope` as a
+  separate diagnostic, with conditional action coverage in the report.
+  Exports remain opt-in. A passing fixed-scope smoke can proceed directly to
+  the ten-user, 15-minute measurement; it does not verify the optional scope
+  replay fix. Updated workload tests and Linux commands; execution remains
+  deferred to Codespaces.
+  Replaced the default Milazzo Performance workload with the authoritative
+  month-long Griffiths RX Performance demo. Added a separate sequential
+  provider-capture command and integrity-checked offline query replay because
+  the frozen Griffiths Benchmark reports lack the necessary network evidence.
+  Retained Milazzo explicitly as `performance-small`; the default ten-user
+  mix is five Griffiths Benchmark and five Griffiths Performance sessions.
+  Configuration, SQL, provider and file provenance accompany actual captured
+  row counts. The new dataset size, capture, smoke interactions and capacity
+  remain unmeasured until Codespaces execution; no local checks were run.
+  The Griffiths package then passed 39 focused application regressions and
+  all 117 harness tests in Codespaces. Its first live capture failed with
+  HTTP 500 from wspr.live; no completed capture or memory measurement resulted.
+  Added explicit configured-provider selection and bounded failure-response
+  diagnostics to the capture helper. Documented a source-preserving in-memory
+  WD2 selection for the already uploaded package, following the operator's
+  successful-provider history. The HTTP cause and WD2 capture remain
+  unverified; new helper tests were authored but not executed locally.
 
 - **Temporary artifact cleanup:** removed the root `tmp/` scratch tree after
   inventory and hash verification, preserving 418 useful source, derivation,

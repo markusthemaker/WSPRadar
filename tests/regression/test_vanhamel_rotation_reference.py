@@ -342,17 +342,28 @@ def test_correction_translates_grid_and_statistics_once_without_changing_populat
 
 def test_density_only_revision_reproduces_from_raw_reports_without_changing_legacy_oracles(tmp_path):
     """Keep the independent density revision reproducible and scientific sources frozen."""
-    from scripts.build_vanhamel_temporal_density_reference import calculate_density_reference
+    from scripts.internal import build_vanhamel_temporal_density_reference as calculator
 
     before = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in REFERENCE_DIRECTORY.glob("expected_*")}
-    calculate_density_reference(REFERENCE_DIRECTORY, tmp_path)
-    for filename in ("expected_density_12h_correction_aware_v1.csv", "temporal_density_revision_v1.json"):
-        assert (tmp_path / filename).read_bytes() == (REFERENCE_DIRECTORY / filename).read_bytes()
+    frozen_metadata_bytes = (REFERENCE_DIRECTORY / "temporal_density_revision_v1.json").read_bytes()
+    calculator.calculate_density_reference(REFERENCE_DIRECTORY, tmp_path)
+    filename = "expected_density_12h_correction_aware_v1.csv"
+    assert (tmp_path / filename).read_bytes() == (REFERENCE_DIRECTORY / filename).read_bytes()
+    generated_metadata = json.loads((tmp_path / "temporal_density_revision_v1.json").read_text(encoding="utf-8"))
+    frozen_metadata = json.loads(frozen_metadata_bytes)
+    # Script relocation changes only current-generation provenance. Preserve the
+    # original artifact's path/hash and compare every scientific field exactly.
+    assert generated_metadata.pop("calculator_path") == "scripts/internal/build_vanhamel_temporal_density_reference.py"
+    assert generated_metadata.pop("calculator_sha256") == hashlib.sha256(Path(calculator.__file__).read_bytes()).hexdigest()
+    assert frozen_metadata.pop("calculator_path") == "scripts/build_vanhamel_temporal_density_reference.py"
+    assert len(frozen_metadata.pop("calculator_sha256")) == 64
+    assert generated_metadata == frozen_metadata
+    assert (REFERENCE_DIRECTORY / "temporal_density_revision_v1.json").read_bytes() == frozen_metadata_bytes
     assert before == {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in REFERENCE_DIRECTORY.glob("expected_*")}
 
 
 def test_comparison_preparation_uses_production_values_without_reading_expectations(reference_run, monkeypatch):
-    from scripts import build_vanhamel_rotation_comparison as comparison
+    from scripts.internal import build_vanhamel_rotation_comparison as comparison
 
     changed = SimpleNamespace(**vars(reference_run))
     changed.points = reference_run.points.copy()
@@ -431,7 +442,7 @@ def test_exact_trace_rejects_correction_drift_even_inside_paper_tolerance(refere
 
 def test_reception_mapping_retains_time_membership_gaps_and_final_partial_bin(reference_run):
     """Preserve exact UTC membership, zero-width gaps and the clipped final bin."""
-    from scripts.build_vanhamel_rotation_comparison import prepare_reconstruction, prepare_reception_bin_mapping
+    from scripts.internal.build_vanhamel_rotation_comparison import prepare_reconstruction, prepare_reception_bin_mapping
 
     reconstruction = prepare_reconstruction(reference_run)
     mapping = prepare_reception_bin_mapping(reconstruction)
@@ -457,7 +468,7 @@ def test_bridge_retains_native_density_values_masks_colours_and_vertical_cells(r
     """Change only reception geometry while retaining native density rendering."""
     from matplotlib.collections import QuadMesh
     from core.matplotlib_runtime import dispose_agg_figure
-    from scripts.build_vanhamel_rotation_comparison import (prepare_reconstruction, prepare_reception_bin_mapping, draw_reception_density_bridge)
+    from scripts.internal.build_vanhamel_rotation_comparison import (prepare_reconstruction, prepare_reception_bin_mapping, draw_reception_density_bridge)
     from ui.plots.evidence_figures import render_selected_evidence_export_figure
     from ui.results_export import _style_figure_for_paper
 

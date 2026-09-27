@@ -14,7 +14,7 @@ generated end-user and scientific manual, not the repository engineering guide.
 | `ui/` | Streamlit adapters, state, controls, analysis orchestration, inspectors, plots, and exports. |
 | `docs/` | English and German manuals plus lazy PDF generation. |
 | `tests/regression/` | Regression and contract tests for scientific, persistence, concurrency, UI-boundary, and performance-sensitive behavior. |
-| `scripts/` | Repository maintenance, release, fixture-building, and README synchronization scripts. |
+| `scripts/` | Routine Git/release commands, regression launchers and README synchronization; specialist fixture, figure and verification tools are under `scripts/internal/`. See `scripts/README.md`. |
 | `tools/Timed-AB-Relay-Switch/` | Separate USB relay console utility; it is not part of the Streamlit runtime. |
 | `.streamlit/` | Streamlit theme and server configuration. |
 | `.devcontainer/` | Linux development-container definition and native package setup. |
@@ -38,8 +38,8 @@ generated end-user and scientific manual, not the repository engineering guide.
   saved-config contract, schema-version handling and formal JSON Schema, and
   map/scientific plotting constants.
 - `config/delta_snr_outlier.py` owns the validated shared detector gates,
-  defaults, accepted range, and stable policy signature for optional Delta-SNR
-  outlier-candidate reporting.
+  defaults, accepted range, fixed dB comparison tolerance and bounds, and stable
+  policy signature for optional Delta-SNR outlier-candidate reporting.
 - `core/analysis_context.py` defines canonical scientific configuration.
 - `core/presentation_context.py` defines language, labels, and theme inputs.
 - `core/opportunity_engine.py` defines the processed opportunity-row schema and
@@ -109,8 +109,8 @@ python -m streamlit run app.py
 The entry point was verified by starting it headlessly on an alternate port and
 receiving `200 ok` from `/_stcore/health`.
 
-Run the complete regression suite on Windows through the checked-in foreground
-runner:
+When the **Full verification** criteria below apply, run the complete regression
+suite on Windows through the checked-in foreground runner:
 
 ```powershell
 .\scripts\run_regression.cmd
@@ -196,8 +196,9 @@ lifetime.
 - treat the Windows venv launcher and its configured base interpreter as one
   foreground command. Seeing both processes is not by itself evidence of a
   stall; the foreground terminal's output and final exit code are authoritative;
-- prefer one complete pytest session because it also detects cross-module state
-  leakage. If that session cannot be retained reliably, run
+- when a complete run is required, prefer one complete pytest session because
+  it also detects cross-module state leakage. Keep focused selections in one
+  foreground session as well. If the complete session cannot be retained reliably, run
   `.\scripts\run_regression.cmd -Chunk 1` through `-Chunk 5` serially. The
   checked-in manifest is validated before every invocation and fails if a test
   module is unassigned, duplicated, renamed, or removed. Never run these chunks
@@ -246,13 +247,17 @@ lifetime.
 
 Select the least expensive verification level that still exercises every
 changed contract. Classify work by blast radius and failure consequence, not by
-line count alone: a one-line scientific or cache-key change can require full
-verification, while a multi-line localized-copy change can remain focused. If
-the scope cannot be established confidently, use full verification.
+line count alone. Focused verification is the default, including for bounded
+scientific, cache and export fixes. A one-line change can still be major when
+it affects many independent workflows; a change across several files can remain
+focused when it implements one bounded contract. If scope is uncertain, inspect
+callers and add relevant tests first. If that does not resolve the uncertainty,
+explain the coverage gap and ask before starting a full suite.
 
 For every change:
 
 - run the most specific regression tests that exercise the changed behavior;
+- briefly identify the affected contracts and selected test modules or nodes;
 - run `git diff --check`;
 - compile changed Python files or their containing package when Python changed;
 - expand verification when a focused check exposes unexpected coupling, an
@@ -263,16 +268,20 @@ For every change:
 
 ### Focused verification
 
-Focused verification is sufficient only when the change is demonstrably
-isolated, has direct regression coverage, and does not alter a shared runtime
-contract. Typical examples are:
+Focused verification is sufficient when the affected contracts and callers are
+understood and direct regression coverage exercises them. A shared runtime
+contract does not by itself require the complete suite. Typical examples are:
 
 - localized copy, labels, help text, or non-interactive presentation composed
   from established UI primitives;
 - a narrow documentation correction that is not a substantial manual
   restructuring;
 - an isolated test, fixture, or private helper change after its callers and
-  contracts have been inspected.
+  contracts have been inspected;
+- a bounded scientific, numerical, SQL, geometry or classification fix with
+  direct boundary/invariance tests and coverage of the affected callers;
+- a bounded cache, export, persistence, state or compatibility correction with
+  the applicable identity, round-trip, lifecycle or integration checks.
 
 Run the directly affected test nodes or modules plus applicable localization
 parity, schema, rendering, or synchronization checks. Compile only the changed
@@ -302,13 +311,15 @@ These focused-scope rules do not override the full-verification triggers below.
 When full verification is required, the complete suite runs, including figures,
 PDFs, Streamlit integration, and exports.
 
-Focused verification is not sufficient for changes to scientific calculations,
-SQL, time synchronization, normalization, classification, geometry, context or
-cache-key inputs, saved schemas or migrations, persistence and artifact
-lifecycle, DataFrame ownership or projections, concurrency and admission,
-provider selection or failover, shared callbacks or session ownership,
-exports, dependencies, startup/import boundaries, security settings, or other
-compatibility-sensitive interfaces.
+Scientific calculations, SQL, time synchronization, normalization,
+classification, geometry, context or cache-key inputs, saved schemas,
+persistence and artifact lifecycle, DataFrame ownership or projections,
+concurrency and admission, provider selection or failover, shared callbacks or
+session ownership, exports, dependencies, startup/import boundaries and security
+settings require deliberate caller/contract review. Select tests for their
+actual effects; these categories are not automatic full-suite triggers. Expand
+to neighboring affected modules when a failure or uncovered caller warrants it,
+and stop expanding once the changed contracts are covered and passing.
 
 ### Targeted UI and browser verification
 
@@ -328,18 +339,29 @@ behavior has been verified.
 
 ### Full verification
 
-Run the complete regression suite, full repository Python compilation, and
-`git diff --check` when any of the following applies:
+Reserve the complete regression suite, full repository Python compilation, and
+`git diff --check` for:
 
-- the change touches one of the shared or compatibility-sensitive contracts
-  excluded from focused verification above;
-- the change spans multiple architectural layers or performs a broad refactor;
-- focused tests reveal unexpected coupling or the blast radius remains
-  uncertain;
-- work is being finalized for release or submission to GitHub.
+- an explicit user request for a complete run;
+- a major change whose demonstrated effects cross independent features or
+  workflows, such as a broad scientific-pipeline redesign, a shared
+  persistence/schema migration, concurrency or provider-lifecycle redesign,
+  framework/dependency upgrade with application-wide effects, or broad refactor;
+- qualification of a concrete release candidate, tag or package, including
+  accumulated changes since the last complete run; routine work toward a future
+  release is not itself release qualification;
+- a substantial manual restructuring under **Documentation restructuring
+  checks** below.
 
-Accumulated changes that used focused verification incrementally must receive
-one full verification run before their final release or GitHub submission.
+State the concrete major-change or release reason before starting a full run.
+Touching several architectural layers, modifying a scientific threshold or cache
+key, opening a PR, committing, or submitting to GitHub is not by itself such a
+reason. Unexpected focused-test failures first trigger investigation and
+targeted expansion; use the complete suite when that investigation establishes
+a major change, or when the user requests it. Once a complete run passes, do not
+repeat it for subsequent bounded fixes or documentation-only follow-ups; verify
+those changes with their relevant subset. A release candidate still needs one
+complete run over its final integrated runtime state.
 Start Streamlit and check its health endpoint when entry-point, dependency,
 startup, or import-boundary behavior changes. Add a targeted browser smoke test
 only when the changed contract is browser-specific or remains unproven by
@@ -761,15 +783,17 @@ not as optional follow-up work.
 - Admission defaults in `config/app_config.py`; they are sized for limited
   Streamlit Community Cloud resources.
 - `.streamlit/config.toml`, especially CORS and XSRF settings. They are currently
-  disabled and are a documented security risk, not harmless formatting.
+  enabled. Preserve these protections and treat deployment-related changes as
+  security behavior, not harmless formatting.
 - `docs/doc_en.py`, `docs/doc_de.py`, and README synchronization. Preserve all
   manual text and translations by default. Only a task that explicitly requests
   restructuring may remove passages classified under the relocation protocol;
   preserve all unique, correct and useful guidance and bilingual parity.
 - Release scripts. `git-baseline-temp.ps1` resets the local `temp` branch to its
   remote baseline and is destructive to uncommitted work.
-- Files under `tests/demo/`; they are historical exported evidence, not current
-  generated regression fixtures.
+- Files under `tests/demo/`; this ignored local intake can contain unique
+  exported evidence. Preserve needed evidence before cleanup; permanent
+  prepared-export fixtures belong under `tests/regression/fixtures/`.
 
 ## Compatibility
 
@@ -816,9 +840,9 @@ not as optional follow-up work.
 3. Tests cover changed behavior, including failure, ownership, concurrency, or
    persistence semantics where relevant.
 4. The checks required by **Verification Scope and Proportionality** pass.
-   `python -m pytest tests/regression -q` passes for full-verification work and
-   final release or GitHub submission; focused incremental work records its
-   narrower passing checks instead.
+   `python -m pytest tests/regression -q` passes when the full-verification
+   criteria apply; other work, including bounded PR/GitHub submissions, records
+   its relevant passing subset instead.
 5. `git diff --check` passes. Changed Python scope compiles, and full repository
    compilation passes when full verification is required.
 6. Streamlit starts successfully when entry-point, dependency, startup, or

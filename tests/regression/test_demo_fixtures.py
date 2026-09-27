@@ -14,7 +14,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from scripts import build_regression_fixture_from_demo_folder as fixture_builder
+from scripts.internal import build_regression_fixture_from_demo_folder as fixture_builder
 
 
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"

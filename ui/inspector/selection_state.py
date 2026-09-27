@@ -403,6 +403,9 @@ def initialize_explicit_all_multiselect(
     if key in session_state:
         current = session_state[key]
     else:
+        # A recreated widget starts from durable intent, not an event received
+        # by its previous instance before Streamlit removed the widget state.
+        session_state.pop(f"{key}_last_selection_event", None)
         persisted_selection = session_state.get(
             persistent_key,
             SEGMENT_SELECTION_ALL,
@@ -446,9 +449,31 @@ def update_explicit_all_multiselect(
     """Apply explicit-All behavior and persist a user-generated scope change."""
     current = session_state.get(key, [])
     previous = session_state.get(previous_key, [all_option])
-    normalized = resolve_explicit_all_selection(current, previous, all_option, specific_options)
+    event_key = f"{key}_last_selection_event"
+    raw_selection = tuple(current or ())
+    option_context = (all_option, tuple(specific_options))
+    previous_event = session_state.get(event_key)
+    # Streamlit can queue the same raw widget snapshot twice before the browser
+    # receives our normalized value. Replaying [All, ENE] against the normalized
+    # previous [ENE] must not turn it into a new request to select All. Preserve
+    # ordering: a genuine All selection after ENE arrives as [ENE, All].
+    is_replayed_selection = (
+        isinstance(previous_event, dict)
+        and previous_event.get("raw_selection") == raw_selection
+        and previous_event.get("option_context") == option_context
+        and previous_event.get("normalized_selection") == tuple(previous or ())
+    )
+    if is_replayed_selection:
+        normalized = list(previous_event["normalized_selection"])
+    else:
+        normalized = resolve_explicit_all_selection(current, previous, all_option, specific_options)
     session_state[key] = normalized
     session_state[previous_key] = normalized
+    session_state[event_key] = {
+        "raw_selection": raw_selection,
+        "normalized_selection": tuple(normalized),
+        "option_context": option_context,
+    }
     if persistent_key is not None:
         session_state[persistent_key] = (
             SEGMENT_SELECTION_ALL

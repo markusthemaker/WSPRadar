@@ -336,7 +336,7 @@ def _meets_strong_anchor_gates(
         episode_sign != 0
         and int(np.sign(residual_db)) == episode_sign
         and abs(residual_db)
-        >= outlier_model.detection_policy.minimum_departure_db
+        >= outlier_model.detection_policy.minimum_accepted_departure_db
         and abs(robust_z) >= outlier_model.detection_policy.minimum_robust_z
     )
 

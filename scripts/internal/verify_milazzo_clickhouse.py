@@ -9,9 +9,9 @@ The default checks both analyses; --analysis can isolate either provider scope.
 
 Examples (from the repository root)::
 
-    .venv\\Scripts\\python.exe scripts/verify_milazzo_clickhouse.py --dry-run
-    .venv\\Scripts\\python.exe scripts/verify_milazzo_clickhouse.py --provider wspr_live
-    .venv\\Scripts\\python.exe scripts/verify_milazzo_clickhouse.py --provider wspr_live --analysis benchmark
+    .venv\\Scripts\\python.exe scripts/internal/verify_milazzo_clickhouse.py --dry-run
+    .venv\\Scripts\\python.exe scripts/internal/verify_milazzo_clickhouse.py --provider wspr_live
+    .venv\\Scripts\\python.exe scripts/internal/verify_milazzo_clickhouse.py --provider wspr_live --analysis benchmark
 
 Live differences can indicate changed source data, provider behavior, or SQL
 semantics. They fail the check and require investigation; the script never
@@ -37,7 +37,7 @@ import pyarrow.parquet as parquet
 import requests
 
 
-REPOSITORY = Path(__file__).resolve().parents[1]
+REPOSITORY = Path(__file__).resolve().parents[2]
 REGRESSION_DIRECTORY = REPOSITORY / "tests" / "regression"
 FIXTURE_DIRECTORY = REGRESSION_DIRECTORY / "reference_fixtures" / "milazzo_human_review_v2"
 MAXIMUM_ERROR_BODY_BYTES = 8 * 1024
@@ -311,7 +311,7 @@ def main(argv=None):
             filename: sha256_file(REPOSITORY / filename)
             for filename in (
                 "core/analysis_runner.py", "core/opportunity_engine.py",
-                "tests/regression/reference_sql.py", "scripts/verify_milazzo_clickhouse.py",
+                "tests/regression/reference_sql.py", "scripts/internal/verify_milazzo_clickhouse.py",
             )
         }
         with TemporaryDirectory(prefix="offline_preflight_", dir=output_directory) as work_directory:

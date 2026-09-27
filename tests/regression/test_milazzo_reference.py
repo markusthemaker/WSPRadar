@@ -1127,7 +1127,7 @@ def test_overlay_gate_oracle_rejects_incorrect_report_flags(request, direction, 
 
 @pytest.mark.parametrize("direction,run_fixture", [("RX", "rx_reference_run"), ("TX", "reference_run")])
 def test_overlay_builder_projects_current_pipeline_outputs_without_expected_inputs(request, direction, run_fixture, monkeypatch):
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
 
     run = request.getfixturevalue(run_fixture)
     changed = SimpleNamespace(**vars(run))
@@ -1160,7 +1160,7 @@ def test_overlay_builder_projects_current_pipeline_outputs_without_expected_inpu
 
 @pytest.mark.parametrize("direction,run_fixture", [("RX", "rx_reference_run"), ("TX", "reference_run")])
 def test_overlay_gate_rings_require_both_production_retention_and_inspector_outcome(request, direction, run_fixture):
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
 
     run = request.getfixturevalue(run_fixture)
     changed = SimpleNamespace(**vars(run))
@@ -1302,7 +1302,7 @@ def test_figure7_paper_oracle_rejects_broken_calculations(reference_run, mutatio
 def test_publication_joint_survival_guides_preserve_exact_frozen_endpoints(
     request, run_fixture, direction, expected_metrics,
 ):
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
 
     run = request.getfixturevalue(run_fixture)
     reports = overlays.sql_endpoint_reports(run, direction)
@@ -1338,7 +1338,7 @@ def test_publication_joint_survival_guides_preserve_exact_frozen_endpoints(
 def test_publication_joint_survival_guides_reject_unreconciled_endpoints(
     rx_reference_run, invalid_endpoint,
 ):
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
 
     reports = overlays.sql_endpoint_reports(rx_reference_run, "RX")
     pairs = overlays.paired_evidence_points(rx_reference_run).sort_values(["plot_time", "grid"]).iloc[[0]].copy()
@@ -1372,7 +1372,7 @@ def test_publication_native_temporal_recipe_preserves_path_population_and_exact_
     request, run_fixture, expected_metrics, identity_count,
 ):
     from matplotlib import dates as mdates
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
     from ui.plots.evidence_figures import _compare_temporal_profile_values
 
     run = request.getfixturevalue(run_fixture)
@@ -1419,7 +1419,7 @@ def test_publication_native_temporal_recipe_preserves_path_population_and_exact_
 
 @pytest.mark.parametrize("run_fixture", ["rx_reference_run", "reference_run"])
 def test_publication_native_temporal_recipe_excludes_other_peers_and_window_boundaries(request, run_fixture):
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
     from ui.plots.evidence_figures import _compare_temporal_profile_values
 
     run = request.getfixturevalue(run_fixture)
@@ -1446,7 +1446,7 @@ def test_publication_native_temporal_recipe_excludes_other_peers_and_window_boun
 @pytest.mark.parametrize("direction", ["RX", "TX"])
 def test_publication_underlay_extent_preserves_frozen_pixel_calibration(direction):
     from matplotlib import dates as mdates
-    from scripts import build_milazzo_publication_overlays as overlays
+    from scripts.internal import build_milazzo_publication_overlays as overlays
 
     image_width, image_height = 1317, 656
     if direction == "RX":
@@ -1501,7 +1501,7 @@ def test_publication_pdf_uses_three_panel_style_with_vector_evidence_and_linked_
     from pypdf import PdfReader
     from pypdf.generic import ContentStream
     from config.demo_pdf_headers import DEMO_PDF_HEADERS
-    from scripts.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT
+    from scripts.internal.demo_pdf_footer import DEMO_PDF_FOOTER_TEXT
 
     filename = f"WSPRadar_Demo_Milazzo_Figure{figure_number}.pdf"
     source_path = PUBLICATION_DIRECTORY / filename

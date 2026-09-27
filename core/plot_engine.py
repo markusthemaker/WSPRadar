@@ -61,7 +61,6 @@ from core.map_base import create_base_map_figure, create_preview_cached_base_map
 from core.map_models import EmptyMapResult, MapFigure
 from core.matplotlib_runtime import ensure_agg_canvas, synchronized_matplotlib
 from core.input_validation import normalize_ascii_upper
-from core.math_utils import locator_to_latlon
 
 BASEMAP_DRAW_PROFILE_ENV = "WSPRADAR_PROFILE_BASEMAP_DRAW"
 BASEMAP_CACHE_ENV = "WSPRADAR_PREVIEW_BASEMAP_CACHE"
@@ -297,19 +296,6 @@ def _preview_base_map_cache_enabled():
     """Return whether live preview maps should use the static basemap raster cache."""
     value = os.getenv(BASEMAP_CACHE_ENV, "1")
     return str(value).strip().lower() not in {"0", "false", "no", "off"}
-
-
-def _preview_basemap_cache_center(qth, fallback_latitude, fallback_longitude):
-    """Return the 4-character QTH cache label and static preview basemap center."""
-    basemap_qth = normalize_ascii_upper(qth)[:4]
-    if len(basemap_qth) != 4:
-        return "", fallback_latitude, fallback_longitude
-
-    try:
-        cache_latitude, cache_longitude = locator_to_latlon(basemap_qth)
-    except (TypeError, ValueError):
-        return "", fallback_latitude, fallback_longitude
-    return basemap_qth, cache_latitude, cache_longitude
 
 
 def _draw_preview_canvas_for_profile(fig, dpi=MAP_PROFILE_PREVIEW_DPI):
@@ -573,11 +559,6 @@ def render_map_figure(
 
     if theme == "dark" and _preview_base_map_cache_enabled():
         with _timed_span(timing_collector, "base-map cache construction"):
-            cache_label, cache_latitude, cache_longitude = _preview_basemap_cache_center(
-                analysis_context.qth,
-                lat_0,
-                lon_0,
-            )
             fig, ax, proj, pc_proj, cache_detail = create_preview_cached_base_map_figure(
                 title=title,
                 maximum_distance_km=max_dist_km,
@@ -585,9 +566,7 @@ def render_map_figure(
                 center_longitude=lon_0,
                 theme_name=theme,
                 theme_config=theme_cfg,
-                cache_label=cache_label,
-                cache_center_latitude=cache_latitude,
-                cache_center_longitude=cache_longitude,
+                cache_label=normalize_ascii_upper(analysis_context.qth),
                 preview_dpi=MAP_PROFILE_PREVIEW_DPI,
             )
         if timing_collector is not None:
@@ -887,19 +866,6 @@ def render_map_figure(
             )
         )
         meta_parts.append(t_lang["map_performance_footer_segment_metric"])
-
-    # Neu: Füge Max distance Peer hinzu
-    if is_compare and analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
-        if 'best_ref_dist' in df_plot.columns:
-            # Filtere leere/NaN Distanzen raus
-            valid_dists = df_plot[df_plot['best_ref_dist'] > 0]['best_ref_dist']
-            if not valid_dists.empty:
-                max_peer_dist = int(valid_dists.max() / 1000)
-                meta_parts.append(
-                    t_lang["map_footer_max_reference_distance"].format(
-                        distance_km=max_peer_dist
-                    )
-                )
 
     line1_str = " | ".join(meta_parts)
     # ==========================================

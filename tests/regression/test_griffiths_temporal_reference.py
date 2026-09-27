@@ -369,7 +369,7 @@ def test_source_snr_perturbation_changes_computed_pairs_and_temporal_grid(fig6_r
 
 
 def test_figure3_hourly_density_uses_production_counts_and_preserves_12h_view(fig3_reference_run, monkeypatch):
-    from scripts import build_griffiths_figure3_comparisons as builder
+    from scripts.internal import build_griffiths_figure3_comparisons as builder
 
     pairs = _canonical_paired_rows(fig3_reference_run)
 
@@ -400,7 +400,7 @@ def test_figure3_hourly_density_uses_production_counts_and_preserves_12h_view(fi
 
 
 def test_figure3_density_artists_preserve_global_scale_and_all_native_coordinates():
-    from scripts import build_griffiths_figure3_comparisons as builder
+    from scripts.internal import build_griffiths_figure3_comparisons as builder
     from core.matplotlib_runtime import dispose_agg_figure, matplotlib_operation_lock
 
     # Three first-hour observations occupy cell 0; the exact +0.5 dB

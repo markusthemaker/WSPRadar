@@ -175,17 +175,13 @@ def create_preview_cached_base_map_figure(
     theme_name: str,
     theme_config: dict,
     cache_label: str = "",
-    cache_center_latitude: float | None = None,
-    cache_center_longitude: float | None = None,
     preview_dpi: int = BASEMAP_PREVIEW_DPI,
 ):
-    """Create a map figure using a cached static basemap raster for live preview."""
-    static_center_latitude = center_latitude if cache_center_latitude is None else cache_center_latitude
-    static_center_longitude = center_longitude if cache_center_longitude is None else cache_center_longitude
+    """Create a cached background and overlays around one shared map center."""
     cache_path, cache_status = _ensure_static_basemap_cache(
         maximum_distance_km=maximum_distance_km,
-        center_latitude=static_center_latitude,
-        center_longitude=static_center_longitude,
+        center_latitude=center_latitude,
+        center_longitude=center_longitude,
         theme_name=theme_name,
         theme_config=theme_config,
         cache_label=cache_label,

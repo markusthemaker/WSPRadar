@@ -33,6 +33,7 @@ if st.toggle("Show scope", key="show_scope"):
         "Distance range",
         ["Full Range", "[0-2500km]", "[2500-5000km]"],
         key="range_widget",
+        select_all=False,
         on_change=update_explicit_all_multiselect,
         args=scope_arguments,
     )
@@ -153,6 +154,40 @@ def test_scope_callback_and_widget_cleanup_preserve_saved_station_intent():
     assert application.exception.values == []
     assert application.multiselect("range_widget").value == ["[0-2500km]"]
     assert application.session_state["val_results_selected_stations_compare"] == saved_stations
+
+
+def test_scope_repeated_raw_snapshot_preserves_widget_and_durable_selection():
+    """Replay the mixed browser array after its first callback normalized it."""
+    application = AppTest.from_string(_SCOPE_CONTROL_APP, default_timeout=10)
+    application.session_state["show_scope"] = True
+    application.run()
+    assert application.exception.values == []
+    assert application.multiselect("range_widget").value == ["Full Range"]
+
+    raw_specific_selection = ["Full Range", "[0-2500km]"]
+    for _ in range(2):
+        application.multiselect("range_widget").set_value(raw_specific_selection).run()
+        assert application.exception.values == []
+        assert application.multiselect("range_widget").value == ["[0-2500km]"]
+        assert application.session_state["val_results_selected_ranges_compare"] == ["[0-2500km]"]
+
+    # The frontend appends a newly selected option after the current chips.
+    # Reversing the raw order represents a real new request for Full Range.
+    raw_all_selection = ["[0-2500km]", "Full Range"]
+    for _ in range(2):
+        application.multiselect("range_widget").set_value(raw_all_selection).run()
+        assert application.exception.values == []
+        assert application.multiselect("range_widget").value == ["Full Range"]
+        assert application.session_state["val_results_selected_ranges_compare"] == "all"
+
+    application.multiselect("range_widget").set_value(raw_specific_selection).run()
+    application.toggle("show_scope").set_value(False).run()
+    assert application.exception.values == []
+    assert "range_widget" not in application.session_state
+    application.toggle("show_scope").set_value(True).run()
+    assert application.exception.values == []
+    assert application.multiselect("range_widget").value == ["[0-2500km]"]
+    assert application.session_state["val_results_selected_ranges_compare"] == ["[0-2500km]"]
 
 
 def test_manual_zoom_preserves_candidate_provenance_and_cleanup_rehydrates_focus():

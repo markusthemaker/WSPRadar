@@ -21,6 +21,7 @@ from config import COMPASS
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
     DeltaSnrOutlierDetectionPolicy,
+    maximum_baseline_difference_comparison_bound_db,
 )
 from core.input_validation import is_valid_callsign, is_valid_locator
 from ui.inspector.evidence_data import (
@@ -30,7 +31,7 @@ from ui.inspector.evidence_data import (
 )
 
 
-DELTA_SNR_OUTLIER_DETECTOR_VERSION = "native-residual-episode-v7"
+DELTA_SNR_OUTLIER_DETECTOR_VERSION = "native-residual-episode-v8"
 DELTA_SNR_OUTLIER_RECIPE_SCHEMA_VERSION = 3
 DELTA_SNR_OUTLIER_QUALIFYING_UNIT_RECIPE_SCHEMA_VERSION = 1
 DELTA_SNR_OUTLIER_DETECTION_RESOLUTION = "native-paired-unit"
@@ -709,7 +710,7 @@ def _validated_candidate_qualifying_units(
         if (
             int(np.sign(qualifying_unit.residual_db)) != candidate_sign
             or abs(qualifying_unit.residual_db)
-            < detection_policy.minimum_departure_db
+            < detection_policy.minimum_accepted_departure_db
             or abs(qualifying_unit.robust_z)
             < detection_policy.minimum_robust_z
         ):
@@ -1115,7 +1116,9 @@ def _supported_baseline(
     post_baseline_db = float(np.median(post_values_db))
     if (
         abs(post_baseline_db - pre_baseline_db)
-        > maximum_baseline_difference_db
+        > maximum_baseline_difference_comparison_bound_db(
+            maximum_baseline_difference_db
+        )
     ):
         return None
     station_baseline_db = float(
@@ -1202,7 +1205,9 @@ def _pilot_baselines_by_cell(
         & np.isfinite(post_medians_db)
         & (
             np.abs(post_medians_db - pre_medians_db)
-            <= maximum_baseline_difference_db
+            <= maximum_baseline_difference_comparison_bound_db(
+                maximum_baseline_difference_db
+            )
         )
     )
     full_baselines_db = np.full(len(full_cell_times), np.nan, dtype=float)
@@ -1445,7 +1450,7 @@ def _candidate_from_supported_episode(
     robust_z = _robust_z(median_anomaly_db, robust_spread_db)
     if (
         abs(median_anomaly_db)
-        < detection_policy.minimum_departure_db
+        < detection_policy.minimum_accepted_departure_db
         or abs(robust_z) < detection_policy.minimum_robust_z
         or sign_agreement_fraction
         < DELTA_SNR_OUTLIER_MINIMUM_SIGN_AGREEMENT_FRACTION
@@ -1461,7 +1466,7 @@ def _candidate_from_supported_episode(
         (np.sign(residuals_db) == episode_sign)
         & (
             np.abs(residuals_db)
-            >= detection_policy.minimum_departure_db
+            >= detection_policy.minimum_accepted_departure_db
         )
         & (
             np.abs(native_robust_z_scores)
@@ -1625,7 +1630,7 @@ def _strong_anchor_trimmed_candidate(
     )
     strong_anchor_mask = (
         (np.sign(residuals_db) == episode_sign)
-        & (np.abs(residuals_db) >= detection_policy.minimum_departure_db)
+        & (np.abs(residuals_db) >= detection_policy.minimum_accepted_departure_db)
         & (np.abs(robust_z_scores) >= detection_policy.minimum_robust_z)
     )
     strong_anchor_positions = np.flatnonzero(strong_anchor_mask)
@@ -1713,7 +1718,7 @@ def _qualified_episode_candidates(
 
     minimum_member_anomaly_db = min(
         DELTA_SNR_OUTLIER_MINIMUM_MEMBER_ANOMALY_DB,
-        detection_policy.minimum_departure_db,
+        detection_policy.minimum_accepted_departure_db,
     )
     member_runs = _final_baseline_member_runs(
         station_times,
@@ -2481,7 +2486,7 @@ def detect_delta_snr_outlier_candidates(
         member_signs = np.zeros(len(station_rows), dtype=np.int8)
         minimum_member_anomaly_db = min(
             DELTA_SNR_OUTLIER_MINIMUM_MEMBER_ANOMALY_DB,
-            detection_policy.minimum_departure_db,
+            detection_policy.minimum_accepted_departure_db,
         )
         positive_members = supported_mask & (
             pilot_residuals_db

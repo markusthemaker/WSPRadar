@@ -10,6 +10,7 @@ import pytest
 
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_COMPARISON_TOLERANCE_DB,
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
     DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
     DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
@@ -207,6 +208,188 @@ def test_factory_default_requires_a_large_absolute_departure():
     assert six_db_model.candidates[0].median_anomaly_db == pytest.approx(6.0)
 
 
+def test_db_comparison_tolerance_preserves_configured_policy_precision():
+    """Decision bounds do not replace configured values or their identity."""
+    policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=6.003,
+        minimum_robust_z=3.007,
+        maximum_baseline_difference_db=3.004,
+    )
+
+    assert DELTA_SNR_OUTLIER_COMPARISON_TOLERANCE_DB == 0.01
+    assert policy.minimum_accepted_departure_db == pytest.approx(5.993)
+    assert policy.maximum_accepted_baseline_difference_db == pytest.approx(3.014)
+    assert policy.signature_tuple == (6.003, 3.007, 3.004)
+    assert policy.as_dict() == {
+        "minimum_departure_db": 6.003,
+        "minimum_robust_z": 3.007,
+        "maximum_baseline_difference_db": 3.004,
+    }
+
+
+@pytest.mark.parametrize("sign", [-1, 1])
+@pytest.mark.parametrize(("departure_db", "accepted"), [(5.995, True), (5.985, False)])
+def test_departure_tolerance_applies_to_candidates_and_native_unit_validation(
+    sign, departure_db, accepted
+):
+    """Use the same dB decision at episode, anchor, and marker boundaries."""
+    comparison_units = _path_units(
+        event_points=((0, sign * departure_db),), pre_baseline_db=0.0
+    )
+    original_units = comparison_units.copy(deep=True)
+    model = _detect(
+        comparison_units, detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
+    )
+
+    pdt.assert_frame_equal(comparison_units, original_units)
+    assert len(model.candidates) == int(accepted)
+    if accepted:
+        candidate = model.candidates[0]
+        assert candidate.median_anomaly_db == sign * departure_db
+        assert candidate.representative_delta_snr_db == sign * departure_db
+        assert candidate.qualifying_units[0].residual_db == sign * departure_db
+        assert model.qualifying_unit_marker_recipe()["qualifying_unit_count"] == 1
+
+
+@pytest.mark.parametrize("sign", [-1, 1])
+@pytest.mark.parametrize(("difference_db", "accepted"), [(3.005, True), (3.015, False)])
+def test_baseline_tolerance_applies_before_episode_qualification(
+    sign, difference_db, accepted
+):
+    """Both pilot eligibility and final pre/post support honor the dB margin."""
+    model = _detect(
+        _path_units(
+            event_points=((0, sign * 10.0),),
+            pre_baseline_db=0.0,
+            post_baseline_db=sign * difference_db,
+        ),
+        detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    )
+
+    assert len(model.candidates) == int(accepted)
+    if accepted:
+        candidate = model.candidates[0]
+        assert candidate.pre_baseline_db == 0.0
+        assert candidate.post_baseline_db == sign * difference_db
+        assert candidate.station_baseline_db == sign * difference_db / 2.0
+
+
+@pytest.mark.parametrize("is_demo", [False, True], ids=["ordinary-float32", "demo-float64"])
+@pytest.mark.parametrize(
+    ("event_db", "pre_db", "post_db", "correction_db"),
+    [
+        (6.0, 0.0, 0.0, 0.0),
+        (6.0, 0.0, 0.0, 1.2),
+        (9.0, -1.0, 2.0, 0.0),
+        (9.0, -1.0, 2.0, 0.3),
+    ],
+    ids=["departure-uncorrected", "departure-corrected", "baseline-uncorrected", "baseline-corrected"],
+)
+def test_transport_precision_and_reference_correction_preserve_boundary_detection(
+    is_demo, event_db, pre_db, post_db, correction_db
+):
+    """Replay CSV normalization and retained-unit preparation at both gates."""
+    from core.data_engine import _normalize_csv_query_frame
+    from ui.inspector.evidence_data import _build_compare_unit_rows
+
+    source = _path_units(
+        event_points=((0, event_db),),
+        pre_baseline_db=pre_db,
+        post_baseline_db=post_db,
+    )
+    # SQL emits normalized SNR after the constant Reference correction.
+    transport_rows = pd.DataFrame(
+        {
+            "peer_sign": source["peer_sign"],
+            "peer_grid": source["peer_grid"],
+            "time_slot": (
+                source["evidence_utc"].dt.as_unit("ns").astype("int64")
+                // pd.Timedelta(seconds=120).value
+            ),
+            "has_u": 1,
+            "has_r": 1,
+            "snr_u_norm": -17.0,
+            "snr_r_norm": -17.0 - source["metric"] + correction_db,
+        }
+    )
+    normalized_rows = _normalize_csv_query_frame(transport_rows, is_demo=is_demo)
+    assert normalized_rows["snr_r_norm"].dtype == (
+        np.dtype("float64") if is_demo else np.dtype("float32")
+    )
+    comparison_units = _build_compare_unit_rows(
+        normalized_rows,
+        source[["peer_sign", "peer_grid"]].drop_duplicates(),
+        is_sequential=False,
+    )
+    original_units = comparison_units.copy(deep=True)
+    model = _detect(
+        comparison_units, detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
+    )
+
+    pdt.assert_frame_equal(comparison_units, original_units)
+    assert len(model.candidates) == 1
+    candidate = model.candidates[0]
+    assert candidate.start_utc == WALTER_IMPULSE_UTC
+    assert candidate.median_anomaly_db == pytest.approx(
+        event_db - (pre_db + post_db) / 2.0, abs=2e-6
+    )
+    assert model.qualifying_unit_marker_recipe()["qualifying_unit_count"] == 1
+
+
+def test_db_tolerance_does_not_round_robust_z_into_qualification():
+    """A score displayed as 3.00 still fails the unchanged robust-z gate."""
+    comparison_units = _path_units(event_points=((0, 20.0),), pre_baseline_db=0.0)
+    flank_mask = comparison_units["evidence_utc"].ne(WALTER_IMPULSE_UTC)
+    comparison_units.loc[flank_mask, "metric"] = [-4.5, 4.5] * 8
+    comparison_units["reference_snr_db"] = -20.0 - comparison_units["metric"]
+    model = _detect(
+        comparison_units, detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
+    )
+
+    score = outlier_candidates._robust_z(20.0, 4.5)
+    assert score == pytest.approx(2.997777777777778, abs=1e-12)
+    assert score < 3.0 and round(score, 2) == 3.0
+    assert not any(candidate.start_utc == WALTER_IMPULSE_UTC for candidate in model.candidates)
+
+
+@pytest.mark.parametrize("minimum_departure_db", [0.5, 1.0])
+@pytest.mark.parametrize("sign", [-1, 1])
+@pytest.mark.parametrize(("shortfall_db", "accepted"), [(0.005, True), (0.015, False)])
+def test_low_departure_tolerance_is_also_used_by_pilot_grouping(
+    minimum_departure_db, sign, shortfall_db, accepted
+):
+    """A supported near-threshold event must reach final qualification."""
+    departure_db = sign * (minimum_departure_db - shortfall_db)
+    model = _detect(
+        _path_units(event_points=((0, departure_db),), pre_baseline_db=0.0),
+        detection_policy=DeltaSnrOutlierDetectionPolicy(
+            minimum_departure_db=minimum_departure_db, minimum_robust_z=0.1
+        ),
+    )
+
+    assert len(model.candidates) == int(accepted)
+    if accepted:
+        assert model.candidates[0].median_anomaly_db == departure_db
+
+
+def test_default_policy_keeps_fixed_one_db_grouping_floor():
+    """Two sub-floor units still split strong peaks into separate events."""
+    model = _detect(
+        _path_units(
+            event_points=((0, 6.0), (2, 0.995), (4, 0.995), (6, 6.0)),
+            pre_baseline_db=0.0,
+        ),
+        detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    )
+
+    assert outlier_candidates.DELTA_SNR_OUTLIER_MINIMUM_MEMBER_ANOMALY_DB == 1.0
+    assert [candidate.start_utc for candidate in model.candidates] == [
+        WALTER_IMPULSE_UTC,
+        WALTER_IMPULSE_UTC + pd.Timedelta(minutes=6),
+    ]
+    assert [len(candidate.qualifying_units) for candidate in model.candidates] == [1, 1]
+
+
 @pytest.mark.parametrize(
     ("field_name", "invalid_value"),
     (
@@ -304,7 +487,7 @@ def test_detector_api_owns_native_resolution_independent_of_display_bins():
         outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
     )
     assert outlier_candidates.DELTA_SNR_OUTLIER_DETECTOR_VERSION == (
-        "native-residual-episode-v7"
+        "native-residual-episode-v8"
     )
     assert model.detection_resolution == "native-paired-unit"
     assert model.paired_unit_cadence_minutes == pytest.approx(2.0)

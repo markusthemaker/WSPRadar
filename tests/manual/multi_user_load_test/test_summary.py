@@ -13,7 +13,7 @@ except ImportError:
     import run
 
 
-REQUIRED_ACTIONS = ("initial_analysis", "time_bin", "station", "scope", "drilldown", "idle_resume")
+REQUIRED_ACTIONS = ("initial_analysis", "time_bin", "station", "drilldown", "idle_resume")
 
 
 class SummaryTests(unittest.TestCase):
@@ -29,8 +29,11 @@ class SummaryTests(unittest.TestCase):
             interaction_started_at="2026-09-27T09:00:05+00:00",
             interaction_finished_at="2026-09-27T09:01:05+00:00",
             failures=[],
-            actions=[{"user": user, "action": action, "status": "ok", "duration_seconds": 0.2}
-                     for user in (1, 2) for action in REQUIRED_ACTIONS],
+            actions=[{"user": user, "action": action, "status": "ok", "duration_seconds": 0.2,
+                      **({"panel": "segment_inspector"} if action == "time_bin" else {})}
+                     for user in (1, 2) for action in REQUIRED_ACTIONS]
+                    + [{"user": user, "action": "time_bin", "status": "ok", "duration_seconds": 0.2,
+                        "panel": "selected_station"} for user in (1, 2)],
             samples=[self.sample("baseline", 0, 0)]
                     + [self.sample("interaction", second, 2) for second in range(5, 65, 5)]
                     + [self.sample("recovery", 65, 0)],
@@ -83,7 +86,42 @@ class SummaryTests(unittest.TestCase):
         self.assertFalse(summary["per_user_coverage"]["1"]["actions"]["export"])
         run.write_report(self.output, summary)
         report = (self.output / "report.md").read_text(encoding="utf-8")
-        self.assertEqual(report.count("not requested"), 2)
+        self.assertEqual(report.count("not requested"), 5)
+
+    def test_default_scope_is_not_required_or_claimed_as_exercised(self):
+        summary = self.summary()
+        self.assertEqual(summary["status"], "passed")
+        self.assertNotIn("scope", summary["required_actions_per_user"])
+        self.assertNotIn("scope", summary["action_coverage"])
+        self.assertFalse(summary["per_user_coverage"]["1"]["scope_required"])
+        self.assertFalse(summary["per_user_coverage"]["1"]["actions"]["scope"])
+        self.assertEqual(summary["scope_policy"], {
+            "vary_scope": False, "initial_selected_ranges": "all", "initial_selected_directions": "all",
+        })
+        run.write_report(self.output, summary)
+        report = (self.output / "report.md").read_text(encoding="utf-8")
+        self.assertIn("retain Full Range and All Directions", report)
+
+    def test_opt_in_scope_requires_a_successful_change_for_every_user(self):
+        self.experiment.arguments.vary_scope = True
+        self.experiment.actions.append({"user": 1, "action": "scope", "status": "ok", "duration_seconds": 1})
+        summary = self.summary()
+        self.assertEqual(summary["status"], "incomplete_or_failed")
+        self.assertIn("scope", summary["required_actions_per_user"])
+        self.assertTrue(summary["per_user_coverage"]["1"]["scope_required"])
+        self.assertEqual(summary["per_user_coverage"]["2"]["missing_actions"], ["scope"])
+        self.experiment.actions.append({"user": 2, "action": "scope", "status": "ok", "duration_seconds": 1})
+        self.assertEqual(self.summary()["status"], "passed")
+
+    def test_time_bins_in_one_panel_do_not_cover_the_other_panel(self):
+        self.experiment.actions = [record for record in self.experiment.actions
+                                   if not (record["user"] == 2 and record.get("panel") == "selected_station")]
+        summary = self.summary()
+        self.assertEqual(summary["status"], "incomplete_or_failed")
+        self.assertEqual(summary["per_user_coverage"]["2"]["missing_time_bin_panels"], ["selected_station"])
+        self.assertTrue(summary["per_user_coverage"]["2"]["actions"]["time_bin"])
+        self.assertFalse(summary["action_coverage"]["time_bin"])
+        self.assertTrue(any("selected_station" in reason for reason in summary["incomplete_reasons"]))
 
     def test_only_selected_users_require_an_export(self):
         self.experiment.arguments.export_users = 1

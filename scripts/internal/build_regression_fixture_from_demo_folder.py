@@ -24,7 +24,7 @@ from typing import Any
 import pandas as pd
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FIXTURE_ROOT = REPO_ROOT / "tests" / "regression" / "fixtures"
 TABLE_FILES = [
     "table_station_insights_current_segment.csv",

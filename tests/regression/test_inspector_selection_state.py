@@ -12,6 +12,127 @@ import pytest
 from ui.inspector import selection_state
 
 
+def _explicit_scope_arguments(session_state, *, specific_options=None):
+    return (
+        session_state,
+        "direction_widget",
+        "direction_widget_previous",
+        "All Directions",
+        ["N", "ENE", "SW"] if specific_options is None else specific_options,
+        selection_state.RESULTS_SELECTED_DIRECTIONS_COMPARE_STATE_KEY,
+    )
+
+
+@pytest.mark.parametrize("initialize_between_callbacks", [False, True])
+@pytest.mark.parametrize("specific_selection", [["ENE"], ["SW", "ENE"]])
+def test_explicit_all_repeated_snapshot_retains_specific_selection(
+    initialize_between_callbacks, specific_selection,
+):
+    """A queued raw snapshot cannot reinterpret the first callback's result."""
+    session_state = {}
+    arguments = _explicit_scope_arguments(session_state)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+    raw_selection = ["All Directions", *specific_selection]
+
+    for repeat in range(3):
+        if repeat and initialize_between_callbacks:
+            selection_state.initialize_explicit_all_multiselect(*arguments)
+        session_state["direction_widget"] = list(raw_selection)
+        selection_state.update_explicit_all_multiselect(*arguments)
+        assert session_state["direction_widget"] == specific_selection
+        assert session_state["direction_widget_previous"] == specific_selection
+        assert session_state[arguments[-1]] == [
+            option for option in arguments[-2] if option in specific_selection
+        ]
+
+
+def test_explicit_all_new_all_selection_has_distinct_order_from_replayed_snapshot():
+    """Selecting All after a specific chip still replaces that chip."""
+    session_state = {}
+    arguments = _explicit_scope_arguments(session_state)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+
+    for _ in range(2):
+        session_state["direction_widget"] = ["ENE", "All Directions"]
+        selection_state.update_explicit_all_multiselect(*arguments)
+        assert session_state["direction_widget"] == ["All Directions"]
+        assert session_state[arguments[-1]] == "all"
+
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+    assert session_state["direction_widget"] == ["ENE"]
+    assert session_state[arguments[-1]] == ["ENE"]
+
+
+def test_explicit_all_repeated_clear_restores_all_without_losing_later_changes():
+    session_state = {"direction_widget": ["ENE"]}
+    arguments = _explicit_scope_arguments(session_state)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+
+    for _ in range(2):
+        session_state["direction_widget"] = []
+        selection_state.update_explicit_all_multiselect(*arguments)
+        selection_state.initialize_explicit_all_multiselect(*arguments)
+        assert session_state["direction_widget"] == ["All Directions"]
+        assert session_state[arguments[-1]] == "all"
+
+    session_state["direction_widget"] = ["All Directions", "SW"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+    assert session_state["direction_widget"] == ["SW"]
+    assert session_state[arguments[-1]] == ["SW"]
+
+
+def test_explicit_all_replay_does_not_restore_values_removed_from_options():
+    session_state = {}
+    arguments = _explicit_scope_arguments(session_state)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    changed_arguments = _explicit_scope_arguments(session_state, specific_options=["N", "SW"])
+    selection_state.update_explicit_all_multiselect(*changed_arguments)
+
+    assert session_state["direction_widget"] == ["All Directions"]
+    assert session_state[arguments[-1]] == "all"
+
+
+def test_explicit_all_replay_does_not_override_a_replaced_canonical_selection():
+    session_state = {}
+    arguments = _explicit_scope_arguments(session_state)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+
+    session_state["direction_widget_previous"] = ["SW"]
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+
+    assert session_state["direction_widget"] == ["All Directions"]
+    assert session_state[arguments[-1]] == "all"
+
+
+def test_explicit_all_widget_recreation_retires_previous_event_and_rehydrates_intent():
+    session_state = {}
+    arguments = _explicit_scope_arguments(session_state)
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+    session_state["direction_widget"] = ["All Directions", "ENE"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+    session_state.pop("direction_widget")
+
+    selection_state.initialize_explicit_all_multiselect(*arguments)
+
+    assert session_state["direction_widget"] == ["ENE"]
+    assert "direction_widget_last_selection_event" not in session_state
+    session_state["direction_widget"] = ["ENE", "All Directions"]
+    selection_state.update_explicit_all_multiselect(*arguments)
+    assert session_state["direction_widget"] == ["All Directions"]
+    assert session_state[arguments[-1]] == "all"
+
+
 def test_seed_defaults_preserves_initialized_intent_and_factory_reset_overwrites():
     configured_stations = []
     session_state = {

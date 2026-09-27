@@ -220,6 +220,7 @@ def test_outlier_method_keeps_mnemonic_notation_inside_section_7_11():
         r"W_i^B",
         r"z_E",
         r"\operatorname{agree}(E)",
+        r"\varepsilon",
     )
     for symbol in mnemonic_symbols:
         assert symbol in english_formal
@@ -239,7 +240,11 @@ def test_outlier_method_keeps_mnemonic_notation_inside_section_7_11():
 
     for formula_fragment in (
         r"B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2}",
-        r"F=\min(1\ \mathrm{dB},D_{\min})",
+        r"F=\min(1\ \mathrm{dB},D_{\min}-\varepsilon)",
+        r"\varepsilon=0.01\ \mathrm{dB}",
+        r"|m_E|\geq D_{\min}-\varepsilon",
+        r"|r_{i,u}|\geq D_{\min}-\varepsilon",
+        r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon",
         r"r^P_{i,u}=D_{i,u}-B^P_{i,k(u)}",
         r"W_i^B=\max(10,C_i)\ \mathrm{minutes}",
         r"z_E=0.6745\frac{m_E}{S_{\mathrm{robust}}}",

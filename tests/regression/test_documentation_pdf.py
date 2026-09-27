@@ -115,13 +115,15 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "z<sub>i,u</sub> = 0.6745 &times; r<sub>i,u</sub>",
             "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) min",
             "W<sup>P</sup><sub>i</sub> = max(60, 2 C<sub>i</sub>) min",
-            "F = min(1 dB, D<sub>min</sub>)",
+            "F = min(1 dB, D<sub>min</sub> - &epsilon;)",
             "r<sup>P</sup><sub>i,u</sub> = D<sub>i,u</sub>",
             "W<sup>B</sup><sub>i</sub> = max(10, C<sub>i</sub>) min",
             "m<sub>E</sub> = median(u &isin; E)(r<sub>i,u</sub>)",
             "z<sub>E</sub> = 0.6745 &times; m<sub>E</sub>",
             "agree(E) = |{u &isin; E: sign(r<sub>i,u</sub>)",
-            "|m<sub>E</sub>| &ge; D<sub>min</sub>",
+            "|m<sub>E</sub>| &ge; D<sub>min</sub> - &epsilon;",
+            "|r<sub>i,u</sub>| &ge; D<sub>min</sub> - &epsilon;",
+            "|B<sub>pre</sub> - B<sub>post</sub>| &le; H<sub>max</sub> + &epsilon;",
             "|z<sub>E</sub>| &ge; Z<sub>min</sub>",
             "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)",
         )
@@ -142,6 +144,7 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "z<sub>E</sub>",
             "agree(E)",
             "H<sub>max</sub>",
+            "&epsilon; = 0.01 dB",
         ):
             assert expected_inline_formula_fragment in rendered
         for unsupported_latex in (
@@ -162,8 +165,37 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             r"\mathcal",
             r"\widetilde",
             r"\cup",
+            r"\varepsilon",
         ):
             assert unsupported_latex not in rendered
+
+
+@pytest.mark.parametrize(
+    ("language", "manual"), [("en", DOC_EN), ("de", DOC_DE)], ids=["en", "de"]
+)
+def test_generated_pdf_preserves_outlier_tolerance_equations(monkeypatch, language, manual):
+    """Render the real detector section and retain epsilon and both dB bounds."""
+    from PIL import Image
+    from pypdf import PdfReader
+
+    detector_section = manual.split('<a id="sec-7-11"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+    monkeypatch.setattr(pdf_generator, "get_docs", lambda _lang: detector_section)
+    logo_buffer = io.BytesIO()
+    Image.new("RGBA", (1, 1), (255, 255, 255, 255)).save(logo_buffer, format="PNG")
+    logo_b64 = base64.b64encode(logo_buffer.getvalue()).decode("ascii")
+
+    pdf_bytes = pdf_generator._generate_pdf_doc(language, logo_b64, "test")
+
+    assert pdf_bytes is not None
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    extracted = " ".join(" ".join(page.extract_text().split()) for page in reader.pages)
+    assert "ε = 0.01 dB" in extracted
+    assert "Dmin - ε" in extracted
+    assert "Hmax + ε" in extracted
+    assert r"\varepsilon" not in extracted
+    assert "\u25a0" not in extracted
 
 
 def test_generated_pdf_footer_uses_localized_page_label(monkeypatch):

@@ -12,7 +12,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 import zipfile
 
 from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
@@ -93,6 +93,11 @@ class AdvancingClock:
 
 
 class ArgumentTests(unittest.TestCase):
+    def test_scope_is_fixed_unless_explicitly_requested(self):
+        self.assertFalse(run.parse_arguments([]).vary_scope)
+        self.assertFalse(run.parse_arguments(["--smoke"]).vary_scope)
+        self.assertTrue(run.parse_arguments(["--smoke", "--vary-scope"]).vary_scope)
+
     def test_regular_and_smoke_defaults_do_not_export(self):
         self.assertEqual(run.parse_arguments([]).export_users, 0)
         smoke = run.parse_arguments(["--smoke"])
@@ -289,6 +294,56 @@ class InteractionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(RuntimeError, "late frontend failure"):
             await self.experiment.run_guarded_action(self.session, apparently_successful_action)
 
+    async def test_initial_scope_requires_both_all_selections_and_matching_summary(self):
+        expected_summary = "Active scope · Full Range · All Directions"
+        for selections, scope_summary, should_pass in (
+            (["Full Range", "All Directions"], expected_summary, True),
+            (["Full Range", "ENE"], expected_summary, False),
+            (["Full Range", "All Directions"], "Active scope · Full Range · ENE", False),
+        ):
+            with self.subTest(selections=selections, scope_summary=scope_summary):
+                panel = SimpleNamespace(locator=Mock(side_effect={
+                    '[data-testid="stMultiSelect"]': SimpleNamespace(all_inner_texts=AsyncMock(return_value=selections)),
+                    '.result-scope-summary > p': SimpleNamespace(first=SimpleNamespace(
+                        inner_text=AsyncMock(return_value=scope_summary))),
+                }.__getitem__))
+                self.page.locator = Mock(return_value=SimpleNamespace(first=panel))
+                if should_pass:
+                    observed = await self.experiment.verify_initial_scope(self.page)
+                    self.assertEqual(observed, {"selections": selections, "active_scope": expected_summary})
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "Initial results did not retain"):
+                        await self.experiment.verify_initial_scope(self.page)
+
+    async def test_time_bins_alternate_evidence_panels_only_after_success(self):
+        control = SimpleNamespace(
+            is_visible=AsyncMock(return_value=True), is_enabled=AsyncMock(return_value=True),
+            evaluate=AsyncMock(), inner_text=AsyncMock(return_value="2m"), click=AsyncMock(),
+        )
+        controls = SimpleNamespace(count=AsyncMock(return_value=1), nth=Mock(return_value=control))
+        controls.filter = Mock(return_value=controls)
+        panel = SimpleNamespace(locator=Mock(return_value=controls))
+        self.page.locator = Mock(return_value=SimpleNamespace(first=panel))
+        self.experiment.settle = AsyncMock()
+        for iteration, expected_panel in enumerate(("segment_inspector", "selected_station", "segment_inspector")):
+            control.evaluate.side_effect = [False, True]
+            status, details = await self.experiment.change_time_bin(self.session, iteration)
+            self.assertEqual(status, "ok")
+            self.assertEqual(details["panel"], expected_panel)
+            self.assertEqual(details["choice"], "2m")
+            self.assertEqual(self.session["successful_time_bin_actions"], iteration + 1)
+        self.assertEqual([call.args[0] for call in self.page.locator.call_args_list], [
+            '[class*="st-key-results_evidence_level_2_"]',
+            '[class*="st-key-results_evidence_level_4_"]',
+            '[class*="st-key-results_evidence_level_2_"]',
+        ])
+        self.assertIsNotNone(controls.filter.call_args.kwargs["has_text"].fullmatch("2m"))
+        controls.count.return_value = 0
+        status, details = await self.experiment.change_time_bin(self.session, 3)
+        self.assertEqual(status, "unavailable")
+        self.assertEqual(details["panel"], "selected_station")
+        self.assertEqual(self.session["successful_time_bin_actions"], 3)
+
     async def test_perform_action_records_success_only_after_settle_and_action(self):
         order = []
         self.experiment.settle = AsyncMock(side_effect=lambda _page: order.append("settled"))
@@ -308,6 +363,63 @@ class InteractionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.experiment.actions[-1]["choice"], "East")
         self.assertEqual(self.experiment.actions[-1]["status"], "ok")
         self.experiment.capture_failure.assert_not_awaited()
+
+    async def test_scope_failure_captures_observed_selection_and_scope_with_bounds(self):
+        previous_selection = "All Directions"
+        previous_scope = "Active scope · Full Range · All Directions"
+        for suffix in ("", "x" * 1100):
+            with self.subTest(observation_length=len(suffix)):
+                observed_selection = previous_selection + suffix
+                observed_scope = previous_scope + suffix
+                control = SimpleNamespace(
+                    focus=AsyncMock(), get_attribute=AsyncMock(return_value="false"),
+                    press=AsyncMock(),
+                )
+                widget = SimpleNamespace(
+                    inner_text=AsyncMock(side_effect=[previous_selection, observed_selection]),
+                    get_by_role=Mock(return_value=SimpleNamespace(first=control)),
+                )
+                widgets = SimpleNamespace(count=AsyncMock(return_value=2), nth=Mock(return_value=widget))
+                scope_summary = SimpleNamespace(
+                    inner_text=AsyncMock(side_effect=[previous_scope, observed_scope]),
+                )
+                panel = SimpleNamespace(locator=Mock(side_effect={
+                    '[data-testid="stMultiSelect"]': widgets,
+                    '.result-scope-summary > p': SimpleNamespace(first=scope_summary),
+                }.__getitem__))
+                option = SimpleNamespace(
+                    wait_for=AsyncMock(), get_attribute=AsyncMock(return_value="false"),
+                    click=AsyncMock(),
+                )
+                options = SimpleNamespace(
+                    first=option, all_text_contents=AsyncMock(return_value=["ENE"]),
+                    nth=Mock(return_value=option),
+                )
+                self.page.locator = Mock(side_effect={
+                    '[class*="st-key-results_evidence_level_2_"]': SimpleNamespace(first=panel),
+                    '[role="option"]:visible': options,
+                }.__getitem__)
+                self.page.keyboard = SimpleNamespace(press=AsyncMock())
+                self.experiment.settle = AsyncMock()
+                self.experiment.capture_failure = AsyncMock()
+
+                status = await self.experiment.perform_action(self.session, "scope", 3)
+
+                self.assertEqual(status, "failed")
+                failure = self.experiment.actions[-1]
+                details = failure["script"]["action_details"]
+                self.assertEqual(details["scope_option"], "ENE")
+                self.assertEqual(details["previous_selection"], previous_selection)
+                self.assertEqual(details["previous_scope"], previous_scope)
+                self.assertEqual(details["observed_selection"], observed_selection[:1000])
+                self.assertEqual(details["observed_scope"], observed_scope[:1000])
+                self.assertIn(f"observed selection={observed_selection[:250]!r}", failure["error"])
+                self.assertIn(f"active scope={observed_scope[:250]!r}", failure["error"])
+                widgets.nth.assert_called_once_with(1)
+                option.click.assert_awaited_once()
+                self.page.keyboard.press.assert_awaited_once_with("Escape")
+                self.assertEqual(self.experiment.settle.await_count, 2)
+                self.experiment.capture_failure.assert_awaited_once_with(self.session, "scope")
 
     async def test_perform_action_records_application_failure_and_captures_evidence(self):
         self.experiment.settle = AsyncMock(side_effect=RuntimeError("Application execution failed: test error"))
@@ -336,10 +448,11 @@ class InteractionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.experiment.actions[-1]["status"], "failed")
         self.assertGreater(self.experiment.actions[-1]["remaining_seconds"], 0)
 
-    async def record_exploration_workload(self, *, user=1, export_users=None, action_count=18):
+    async def record_exploration_workload(self, *, user=1, export_users=None, vary_scope=False, action_count=18):
         self.experiment.arguments.seed = 1
         self.experiment.arguments.think_seconds = 0.01
         self.experiment.arguments.idle_seconds = 0.01
+        self.experiment.arguments.vary_scope = vary_scope
         if export_users is not None:
             self.experiment.arguments.export_users = export_users
         self.session["user"] = user
@@ -366,8 +479,16 @@ class InteractionTests(unittest.IsolatedAsyncioTestCase):
             await self.experiment.interact(self.session, deadline=deadline)
         return calls
 
-    async def test_default_workload_explores_without_export_and_alternates_scope_widgets(self):
+    async def test_default_workload_retains_scope_and_explores_without_exports(self):
         calls = await self.record_exploration_workload()
+        self.assertEqual([action for action, _ in calls], ["time_bin", "station", "drilldown"] * 6)
+        self.assertNotIn("scope", [action for action, _ in calls])
+        self.assertNotIn("export", [action for action, _ in calls])
+        self.assertTrue(any(record["action"] == "idle_resume" for record in self.experiment.actions))
+        self.assertFalse(self.session["workload_running"])
+
+    async def test_opt_in_workload_alternates_scope_widgets(self):
+        calls = await self.record_exploration_workload(vary_scope=True)
         self.assertEqual([action for action, _ in calls[:8]], [
             "time_bin", "station", "drilldown", "scope", "time_bin", "station", "drilldown", "scope",
         ])
@@ -381,17 +502,22 @@ class InteractionTests(unittest.IsolatedAsyncioTestCase):
     async def test_selected_user_exports_once_after_first_exploration_cycle(self):
         calls = await self.record_exploration_workload(user=2, export_users=2, action_count=20)
         export_positions = [index for index, (action, _) in enumerate(calls) if action == "export"]
-        self.assertEqual(export_positions, [8])
+        self.assertEqual(export_positions, [6])
+        self.assertEqual(calls[7], ("time_bin", 6))
+        self.assertNotIn("scope", [action for action, _ in calls])
+
+    async def test_opt_in_scope_workload_exports_after_its_complete_cycle(self):
+        calls = await self.record_exploration_workload(export_users=1, vary_scope=True, action_count=20)
+        self.assertEqual([index for index, (action, _) in enumerate(calls) if action == "export"], [8])
         self.assertEqual(calls[9], ("time_bin", 8))
-        self.assertEqual([iteration for action, iteration in calls if action == "scope"], [3, 4, 5, 6])
 
     async def test_unselected_user_does_not_export(self):
         calls = await self.record_exploration_workload(user=2, export_users=1)
         self.assertNotIn("export", [action for action, _ in calls])
 
     async def test_selected_user_does_not_export_before_finishing_exploration_cycle(self):
-        calls = await self.record_exploration_workload(export_users=1, action_count=8)
-        self.assertEqual(len(calls), 8)
+        calls = await self.record_exploration_workload(export_users=1, action_count=6)
+        self.assertEqual(len(calls), 6)
         self.assertNotIn("export", [action for action, _ in calls])
 
     async def test_browser_failure_at_final_idle_deadline_is_recorded(self):

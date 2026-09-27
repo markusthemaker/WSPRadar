@@ -20,7 +20,11 @@ from PIL import Image
 import pytest
 
 from core import map_base, plot_engine
-from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
+from core.analysis_context import (
+    AnalysisContext,
+    COMPARISON_LOCAL_NEIGHBORHOOD,
+    COMPARISON_REFERENCE_STATION,
+)
 from core.map_models import MapData
 from core.presentation_context import PresentationContext
 from i18n import T, absolute_terms
@@ -35,7 +39,7 @@ from ui.plots.opportunity_figures import (
     _opportunity_segment_recipe,
     _render_opportunity_segment_figure,
 )
-from ui.results_export import figure_to_png_bytes
+from ui.results_export import _export_signature, figure_to_png_bytes
 
 
 def _assert_shared_evidence_legend(figure, legend, expected_labels):
@@ -1100,6 +1104,208 @@ def test_success_footer_rows_accept_localized_labels_and_count_grouping():
         )
     finally:
         dispose_matplotlib_figure(figure)
+
+
+def _local_median_map_data(analysis_id="RX_COMPARE"):
+    return MapData(
+        station_rows=pd.DataFrame(
+            {
+                "peer_lon": [8.0],
+                "peer_lat": [48.0],
+                "spot_count": [2],
+                "count_only_u": [0],
+                "count_only_r": [0],
+                "r_min": [0.0],
+                "best_ref_dist": [43987.0],
+            }
+        ),
+        segment_rows=pd.DataFrame(
+            {
+                "r_min": [0.0],
+                "r_max": [2500.0],
+                "az_bucket": [0.0],
+                "val": [1.5],
+            }
+        ),
+        analysis_id=analysis_id,
+        is_compare=True,
+        is_sequential=False,
+        analysis_kind="comparison",
+    )
+
+
+def test_cached_map_background_and_foreground_share_full_locator_center(
+    tmp_path, monkeypatch
+):
+    """Exercise real cached projection construction and grid-6 cache isolation."""
+    from cartopy.mpl.geoaxes import GeoAxes
+
+    # Retain Cartopy projection/ring construction while avoiding external data.
+    monkeypatch.setattr(GeoAxes, "add_feature", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(map_base, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(plot_engine, "_preview_base_map_cache_enabled", lambda: True)
+    monkeypatch.setattr(plot_engine, "MAP_PROFILE_PREVIEW_DPI", 10)
+    original_projections = map_base._map_projections
+    original_ensure_cache = map_base._ensure_static_basemap_cache
+    projection_calls = []
+    cache_results = []
+
+    def capture_projections(latitude, longitude):
+        projections = original_projections(latitude, longitude)
+        projection_calls.append(projections[1])
+        return projections
+
+    def capture_cache_result(**kwargs):
+        result = original_ensure_cache(**kwargs)
+        cache_results.append(result)
+        return result
+
+    monkeypatch.setattr(map_base, "_map_projections", capture_projections)
+    monkeypatch.setattr(map_base, "_ensure_static_basemap_cache", capture_cache_result)
+    cases = [
+        ("JN37", 47.5, 7.0),
+        ("JN37AA", 47.0 + 1.0 / 48.0, 6.0 + 1.0 / 24.0),
+        ("JN37XX", 48.0 - 1.0 / 48.0, 8.0 - 1.0 / 24.0),
+        ("jn37aa", 47.0 + 1.0 / 48.0, 6.0 + 1.0 / 24.0),
+    ]
+    for index, (qth, latitude, longitude) in enumerate(cases):
+        projection_calls.clear()
+        rendered_map = plot_engine.render_map_figure(
+            _local_median_map_data(),
+            title="Map center regression",
+            start_t=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            end_t=datetime(2026, 7, 2, tzinfo=timezone.utc),
+            max_dist_km=5000,
+            base_min_stations=1,
+            lat_0=latitude,
+            lon_0=longitude,
+            analysis_context=AnalysisContext(
+                callsign="TARGET",
+                qth=qth,
+                comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+            ),
+            presentation_context=PresentationContext(
+                language="en", labels=T["en"], theme="dark", solar_label="All"
+            ),
+        )
+        try:
+            # Miss: the static background and overlay each construct a projection.
+            # Hit: the overlay reuses the already verified background PNG.
+            assert len(projection_calls) == (2 if index < 3 else 1)
+            for projection in projection_calls:
+                assert projection.proj4_params["lat_0"] == latitude
+                assert projection.proj4_params["lon_0"] == longitude
+            foreground_axis = next(
+                axis for axis in rendered_map.figure.axes if isinstance(axis, GeoAxes)
+            )
+            assert foreground_axis.projection is projection_calls[-1]
+            assert qth.upper() in cache_results[-1][0].name
+        finally:
+            dispose_matplotlib_figure(rendered_map.figure)
+
+    cache_paths, cache_statuses = zip(*cache_results)
+    assert cache_statuses == ("miss", "miss", "miss", "hit")
+    assert len(set(cache_paths[:3])) == 3
+    assert cache_paths[1] == cache_paths[3]
+    assert all(path.is_file() for path in cache_paths)
+
+
+@pytest.mark.parametrize("analysis_id", ["RX_COMPARE", "TX_COMPARE"])
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_local_median_map_footer_keeps_radius_without_maximum_reference_distance(
+    monkeypatch, analysis_id, language, theme
+):
+    """Both live/export themes retain the configured radius in both directions."""
+    basemap_routes = []
+
+    def fake_base_map(*, theme_name, theme_config, **_kwargs):
+        basemap_routes.append(theme_name)
+        figure = Figure(figsize=(8, 8), facecolor=theme_config["fig_face"])
+        axis = figure.add_axes([0.05, 0.15, 0.75, 0.75])
+        transform = IdentityTransform()
+        return figure, axis, transform, transform
+
+    def fake_cached_base_map(**kwargs):
+        return (*fake_base_map(**kwargs), "hit: test-basemap.png")
+
+    monkeypatch.setattr(plot_engine, "_preview_base_map_cache_enabled", lambda: True)
+    monkeypatch.setattr(plot_engine, "create_base_map_figure", fake_base_map)
+    monkeypatch.setattr(
+        plot_engine, "create_preview_cached_base_map_figure", fake_cached_base_map
+    )
+    rendered_map = plot_engine.render_map_figure(
+        _local_median_map_data(analysis_id),
+        title="Local Median map footer",
+        start_t=datetime(2026, 7, 1, tzinfo=timezone.utc),
+        end_t=datetime(2026, 7, 2, tzinfo=timezone.utc),
+        max_dist_km=5000,
+        base_min_stations=1,
+        lat_0=47.5,
+        lon_0=7.0,
+        analysis_context=AnalysisContext(
+            callsign="TARGET",
+            qth="JN37",
+            comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+            neighborhood_radius_km=125,
+        ),
+        presentation_context=PresentationContext(
+            language=language,
+            labels=T[language],
+            theme=theme,
+            solar_label=T[language]["opt_solar_all"],
+        ),
+    )
+    try:
+        expected_reference = T[language]["map_footer_reference"].format(
+            reference=f"{T[language]['opt_local_median']} (≤125 km)"
+        )
+        figure_texts = [artist.get_text() for artist in rendered_map.figure.texts]
+        assert expected_reference in rendered_map.footer_text
+        assert rendered_map.footer_text in figure_texts
+        for obsolete_label in (
+            "Maximum Reference distance",
+            "Maximale Referenzentfernung",
+        ):
+            assert obsolete_label not in "\n".join(figure_texts)
+        assert "43 km" not in rendered_map.footer_text
+        assert basemap_routes == [theme]
+        if theme == "dark":
+            image, _dimensions = _draw_figure_preview_image(rendered_map.figure, dpi=40)
+            assert image.width > 0 and image.height > 0
+        else:
+            png_bytes = figure_to_png_bytes(
+                rendered_map.figure, dpi=40, paper_theme=False
+            )
+            assert png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+    finally:
+        dispose_matplotlib_figure(rendered_map.figure)
+
+
+@pytest.mark.parametrize(
+    ("language", "obsolete_template"),
+    [
+        ("en", "Maximum Reference distance: {distance_km} km"),
+        ("de", "Maximale Referenzentfernung: {distance_km} km"),
+    ],
+)
+def test_removed_reference_distance_footer_invalidates_prepared_export_signature(
+    language, obsolete_template
+):
+    current_labels = T[language]
+    assert "map_footer_max_reference_distance" not in current_labels
+    previous_labels = {
+        **current_labels,
+        "map_footer_max_reference_distance": obsolete_template,
+    }
+    captured_identity = {
+        "captured_config_signature": "config",
+        "captured_language": language,
+        "captured_run_id": "run",
+    }
+    assert _export_signature(
+        {}, translations=current_labels, **captured_identity
+    ) != _export_signature({}, translations=previous_labels, **captured_identity)
 
 
 def test_cached_basemap_pixels_are_compact_uint8_rgb(tmp_path):

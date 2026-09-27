@@ -493,7 +493,12 @@ def _drilldown_evidence_export_fixture(parquet_path, *, is_compare=False):
         },
     }
     evidence = pd.DataFrame({
-        "peer_sign": ["K1ABC"], "peer_grid": ["FN31"], "time_slot": [100],
+        # Keep identity types when the empty-artifact case removes every row;
+        # empty object columns otherwise become Arrow null fields, which cannot
+        # be compared with the reader's string station predicate.
+        "peer_sign": pd.Series(["K1ABC"], dtype="string"),
+        "peer_grid": pd.Series(["FN31"], dtype="string"),
+        "time_slot": [100],
         **({
             "has_u": [1], "has_r": [1],
             "snr_u_norm": [-10.0], "snr_r_norm": [-12.0],
