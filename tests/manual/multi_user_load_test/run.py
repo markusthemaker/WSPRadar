@@ -18,6 +18,7 @@ from pathlib import Path
 import platform
 import random
 import re
+import signal
 import socket
 import statistics
 import subprocess
@@ -80,6 +81,27 @@ def utc_now():
 
 def write_json(path, content):
     path.write_text(json.dumps(content, indent=2, default=str) + "\n", encoding="utf-8")
+
+
+def validate_source_syntax(source_files, repository=REPOSITORY):
+    """Check source with the executing interpreter, without importing the app."""
+    from make_bundle import validated_source_path
+
+    checked_files = 0
+    for record in source_files:
+        if Path(record["path"]).suffix != ".py":
+            continue
+        source_path = validated_source_path(repository, record["path"])
+        try:
+            compile(source_path.read_bytes(), str(source_path), "exec", dont_inherit=True)
+        except SyntaxError as error:
+            raise RuntimeError(
+                f"Source syntax check failed with Python {platform.python_version()}: "
+                f"{record['path']}:{error.lineno}: {error.msg}. "
+                "No replay preparation, server or browser was launched."
+            ) from error
+        checked_files += 1
+    return {"python": sys.version, "checked_python_files": checked_files, "status": "passed"}
 
 
 def create_output_directory(requested):
@@ -278,8 +300,115 @@ def run_owned_preparation(command, *, cwd, timeout_seconds=900):
             raise subprocess.CalledProcessError(return_code, command)
         return return_code
     finally:
-        if root_identity is not None or process.poll() is None:
-            terminate_owned_process(process, root_identity, tuple(observed_identities.items()))
+        original_exception = sys.exc_info()[1]
+        previous_sigint = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        try:
+            if root_identity is not None or process.poll() is None:
+                terminate_owned_process(process, root_identity, tuple(observed_identities.items()))
+        except BaseException as exception:
+            if original_exception is None:
+                raise
+            print(f"Additional preparation cleanup error: {type(exception).__name__}: {exception}", file=sys.stderr, flush=True)
+        finally:
+            signal.signal(signal.SIGINT, previous_sigint)
+
+
+async def wait_for_tasks_bounded(tasks, *, timeout_seconds, cancel=False):
+    """Retrieve task outcomes without letting one stuck cancellation block cleanup."""
+    tasks = set(tasks)
+    if cancel:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+    if not tasks:
+        return [], set()
+    done, pending = await asyncio.wait(tasks, timeout=timeout_seconds)
+    timed_out_count = len(pending)
+    if pending:
+        for task in pending:
+            task.cancel()
+        cancelled, pending = await asyncio.wait(pending, timeout=2)
+        done.update(cancelled)
+    errors = ([TimeoutError(f"{timed_out_count} tasks exceeded the {timeout_seconds:g}-second cleanup wait")]
+              if timed_out_count else [])
+    for task in done:
+        if not task.cancelled():
+            exception = task.exception()
+            if exception is not None:
+                errors.append(exception)
+    return errors, pending
+
+
+def run_with_interrupt_cleanup(async_operation, *, final_cleanup=None):
+    """Run one experiment with cooperative, repeat-safe SIGINT handling on 3.10.
+
+    The first Ctrl+C cancels the main task. Further Ctrl+C events never interrupt
+    bounded resource cleanup or close its running event loop underneath it.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    main_task = loop.create_task(async_operation(), name="load-test-experiment")
+    previous_sigint = signal.getsignal(signal.SIGINT)
+    was_interrupted = False
+    repeated_notice_sent = False
+    primary_exception = None
+    primary_traceback = None
+    result = None
+
+    def request_interrupt(_signal_number, _frame):
+        nonlocal was_interrupted, repeated_notice_sent
+        if not was_interrupted:
+            was_interrupted = True
+            print("Interrupt requested; cancelling users and preserving partial results. Waiting for bounded cleanup.", flush=True)
+            if not main_task.done():
+                loop.call_soon_threadsafe(main_task.cancel)
+        elif not repeated_notice_sent:
+            repeated_notice_sent = True
+            print("Cleanup is still running; repeated Ctrl+C will not close its event loop.", flush=True)
+
+    signal.signal(signal.SIGINT, request_interrupt)
+    try:
+        try:
+            result = loop.run_until_complete(main_task)
+        except BaseException as exception:
+            primary_exception = exception
+            primary_traceback = exception.__traceback__
+        finally:
+            try:
+                remaining = {task for task in asyncio.all_tasks(loop) if not task.done()}
+                if remaining:
+                    errors, pending = loop.run_until_complete(wait_for_tasks_bounded(
+                        remaining, timeout_seconds=5, cancel=True,
+                    ))
+                    if pending:
+                        raise RuntimeError(f"{len(pending)} asynchronous tasks did not finish during bounded loop cleanup")
+                    for exception in errors:
+                        print(f"Additional task cleanup error: {type(exception).__name__}: {exception}", file=sys.stderr)
+                loop.run_until_complete(loop.shutdown_asyncgens())
+            except BaseException as exception:
+                if primary_exception is None:
+                    primary_exception, primary_traceback = exception, exception.__traceback__
+                else:
+                    print(f"Additional loop cleanup error: {type(exception).__name__}: {exception}", file=sys.stderr)
+            finally:
+                try:
+                    if final_cleanup is not None:
+                        final_cleanup()
+                except BaseException as exception:
+                    if primary_exception is None:
+                        primary_exception, primary_traceback = exception, exception.__traceback__
+                    else:
+                        print(f"Additional process cleanup error: {type(exception).__name__}: {exception}", file=sys.stderr)
+    finally:
+        loop.close()
+        asyncio.set_event_loop(None)
+        signal.signal(signal.SIGINT, previous_sigint)
+    if was_interrupted and (primary_exception is None or isinstance(primary_exception, asyncio.CancelledError)):
+        raise KeyboardInterrupt("Interrupted by the operator after resource cleanup")
+    if primary_exception is not None:
+        raise primary_exception.with_traceback(primary_traceback)
+    return result
 
 
 async def wait_for_server(process, port, timeout_seconds):
@@ -326,6 +455,9 @@ class Experiment:
             stream.write(json.dumps(record, default=str) + "\n")
         if status == "failed":
             self.failures.append(record)
+            print(f"[{utc_now()}] FAILED user={user} action={action}: "
+                  f"{str(details.get('error', details.get('reason', 'See actions.jsonl')))[:2500]}",
+                  flush=True)
         return record
 
     async def monitor(self, sampler):
@@ -370,6 +502,39 @@ class Experiment:
         if await failures.count():
             raise RuntimeError((await failures.first.inner_text())[:2500])
 
+    async def wait_for_initial_results(self, session):
+        """Reject visible application failures while waiting for a real result."""
+        page = session["page"]
+        started = time.monotonic()
+        deadline = started + self.arguments.startup_timeout_seconds
+        next_progress = started
+        result_button = page.get_by_role(
+            "button", name=re.compile(r"Prepare All Results for Download$")).first
+        while True:
+            if page.is_closed():
+                raise RuntimeError("Browser page closed before the initial analysis completed")
+            if session["browser_errors"]:
+                raise RuntimeError(f"Browser error during initial analysis: {session['browser_errors'][-1]}")
+            exception = page.locator('[data-testid="stException"]').first
+            if await exception.is_visible():
+                message = await exception.inner_text(timeout=5000)
+                raise RuntimeError(f"Application failed during initial analysis: {message[:2500]}. See server.log.")
+            if await result_button.is_visible():
+                return
+            now = time.monotonic()
+            if now >= deadline:
+                raise TimeoutError(
+                    f"User {session['user']} ({session['scenario']}) did not obtain initial results "
+                    f"within {self.arguments.startup_timeout_seconds:g} seconds. See server.log "
+                    "and the initial_analysis failure screenshot. The interaction timer has not started."
+                )
+            if now >= next_progress:
+                print(f"[{utc_now()}] Waiting for user {session['user']} initial results "
+                      f"({session['scenario']}, {now - started:.0f}s); "
+                      "interaction timer has not started.", flush=True)
+                next_progress = now + 30
+            await asyncio.sleep(min(0.25, deadline - now))
+
     async def initialise_user(self, browser, port, user):
         from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
 
@@ -381,7 +546,7 @@ class Experiment:
         session = {"user": user + 1, "scenario": scenario["id"], "context": context,
                    "page": page, "export_verified": False,
                    "script_completions": 0, "expected_completions": 1,
-                   "script_is_running": False,
+                   "script_is_running": False, "browser_errors": [],
                    "configuration": json.loads((self.output / scenario["config_path"]).read_text(encoding="utf-8"))["settings"]}
         self.sessions.append(session)
         def observe_frame(payload):
@@ -397,12 +562,14 @@ class Experiment:
             elif message_type == "session_status_changed":
                 session["script_is_running"] = message.session_status_changed.script_is_running
         page.on("websocket", lambda websocket: websocket.on("framereceived", observe_frame))
-        page.on("pageerror", lambda error: self.event(user + 1, "browser_page_error", "failed", error=str(error)))
+        def observe_page_error(error):
+            session["browser_errors"].append(str(error))
+            self.event(user + 1, "browser_page_error", "failed", error=str(error))
+        page.on("pageerror", observe_page_error)
         started = time.monotonic()
         try:
             await page.goto(f"http://127.0.0.1:{port}/?{scenario['query_string']}", wait_until="domcontentloaded")
-            await page.get_by_role("button", name=re.compile(r"Prepare All Results for Download$")).first.wait_for(
-                state="visible", timeout=self.arguments.startup_timeout_seconds * 1000)
+            await self.wait_for_initial_results(session)
             await self.settle(page)
             self.active_users += 1
             self.event(user + 1, "initial_analysis", "ok", time.monotonic() - started,
@@ -592,6 +759,83 @@ class Experiment:
                 resumed_after_idle = True
             await asyncio.sleep(min(pause, max(0, deadline - time.monotonic())))
 
+    def _record_cleanup_failure(self, operation, exception):
+        detail = f"{type(exception).__name__}: {exception}"
+        self._cleanup_failures.append(f"{operation}: {detail}")
+        try:
+            self.event(None, operation, "failed", error=detail)
+        except Exception:
+            print(f"Cleanup failure: {operation}: {detail}", file=sys.stderr, flush=True)
+
+    async def _finish_cleanup_tasks(self, tasks, operation, *, timeout_seconds, cancel=False, report_errors=True):
+        errors, pending = await wait_for_tasks_bounded(tasks, timeout_seconds=timeout_seconds, cancel=cancel)
+        for exception in errors:
+            if report_errors or isinstance(exception, TimeoutError):
+                self._record_cleanup_failure(operation, exception)
+        if pending:
+            self._record_cleanup_failure(operation, TimeoutError(f"{len(pending)} tasks did not finish within bounded cleanup"))
+        return pending
+
+    async def _close_client_resources(self, user_tasks, browser, playwright_manager):
+        # Cancellation must finish before a context is closed underneath a user.
+        pending_users = await self._finish_cleanup_tasks(
+            user_tasks, "user_task_cleanup", timeout_seconds=10, cancel=True, report_errors=False,
+        )
+        context_closes = [asyncio.create_task(session["context"].close(), name=f"close-user-{session['user']}")
+                          for session in self.sessions if session.get("context") is not None]
+        await self._finish_cleanup_tasks(context_closes, "context_cleanup", timeout_seconds=10)
+        self.active_users = 0
+        if browser is not None:
+            await self._finish_cleanup_tasks(
+                [asyncio.create_task(browser.close(), name="close-browser")],
+                "browser_cleanup", timeout_seconds=10,
+            )
+        if playwright_manager is not None:
+            await self._finish_cleanup_tasks(
+                [asyncio.create_task(playwright_manager.__aexit__(None, None, None), name="stop-playwright")],
+                "playwright_cleanup", timeout_seconds=10,
+            )
+        if pending_users:
+            # Closing the transport releases requests that did not initially
+            # respond to cancellation; still retrieve every user task outcome.
+            await self._finish_cleanup_tasks(
+                pending_users, "user_task_cleanup_after_browser", timeout_seconds=5,
+                cancel=True, report_errors=False,
+            )
+
+    def stop_owned_server(self):
+        """Idempotent synchronous fallback; safe even when no event loop exists."""
+        process = getattr(self, "_owned_server_process", None)
+        if process is None or getattr(self, "_server_cleanup_complete", False):
+            return
+        observed_identities = ()
+        sampler = getattr(self, "_metrics_sampler", None)
+        if sampler is not None:
+            try:
+                observed_identities = sampler.process_identities("server")
+            except Exception as exception:
+                self._record_cleanup_failure("server_identity_snapshot", exception)
+        cleanup = terminate_owned_process(process, self._owned_server_identity, observed_identities)
+        self._server_cleanup_complete = True
+        self.event(None, "server_cleanup", "ok", **cleanup)
+
+    async def _finish_resources(self, client_cleanup_task, monitor_task):
+        try:
+            try:
+                await client_cleanup_task
+            except BaseException as exception:
+                self._record_cleanup_failure("client_cleanup", exception)
+            self.monitor_stop.set()
+            if monitor_task is not None:
+                await self._finish_cleanup_tasks([monitor_task], "monitor_cleanup", timeout_seconds=10)
+        finally:
+            try:
+                # All ordinary async cleanup is now settled. No new loop task
+                # or worker thread is needed to guarantee server termination.
+                self.stop_owned_server()
+            except BaseException as exception:
+                self._record_cleanup_failure("server_cleanup", exception)
+
     async def execute(self):
         from playwright.async_api import async_playwright
         from metrics import ProcessMetricsSampler
@@ -609,70 +853,85 @@ class Experiment:
                    "--server.fileWatcherType=none", "--server.runOnSave=false",
                    "--browser.gatherUsageStats=false"]
         monitor_task = None
+        user_tasks = []
+        browser = None
+        playwright_manager = None
+        client_cleanup_task = None
+        primary_exception = None
+        self._cleanup_failures = []
         with (self.output / "server.log").open("w", encoding="utf-8") as server_log:
             process = subprocess.Popen(command, cwd=REPOSITORY, env=environment,
                                        stdout=server_log, stderr=subprocess.STDOUT)
-            server_identity = None
-            sampler = None
+            self._owned_server_process = process
+            self._owned_server_identity = None
+            self._metrics_sampler = None
+            self._server_cleanup_complete = False
             try:
                 import psutil
                 owned_server = psutil.Process(process.pid)
-                server_identity = (process.pid, float(owned_server.create_time()))
+                self._owned_server_identity = (process.pid, float(owned_server.create_time()))
                 sampler = ProcessMetricsSampler(process.pid, [os.getpid()], self.output / "cache")
+                self._metrics_sampler = sampler
                 write_json(self.output / "system.json", sampler.system_metadata())
                 monitor_task = asyncio.create_task(self.monitor(sampler))
                 await wait_for_server(process, port, self.arguments.startup_timeout_seconds)
                 self.phase = "baseline"
                 await asyncio.sleep(self.arguments.baseline_seconds)
-                async with async_playwright() as playwright:
-                    launch_options = {"headless": True}
-                    if self.arguments.browser_channel:
-                        launch_options["channel"] = self.arguments.browser_channel
-                    browser = await playwright.chromium.launch(**launch_options)
-                    write_json(self.output / "browser.json", {"version": browser.version,
-                               "channel": self.arguments.browser_channel or "playwright-chromium"})
-                    try:
-                        self.phase = "ramp_up"
-                        # Stagger arrivals; actual analysis admission remains unchanged.
-                        initialisation = []
-                        for user in range(self.arguments.users):
-                            initialisation.append(asyncio.create_task(self.initialise_user(browser, port, user)))
-                            await asyncio.sleep(1)
-                        outcomes = await asyncio.gather(*initialisation, return_exceptions=True)
-                        if any(isinstance(outcome, BaseException) for outcome in outcomes):
-                            raise RuntimeError("At least one user failed to obtain results; interaction test was not started")
-                        self.phase = "interaction"
-                        self.interaction_started_at = utc_now()
-                        deadline = time.monotonic() + self.arguments.duration_seconds
-                        await asyncio.gather(*(self.interact(session, deadline) for session in self.sessions))
-                        self.interaction_finished_at = utc_now()
-                        self.phase = "connected_idle"
-                        await asyncio.sleep(max(self.arguments.sample_seconds, 2))
-                    finally:
-                        for session in self.sessions:
-                            with contextlib.suppress(Exception):
-                                await session["context"].close()
-                        self.active_users = 0
-                        await browser.close()
+                playwright_manager = async_playwright()
+                playwright = await playwright_manager.start()
+                launch_options = {"headless": True}
+                if self.arguments.browser_channel:
+                    launch_options["channel"] = self.arguments.browser_channel
+                browser = await playwright.chromium.launch(**launch_options)
+                write_json(self.output / "browser.json", {"version": browser.version,
+                           "channel": self.arguments.browser_channel or "playwright-chromium"})
+                self.phase = "ramp_up"
+                # Keep every task handle even if interruption happens while the
+                # next arrival is being staggered.
+                for user in range(self.arguments.users):
+                    user_tasks.append(asyncio.create_task(
+                        self.initialise_user(browser, port, user), name=f"initialise-user-{user + 1}",
+                    ))
+                    await asyncio.sleep(1)
+                outcomes = await asyncio.gather(*user_tasks, return_exceptions=True)
+                if any(isinstance(outcome, BaseException) for outcome in outcomes):
+                    raise RuntimeError("At least one user failed to obtain results; interaction test was not started")
+                self.phase = "interaction"
+                self.interaction_started_at = utc_now()
+                deadline = time.monotonic() + self.arguments.duration_seconds
+                interaction_tasks = [asyncio.create_task(self.interact(session, deadline), name=f"interact-user-{session['user']}")
+                                     for session in self.sessions]
+                user_tasks.extend(interaction_tasks)
+                await asyncio.gather(*interaction_tasks)
+                self.interaction_finished_at = utc_now()
+                self.phase = "connected_idle"
+                await asyncio.sleep(max(self.arguments.sample_seconds, 2))
+                client_cleanup_task = asyncio.create_task(
+                    self._close_client_resources(user_tasks, browser, playwright_manager), name="close-clients",
+                )
+                await asyncio.shield(client_cleanup_task)
+                if self._cleanup_failures:
+                    raise RuntimeError("Client cleanup was incomplete; see cleanup events in actions.jsonl")
                 self.phase = "recovery"
                 await asyncio.sleep(self.arguments.cooldown_seconds)
+            except BaseException as exception:
+                primary_exception = exception
+                raise
             finally:
-                self.monitor_stop.set()
+                if client_cleanup_task is None:
+                    client_cleanup_task = asyncio.create_task(
+                        self._close_client_resources(user_tasks, browser, playwright_manager), name="close-clients",
+                    )
+                cleanup_task = asyncio.create_task(self._finish_resources(client_cleanup_task, monitor_task), name="finish-resources")
                 try:
-                    if monitor_task is not None:
-                        await monitor_task
-                finally:
-                    observed_identities = sampler.process_identities("server") if sampler is not None else ()
-                    cleanup_task = asyncio.create_task(asyncio.to_thread(
-                        terminate_owned_process, process, server_identity, observed_identities,
-                    ))
-                    try:
-                        cleanup = await asyncio.shield(cleanup_task)
-                    except asyncio.CancelledError:
-                        # A first Ctrl+C must not skip the bounded child cleanup.
-                        await cleanup_task
+                    await asyncio.shield(cleanup_task)
+                except asyncio.CancelledError:
+                    # The signal runner never issues a second cancellation.
+                    await cleanup_task
+                    if primary_exception is None:
                         raise
-                    self.event(None, "server_cleanup", "ok", **cleanup)
+                if primary_exception is None and self._cleanup_failures:
+                    raise RuntimeError("Resource cleanup was incomplete; see cleanup events in actions.jsonl")
 
 
 def format_mib(number):
@@ -928,8 +1187,13 @@ def main(arguments=None):
     experiment = None
     fatal_error = None
     try:
-        write_json(output / "versions.json", version_record())
+        versions = version_record()
+        write_json(output / "versions.json", versions)
         write_json(output / "arguments.json", vars(options))
+        preflight = validate_source_syntax(versions["source_files"])
+        write_json(output / "syntax_check.json", preflight)
+        print(f"Source syntax check passed: {preflight['checked_python_files']} Python files "
+              f"with Python {platform.python_version()}", flush=True)
         import psutil
         if not options.prepare_only:
             import playwright.async_api  # Fail before any child server is launched.
@@ -948,7 +1212,7 @@ def main(arguments=None):
             print("Replay preparation complete. No server or browser was launched.", flush=True)
             return 0
         experiment = Experiment(options, output, [indexed[name] for name in requested])
-        asyncio.run(experiment.execute())
+        run_with_interrupt_cleanup(experiment.execute, final_cleanup=experiment.stop_owned_server)
     except KeyboardInterrupt:
         fatal_error = "Interrupted by the operator. Partial measurements are preserved."
     except Exception:

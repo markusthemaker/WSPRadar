@@ -481,10 +481,10 @@ def selected_success_context_line(recipe, translations):
         np.nan,
     )
     median_snr_text = (
-        f"{format_localized_decimal(
+        format_localized_decimal(
             successful_snr_median_db,
             translations,
-        )} dB"
+        ) + " dB"
         if pd.notna(successful_snr_median_db)
         and np.isfinite(float(successful_snr_median_db))
         else "—"

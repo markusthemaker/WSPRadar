@@ -27,7 +27,7 @@ HARNESS_PATH = "tests/manual/multi_user_load_test"
 HARNESS_FILES = frozenset({
     "README.md", "requirements.txt", "app_entry.py", "metrics.py", "replay.py",
     "run.py", "make_bundle.py", "test_lifecycle.py", "test_metrics.py",
-    "test_replay.py", "test_bundle.py", "test_summary.py",
+    "test_replay.py", "test_bundle.py", "test_summary.py", "test_startup.py",
 })
 SOURCE_SUFFIXES = frozenset({".py", ".toml", ".config", ".json", ".txt"})
 EXCLUDED_DIRECTORIES = frozenset({

@@ -2,7 +2,7 @@
 
 This harness runs the actual application with separate headless browser sessions and frozen provider responses. It measures application-server memory, browser/load-generator memory, disk use, interactions, rendering, and exports without directing a load test at public WSPR databases or the deployed WSPRadar service.
 
-Start with one local user, then three local users. Use the same source snapshot for the ten-user Codespaces run: a 15-minute workload followed by five minutes of observation after the browsers close. Setup and startup add time beyond those 20 minutes. The output ZIP is the artifact to return for analysis.
+Start with one user, then three users. Use the same source snapshot for the ten-user Codespaces run: a 15-minute workload followed by five minutes of observation after the browsers close. Setup and startup add time beyond those 20 minutes. The output ZIP is the artifact to return for analysis. All commands in this README use Linux Bash, as provided by GitHub Codespaces.
 
 The 15-minute interaction timer starts only after every requested session has finished its initial analysis and obtained results. Initial analysis, queue waiting, setup, and the baseline measurement therefore do not consume that interaction period.
 
@@ -18,49 +18,64 @@ The 15-minute interaction timer starts only after every requested session has fi
 
 The replay run can still need network access during setup: Python packages, the Playwright browser, and first-use Cartopy/Natural Earth map assets may require downloads. Replay describes the WSPR provider data boundary, not an entirely network-disconnected installation.
 
-## Local Windows setup
+## Linux setup (GitHub Codespaces)
 
-Run from the WSPRadar repository root in PowerShell. Use the working repository environment; do not combine another interpreter with its packages through `PYTHONPATH`.
+Open a Bash terminal in the WSPRadar source root: the directory containing `app.py`, `requirements.txt`, and `tests/manual/multi_user_load_test/`. This can be the repository checkout or the extracted source snapshot described below. Use a Linux virtual environment created in that directory; do not copy a Windows `.venv` or combine another interpreter with its packages through `PYTHONPATH`.
 
-```powershell
-.\.venv\Scripts\python.exe --version
-.\.venv\Scripts\python.exe -m pip install -r tests/manual/multi_user_load_test/requirements.txt
-.\.venv\Scripts\python.exe -m playwright install chromium
-.\.venv\Scripts\python.exe tests/manual/multi_user_load_test/run.py --help
+The repository's development-container configuration installs the application's `requirements.txt` into its default Python environment during container creation. It does not create or activate `.venv`, install this harness's additional dependencies, or install Playwright's browser. A new virtual environment is isolated from that default environment, so install both sets of dependencies explicitly:
+
+```bash
+if [ ! -d .venv ]; then python -m venv .venv; fi
+source .venv/bin/activate
+python --version
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r tests/manual/multi_user_load_test/requirements.txt
+python -m playwright install --with-deps chromium
+python tests/manual/multi_user_load_test/run.py --help
 ```
+
+If you already completed this setup in the same Linux source directory, reuse that environment. In each new terminal, run `source .venv/bin/activate` before the test commands; repeat dependency installation only when the requirements or environment change. `.venv/` is excluded from Git and must not be committed.
 
 The harness-only dependencies are pinned in this folder. They are not added to the application's production requirements. Playwright requires its matching browser installation; the official [browser installation instructions](https://playwright.dev/python/docs/browsers) explain this separate step.
 
-An installed Microsoft Edge can be used instead of downloading Chromium: append `--browser-channel msedge` to each run command below. Use that option only on a machine with Edge installed, and retain the recorded browser version when comparing results.
+The Linux commands use Playwright's installed Chromium browser. `--browser-channel` is only needed when deliberately using a different, already installed supported browser; retain the recorded browser version when comparing results.
 
 Validate fixture preparation and then run the short smoke check:
 
-```powershell
-.\.venv\Scripts\python.exe tests/manual/multi_user_load_test/run.py --prepare-only
-.\.venv\Scripts\python.exe tests/manual/multi_user_load_test/run.py --smoke
+```bash
+python tests/manual/multi_user_load_test/run.py --prepare-only
+python tests/manual/multi_user_load_test/run.py --smoke
 ```
 
 `--prepare-only` prepares replay artifacts without starting the server or browsers. `--smoke` selects one user, a 120-second workload, a 10-second cooldown, and a five-second baseline. It checks that the harness runs; it is not a capacity test. Smoke checks compress reading and idle pauses to two seconds; normal runs use approximately 25 seconds between actions and a two-minute connected idle pause once per action cycle, followed by a verified interaction. `--idle-seconds` changes that idle pause. An action already in progress is allowed to finish at the end of the requested interaction period, so recorded duration can be longer.
 
-Run the local comparisons one after the other, keeping each command attached to its foreground terminal until it reports completion:
+Allow roughly three to five minutes for a smoke check as an initial estimate, with additional time possible for first-use asset downloads or slow analysis/export rendering. Its 120 seconds begin only when the initial result is ready. Progress passes through `startup`, `baseline`, `ramp_up`, `interaction`, `connected_idle`, and `recovery`; the periodic output can skip a short phase between samples. During `ramp_up`, `users=0` means that no session has completed its initial analysis yet. Per-user waiting messages explicitly state that the interaction timer has not started. Initial results have a 600-second timeout by default (`--startup-timeout-seconds`), but visible application exceptions and browser errors fail promptly instead of consuming that entire wait.
 
-```powershell
-.\.venv\Scripts\python.exe tests/manual/multi_user_load_test/run.py --users 1 --duration-seconds 900 --cooldown-seconds 300
-.\.venv\Scripts\python.exe tests/manual/multi_user_load_test/run.py --users 3 --duration-seconds 900 --cooldown-seconds 300
+Every invocation first compiles the source with the interpreter actually executing the test, without importing or running the application. An incompatible Python syntax error therefore stops setup before replay preparation or server launch, with the interpreter version, file, and line in the diagnostic archive. This checks syntax, not dependency compatibility or application correctness. Both commands above prepare their own isolated replay artifacts; `--prepare-only` is an optional setup check and does not supply a cache to the later smoke run.
+
+A normal smoke run closes its browsers and server, prints `Report:` and `Return this archive:` paths, then returns to the shell prompt. A completed command can still report failed or incomplete evidence: read `report.md`; a successful run exits with code zero.
+
+Run the one-user and three-user comparisons one after the other, keeping each command attached to its foreground terminal until it reports completion:
+
+```bash
+python tests/manual/multi_user_load_test/run.py --users 1 --duration-seconds 900 --cooldown-seconds 300
+python tests/manual/multi_user_load_test/run.py --users 3 --duration-seconds 900 --cooldown-seconds 300
 ```
 
 Do not start a second harness run while the first is running. Avoid unrelated heavy work during the measurement. If you stop a run with Ctrl+C, keep its diagnostics and treat it as interrupted rather than a successful load test.
 
+Press Ctrl+C once and leave the foreground command attached while it cancels pending work, closes browser sessions, stops its owned server processes, and writes the partial report. It prints a shutdown message; repeated Ctrl+C during this cleanup does not interrupt the same tasks again. Cleanup has bounded waits and can take tens of seconds if a child does not exit promptly. An operating-system kill or terminal/container termination can still prevent cleanup and report creation; use the diagnostic recovery instructions below in that case.
+
 ## Transfer the exact source to Codespaces
 
-The new local harness folder is not automatically present in GitHub. Creating a codespace from the repository alone does not transfer uncommitted local changes.
+If your Codespaces checkout already contains the intended committed application and `tests/manual/multi_user_load_test/`, use that checkout directly and skip the ZIP transfer. Creating a codespace from the repository does not transfer uncommitted local changes; use the bundle workflow below when the source to test is not yet available in that checkout.
 
 Use the prepared `.test/multiuser-load-transfer.zip` source bundle. It contains the selected current source snapshot and this harness; Git metadata, virtual environments, caches, test output, and secrets are excluded. This is a source-transfer ZIP, distinct from the result ZIP produced after a test. No commit or push is needed for this route.
 
-After changing source or the harness, rebuild the bundle from the repository root:
+After changing source or the harness, rebuild the bundle from the source Git checkout's root, not from an extracted snapshot. On Linux, with its virtual environment activated, run:
 
-```powershell
-.\.venv\Scripts\python.exe tests/manual/multi_user_load_test/make_bundle.py --overwrite
+```bash
+python tests/manual/multi_user_load_test/make_bundle.py --overwrite
 ```
 
 The extracted snapshot includes `source_snapshot.json`. The runner verifies its file hashes before starting and records them with the measurements; extracting inside another Git repository does not substitute that outer repository's revision.
@@ -79,13 +94,15 @@ cd wspradar-load-test
 
 For a later source bundle, choose a new extraction folder so that stale files cannot survive from an earlier snapshot. Run all remaining commands inside the extracted directory, where `app.py` and `tests/manual/multi_user_load_test/` are visible.
 
+When a replacement bundle changes only application or harness code and both requirements files are unchanged, you can reuse the working Linux environment from the original Codespaces checkout. Activate it before changing directories, for example `source /workspaces/WSPRadar/.venv/bin/activate`, then enter the fresh extraction folder and run the test there. This uses that environment's actual interpreter and installed browser; it does not copy an environment or mix packages through `PYTHONPATH`. Otherwise, create and install the snapshot's own environment as described below.
+
 ## Codespaces setup and ten-user run
 
-The checked-in development container supplies Python 3.10 and the application's native packages. Create an isolated environment for this source snapshot, then install its runtime and test tooling:
+The checked-in development container supplies Python 3.10 and the application's native packages. In the source directory you will test, use the Linux environment setup below. If you already completed the Linux setup above in this same directory, activate `.venv` and go straight to the smoke check; if you just extracted a new source snapshot, create its own environment first unless reusing the unchanged Linux environment as described above:
 
 ```bash
-python -m venv .venv-load
-source .venv-load/bin/activate
+if [ ! -d .venv ]; then python -m venv .venv; fi
+source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -r tests/manual/multi_user_load_test/requirements.txt
 python -m playwright install --with-deps chromium

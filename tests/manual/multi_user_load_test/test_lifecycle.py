@@ -1,7 +1,9 @@
 """Lifecycle checks use fake processes and never launch the application."""
 
 import asyncio
+import io
 from pathlib import Path
+import signal
 import subprocess
 import sys
 import tempfile
@@ -196,7 +198,7 @@ class ProcessLifecycleTests(unittest.TestCase):
         metrics_module = SimpleNamespace(ProcessMetricsSampler=lambda *args: sampler)
 
         class BrokenBrowserContext:
-            async def __aenter__(self):
+            async def start(self):
                 raise RuntimeError("browser setup failed")
 
             async def __aexit__(self, *arguments):
@@ -213,11 +215,145 @@ class ProcessLifecycleTests(unittest.TestCase):
                     with patch.object(run.subprocess, "Popen", return_value=FakePopen(root)):
                         with patch.object(run, "wait_for_server", new=AsyncMock()):
                             with patch("playwright.async_api.async_playwright", return_value=BrokenBrowserContext()):
-                                with self.assertRaisesRegex(RuntimeError, "metrics failure"):
+                                with self.assertRaisesRegex(RuntimeError, "browser setup failed"):
                                     await experiment.execute()
                 self.assertTrue(root.terminated)
                 self.assertTrue(any(event["action"] == "server_cleanup" for event in experiment.actions))
+                self.assertTrue(any(event["action"] == "monitor_cleanup" and event["status"] == "failed"
+                                    for event in experiment.actions))
         asyncio.run(exercise())
+
+    def test_initialization_tasks_finish_cancellation_before_contexts_close(self):
+        root = FakeProcess(10)
+        api = FakeProcessAPI(root)
+        sampler = SimpleNamespace(system_metadata=lambda: {}, process_identities=lambda group: ((10, 1.0),))
+        order = []
+
+        async def exercise():
+            initialized = asyncio.Event()
+            user_cancelled = asyncio.Event()
+
+            class Context:
+                async def close(self):
+                    self_test.assertTrue(user_cancelled.is_set())
+                    order.append("context closed")
+
+            class Browser:
+                version = "fake"
+
+                async def close(self):
+                    order.append("browser closed")
+
+            class Manager:
+                async def start(self):
+                    return SimpleNamespace(chromium=SimpleNamespace(launch=AsyncMock(return_value=Browser())))
+
+                async def __aexit__(self, *arguments):
+                    order.append("playwright stopped")
+
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                output = Path(temporary_directory)
+                (output / "scenarios.json").write_text("{}", encoding="utf-8")
+                options = SimpleNamespace(startup_timeout_seconds=1, baseline_seconds=0,
+                                          browser_channel=None, sample_seconds=0.01, users=2)
+                experiment = run.Experiment(options, output, [])
+
+                async def monitor(_sampler):
+                    await experiment.monitor_stop.wait()
+
+                async def initialize(_browser, _port, user):
+                    experiment.sessions.append({"user": user + 1, "context": Context()})
+                    initialized.set()
+                    try:
+                        await asyncio.Event().wait()
+                    finally:
+                        await asyncio.sleep(0)
+                        order.append("user cancelled")
+                        user_cancelled.set()
+
+                experiment.monitor = monitor
+                experiment.initialise_user = initialize
+                with patch.dict(sys.modules, {"psutil": api, "metrics": SimpleNamespace(ProcessMetricsSampler=lambda *args: sampler)}):
+                    with patch.object(run.subprocess, "Popen", return_value=FakePopen(root)):
+                        with patch.object(run, "wait_for_server", new=AsyncMock()):
+                            with patch("playwright.async_api.async_playwright", return_value=Manager()):
+                                task = asyncio.create_task(experiment.execute())
+                                await initialized.wait()
+                                task.cancel()
+                                with self_test.assertRaises(asyncio.CancelledError):
+                                    await task
+                self_test.assertTrue(root.terminated)
+                self_test.assertEqual(order, ["user cancelled", "context closed", "browser closed", "playwright stopped"])
+        self_test = self
+        asyncio.run(exercise())
+
+    def test_bounded_cleanup_reports_timeout_after_cancellation_finishes(self):
+        async def exercise():
+            task = asyncio.create_task(asyncio.Event().wait())
+            errors, pending = await run.wait_for_tasks_bounded([task], timeout_seconds=0.01)
+            self.assertFalse(pending)
+            self.assertTrue(task.cancelled())
+            self.assertTrue(any(isinstance(exception, TimeoutError) for exception in errors))
+        asyncio.run(exercise())
+
+    def test_loop_runner_preserves_primary_exception_and_calls_sync_fallback(self):
+        cleanup_calls = []
+
+        async def operation():
+            raise ValueError("original startup failure")
+
+        def cleanup():
+            cleanup_calls.append("called")
+            raise RuntimeError("cleanup failure")
+
+        stderr = io.StringIO()
+        with patch.object(sys, "stderr", stderr):
+            with self.assertRaisesRegex(ValueError, "original startup failure"):
+                run.run_with_interrupt_cleanup(operation, final_cleanup=cleanup)
+        self.assertEqual(cleanup_calls, ["called"])
+        self.assertIn("cleanup failure", stderr.getvalue())
+
+    def test_two_real_sigints_leave_loop_running_until_cleanup_finishes(self):
+        # Signal only this short-lived child; never the developer's terminal.
+        script = r'''
+import asyncio, signal, sys
+sys.path.insert(0, sys.argv[1])
+from run import run_with_interrupt_cleanup
+async def operation():
+    loop = asyncio.get_running_loop()
+    loop.call_later(0.03, signal.raise_signal, signal.SIGINT)
+    try:
+        await asyncio.Event().wait()
+    finally:
+        print("CLEANUP_STARTED", flush=True)
+        loop.call_later(0.01, signal.raise_signal, signal.SIGINT)
+        await asyncio.sleep(0.06)
+        print("CLEANUP_FINISHED", flush=True)
+try:
+    run_with_interrupt_cleanup(operation, final_cleanup=lambda: print("SYNC_FALLBACK", flush=True))
+except KeyboardInterrupt:
+    print("INTERRUPTED_AFTER_CLEANUP", flush=True)
+'''
+        import psutil
+        child = subprocess.Popen([sys.executable, "-c", script, str(Path(run.__file__).parent)],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        identity = (child.pid, psutil.Process(child.pid).create_time())
+        observed = {}
+        try:
+            try:
+                stdout, stderr = child.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                for descendant in psutil.Process(child.pid).children(recursive=True):
+                    observed[descendant.pid] = descendant.create_time()
+                stdout, stderr = child.communicate(timeout=9)
+            self.assertEqual(child.returncode, 0, stdout + stderr)
+            self.assertLess(stdout.index("CLEANUP_STARTED"), stdout.index("CLEANUP_FINISHED"))
+            self.assertLess(stdout.index("CLEANUP_FINISHED"), stdout.index("SYNC_FALLBACK"))
+            self.assertLess(stdout.index("SYNC_FALLBACK"), stdout.index("INTERRUPTED_AFTER_CLEANUP"))
+            self.assertNotIn("no running event loop", stderr)
+            self.assertNotIn("Task was destroyed", stderr)
+        finally:
+            run.terminate_owned_process(child, identity, tuple(observed.items()))
 
 
 if __name__ == "__main__":
