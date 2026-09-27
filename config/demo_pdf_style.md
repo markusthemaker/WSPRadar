@@ -32,6 +32,11 @@ Diagnostics may use fewer panels when their purpose requires it. Give each panel
 
 ## Filenames and verification
 
+- Keep intermediate PDFs, renders and comparison previews in an automatically
+  cleaned system temporary directory, or in `.tmp/<task>/` while review is in
+  progress. Remove the task's scratch files after verification and delivery.
+  Never use root `output/` or commit previews. Preserve final approved PDFs and
+  required source evidence in their established authoritative locations.
 - Use `WSPRadar_Demo_LeadAuthor_FigureX.pdf`.
 - For diagnostics, append `_diagnostic` before `.pdf`.
 - Keep the demo link, generated PDF filename, published copy and presentation manifest consistent.

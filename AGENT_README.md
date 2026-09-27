@@ -350,6 +350,23 @@ The exact scientific workflow and result interpretation are maintained in
 
 ## Development
 
+### Temporary files and retained evidence
+
+Use automatically cleaned system temporary directories for intermediate files.
+For reviewable PDF candidates, renders and diagnostic reports, use
+`.tmp/<task>/` and remove the task directory after verification and delivery.
+The name `.tmp` and its Git ignore rule do not provide automatic cleanup.
+Do not create root `output/` or `tmp/` for new scratch work. These directories
+are ignored to prevent accidental commits; approved PDFs remain in their
+reference fixture and published `static/reference_figures/` locations.
+
+Unique captures, scientific derivation scripts and useful verification records
+must be preserved before deleting old scratch directories. Store required
+reproducibility material in the appropriate maintained repository location;
+archive historical material outside the checkout with an inventory and hashes.
+Do not delete a directory while a process or another task is using it. Routine
+cleanup of PDF scratch does not include `.test/` or `.wspr_cache/`.
+
 The principal boundary is:
 
 ```text
@@ -562,7 +579,7 @@ semantics and possible upstream archive changes before changing expectations.
 .\.venv\Scripts\python.exe scripts/verify_milazzo_clickhouse.py --provider wspr_live --analysis benchmark
 ```
 
-Each invocation creates a new timestamped `output/milazzo_clickhouse_*` report
+Each invocation creates a new timestamped `.tmp/milazzo_clickhouse_*` report
 directory; `--output-directory` can specify another new directory. It records
 input/code/query hashes and expected/actual query rows. A dry-run success is not
 a live-provider verification. The native Benchmark capture supplies only the

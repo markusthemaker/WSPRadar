@@ -226,6 +226,24 @@ lifetime.
 
 ## Verification Scope and Proportionality
 
+### Temporary files and retained evidence
+
+- Prefer automatically cleaned system temporary directories (for example,
+  `tempfile.TemporaryDirectory`) for intermediate files.
+- When files must remain available for visual review, use a task-specific
+  directory under the ignored repository `.tmp/` directory. Remove that task's
+  scratch files after verification and delivery; `.tmp/` is not automatically
+  cleaned merely because it has a temporary name.
+- Do not create root `output/` or new root `tmp/` directories for previews,
+  candidate PDFs, logs, temporary scripts or diagnostic reports. Never commit
+  these scratch artifacts.
+- Keep approved PDFs, reproducibility inputs and required derivation scripts in
+  their authoritative repository locations. Before removing older scratch
+  directories, inspect dependencies and preserve unique scientific evidence or
+  useful verification history in an explicitly identified durable archive.
+- Check for active users of a directory and resolve its exact path before
+  cleanup. Do not remove unrelated `.test/`, `.wspr_cache/` or other task state.
+
 Select the least expensive verification level that still exercises every
 changed contract. Classify work by blast radius and failure consequence, not by
 line count alone: a one-line scientific or cache-key change can require full

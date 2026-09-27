@@ -265,7 +265,7 @@ def main(argv=None):
     started_utc = datetime.now(timezone.utc)
     output_directory = (
         arguments.output_directory
-        or REPOSITORY / "output" / f"milazzo_clickhouse_{started_utc.strftime('%Y%m%dT%H%M%S_%fZ')}"
+        or REPOSITORY / ".tmp" / f"milazzo_clickhouse_{started_utc.strftime('%Y%m%dT%H%M%S_%fZ')}"
     ).resolve()
     if output_directory.is_relative_to(REGRESSION_DIRECTORY.resolve()):
         parser.error("Output must be outside tests/regression; frozen evidence is never overwritten")

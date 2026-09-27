@@ -40,6 +40,8 @@ The harness-only dependencies are pinned in this folder. They are not added to t
 
 The Linux commands use Playwright's installed Chromium browser. `--browser-channel` is only needed when deliberately using a different, already installed supported browser; retain the recorded browser version when comparing results.
 
+The harness locates time-bin controls inside the Segment Inspector by their visible labels and verifies the selected state. It supports accessibility state, React Aria's `data-selected` marker, and the older Streamlit `kind` marker. Scope changes use keyboard navigation to open the native multiselect, then verify both the selected values and the rendered active-scope summary after the application finishes. A missing control or unverifiable state is printed as `UNAVAILABLE` and makes workload coverage incomplete. It is not counted as a successful interaction. These selectors avoid relying exclusively on styling attributes that can differ between installed Streamlit versions; keep `versions.json` with every result.
+
 Validate fixture preparation and then run the short smoke check:
 
 ```bash
@@ -125,7 +127,7 @@ The test is not an HTTP request-rate test against the Streamlit health endpoint.
 
 By default, each invocation creates a unique directory under `.test/multiuser-load/`, named with its timestamp and a unique suffix, and writes a sibling result ZIP. The terminal prints the exact paths. `--output` can select a new explicit output directory; use a different directory for every invocation.
 
-The result package includes the measurement series (`metrics.csv`), action records (`actions.jsonl`), machine/source/dependency metadata, `summary.json`, `report.md`, the server log, and any captured failure screenshots. Raw replay caches and downloaded analysis ZIP payloads are excluded from the return package.
+The result package includes the measurement series (`metrics.csv`), action records (`actions.jsonl`), machine/source/dependency metadata, `summary.json`, `report.md`, the server log, and any captured failure screenshots. Failure captures also include visible page text and `*-widgets.json` files containing control labels and DOM attributes, including selection and menu-opening state, to diagnose frontend-version differences. Raw replay caches and downloaded analysis ZIP payloads are excluded from the return package.
 
 Download the printed result ZIP through the Codespaces Explorer: find the file, right-click it, and choose **Download**. Return that ZIP, including failed-run diagnostics if the test failed. Keep the one-user, three-user, and ten-user ZIPs together so that source and environment differences can be checked before comparing them.
 

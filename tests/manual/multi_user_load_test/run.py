@@ -32,6 +32,25 @@ HARNESS_DIRECTORY = Path(__file__).resolve().parent
 REPOSITORY = next(parent for parent in HARNESS_DIRECTORY.parents
                   if (parent / "app.py").is_file() and (parent / "AGENT_README.md").is_file())
 
+# Prefer accessibility state over Streamlit's version-dependent styling names.
+BUTTON_SELECTION_JAVASCRIPT = """element => {
+    for (const name of ['aria-pressed', 'aria-checked', 'aria-selected']) {
+        const value = element.getAttribute(name);
+        if (value === 'true' || value === 'false') return value === 'true';
+    }
+    if (element.getAttribute('data-variant') === 'segmented_control') {
+        return element.hasAttribute('data-selected');
+    }
+    const state = element.getAttribute('data-state');
+    if (['on', 'checked', 'active'].includes(state)) return true;
+    if (['off', 'unchecked', 'inactive'].includes(state)) return false;
+    const kind = element.getAttribute('kind');
+    if (kind === 'segmented_controlActive') return true;
+    if (kind === 'segmented_control') return false;
+    if (element.matches('input[type="radio"]')) return element.checked;
+    return null;
+}"""
+
 
 def parse_arguments(arguments=None):
     parser = argparse.ArgumentParser(description=__doc__)
@@ -455,7 +474,8 @@ class Experiment:
             stream.write(json.dumps(record, default=str) + "\n")
         if status == "failed":
             self.failures.append(record)
-            print(f"[{utc_now()}] FAILED user={user} action={action}: "
+        if status in {"failed", "unavailable"}:
+            print(f"[{utc_now()}] {status.upper()} user={user} action={action}: "
                   f"{str(details.get('error', details.get('reason', 'See actions.jsonl')))[:2500]}",
                   flush=True)
         return record
@@ -587,28 +607,43 @@ class Experiment:
         with contextlib.suppress(Exception):
             text = await session["page"].locator("body").inner_text(timeout=10000)
             (self.output / f"{stem}.txt").write_text(text, encoding="utf-8")
+        with contextlib.suppress(Exception):
+            widgets = await session["page"].locator(
+                'button, [role="radio"], [role="combobox"], [role="option"], [role="listbox"]'
+            ).evaluate_all("""elements => elements.map(element => ({
+                tag: element.tagName, text: element.innerText,
+                visible: !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length),
+                attributes: Object.fromEntries(Array.from(element.attributes)
+                    .filter(attribute => /^(id|role|class|kind|data-|aria-)/.test(attribute.name))
+                    .map(attribute => [attribute.name, attribute.value]))
+            }))""")
+            write_json(self.output / f"{stem}-widgets.json", widgets)
 
     async def change_time_bin(self, session, iteration):
         page = session["page"]
-        # These are native segmented buttons, not dropdowns. Select a currently
-        # inactive choice, and verify the widget's selected-state transition.
-        controls = page.locator('button[kind="segmented_control"]').filter(
+        # Scope to the application's Segment Inspector, excluding controls for a
+        # selected station or the input editor. Do not depend on a styling kind.
+        panel = page.locator('[class*="st-key-results_evidence_level_2_"]').first
+        controls = panel.locator('button, [role="radio"]').filter(
             has_text=re.compile(r"^(30m|1h|2h|3h|6h|12h|24h)$"))
         count = await controls.count()
         if count == 0:
-            return "unavailable", {"reason": "No inactive time-bin button in the rendered result"}
-        control = controls.nth(iteration % count)
-        choice = await control.inner_text()
-        # Confirm the selected-state transition using the visible label.
-        occurrence = await page.get_by_role("button", name=choice, exact=True).count()
-        before = await page.locator('button[kind="segmented_controlActive"]').all_text_contents()
+            return "unavailable", {"reason": "No time-bin buttons in the Segment Inspector"}
+        candidates = []
+        for index in range(count):
+            candidate = controls.nth(index)
+            if await candidate.is_visible() and await candidate.is_enabled():
+                if await candidate.evaluate(BUTTON_SELECTION_JAVASCRIPT) is False:
+                    candidates.append(index)
+        if not candidates:
+            return "unavailable", {"reason": "No inactive time-bin button with a readable selection state; see widget diagnostics"}
+        control = controls.nth(candidates[iteration % len(candidates)])
+        choice = (await control.inner_text()).strip()
         await control.click()
-        await page.wait_for_function("""({choice, before}) => {
-            const selected = Array.from(document.querySelectorAll('button[kind="segmented_controlActive"]')).map(el => el.innerText);
-            return selected.includes(choice) && JSON.stringify(selected) !== JSON.stringify(before);
-        }""", arg={"choice": choice, "before": before})
         await self.settle(page)
-        return "ok", {"choice": choice, "matching_controls": occurrence}
+        if await control.evaluate(BUTTON_SELECTION_JAVASCRIPT) is not True:
+            raise RuntimeError(f"Time-bin button {choice!r} did not become selected after the application completed")
+        return "ok", {"choice": choice, "control_count": count}
 
     async def change_station(self, session, iteration):
         page = session["page"]
@@ -645,30 +680,42 @@ class Experiment:
 
     async def change_scope(self, session, iteration):
         page = session["page"]
-        controls = page.get_by_role("combobox", name=re.compile("Distance.*range|Direction|Distance.*scope", re.I))
-        if await controls.count() == 0:
-            return "unavailable", {"reason": "No matching scope combobox"}
-        control = controls.nth(iteration % await controls.count())
-        previous_label = await control.get_attribute("aria-label")
-        await control.click()
-        options = page.get_by_role("option")
-        await options.first.wait_for(state="visible")
-        count = await options.count()
+        panel = page.locator('[class*="st-key-results_evidence_level_2_"]').first
+        widgets = panel.locator('[data-testid="stMultiSelect"]')
+        if await widgets.count() == 0:
+            return "unavailable", {"reason": "No scope multiselect in the Segment Inspector"}
+        widget = widgets.nth(iteration % await widgets.count())
+        control = widget.get_by_role("combobox").first
+        previous_selection = (await widget.inner_text()).strip()
+        scope_summary = panel.locator('.result-scope-summary > p').first
+        previous_scope = await scope_summary.inner_text()
+        # Use the combobox's keyboard-open action instead of relying on the
+        # version-dependent interaction between pointer clicks and focus.
+        await control.focus()
+        if await control.get_attribute("aria-expanded") != "true":
+            await control.press("ArrowDown")
+        options = page.locator('[role="option"]:visible')
+        await options.first.wait_for(state="visible", timeout=10000)
         labels = await options.all_text_contents()
-        if not count:
-            await page.keyboard.press("Escape")
-            return "unavailable", {"reason": "Scope has no selectable options"}
-        candidates = [index for index, label in enumerate(labels) if label.strip() not in previous_label]
+        candidates = []
+        for index, option_label in enumerate(labels):
+            option = options.nth(index)
+            if option_label.strip() and option_label.strip() not in previous_selection:
+                if (await option.get_attribute("aria-disabled") != "true"
+                        and await option.get_attribute("aria-selected") != "true"):
+                    candidates.append(index)
         if not candidates:
             await page.keyboard.press("Escape")
             return "unavailable", {"reason": "Scope has no alternative option"}
         index = candidates[iteration % len(candidates)]
-        label = labels[index]
+        label = labels[index].strip()
         await options.nth(index).click()
         await page.keyboard.press("Escape")
-        await page.wait_for_function("""previous => !Array.from(document.querySelectorAll('[role="combobox"]'))
-            .some(el => el.getAttribute('aria-label') === previous)""", arg=previous_label)
         await self.settle(page)
+        selected_text = (await widget.inner_text()).strip()
+        selected_scope = await scope_summary.inner_text()
+        if selected_text == previous_selection or label not in selected_text or selected_scope == previous_scope:
+            raise RuntimeError(f"Scope option {label!r} did not change both the selected values and active scope")
         return "ok", {"choice": label}
 
     async def export(self, session):
@@ -879,7 +926,9 @@ class Experiment:
                 await asyncio.sleep(self.arguments.baseline_seconds)
                 playwright_manager = async_playwright()
                 playwright = await playwright_manager.start()
-                launch_options = {"headless": True}
+                # The foreground harness owns cooperative SIGINT cleanup. The
+                # browser's independent default handler races context.close().
+                launch_options = {"headless": True, "handle_sigint": False}
                 if self.arguments.browser_channel:
                     launch_options["channel"] = self.arguments.browser_channel
                 browser = await playwright.chromium.launch(**launch_options)

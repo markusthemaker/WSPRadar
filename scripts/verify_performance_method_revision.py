@@ -411,7 +411,7 @@ def main():
     """Run a read-only source replay and write only a separate diagnostic report."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-directory", type=Path, default=REPOSITORY / "output/milazzo_review_v1", help="Read-only frozen packet containing production_performance.config and network_source.parquet")
-    parser.add_argument("--output-directory", type=Path, default=REPOSITORY / "output/performance_method_revision_2026-09-25", help="Separate report directory; it must not overlap the source or frozen reference directories")
+    parser.add_argument("--output-directory", type=Path, default=REPOSITORY / ".tmp/performance_method_revision_2026-09-25", help="Separate report directory; it must not overlap the source or frozen reference directories")
     arguments = parser.parse_args()
     source_directory = arguments.source_directory.resolve()
     output = arguments.output_directory.resolve()
