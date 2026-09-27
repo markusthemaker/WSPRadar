@@ -4,6 +4,59 @@ This changelog summarizes major project changes by the date of the change (UTC),
 
 ## 2026-09-27
 
+- **Persistent on-demand demo query cache:** valid demo query Parquet files now
+  survive indefinitely on retained disk instead of expiring after 24 hours.
+  Provider, exact SQL and explicit raw-cache format version identify reusable
+  data in disk and RAM; version 1 uses a new directory, so previous unversioned
+  entries are fetched once again when needed. No startup preload was added.
+  Existing validation, invalidation and provider-selection paths remain in use;
+  abandoned atomic writes and finite oversized-query failure markers still
+  expire. Updated both manuals, the generated README and engineering guides.
+  Verification: 333 focused checks passed, followed by the complete foreground
+  suite with 3,359 passed, 3 existing expected failures, no failures or skips,
+  and 1 existing Matplotlib warning in 454.51 seconds (exit 0). Tests include
+  fresh-interpreter disk reuse with network blocked, decades-old data, query
+  and format changes, corrupt/missing entries and permanent-file cleanup.
+  Full Python compilation, README synchronization and CRLF-aware whitespace
+  checks passed. No live provider query was made.
+
+- **Demo regression maintenance:** aligned the explicit catalogue expectations
+  with the seven installed demos and moved generic loader/metadata validation
+  to a dedicated configuration fixture. Removed the retired scheduled TX A/B
+  demo test as requested. Zander now consistently displays its 09:45 UTC start
+  in the description and PDF header; a production replay checks the narrower
+  window against every frozen SQL/retained row, station, native unit, Joint
+  Spot and histogram bin while retaining the original 09:30 capture provenance.
+  Added a real prepared-export package from the bounded Milazzo Figure 6 RX
+  reference and an availability guard for its integrity coverage. The three
+  strict Griffiths expected failures remain documented scientific comparison
+  limits; no independent scientific expectation was regenerated.
+  Verification: the complete foreground suite passed with 3,346 passed,
+  3 expected failures, no failures or skips and 1 existing Matplotlib warning
+  in 493.15 seconds (exit 0). Full Python compilation, README synchronization,
+  all seven published PDF-copy checks, fixture source hashes and CRLF-aware
+  patch whitespace checks passed. Zander's original 166 pairs and numerical
+  provenance are unchanged; only the two start-time digits changed visually
+  in its PDF, and all six other published PDFs stayed byte-identical during
+  this repair.
+
+- **Milazzo demo starts with Figure 6 RX:** changed the installed configuration
+  to VE6PDQ transmitting to Target receiver KP4MD and Reference receiver WB6RQN,
+  preserving the publication window, 40 m band, 5,000 km radius and zero SNR
+  correction. The existing VE6PDQ / DO34IR selection shows three exact Joint
+  Spots; the description guides readers to DO34 for the other two and explains
+  the +8 dB median across both distinct identities. The credited historical
+  introduction and reciprocal TX walkthrough remain, with the latter explicitly
+  optional. Stable profile identity, frozen scientific fixtures and both PDFs
+  are retained; fixture documentation distinguishes the installed RX demo from
+  the independent historical TX configuration.
+  Verification: the complete foreground suite reported 3,335 passed, 1 skipped,
+  3 expected failures and 9 failures in 462.07 seconds. All 84 Milazzo/header
+  checks passed. The failures are eight stale demo filename/ID expectations and
+  one Zander installed-versus-frozen time-window mismatch, with the relevant
+  files confirmed unchanged from HEAD. Full Python compilation, whitespace,
+  README synchronization and all seven published PDF-copy checks passed.
+
 - **Milazzo demo PDF presentation:** updated Figures 6 and 7 to the common
   header typography and original-publication / reconstruction / WSPRadar-view
   layout, preserving the page aspect ratio, direction correction, complete
@@ -15,7 +68,19 @@ This changelog summarizes major project changes by the date of the change (UTC),
   Panel B's overlay, aligns Panel C to the actual source graph edges and its
   density scale to the source legend, separates the B/C legends, and centers
   the direction-correction note below Panel A.
-  Verification: 75 Milazzo/header checks passed; both rendered PDFs were
+  A subsequent reading-order revision stacks reconstruction and native evidence
+  with matched UTC axes, adds faint guides for exact production Joint Spot
+  identities, and moves the interpretation text beneath the original. The demo
+  introduction credits Milazzo's early study and Lloyd's participation, relates
+  the published method to WSPRadar's explicit pairing, and explains reconstructed
+  paper evidence as a bounded manual-validation example; existing demo prose
+  and all scientific settings are retained.
+  Verification: 85 focused checks passed, including all 82 Milazzo/header
+  checks. Two broader configuration tests remain failing because their
+  pre-existing expected demo filenames differ from the repository inventory;
+  both tests and the filename inventory were verified unchanged from HEAD.
+  The actual Milazzo description loads with English/German fallback, and its
+  prior paragraphs, title, settings and links remain intact. Both rendered PDFs were
   visually inspected, text bounds and embedded/vector content checked, all
   seven linked PDF copies verified, and changed Python compilation plus
   whitespace checks passed. The full regression suite was not rerun for this

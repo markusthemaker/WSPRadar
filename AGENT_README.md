@@ -156,8 +156,9 @@ Important defaults currently include:
 - CSV and Parquet decompressed response ceiling: 64 MiB each.
 - HTTP connect timeout: 10 seconds; read-inactivity timeout: 60 seconds.
 - Ordinary query-cache TTL: 3600 seconds.
-- Guided-demo query-cache TTL: 86400 seconds from publication; cache reads do
-  not extend this absolute freshness window.
+- Guided-demo query-cache retention: no age-based expiry for valid entries;
+  provider, exact SQL, and an explicit cache-format version define reuse.
+  Oversized-query failure markers remain temporary (86400 seconds).
 - Process-wide raw-query DataFrame L1: 64 MiB total, 16 MiB per entry, and 32
   entries; larger accepted results remain reusable from the disk L2 without a
   second retained DataFrame copy.
@@ -603,6 +604,55 @@ Local diagnostic reports are retained under
 `output/milazzo_clickhouse_2026-09-26_performance_provider_diagnostic`.
 
 ### Running checks
+
+The persistent demo-query cache change on 2026-09-27 was verified with the
+complete foreground runner: **3,359 passed, 3 expected failures, no failures or
+skips, and 1 existing Matplotlib warning in 454.51 seconds** (exit 0). The prior
+focused run passed all 333 checks in 41.14 seconds. Coverage includes old and
+future-dated demo files, decades-later RAM/disk reuse, actual fresh-interpreter
+disk reuse with network access blocked, query/format invalidation, missing and
+corrupt cache recovery, strict/legacy admission, finite overflow markers and
+cleanup that preserves published demo files while removing abandoned writes.
+Full Python compilation, bilingual manual/README synchronization and CRLF-aware
+patch validation (`git -c core.safecrlf=false -c core.whitespace=cr-at-eol diff
+--check`) passed. The CRLF setting preserves an already modified frozen Zander
+manifest. No live provider requests, startup preloading or deployment checks were
+performed for this change; the existing three Griffiths scientific comparison
+expected failures remain unchanged.
+
+The demo regression repairs on 2026-09-27 were verified with the complete
+foreground runner: **3,346 passed, 3 expected failures, no failures or skips,
+and 1 existing Matplotlib warning in 493.15 seconds** (exit 0). The installed
+seven-demo catalogue and independent loader fixture pass; the retired scheduled
+TX A/B demo test was removed. Zander's installed 09:45-10:30 UTC window preserves
+all 564 SQL groups, 457 retained groups and 166 Joint Spots, with exact agreement
+against the original 09:30-10:30 frozen replay and independent histogram.
+Its description and PDF header now agree with the installed window. The new
+Milazzo prepared-export snapshot exercises the formerly skipped package check
+with real production tables, figures and Parquet; explicit offline provenance
+and the actual `legacy_no_code` selection are checked. The three strict
+Griffiths expected failures remain the documented paper-comparison limits.
+Full Python compilation, generated README synchronization, all seven published
+PDF-copy checks and fixture source hashes passed. CRLF-aware patch validation
+(`git -c core.whitespace=cr-at-eol diff --check`) passed while preserving frozen
+manifest line endings. No live provider query was used for these repairs.
+
+The Milazzo Figure 6 RX demo change on 2026-09-27 was verified with the complete
+foreground runner: **3,335 passed, 1 skipped, 3 expected failures, 1 existing
+Matplotlib warning and 9 failed in 462.07 seconds** (exit 1). All 84
+Milazzo/header checks passed, including the installed RX configuration replay,
+separate DO34IR/DO34 Joint populations and preserved TX publication-window
+replay. Eight failures are stale demo filenames/IDs in `test_config_package.py`;
+the ninth is the already different installed Zander window (09:45-10:30 UTC)
+versus its frozen fixture (09:30-10:30 UTC). The failing test files, Zander
+configuration and frozen Zander configuration were confirmed unchanged from
+HEAD. Full Python compilation, patch whitespace, README synchronization,
+90-module/five-chunk manifest validation and all seven published PDF-copy
+checks passed. The installed Milazzo demo changed direction and explanatory
+metadata only; 89 scientific/reference/PDF files remained byte-identical.
+Only three fixture README files and their manifest entries were updated. No live
+provider query or interactive browser session was needed for this fixture-backed
+configuration change.
 
 The correction-aware temporal-density change on 2026-09-26 was verified with
 the complete foreground runner: **3,222 passed, 1 skipped, 1 existing warning,
@@ -1578,13 +1628,13 @@ suite and native ClickHouse replay were not rerun for this isolated addition.
 
 ## Cache and Operational State
 
-The application writes local transient state under `.wspr_cache/`, which is
+The application writes local cached and transient state under `.wspr_cache/`, which is
 ignored by Git:
 
 ```text
 .wspr_cache/
   queries/<database-source>/
-  demo-queries/<database-source>/
+  demo-queries/<database-source>/v1/
   derived-analysis/basemaps/
   session-artifacts/<owner>/run_<id>/
   .artifact-locks/
@@ -1593,8 +1643,17 @@ ignored by Git:
 Ordinary query and session artifacts use one-hour access-aware cleanup. Every
 ordinary Benchmark CSV exact query is written through as raw Parquet rows in the
 same ordinary disk L2 used by Performance query artifacts. Guided demo query
-artifacts use a separate 24-hour absolute freshness lifetime: reads do not touch
-their publication timestamp. Benchmark keeps an optional process-memory DataFrame
+artifacts are populated on demand when a demo runs and have no age-based expiry:
+reads do not touch their publication timestamp. An explicit
+`DEMO_QUERY_CACHE_FORMAT_VERSION` in `core/data_engine.py` participates in both
+disk and RAM identity; change it only for incompatible raw-cache representation
+or interpretation changes, not routine application releases. Changed SQL already
+selects a distinct entry. Previous unversioned or different-version entries are
+not reused or automatically migrated. Missing, unreadable or invalid entries
+follow the existing validation, invalidation and provider reacquisition paths.
+There is no startup preload or automatic refresh for upstream archive corrections.
+Permanent retention depends on the hosting environment retaining this directory;
+it does not prevent explicit deletion or bounded RAM eviction. Benchmark keeps an optional process-memory DataFrame
 L1 and a Parquet disk L2; demo Performance uses the same persistent demo namespace.
 The process-wide DataFrame L1 admits at most 64 MiB total, 16 MiB per entry, and
 32 entries after deep-byte accounting; larger frames remain disk-only. Both
@@ -1605,7 +1664,7 @@ identity because its scientific filtering happens post-fetch; the scope remains
 part of the canonical analysis request and processed artifacts. Before issuing
 demo requests, provider selection prefers the first enabled
 source that can supply the selected active result's complete current
-strict/legacy request bundle from fresh cache. The selected cache retains its
+strict/legacy request bundle from compatible cache. The selected cache retains its
 actual provider origin;
 artifacts are neither relabelled nor combined across sources. Loading a built-in
 demo establishes this demo identity without immediately running it; the normal
@@ -1631,8 +1690,11 @@ though an expired artifact is no longer reusable. A live sweep ignores atomic
 temporary siblings, reaps only recognized abandoned siblings older than the
 stale-lock horizon while holding the corresponding destination lock, and
 retains empty namespace directories so pruning cannot race a writer. Published
-query files are checked against a fresh clock reading with a five-second
-tolerance before a future modification time is treated as invalid.
+ordinary query files are checked against a fresh clock reading with a five-second
+tolerance before a future modification time is treated as invalid. Published
+demo files are excluded from age and future-timestamp cleanup; abandoned atomic
+temporary siblings remain eligible for cleanup. Oversized-query rejection markers
+are finite even for demos and do not constitute valid retained query data.
 
 Structured fetch-failure telemetry records a safe lifecycle stage and, when a
 cache artifact is involved, its namespace and freshness policy. The performance
@@ -1656,8 +1718,10 @@ request will rebuild missing query, basemap, or session artifacts.
 - Streamlit CORS and XSRF protection are disabled in committed configuration.
   This should be revisited for a public deployment and changed only after testing
   the deployment path that required it.
-- Cache namespaces have TTL and locking but no configured maximum file count,
-  byte quota, minimum-free-disk rule, or derived-basemap lifetime.
+- Cache namespaces have locking and lifecycle-specific retention but no configured
+  maximum file count, byte quota, minimum-free-disk rule, or derived-basemap lifetime.
+  Published demo query files, including obsolete query/format versions, do not
+  expire automatically.
 - Export ZIP construction is entirely memory-backed and the prepared ZIP remains
   in session state. Export concurrency is limited to one, but a large export can
   still raise process RSS.

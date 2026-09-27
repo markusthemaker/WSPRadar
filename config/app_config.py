@@ -67,11 +67,13 @@ WSPR_DATABASE_PROVIDERS = (
 DB_URL = WSPR_DATABASE_PROVIDERS[0].url
 
 CACHE_DIR = "./.wspr_cache"
-# Standard query results and session evidence remain short-lived. Guided demos
-# use fixed historical windows, so their raw query results receive a separate
-# absolute freshness lifetime without extending on cache hits.
+# Standard query results and session evidence remain short-lived. Validated
+# historical demo queries persist until their SQL or cache format changes.
+# None explicitly disables age-based expiry; failed oversized queries retain
+# only a bounded, temporary rejection marker rather than permanent data.
 STANDARD_QUERY_CACHE_TTL_SEC = 3600
-DEMO_QUERY_CACHE_TTL_SEC = 24 * 3600
+DEMO_QUERY_CACHE_TTL_SEC = None
+DEMO_QUERY_FAILURE_CACHE_TTL_SEC = 24 * 3600
 SESSION_ARTIFACT_TTL_SEC = 3600
 
 # Process-wide raw-query DataFrame L1. Deep DataFrame bytes are accounted before

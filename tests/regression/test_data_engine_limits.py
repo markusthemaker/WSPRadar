@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
+import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -841,7 +843,7 @@ def test_demo_compare_disk_cache_informs_strict_and_legacy_request_estimate(
     strict_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"has_u": [0]}).to_parquet(strict_path, index=False)
     pd.DataFrame({"has_u": [1]}).to_parquet(legacy_path, index=False)
-    published_at = time.time() - 1.0
+    published_at = time.time() - (10 * 365 * 24 * 3600)
     os.utime(strict_path, (published_at, published_at))
     os.utime(legacy_path, (published_at, published_at))
     strict_published_at = strict_path.stat().st_mtime
@@ -994,8 +996,10 @@ def test_demo_compare_first_fetch_publishes_and_second_fetch_reuses_disk_rows(
             is_demo=True,
         )
         assert cache_path.is_file()
-        assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
-        _anchor_fresh_cache_mtime(cache_path)
+        assert cache_path.parent.name == f"v{data_engine.DEMO_QUERY_CACHE_FORMAT_VERSION}"
+        assert cache_path.parent.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+        publication_time = time.time() - (10 * 365 * 24 * 3600)
+        os.utime(cache_path, (publication_time, publication_time))
 
     data_engine._dataframe_cache.clear()
 
@@ -1308,11 +1312,11 @@ def test_standard_csv_write_through_is_single_flight_under_concurrency(
     assert data_engine._query_cache_path(query, is_demo=False).is_file()
 
 
-def test_future_demo_query_mtime_is_rejected_as_an_invalid_freshness_anchor(
+def test_future_demo_query_mtime_does_not_expire_validated_rows(
     tmp_path,
     monkeypatch,
 ):
-    """Never turn a future filesystem timestamp into a sliding demo lifetime."""
+    """Permanent demo retention does not depend on the filesystem clock."""
     provider = WSPR_DATABASE_PROVIDERS[0]
     query = "SELECT future_demo_cache_mtime"
     reference_time = time.time()
@@ -1325,20 +1329,28 @@ def test_future_demo_query_mtime_is_rejected_as_an_invalid_freshness_anchor(
         is_demo=True,
     )
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    cache_path.write_bytes(b"future timestamp must not be trusted")
-    os.utime(cache_path, (future_mtime, future_mtime))
-
-    assert data_engine._query_cache_expiry_epoch(
+    pd.DataFrame({"peer_sign": ["K1AAA"], "has_u": [1]}).to_parquet(
         cache_path,
-        data_engine.DEMO_QUERY_CACHE_TTL_SEC,
-        now=reference_time,
-    ) is None
-    assert not data_engine.is_wspr_query_cached(
+        index=False,
+    )
+    os.utime(cache_path, (future_mtime, future_mtime))
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: pytest.fail("valid demo cache triggered HTTP"),
+    )
+
+    assert data_engine.is_wspr_query_cached(
         query,
         is_demo=True,
         response_format="csv",
         database_provider=provider,
     )
+    result = data_engine.fetch_wspr_data(query, is_demo=True)
+    assert result.error is None
+    assert result.source == FetchSource.DISK_CACHE
+    assert int(result.dataframe.loc[0, "has_u"]) == 1
+    assert cache_path.stat().st_mtime == pytest.approx(future_mtime, abs=0.01)
 
 
 def test_demo_compare_cache_invalidation_is_scoped_to_provider_and_mode(
@@ -1635,11 +1647,11 @@ def test_parquet_row_limit_accepts_exact_limit(tmp_path, monkeypatch):
     assert len(result.dataframe) == 2
 
 
-def test_demo_parquet_overflow_marker_keeps_original_absolute_expiry(
+def test_demo_parquet_overflow_marker_expires_after_rejection(
     tmp_path,
     monkeypatch,
 ):
-    """A late cache inspection must not restart the fixed 24-hour demo TTL."""
+    """Reject invalid old rows but retain only a finite negative-cache marker."""
     monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
     monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
     monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
@@ -1655,9 +1667,13 @@ def test_demo_parquet_overflow_marker_keeps_original_absolute_expiry(
         cache_path,
         index=False,
     )
-    cache_mtime = time.time() - data_engine.DEMO_QUERY_CACHE_TTL_SEC + 120
+    rejection_time = time.time()
+    cache_mtime = rejection_time - (10 * 365 * 24 * 3600)
     os.utime(cache_path, (cache_mtime, cache_mtime))
-    expected_expiry = cache_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC
+    monkeypatch.setattr(data_engine.time, "time", lambda: rejection_time)
+    expected_expiry = (
+        rejection_time + data_engine.DEMO_QUERY_FAILURE_CACHE_TTL_SEC
+    )
     cache_key = data_engine._memory_cache_key(
         query,
         is_demo=True,
@@ -1676,13 +1692,15 @@ def test_demo_parquet_overflow_marker_keeps_original_absolute_expiry(
         expected_expiry,
         abs=0.1,
     )
+    monkeypatch.setattr(data_engine.time, "time", lambda: expected_expiry + 1.0)
+    assert not data_engine._result_row_limit_cache_contains(cache_key)
 
 
-def test_demo_success_uses_absolute_24_hour_disk_cache_without_touching(
+def test_demo_success_reuses_old_disk_cache_without_touching(
     tmp_path,
     monkeypatch,
 ):
-    """Keep Success demo data in its own namespace with fixed freshness."""
+    """Keep validated Performance demo data regardless of publication age."""
     expected = pd.DataFrame({"time_slot": [1], "target_seen": [1]})
     source_path = tmp_path / "demo-success-source.parquet"
     expected.to_parquet(source_path, index=False)
@@ -1704,7 +1722,7 @@ def test_demo_success_uses_absolute_24_hour_disk_cache_without_touching(
         response_format="parquet",
     )
     cache_path = Path(direct_result.artifact_path)
-    published_at = time.time() - (23 * 3600)
+    published_at = time.time() - (10 * 365 * 24 * 3600)
     os.utime(cache_path, (published_at, published_at))
     published_mtime = cache_path.stat().st_mtime
 
@@ -1713,6 +1731,8 @@ def test_demo_success_uses_absolute_24_hour_disk_cache_without_touching(
         is_demo=True,
         response_format="parquet",
     )
+    future_time = time.time() + (20 * 365 * 24 * 3600)
+    monkeypatch.setattr(data_engine.time, "time", lambda: future_time)
     second_disk_result = data_engine.fetch_wspr_data(
         query,
         is_demo=True,
@@ -1723,18 +1743,195 @@ def test_demo_success_uses_absolute_24_hour_disk_cache_without_touching(
     assert direct_result.source == FetchSource.WSPR_LIVE
     assert first_disk_result.source == FetchSource.DISK_CACHE
     assert second_disk_result.source == FetchSource.DISK_CACHE
-    assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+    assert cache_path.parent.name == f"v{data_engine.DEMO_QUERY_CACHE_FORMAT_VERSION}"
+    assert cache_path.parent.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
     assert cache_path.stat().st_mtime == published_mtime
-    assert data_engine._query_cache_expiry_epoch(
-        cache_path,
-        data_engine.DEMO_QUERY_CACHE_TTL_SEC,
-        now=published_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC - 1.0,
-    ) is not None
-    assert data_engine._query_cache_expiry_epoch(
-        cache_path,
-        data_engine.DEMO_QUERY_CACHE_TTL_SEC,
-        now=published_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC + 1.0,
-    ) is None
+    pd.testing.assert_frame_equal(first_disk_result.dataframe, direct_result.dataframe)
+    pd.testing.assert_frame_equal(second_disk_result.dataframe, direct_result.dataframe)
+
+
+@pytest.mark.parametrize("response_format", ["csv", "parquet"])
+def test_demo_disk_cache_is_reused_after_process_restart(
+    tmp_path,
+    monkeypatch,
+    response_format,
+):
+    """A fresh interpreter reuses old demo artifacts with network access blocked."""
+    expected = pd.DataFrame({
+        "peer_sign": ["K1AAA"], "has_u": [1], "target_seen": [1],
+    })
+    if response_format == "parquet":
+        source_path = tmp_path / "demo-restart-source.parquet"
+        expected.to_parquet(source_path, index=False)
+        payload = source_path.read_bytes()
+        query = "SELECT demo_restart FORMAT Parquet"
+    else:
+        payload = expected.to_csv(index=False).encode("utf-8")
+        query = "SELECT demo_restart FORMAT CSVWithNames"
+    cache_directory = tmp_path / "cache"
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(cache_directory))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse([payload]),
+    )
+    direct_result = data_engine.fetch_wspr_data(
+        query, is_demo=True, response_format=response_format,
+    )
+    assert direct_result.error is None
+    assert direct_result.source == FetchSource.WSPR_LIVE
+    cache_path = data_engine._query_cache_path(query, is_demo=True)
+    publication_time = time.time() - (10 * 365 * 24 * 3600)
+    os.utime(cache_path, (publication_time, publication_time))
+    published_mtime = cache_path.stat().st_mtime
+    child_script = """
+import socket
+import sys
+from core import data_engine
+from core.fetch_models import FetchSource
+
+def block_network(*args, **kwargs):
+    raise AssertionError("demo cache restart must not access the network")
+
+socket.socket = block_network
+data_engine.http_session.get = block_network
+data_engine.CACHE_DIR = sys.argv[1]
+assert not data_engine._dataframe_cache
+cached_result = data_engine.fetch_wspr_data(
+    sys.argv[2], is_demo=True, response_format=sys.argv[3],
+)
+assert cached_result.error is None, cached_result.error
+assert cached_result.source == FetchSource.DISK_CACHE, cached_result.source
+assert cached_result.dataframe["peer_sign"].tolist() == ["K1AAA"]
+assert cached_result.dataframe["target_seen"].tolist() == [1]
+print("demo disk cache reused")
+"""
+    child_result = subprocess.run(
+        [
+            sys.executable, "-c", child_script,
+            str(cache_directory), query, response_format,
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    assert child_result.returncode == 0, child_result.stdout + child_result.stderr
+    assert "demo disk cache reused" in child_result.stdout
+    assert cache_path.stat().st_mtime == published_mtime
+
+
+@pytest.mark.parametrize("cache_damage", ["missing", "corrupt"])
+@pytest.mark.parametrize("response_format", ["csv", "parquet"])
+def test_demo_missing_or_corrupt_disk_entry_is_fetched_again(
+    tmp_path,
+    monkeypatch,
+    response_format,
+    cache_damage,
+):
+    """Indefinite retention never turns absent or unreadable rows into a hit."""
+    expected = pd.DataFrame({
+        "peer_sign": ["K1AAA"], "has_u": [1], "target_seen": [1],
+    })
+    if response_format == "parquet":
+        source_path = tmp_path / "demo-refetch-source.parquet"
+        expected.to_parquet(source_path, index=False)
+        payload = source_path.read_bytes()
+        query = "SELECT demo_refetch FORMAT Parquet"
+    else:
+        payload = expected.to_csv(index=False).encode("utf-8")
+        query = "SELECT demo_refetch FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([payload])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    initial_result = data_engine.fetch_wspr_data(
+        query, is_demo=True, response_format=response_format,
+    )
+    assert initial_result.error is None
+    cache_path = data_engine._query_cache_path(query, is_demo=True)
+    data_engine._dataframe_cache.clear()
+    if cache_damage == "missing":
+        cache_path.unlink()
+    else:
+        cache_path.write_bytes(b"corrupt demo parquet")
+        publication_time = time.time() - (10 * 365 * 24 * 3600)
+        os.utime(cache_path, (publication_time, publication_time))
+
+    refetched_result = data_engine.fetch_wspr_data(
+        query, is_demo=True, response_format=response_format,
+    )
+    data_engine._dataframe_cache.clear()
+    reused_result = data_engine.fetch_wspr_data(
+        query, is_demo=True, response_format=response_format,
+    )
+
+    assert request_count == 2
+    assert refetched_result.error is None
+    assert refetched_result.source == FetchSource.WSPR_LIVE
+    assert reused_result.error is None
+    assert reused_result.source == FetchSource.DISK_CACHE
+    pd.testing.assert_frame_equal(reused_result.dataframe, initial_result.dataframe)
+
+
+@pytest.mark.parametrize("response_format", ["csv", "parquet"])
+def test_demo_query_change_uses_separate_disk_and_memory_entries(
+    tmp_path,
+    monkeypatch,
+    response_format,
+):
+    """Permanent retention must not reuse observations for a different query."""
+    expected = pd.DataFrame({
+        "peer_sign": ["K1AAA"], "has_u": [1], "target_seen": [1],
+    })
+    if response_format == "parquet":
+        source_path = tmp_path / "demo-query-source.parquet"
+        expected.to_parquet(source_path, index=False)
+        payload = source_path.read_bytes()
+        query = "SELECT original_demo_query FORMAT Parquet"
+    else:
+        payload = expected.to_csv(index=False).encode("utf-8")
+        query = "SELECT original_demo_query FORMAT CSVWithNames"
+    changed_query = query.replace("original_demo_query", "changed_demo_query")
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([payload])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    original_result = data_engine.fetch_wspr_data(
+        query, is_demo=True, response_format=response_format,
+    )
+    changed_result = data_engine.fetch_wspr_data(
+        changed_query, is_demo=True, response_format=response_format,
+    )
+    data_engine._dataframe_cache.clear()
+    original_disk_result = data_engine.fetch_wspr_data(
+        query, is_demo=True, response_format=response_format,
+    )
+
+    assert request_count == 2
+    assert original_result.source == FetchSource.WSPR_LIVE
+    assert changed_result.source == FetchSource.WSPR_LIVE
+    original_cache_path = data_engine._query_cache_path(query, is_demo=True)
+    changed_cache_path = data_engine._query_cache_path(changed_query, is_demo=True)
+    assert original_cache_path != changed_cache_path
+    assert original_cache_path.is_file()
+    assert changed_cache_path.is_file()
+    assert original_disk_result.source == FetchSource.DISK_CACHE
 
 
 def test_standard_success_retains_sliding_one_hour_query_cache(

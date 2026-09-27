@@ -28,7 +28,7 @@ is checked against all 44 RX and all 76 TX overlay reports using independent
 source-row arithmetic; the Figure 7 comparison adds 47 executable paper anchors.
 
 The existing `milazzo_tx_reference_v1` remains an independent test of the
-installed TX demo. Its initial publication mapping used the printed direction
+previous TX demo configuration. Its initial publication mapping used the printed direction
 and therefore compared different observations. Those negative TX comparisons
 do not establish archive loss or a WSPRadar calculation error. This companion
 fixture supersedes the unresolved-direction conclusion, not its TX arithmetic.
@@ -59,6 +59,12 @@ library. It reads the pasted reports and independently extracted markers,
 never WSPRadar output. It writes exact grouped/native/pair expectations,
 marker-to-source mappings and a summary. `rx_reference.config` is a fixture-only
 RX configuration, not an added or modified installed demo.
+
+The installed Milazzo demo now uses the same RX scientific settings and date
+window, with VE6PDQ / DO34IR initially selected. That identity contains three
+of the five Figure 6 Joint Spots; switching to VE6PDQ / DO34 reveals the other
+two. Its historical profile ID and filename remain stable. This change does
+not turn the bounded supplied-path fixture into a complete live RX capture.
 
 ## Pairing and conditioning are separate from graphical matching
 

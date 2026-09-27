@@ -69,7 +69,7 @@
     "rendering": "Existing colored SQL rings remain; a larger charcoal ring with white separation marks each gate-retained endpoint",
     "joint_pairing": "Gate survival alone does not establish a Joint pair; full locator identity still applies"
   },
-  "script_sha256": "a0ccd59f27f01fbb4ea07e157a74da4448791e3ffc465b442779cdc197d68c8f",
+  "script_sha256": "3a213990a38e3554033c2b65e94ec09c9f060862b4086934ff4b08f723359557",
   "footer_text": "WSPRadar.org by Dr. Markus Brosch (DL1MKS)",
   "presentation_revision": "three-panel-native-temporal-2026-09-27",
   "presentation_checks": {
@@ -105,7 +105,44 @@
         "opacity": 1.0,
         "calibration": "Existing source-only paper_coordinates transform; no fitted shift or offset"
       },
-      "layout": "C aligns with the actual A graph edges; density scale below the A legend; separate B/C legends; direction note centered below A",
+      "layout": "B above C with identical graph widths and chronological UTC limits; A and complete notes on the left; separate B/C legends",
+      "joint_survival_connections": [
+        {
+          "utc": "2010-12-19T14:46:00+00:00",
+          "peer_grid": "DO34ir",
+          "target_snr_at_37_dbm": 2.0,
+          "reference_snr_at_37_dbm": -6.0,
+          "paired_delta_snr_db": 8.0
+        },
+        {
+          "utc": "2010-12-20T07:46:00+00:00",
+          "peer_grid": "DO34",
+          "target_snr_at_37_dbm": -5.0,
+          "reference_snr_at_37_dbm": -22.0,
+          "paired_delta_snr_db": 17.0
+        },
+        {
+          "utc": "2010-12-20T09:04:00+00:00",
+          "peer_grid": "DO34ir",
+          "target_snr_at_37_dbm": -5.0,
+          "reference_snr_at_37_dbm": -27.0,
+          "paired_delta_snr_db": 22.0
+        },
+        {
+          "utc": "2010-12-20T15:24:00+00:00",
+          "peer_grid": "DO34",
+          "target_snr_at_37_dbm": -6.0,
+          "reference_snr_at_37_dbm": -13.0,
+          "paired_delta_snr_db": 7.0
+        },
+        {
+          "utc": "2010-12-20T15:46:00+00:00",
+          "peer_grid": "DO34ir",
+          "target_snr_at_37_dbm": -10.0,
+          "reference_snr_at_37_dbm": -17.0,
+          "paired_delta_snr_db": 7.0
+        }
+      ],
       "layout_checks": {
         "panel_a_plot_bounds": [
           0.07786356707317071,
@@ -114,41 +151,73 @@
           0.2064786585365854
         ],
         "panel_a_legend_left": 0.4247477134146342,
+        "panel_b_plot_bounds": [
+          0.5778635670731707,
+          0.5635724085365854,
+          0.33635373475609764,
+          0.20647865853658542
+        ],
+        "panel_b_time_limits": [
+          14962.5,
+          14963.833333333334
+        ],
+        "panel_c_time_limits": [
+          14962.5,
+          14963.833333333334
+        ],
         "panel_c_plot_bounds": [
-          0.07786356707317071,
-          0.158,
+          0.5778635670731707,
+          0.1435,
           0.33635373475609764,
           0.2064786585365854
         ],
         "panel_c_density_bounds": [
-          0.4247477134146342,
-          0.158,
+          0.9247477134146342,
+          0.1435,
           0.006000000000000005,
           0.2064786585365854
         ],
+        "panel_c_caption_bounds": [
+          0.5761332429990966,
+          0.37545850480109727,
+          0.18467158564814812,
+          0.034104938271605045
+        ],
+        "panel_c_native_title_bounds": [
+          0.7110404344512196,
+          0.35587453741604363,
+          0.06999999999999995,
+          0.011319484632201615
+        ],
+        "panel_c_heading_bounds": [
+          0.6781542968750001,
+          0.4178751848636831,
+          0.14369140625,
+          0.01985938303755147
+        ],
         "panel_b_series_legend_bounds": [
-          0.545,
-          0.4577641916366598,
-          0.405,
-          0.020235808363340158
+          0.5778635670731707,
+          0.4692733088991769,
+          0.33635373475609764,
+          0.01872669110082298
         ],
         "panel_b_gate_legend_bounds": [
-          0.545,
-          0.4287641916366598,
-          0.2407624421296295,
-          0.020235808363340213
+          0.5778635670731707,
+          0.44027330889917693,
+          0.22900607638888892,
+          0.018726691100823034
         ],
         "panel_c_summary_legend_bounds": [
-          0.07786356707317071,
-          0.07827330889917694,
+          0.5778635670731707,
+          0.05827330889917695,
           0.33635373475609764,
           0.018726691100823048
         ],
         "panel_c_exact_legend_bounds": [
-          0.07786356707317071,
-          0.05127330889917695,
-          0.23249999999999998,
-          0.018726691100823055
+          0.5778635670731707,
+          0.03127330889917695,
+          0.23250000000000004,
+          0.018726691100823048
         ],
         "direction_note_bounds": [
           0.14620442708333334,
@@ -161,6 +230,59 @@
           0.517,
           0.40789858993902445,
           0.30100000000000005
+        ],
+        "joint_survival_guide_count": 5,
+        "joint_survival_guide_endpoints": [
+          {
+            "source_figure_xy": [
+              0.6069441503907244,
+              0.7051577743902439
+            ],
+            "native_figure_xy": [
+              0.6069441503907244,
+              0.2467393292682927
+            ]
+          },
+          {
+            "source_figure_xy": [
+              0.7856320719793439,
+              0.6107675304878049
+            ],
+            "native_figure_xy": [
+              0.7856320719793439,
+              0.3170136251811157
+            ]
+          },
+          {
+            "source_figure_xy": [
+              0.7992964424542152,
+              0.5812705792682926
+            ],
+            "native_figure_xy": [
+              0.7992964424542152,
+              0.33362391330596475
+            ]
+          },
+          {
+            "source_figure_xy": [
+              0.865866452457849,
+              0.6638620426829268
+            ],
+            "native_figure_xy": [
+              0.865866452457849,
+              0.23822123279401114
+            ]
+          },
+          {
+            "source_figure_xy": [
+              0.8697205056692474,
+              0.640264481707317
+            ],
+            "native_figure_xy": [
+              0.8697205056692474,
+              0.23822123279401114
+            ]
+          }
         ]
       },
       "panel_c": "Native chronological evidence with exact Joint Spot annotations"
@@ -192,7 +314,16 @@
         "opacity": 1.0,
         "calibration": "Existing source-only paper_coordinates transform; no fitted shift or offset"
       },
-      "layout": "C aligns with the actual A graph edges; density scale below the A legend; separate B/C legends; direction note centered below A",
+      "layout": "B above C with identical graph widths and chronological UTC limits; A and complete notes on the left; separate B/C legends",
+      "joint_survival_connections": [
+        {
+          "utc": "2010-12-20T00:22:00+00:00",
+          "peer_grid": "DO34ir",
+          "target_snr_at_37_dbm": -13.0,
+          "reference_snr_at_37_dbm": -11.0,
+          "paired_delta_snr_db": -2.0
+        }
+      ],
       "layout_checks": {
         "panel_a_plot_bounds": [
           0.07786356707317071,
@@ -201,41 +332,73 @@
           0.2064786585365854
         ],
         "panel_a_legend_left": 0.4247477134146342,
+        "panel_b_plot_bounds": [
+          0.5778635670731707,
+          0.5635724085365854,
+          0.33635373475609764,
+          0.20647865853658542
+        ],
+        "panel_b_time_limits": [
+          14962.5,
+          14963.833333333334
+        ],
+        "panel_c_time_limits": [
+          14962.5,
+          14963.833333333334
+        ],
         "panel_c_plot_bounds": [
-          0.07786356707317071,
-          0.158,
+          0.5778635670731707,
+          0.1435,
           0.33635373475609764,
           0.2064786585365854
         ],
         "panel_c_density_bounds": [
-          0.4247477134146342,
-          0.158,
+          0.9247477134146342,
+          0.1435,
           0.006000000000000005,
           0.2064786585365854
         ],
+        "panel_c_caption_bounds": [
+          0.5761332429990966,
+          0.37545850480109727,
+          0.18467158564814812,
+          0.034104938271605045
+        ],
+        "panel_c_native_title_bounds": [
+          0.7110404344512196,
+          0.35587453741604363,
+          0.06999999999999995,
+          0.011319484632201615
+        ],
+        "panel_c_heading_bounds": [
+          0.6781542968750001,
+          0.4178751848636831,
+          0.14369140625,
+          0.01985938303755147
+        ],
         "panel_b_series_legend_bounds": [
-          0.545,
-          0.4577641916366598,
-          0.405,
-          0.020235808363340158
+          0.5778635670731707,
+          0.4692733088991769,
+          0.33635373475609764,
+          0.01872669110082298
         ],
         "panel_b_gate_legend_bounds": [
-          0.545,
-          0.4287641916366598,
-          0.2407624421296295,
-          0.020235808363340213
+          0.5778635670731707,
+          0.44027330889917693,
+          0.22900607638888892,
+          0.018726691100823034
         ],
         "panel_c_summary_legend_bounds": [
-          0.07786356707317071,
-          0.07827330889917694,
+          0.5778635670731707,
+          0.05827330889917695,
           0.33635373475609764,
           0.018726691100823048
         ],
         "panel_c_exact_legend_bounds": [
-          0.07786356707317071,
-          0.05127330889917695,
-          0.23249999999999998,
-          0.018726691100823055
+          0.5778635670731707,
+          0.03127330889917695,
+          0.23250000000000004,
+          0.018726691100823048
         ],
         "direction_note_bounds": [
           0.14620442708333334,
@@ -248,6 +411,19 @@
           0.517,
           0.40789858993902445,
           0.30100000000000005
+        ],
+        "joint_survival_guide_count": 1,
+        "joint_survival_guide_endpoints": [
+          {
+            "source_figure_xy": [
+              0.7078502708176773,
+              0.6805769817073171
+            ],
+            "native_figure_xy": [
+              0.7078502708176773,
+              0.2467393292682927
+            ]
+          }
         ]
       },
       "panel_c": "Native chronological evidence with exact Joint Spot annotations"

@@ -35,8 +35,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 15175,
-      "sha256": "7daaa1999ffe3d5b848b3dffc1c8d88231650d353cefab9dbe5ac82eb8d8e69a"
+      "bytes": 15749,
+      "sha256": "eee255afedd8d27b95d66c1647ee24b617cd3269cf6f528818ef1679b1d462c8"
     },
     {
       "path": "source_digitization.py",
@@ -45,13 +45,13 @@
     },
     {
       "path": "figure4_histogram_overlay.png",
-      "bytes": 559093,
-      "sha256": "65117c91f12bed052b38e7b5f56bd07012cf951180838eaa1709b39ab4c050d7"
+      "bytes": 559782,
+      "sha256": "97da113f4b57c5b700486865b352aaac85b911897be4fedbc9c79e709b9a75e9"
     },
     {
       "path": "WSPRadar_Demo_Zander_Figure4.pdf",
-      "bytes": 197031,
-      "sha256": "d0cbf15f1462a1abe4d8fd12081b7e30956234b45691a81d7433e3742bd0d6f9"
+      "bytes": 197032,
+      "sha256": "d96c98f5688ce1c88307addc89569fb33f885c9064e483ee8a69f737ec0a22a8"
     },
     {
       "path": "figure4_comparison_provenance.json",

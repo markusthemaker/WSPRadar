@@ -10,6 +10,14 @@ This mandatory offline reference reconstructs the installed simultaneous TX Hard
 - One peer identity is receiver callsign plus its complete reported locator; pairing uses a common 120-second UTC cycle.
 - Each endpoint contributes its maximum normalized SNR, `snr - power + 30`, within that identity/cycle. Both transmitters report 23 dBm throughout this capture, so normalization cancels in the paired difference. This is reported-power consistency, not independent power calibration.
 
+The installed demo starts at **09:45 UTC**, ending at the same **10:30 UTC**.
+The broader 09:30 capture and its configuration remain frozen as provenance.
+A separate installed-demo replay must match every independently checked SQL
+and retained row, station result, native evidence unit and Joint Spot from
+the frozen run. It also checks the complete 1 dB histogram, retaining all
+166 Joint Spots. The removed 09:30-09:45 interval contains no selected evidence
+in this captured population; this is not a claim about a newly queried archive.
+
 The provider capture contains 731 rows, including one `code = 4` report. Strict mode retains 730 source reports and produces 564 SQL groups. Global Target activity and geographic selection retain 457 groups: 166 Joint, 36 Only Target and 255 Only Reference. There are 85 retained receiver identities; 37 contribute Joint observations over 12 joint cycles. No eligible endpoint group has duplicate reports.
 
 The exact Joint population has mean -6.783132530120482 dB, sample standard deviation 3.51463845382668 dB, median -7 dB, Q1 -9 dB, Q3 -4 dB, and range -17 to +4 dB. Of 166 differences, 162 are negative, two zero and two positive. The mean of the 37 receiver medians is -6.054054054054054 dB, demonstrating why the Station Medians histogram is a different comparison from the Joint-Spot histogram.

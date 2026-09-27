@@ -1,0 +1,36 @@
+{
+  "app": "WSPRadar.org",
+  "blocks": [
+    {
+      "analysis_cache_file": "benchmark/analysis_cache.parquet",
+      "analysis_id": "rx_benchmark",
+      "evidence_time_bin": "3h",
+      "folder": "benchmark",
+      "is_sequential": false,
+      "performance_method_version": null,
+      "result_mode": "benchmark",
+      "selected_direction": "All Directions",
+      "selected_distance": "Full Range",
+      "show_non_joint": true,
+      "title": "RX Benchmark: KP4MD (Target) vs. WB6RQN (Reference)"
+    }
+  ],
+  "built_utc": "2026-09-27T09:54:34Z",
+  "export_signature": "b233cb3e83a6642d337705a5359cb5ef76fbf974d3d19730a8f9e38d45b4970c",
+  "fixture_files": {
+    "config": "config/wspradar_config.config",
+    "expected_metrics": "expected_metrics.json",
+    "regression_report_json": "regression_report.json",
+    "regression_report_markdown": "regression_report.md",
+    "run_metadata": "config/run_metadata.json"
+  },
+  "fixture_name": "milazzo_fig6_rx_prepared_export_v1",
+  "source_export_root": "production build_results_zip output; transient work directory omitted",
+  "source_input_folder": "offline replay of tests/regression/reference_fixtures/milazzo_fig6_rx_v1",
+  "version": "v0.99m",
+  "source_file_sha256": {
+    "source_rows.csv": "c8d72dd9f38b1fba9ad5a9860e6dcadceaf3715aba7f7a5eaebc6eb125d9c077",
+    "rx_reference.config": "dd251edf3f5d8fedd1ae721127854ebe7ac53d8fa31544d814195695e383277c",
+    "expected_native_units.csv": "dc8efaa16df41f74db71af86d0aea7142b20fef5e89dda8ea824e6ba8d5061f2"
+  }
+}

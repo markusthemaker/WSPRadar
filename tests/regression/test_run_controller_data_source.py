@@ -1769,7 +1769,7 @@ def test_fetch_failure_telemetry_omits_query_and_error_message(monkeypatch):
             "failure_scope": "local",
             "failure_stage": "validate_query_cache_temporary",
             "cache_namespace": "demo-queries",
-            "cache_policy": "demo_absolute_24h",
+            "cache_policy": "demo_versioned_persistent",
         },
     )]
     assert fake_st.codes == [("SELECT private_query_text", "sql")]

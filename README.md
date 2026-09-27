@@ -747,6 +747,8 @@ After an accepted Run action, the page moves to the processing-status panel belo
 
 **Demo context lifecycle.** A loaded demo keeps its visible context when only population filters, evidence thresholds, Inspector scope or other result-view controls are changed, so an adapted view can still be interpreted against the example from which it began. Changing the Question or direction, Target callsign or QTH, band, measurement window, Benchmark design or identity, neighborhood radius, TX schedule, or correction intent/value removes the demo metadata and profile identity from later saves because the setup no longer represents that documented experiment. Any scientific edit also ends exact-demo cache identity, even when the explanatory demo context remains visible. A population- or evidence-changing scientific edit clears any preselected Performance and Benchmark Station Insights identity; the path may no longer exist in the new result. Result-view-only controls do not clear that selection.
 
+**Demo data reuse.** Running an unchanged demo retrieves any missing database query results and stores validated rows on the app server's disk. Later runs reuse matching entries without automatic expiry, including across sessions and app restarts while that disk is retained. A changed query or incompatible cache format, or missing or damaged files, requires retrieval again. Starting the app or loading a demo does not preload its data. Reuse preserves the retrieved archive data rather than automatically incorporating later archive corrections; each run still performs the analysis with the current application code.
+
 <a id="sec-5-2"></a>
 
 #### 4.2 Question, Target and measurement-window controls

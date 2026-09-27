@@ -53,6 +53,20 @@ def _fixture_dirs():
 FIXTURES = _fixture_dirs()
 
 
+def test_reviewed_prepared_export_fixture_is_available_with_offline_provenance():
+    """Keep package coverage without implying a live-provider capture."""
+    fixture_name = "milazzo_fig6_rx_prepared_export_v1"
+    assert fixture_name in {path.name for path in FIXTURES}
+    fixture_directory = FIXTURE_ROOT / fixture_name
+    run_metadata = _read_json(fixture_directory / "config" / "run_metadata.json")
+    configuration = _read_json(fixture_directory / "config" / "wspradar_config.config")
+    provenance = run_metadata["fixture_provenance"]
+    assert provenance == configuration["extensions"]["org.wspradar.fixture_provenance"]
+    assert provenance["provider_queried"] is False
+    assert provenance["source_reference"] == "tests/regression/reference_fixtures/milazzo_fig6_rx_v1"
+    assert {block["decode_filter_mode"] for block in run_metadata["result_blocks"]} == {"legacy_no_code"}
+
+
 def test_fixture_builder_uses_current_mode_specific_figure_contracts(tmp_path):
     """Track current Benchmark and Performance figures without a legacy result folder."""
     for folder in FIGURE_FILES_BY_FOLDER:

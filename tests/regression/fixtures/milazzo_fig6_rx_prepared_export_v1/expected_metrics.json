@@ -1,0 +1,163 @@
+{
+  "benchmark": {
+    "analysis_caches": {
+      "analysis_cache.parquet": {
+        "column_count": 11,
+        "columns": [
+          "time_slot",
+          "peer_sign",
+          "peer_grid",
+          "peer_lat",
+          "peer_lon",
+          "snr_u_norm",
+          "snr_r_norm",
+          "has_u",
+          "has_r",
+          "best_ref_sign",
+          "best_ref_dist"
+        ],
+        "exists": true,
+        "rows": 34
+      }
+    },
+    "exists": true,
+    "figures": {
+      "figure_map_highres.png": {
+        "exists": true,
+        "height": 3632,
+        "width": 3498
+      },
+      "figure_segment_insight.png": {
+        "exists": true,
+        "height": 1654,
+        "width": 3885
+      },
+      "figure_segment_temporal_evidence.png": {
+        "exists": true,
+        "height": 1639,
+        "width": 3815
+      },
+      "figure_selected_station_evidence.png": {
+        "exists": true,
+        "height": 1639,
+        "width": 3815
+      }
+    },
+    "tables": {
+      "table_drilldown_all_stations_current_segment.csv": {
+        "column_count": 10,
+        "columns": [
+          "Date/Time (UTC)",
+          "TX Station",
+          "Locator",
+          "km",
+          "Azimuth",
+          "Best Ref",
+          "Ref km",
+          "WB6RQN SNR (dB)",
+          "KP4MD SNR (dB)",
+          "\u0394 SNR (dB)"
+        ],
+        "exists": true,
+        "max_decimal_places_KP4MD SNR (dB)": 1,
+        "max_decimal_places_WB6RQN SNR (dB)": 1,
+        "max_decimal_places_\u0394 SNR (dB)": 1,
+        "max_of_KP4MD SNR (dB)": -5.0,
+        "max_of_WB6RQN SNR (dB)": -13.0,
+        "max_of_\u0394 SNR (dB)": 22.0,
+        "mean_of_KP4MD SNR (dB)": -20.226,
+        "mean_of_WB6RQN SNR (dB)": -26.75,
+        "mean_of_\u0394 SNR (dB)": 12.2,
+        "median_of_KP4MD SNR (dB)": -20.0,
+        "median_of_WB6RQN SNR (dB)": -29.5,
+        "median_of_\u0394 SNR (dB)": 8.0,
+        "min_of_KP4MD SNR (dB)": -33.0,
+        "min_of_WB6RQN SNR (dB)": -34.0,
+        "min_of_\u0394 SNR (dB)": 7.0,
+        "non_null_of_KP4MD SNR (dB)": 31,
+        "non_null_of_WB6RQN SNR (dB)": 8,
+        "non_null_of_\u0394 SNR (dB)": 5,
+        "rows": 34,
+        "snr_metric_columns": [
+          "WB6RQN SNR (dB)",
+          "KP4MD SNR (dB)",
+          "\u0394 SNR (dB)"
+        ]
+      },
+      "table_drilldown_selected_stations.csv": {
+        "column_count": 10,
+        "columns": [
+          "Date/Time (UTC)",
+          "TX Station",
+          "Locator",
+          "km",
+          "Azimuth",
+          "Best Ref",
+          "Ref km",
+          "WB6RQN SNR (dB)",
+          "KP4MD SNR (dB)",
+          "\u0394 SNR (dB)"
+        ],
+        "exists": true,
+        "max_decimal_places_KP4MD SNR (dB)": 1,
+        "max_decimal_places_WB6RQN SNR (dB)": 1,
+        "max_decimal_places_\u0394 SNR (dB)": 1,
+        "max_of_KP4MD SNR (dB)": -5.0,
+        "max_of_WB6RQN SNR (dB)": -13.0,
+        "max_of_\u0394 SNR (dB)": 22.0,
+        "mean_of_KP4MD SNR (dB)": -16.455,
+        "mean_of_WB6RQN SNR (dB)": -26.8,
+        "mean_of_\u0394 SNR (dB)": 12.333,
+        "median_of_KP4MD SNR (dB)": -17.0,
+        "median_of_WB6RQN SNR (dB)": -30.0,
+        "median_of_\u0394 SNR (dB)": 8.0,
+        "min_of_KP4MD SNR (dB)": -26.0,
+        "min_of_WB6RQN SNR (dB)": -34.0,
+        "min_of_\u0394 SNR (dB)": 7.0,
+        "non_null_of_KP4MD SNR (dB)": 11,
+        "non_null_of_WB6RQN SNR (dB)": 5,
+        "non_null_of_\u0394 SNR (dB)": 3,
+        "rows": 13,
+        "snr_metric_columns": [
+          "WB6RQN SNR (dB)",
+          "KP4MD SNR (dB)",
+          "\u0394 SNR (dB)"
+        ]
+      },
+      "table_station_insights_current_segment.csv": {
+        "column_count": 8,
+        "columns": [
+          "TX Station",
+          "Locator",
+          "km",
+          "Azimuth",
+          "Joint Spots",
+          "Only KP4MD",
+          "Only WB6RQN",
+          "Median \u0394 SNR (dB)"
+        ],
+        "exists": true,
+        "max_decimal_places_Median \u0394 SNR (dB)": 1,
+        "max_of_Median \u0394 SNR (dB)": 12.0,
+        "mean_of_Median \u0394 SNR (dB)": 10.0,
+        "median_of_Median \u0394 SNR (dB)": 10.0,
+        "min_of_Median \u0394 SNR (dB)": 8.0,
+        "non_null_Median \u0394 SNR (dB)": 2,
+        "non_null_of_Median \u0394 SNR (dB)": 2,
+        "rows": 2,
+        "segment_station_metric_column": "Median \u0394 SNR (dB)",
+        "segment_station_metric_max": 12.0,
+        "segment_station_metric_mean": 10.0,
+        "segment_station_metric_median": 10.0,
+        "segment_station_metric_min": 8.0,
+        "segment_station_metric_non_null": 2,
+        "snr_metric_columns": [
+          "Median \u0394 SNR (dB)"
+        ],
+        "sum_Joint Spots": 5,
+        "sum_Only KP4MD": 26,
+        "sum_Only WB6RQN": 3
+      }
+    }
+  }
+}

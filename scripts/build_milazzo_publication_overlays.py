@@ -20,6 +20,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.collections import QuadMesh
+from matplotlib.patches import ConnectionPatch
 from matplotlib import patheffects
 import numpy as np
 import pandas as pd
@@ -250,6 +251,33 @@ def _production_temporal_recipe(run):
     )
 
 
+def _joint_survival_connections(reports, pairs):
+    """Bind eligible production pairs to their two exact plotted endpoints.
+
+    These are identity guides only: no pairing is inferred from paper pixels,
+    graphical proximity, or Target-active survival without Joint eligibility.
+    """
+    report_times = pd.to_datetime(reports.utc, utc=True)
+    connections = []
+    for pair in pairs.sort_values(["plot_time", "grid"]).itertuples():
+        timestamp = pd.Timestamp(pair.plot_time)
+        endpoints = reports[report_times.eq(timestamp) & reports.peer_grid.eq(pair.grid)]
+        if len(endpoints) != 2 or set(endpoints.series) != set(SERIES_COLORS):
+            raise ValueError("A Joint survival guide requires both exact full-locator report endpoints")
+        if not endpoints.passes_target_active_gate.all():
+            raise ValueError("Both Joint survival endpoints must be retained by production filtering")
+        snrs = endpoints.set_index("series").snr_at_37_dbm
+        if not np.isclose(snrs.loc["KP4MD"] - snrs.loc["WB6RQN"], pair.metric, rtol=0, atol=1e-9):
+            raise ValueError("Joint survival endpoints must preserve the production paired Delta SNR")
+        connections.append({
+            "utc": timestamp.isoformat(), "peer_grid": pair.grid,
+            "target_snr_at_37_dbm": float(snrs.loc["KP4MD"]),
+            "reference_snr_at_37_dbm": float(snrs.loc["WB6RQN"]),
+            "paired_delta_snr_db": float(pair.metric),
+        })
+    return connections
+
+
 @synchronized_matplotlib
 def draw_overlay(image_path, reports, run, direction, output_path, anchor_count):
     """Compose the source, report reconstruction and unmodified native view."""
@@ -293,7 +321,10 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
         "Original publication image retained in Panel A;\nits printed direction is contradicted by the matched reports.",
         ha="center", va="top", fontsize=13, color=MUTED, linespacing=1.3,
     )
-    axes = fig.add_axes([.545, paper_plot_bottom, .405, paper_plot_height])
+    reconstruction_left = .5 + paper_plot_left
+    reconstruction_width = paper_plot_width
+    native_bottom = .1435
+    axes = fig.add_axes([reconstruction_left, paper_plot_bottom, reconstruction_width, paper_plot_height])
     axes.set_gid("milazzo-report-reconstruction")
     with Image.open(image_path) as source_image:
         underlay = axes.imshow(
@@ -315,7 +346,7 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
         unmatched_snr = unmatched.snr_at_37_dbm.iloc[0]
         axes.scatter([unmatched_time], [unmatched_snr], s=105, marker="x", color="#ab1671", linewidths=2, zorder=6)
         axes.annotate(f"Archive report, no visible paper marker\n19 Dec 13:38 | WB6RQN | {unmatched_snr:+g} dB at 37 dBm", (mdates.date2num(unmatched_time), unmatched_snr),
-                      xytext=(.22, .86), textcoords="axes fraction", fontsize=12, color="#8a1259",
+                      xytext=(.22, .86), textcoords="axes fraction", fontsize=12, color="#8a1259", zorder=12,
                       arrowprops={"arrowstyle": "->", "color": "#8a1259"},
                       bbox={"facecolor": "white", "edgecolor": "#dddddd", "alpha": .97})
         overlap_target = diagnostic_endpoint(reports, "KP4MD", "2010-12-20T10:34:00Z")
@@ -324,7 +355,7 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
         reference_status = "passes gate" if overlap_reference.passes_target_active_gate.iloc[0] else "does not pass"
         axes.annotate(f"20 Dec 10:34 KP4MD: {target_status}\n20 Dec 10:36 WB6RQN: {reference_status}",
                       (mdates.date2num(pd.to_datetime(overlap_target.utc, utc=True).iloc[0]), overlap_target.snr_at_37_dbm.iloc[0]),
-                      xytext=(.49, .56), textcoords="axes fraction", fontsize=12, color=GATE_RING_COLOR,
+                      xytext=(.52, .74), textcoords="axes fraction", fontsize=12, color=GATE_RING_COLOR, zorder=12,
                       arrowprops={"arrowstyle": "->", "color": GATE_RING_COLOR},
                       bbox={"facecolor": "white", "edgecolor": "#dddddd", "alpha": .97})
     axes.set_xlim(START, END)
@@ -353,12 +384,13 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
     retained_counts = retained_reports.series.value_counts()
     gate_note = (f"Outer rings: {len(retained_reports)}/{len(reports)} reports pass the gate "
                  f"({retained_counts.get('KP4MD', 0)} KP4MD + {retained_counts.get('WB6RQN', 0)} WB6RQN). Gate survival does not imply a Joint pair.")
-    fig.text(.25, .443, "Panel C - WSPRadar view", ha="center", fontsize=17, weight="bold", color=INK)
-    fig.text(paper_plot_left, .415, f"WSPRadar paired evidence after gating: {len(pairs)} pairs |\nKP4MD - WB6RQN | full locator identity", fontsize=13, color=INK, va="top", linespacing=1.3)
-    delta_axes.set_position([paper_plot_left, .158, paper_plot_width, paper_plot_height])
+    caption_background = {"facecolor": "white", "edgecolor": "none", "pad": 3}
+    native_heading = fig.text(.75, .424, "Panel C - WSPRadar view", ha="center", fontsize=17, weight="bold", color=INK, bbox=caption_background)
+    native_caption = fig.text(reconstruction_left, .407, f"WSPRadar paired evidence after gating: {len(pairs)} pairs |\nKP4MD - WB6RQN | full locator identity", fontsize=13, color=INK, va="top", linespacing=1.3, bbox=caption_background)
+    delta_axes.set_position([reconstruction_left, native_bottom, reconstruction_width, paper_plot_height])
     colorbar_axes.set_box_aspect(None)
     colorbar_axes.set_aspect("auto")
-    colorbar_axes.set_position([paper_legend_left, .158, .006, paper_plot_height])
+    colorbar_axes.set_position([.5 + paper_legend_left, native_bottom, .006, paper_plot_height])
     delta_axes.tick_params(labelsize=12)
     delta_axes.xaxis.label.set_fontsize(13)
     delta_axes.yaxis.label.set_fontsize(13)
@@ -367,6 +399,22 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
     colorbar_axes.tick_params(labelsize=12)
     colorbar_axes.yaxis.label.set_fontsize(13)
     colorbar_axes.set_ylabel(colorbar_axes.get_ylabel().replace(" (", "\n("))
+    joint_connections = _joint_survival_connections(reports, pairs)
+    connection_artists = []
+    for connection in joint_connections:
+        utc_coordinate = mdates.date2num(pd.Timestamp(connection["utc"]))
+        endpoint_snrs = [connection["target_snr_at_37_dbm"], connection["reference_snr_at_37_dbm"]]
+        axes.plot([utc_coordinate, utc_coordinate], endpoint_snrs,
+                  color=MUTED, alpha=.45, linewidth=.8, linestyle=(0, (3, 4)), zorder=3)
+        guide = ConnectionPatch(
+            xyA=(utc_coordinate, min(endpoint_snrs)), coordsA=axes.transData,
+            xyB=(utc_coordinate, connection["paired_delta_snr_db"]), coordsB=delta_axes.transData,
+            arrowstyle="-", color=MUTED, alpha=.32, linewidth=.8,
+            linestyle=(0, (3, 5)), zorder=1, clip_on=False,
+        )
+        guide.set_gid(f"milazzo-joint-survival-{connection['utc']}-{connection['peer_grid']}")
+        fig.add_artist(guide)
+        connection_artists.append(guide)
     for locator, group in pairs.groupby("grid", observed=True):
         pair_markers = delta_axes.scatter(pd.to_datetime(group.plot_time, utc=True), group.metric, s=40, marker="o", facecolors="none", edgecolors=INK, linewidths=1.2, zorder=10)
         pair_markers.set_gid(f"milazzo-exact-pairs-{locator}")
@@ -379,19 +427,19 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
     # Each key sits with its own evidence panel. Give the two report series
     # equal space, with the longer gate meaning on a full-width second row.
     report_series_legend = fig.legend(
-        handles=report_handles[:2], loc="upper left", bbox_to_anchor=(.545, .478, .405, 0), mode="expand",
-        ncol=2, frameon=False, fontsize=13, borderaxespad=0, handletextpad=1,
+        handles=report_handles[:2], loc="upper left", bbox_to_anchor=(reconstruction_left, .488, reconstruction_width, 0), mode="expand",
+        ncol=2, frameon=True, facecolor="white", edgecolor="white", framealpha=1, fontsize=12, borderaxespad=0, handletextpad=1,
     )
-    gate_legend = fig.legend(handles=report_handles[2:], loc="upper left", bbox_to_anchor=(.545, .449),
-                            frameon=False, fontsize=13, borderaxespad=0, handletextpad=1)
+    gate_legend = fig.legend(handles=report_handles[2:], loc="upper left", bbox_to_anchor=(reconstruction_left, .459),
+                            frameon=True, facecolor="white", edgecolor="white", framealpha=1, fontsize=12, borderaxespad=0, handletextpad=1)
     native_summary_legend = fig.legend(
         handles=native_handles, labels=native_labels, loc="upper left",
-        bbox_to_anchor=(paper_plot_left, .097, paper_plot_width, 0), mode="expand",
+        bbox_to_anchor=(reconstruction_left, .077, reconstruction_width, 0), mode="expand",
         ncol=2, frameon=False, fontsize=12, borderaxespad=0,
     )
     exact_pair_legend = fig.legend(
         handles=[exact_pair_handle], labels=["Exact Joint Spots, labelled by full locator and delta SNR (C)"],
-        loc="upper left", bbox_to_anchor=(paper_plot_left, .070), frameon=False, fontsize=12, borderaxespad=0,
+        loc="upper left", bbox_to_anchor=(reconstruction_left, .050), frameon=False, fontsize=12, borderaxespad=0,
     )
     notes = [
         (explanation, "bold", INK),
@@ -399,34 +447,51 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
         (gate_note, "bold", INK),
         (f"Panel C retains native {recipe['time_bin']} bins, relative density, median and IQR. Read the dB labels on its median-centered nonlinear axis; positive values favor KP4MD.", "normal", INK),
         ("Panel B: original dots and lines at full opacity beneath colored pre-gate SQL circles. Outer rings and Panel C pairs: current production gate, map and Inspector results.", "normal", MUTED),
+        ("Faint dashed guides link each retained Joint Spot to its two same-cycle, full-locator reports in Panel B. Unlinked reports remain visible but do not create a Joint Spot; these guides are not interpolated measurements.", "normal", MUTED),
         ("RX gate scope: supplied VE6PDQ path only. Other transmitters could establish Target activity for an unringed report in the full archive."
          if direction == "RX" else "Gate counts refer only to 19 Dec 12:00-20 Dec 20:00 UTC. Target activity is checked across all captured receivers in the exact WSPR cycle.", "normal", MUTED),
         ("The five RX pairs retain both full locator identities, DO34 and DO34ir; plotted agreement does not establish antenna gain."
          if direction == "RX" else "One Joint Spot gives one populated density cell at -2 dB; it cannot establish a time trend or direction-independent antenna gain.", "normal", MUTED),
         ("Source: qsl.net/kp4md/wspr.htm | Current generated WSPRadar SQL executed offline through the regression SQLite adapter; not native ClickHouse.", "normal", MUTED),
     ]
-    note_top = .411
+    note_top = .438
     for note, weight, color in notes:
         lines = textwrap.wrap(note, width=88, break_long_words=False, break_on_hyphens=False)
-        fig.text(.545, note_top, "\n".join(lines), fontsize=13, weight=weight, color=color, va="top", linespacing=1.25)
+        fig.text(.055, note_top, "\n".join(lines), fontsize=13, weight=weight, color=color, va="top", linespacing=1.25)
         note_top -= (len(lines) * 16.25 + 8) / (16.2 * 72)
     if note_top < .025:
-        raise ValueError("Milazzo explanatory text exceeds its lower-right panel")
+        raise ValueError("Milazzo explanatory text exceeds its lower-left panel")
     add_demo_pdf_footer(fig, right=.96, bottom=.011)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     figure_coordinates = fig.transFigure.inverted()
+    caption_bounds = native_caption.get_bbox_patch().get_window_extent(renderer)
+    native_title_bounds = delta_axes.title.get_window_extent(renderer)
+    if caption_bounds.y0 <= native_title_bounds.y1:
+        raise ValueError("The Panel C caption must remain above its native chart title")
     layout_checks = {
         "panel_a_plot_bounds": [paper_plot_left, paper_plot_bottom, paper_plot_width, paper_plot_height],
         "panel_a_legend_left": paper_legend_left,
+        "panel_b_plot_bounds": list(axes.get_position().bounds),
+        "panel_b_time_limits": list(axes.get_xlim()),
+        "panel_c_time_limits": list(delta_axes.get_xlim()),
         "panel_c_plot_bounds": list(delta_axes.get_position().bounds),
         "panel_c_density_bounds": list(colorbar_axes.get_position().bounds),
+        "panel_c_caption_bounds": list(caption_bounds.transformed(figure_coordinates).bounds),
+        "panel_c_native_title_bounds": list(native_title_bounds.transformed(figure_coordinates).bounds),
+        "panel_c_heading_bounds": list(native_heading.get_bbox_patch().get_window_extent(renderer).transformed(figure_coordinates).bounds),
         "panel_b_series_legend_bounds": list(report_series_legend.get_window_extent(renderer).transformed(figure_coordinates).bounds),
         "panel_b_gate_legend_bounds": list(gate_legend.get_window_extent(renderer).transformed(figure_coordinates).bounds),
         "panel_c_summary_legend_bounds": list(native_summary_legend.get_window_extent(renderer).transformed(figure_coordinates).bounds),
         "panel_c_exact_legend_bounds": list(exact_pair_legend.get_window_extent(renderer).transformed(figure_coordinates).bounds),
         "direction_note_bounds": list(direction_note.get_window_extent(renderer).transformed(figure_coordinates).bounds),
         "panel_a_image_bounds": list(source_bounds.bounds),
+        "joint_survival_guide_count": len(connection_artists),
+        "joint_survival_guide_endpoints": [
+            {"source_figure_xy": figure_coordinates.transform(axes.transData.transform(guide.xy1)).tolist(),
+             "native_figure_xy": figure_coordinates.transform(delta_axes.transData.transform(guide.xy2)).tolist()}
+            for guide in connection_artists
+        ],
     }
     fig.savefig(output_path, dpi=160)
     for artist in fig.findobj():
@@ -453,7 +518,8 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
             "panel_a": "Unmodified original source image, including the printed direction",
             "panel_b": "Complete pre-gate SQL endpoint reconstruction over the original image at full opacity, with production-retained outer rings",
             "panel_b_underlay": {"opacity": 1.0, "calibration": "Existing source-only paper_coordinates transform; no fitted shift or offset"},
-            "layout": "C aligns with the actual A graph edges; density scale below the A legend; separate B/C legends; direction note centered below A",
+            "layout": "B above C with identical graph widths and chronological UTC limits; A and complete notes on the left; separate B/C legends",
+            "joint_survival_connections": joint_connections,
             "layout_checks": layout_checks,
             "panel_c": "Native chronological evidence with exact Joint Spot annotations"}
 

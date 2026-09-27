@@ -1,6 +1,6 @@
 # Milazzo TX reference: independent archive arithmetic
 
-This fixture checks the current demo's scientific selection and calculations
+This fixture checks the preserved TX demo configuration's scientific selection and calculations
 against an independent, standard-library calculation from frozen raw reports.
 It is not a claim that WSPRadar reproduces the publication's plotted SNR series
 or its antenna-performance conclusion. The publication comparison is separate
@@ -8,6 +8,10 @@ and preserves the initial wrong-direction comparison for traceability. All
 44 Figure 6 markers now reconcile with reciprocal RX observations in
 [milazzo_fig6_rx_v1](../milazzo_fig6_rx_v1/README.md), contradicting the figure's
 printed direction. That RX reconciliation does not validate this TX dataset.
+
+The installed Milazzo demo now starts with the Figure 6 RX comparison. This
+fixture retains its independent TX configuration and expectations; the demo
+description keeps the reciprocal Figure 7 TX walkthrough as an optional follow-up.
 
 The subsequent [Figure 7 TX overlay](../milazzo_publication_overlays_v1/README.md)
 provides a separate publication check for this receiver path: 47 compact

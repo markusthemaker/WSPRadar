@@ -21,6 +21,7 @@ from config import (
     DB_URL,
     DEFAULT_BAND,
     DEMO_QUERY_CACHE_TTL_SEC,
+    DEMO_QUERY_FAILURE_CACHE_TTL_SEC,
     DEMO_PROFILES,
     EXPORT_ACTIVE_LEASE_TIMEOUT_SEC,
     EXPORT_MAX_CONCURRENT,
@@ -58,52 +59,45 @@ from scripts.sync_reference_figure_pdfs import (
 
 
 EXPECTED_DEMO_FILENAMES = [
-    "000_griffiths_squibb_fig3.config",
-    "000b_griffiths_squibb_performance.config",
-    "001_griffiths_squibb_fig6.config",
+    "00a_griffiths_squibb_fig3.config",
+    "00b_griffiths_squibb_fig6.config",
+    "00c_griffiths_squibb_performance.config",
     "01_vanhamel_rx_calibration.config",
     "02_vanhamel_rx_ab.config",
     "03_zander_tx_buddy_experiment_a.config",
     "05_milazzo_tx_buddy.config",
-    "06_rx_local_median_neighborhood.config",
-    "07_rx_calibration_ab.config",
-    "08_rx_hardware_ab.config",
-    "09_tx_hardware_ab.config",
 ]
 EXPECTED_DEMO_PROFILE_IDS = [
     "griffiths_squibb_fig3",
-    "griffiths_squibb_rx_performance",
     "griffiths_squibb_fig6",
+    "griffiths_squibb_rx_performance",
     "vanhamel_rx_calibration",
     "vanhamel_rx_buddy",
     "zander_tx_buddy",
     "milazzo_tx_buddy",
-    "rx_local_median_neighborhood",
-    "rx_calibration_ab",
-    "rx_hardware_ab",
-    "tx_hardware_ab",
 ]
 EXPECTED_DEMO_SNR_CORRECTION_MODES = {
     "griffiths_squibb_fig3": "no_offset",
-    "griffiths_squibb_rx_performance": None,
     "griffiths_squibb_fig6": "no_offset",
+    "griffiths_squibb_rx_performance": None,
     "vanhamel_rx_calibration": "establish_offset",
     "vanhamel_rx_buddy": "established_offset",
     "zander_tx_buddy": "no_offset",
     "milazzo_tx_buddy": "no_offset",
-    "rx_local_median_neighborhood": "no_offset",
-    "rx_calibration_ab": "establish_offset",
-    "rx_hardware_ab": "no_offset",
-    "tx_hardware_ab": "no_offset",
 }
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+DEMO_READER_FIXTURE_PATH = (
+    Path(__file__).with_name("config_test_inputs") / "demo_reader.config"
+)
+DEMO_READER_PROFILE_ID = "demo_reader_fixture"
 
 
-def _copy_demo_directory(destination):
-    """Copy installed demo documents into an isolated test directory."""
+def _copy_demo_reader_fixture(destination):
+    """Isolate loader tests from the installed demo catalogue's lifecycle."""
     destination.mkdir()
-    for source_path in DEMO_PROFILES_DIR.glob("*.config"):
-        (destination / source_path.name).write_bytes(source_path.read_bytes())
+    (destination / DEMO_READER_FIXTURE_PATH.name).write_bytes(
+        DEMO_READER_FIXTURE_PATH.read_bytes()
+    )
     return destination
 
 
@@ -232,9 +226,10 @@ def test_analysis_result_row_limit_is_explicit_and_exported():
 
 
 def test_cache_lifecycle_ttls_are_explicit_and_exported():
-    """Keep ordinary artifacts at one hour and demo queries at one day."""
+    """Retain valid demos permanently while ordinary and failed queries expire."""
     assert STANDARD_QUERY_CACHE_TTL_SEC == 3600
-    assert DEMO_QUERY_CACHE_TTL_SEC == 86400
+    assert DEMO_QUERY_CACHE_TTL_SEC is None
+    assert DEMO_QUERY_FAILURE_CACHE_TTL_SEC == 86400
     assert SESSION_ARTIFACT_TTL_SEC == 3600
 
 
@@ -394,27 +389,29 @@ def test_demo_filenames_are_opaque_ordering_keys(tmp_path):
     """Accept arbitrary stems and order profiles only by complete filename."""
     demo_directory = tmp_path / "demos"
     demo_directory.mkdir()
-    first_source = DEMO_PROFILES_DIR / "01_vanhamel_rx_calibration.config"
-    second_source = DEMO_PROFILES_DIR / "02_vanhamel_rx_ab.config"
     (demo_directory / "A first demo (chosen name).config").write_bytes(
-        first_source.read_bytes()
+        DEMO_READER_FIXTURE_PATH.read_bytes()
     )
-    (demo_directory / "z-last demo; also chosen.config").write_bytes(
-        second_source.read_bytes()
+    second_configuration = json.loads(
+        DEMO_READER_FIXTURE_PATH.read_text(encoding="utf-8")
+    )
+    second_configuration["profile"]["id"] = "another_demo_reader_fixture"
+    (demo_directory / "z-last demo; also chosen.config").write_text(
+        json.dumps(second_configuration), encoding="utf-8"
     )
 
     loaded_profiles = load_demo_profiles(demo_directory)
 
     assert list(loaded_profiles) == [
-        "vanhamel_rx_calibration",
-        "vanhamel_rx_buddy",
+        DEMO_READER_PROFILE_ID,
+        "another_demo_reader_fixture",
     ]
 
 
 def test_demo_english_metadata_supports_optional_german_and_markdown(tmp_path):
     """Use English in German mode and preserve config newlines and Markdown links."""
-    demo_directory = _copy_demo_directory(tmp_path / "demos")
-    demo_path = demo_directory / EXPECTED_DEMO_FILENAMES[0]
+    demo_directory = _copy_demo_reader_fixture(tmp_path / "demos")
+    demo_path = demo_directory / DEMO_READER_FIXTURE_PATH.name
     payload = json.loads(demo_path.read_text(encoding="utf-8"))
     payload["profile"]["title"] = {"en": "English-only title"}
     payload["profile"]["description"] = {
@@ -425,7 +422,7 @@ def test_demo_english_metadata_supports_optional_german_and_markdown(tmp_path):
         encoding="utf-8",
     )
 
-    loaded_profile = load_demo_profiles(demo_directory)["griffiths_squibb_fig3"]
+    loaded_profile = load_demo_profiles(demo_directory)[DEMO_READER_PROFILE_ID]
     profile_metadata = loaded_profile["configuration"]["profile"]
     resolved_title = resolve_demo_profile_text(
         profile_metadata,
@@ -450,8 +447,8 @@ def test_demo_english_metadata_supports_optional_german_and_markdown(tmp_path):
 @pytest.mark.parametrize("field", ["title", "description"])
 def test_demo_directory_reader_requires_english_fallback_text(tmp_path, field):
     """Reject an installed demo that cannot fall back from missing German text."""
-    demo_directory = _copy_demo_directory(tmp_path / "demos")
-    demo_path = demo_directory / EXPECTED_DEMO_FILENAMES[0]
+    demo_directory = _copy_demo_reader_fixture(tmp_path / "demos")
+    demo_path = demo_directory / DEMO_READER_FIXTURE_PATH.name
     payload = json.loads(demo_path.read_text(encoding="utf-8"))
     payload["profile"][field] = {"de": "Nur Deutsch"}
     demo_path.write_text(
@@ -463,27 +460,11 @@ def test_demo_directory_reader_requires_english_fallback_text(tmp_path, field):
         load_demo_profiles(demo_directory)
 
 
-def test_tx_hardware_ab_demo_selects_scheduled_pair_science():
-    """Keep the sequential TX demo explicit on the periodic schedule branch."""
-    profile = DEMO_PROFILES["tx_hardware_ab"]
-    assert "scheduled sequential" in profile["description"]["en"]
-    assert "geplante sequenzielle" in profile["description"]["de"]
-    assert profile["configuration"]["settings"]["comparison_parameters"] == {
-        "mode": "hardware_ab",
-        "tx_ab_method": "sequential",
-        "repeat_interval_minutes": 4,
-        "target_start_minute": 0,
-        "reference_start_minute": 2,
-        "snr_correction_mode": "no_offset",
-        "snr_correction_db": 0.0,
-    }
-
-
 def test_demo_directory_reader_rejects_duplicate_profile_ids(tmp_path):
     """Prevent one config from silently replacing another profile."""
-    demo_directory = _copy_demo_directory(tmp_path / "demos")
-    first_profile_path = demo_directory / EXPECTED_DEMO_FILENAMES[0]
-    duplicate_profile_path = demo_directory / "10_vanhamel_rx_calibration.config"
+    demo_directory = _copy_demo_reader_fixture(tmp_path / "demos")
+    first_profile_path = demo_directory / DEMO_READER_FIXTURE_PATH.name
+    duplicate_profile_path = demo_directory / "duplicate_demo_reader.config"
     duplicate_profile_path.write_bytes(first_profile_path.read_bytes())
 
     with pytest.raises(ValueError, match="Duplicate demo profile id"):
@@ -492,8 +473,8 @@ def test_demo_directory_reader_rejects_duplicate_profile_ids(tmp_path):
 
 def test_demo_directory_reader_rejects_unsupported_config_schema(tmp_path):
     """Fail explicitly when an installed demo requires a newer config reader."""
-    demo_directory = _copy_demo_directory(tmp_path / "demos")
-    demo_path = demo_directory / EXPECTED_DEMO_FILENAMES[0]
+    demo_directory = _copy_demo_reader_fixture(tmp_path / "demos")
+    demo_path = demo_directory / DEMO_READER_FIXTURE_PATH.name
     payload = json.loads(demo_path.read_text(encoding="utf-8"))
     payload["schema_version"] += 1
     demo_path.write_text(json.dumps(payload), encoding="utf-8")

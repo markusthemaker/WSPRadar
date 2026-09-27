@@ -2090,7 +2090,7 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_band == "40m"
     assert session_state.val_ref_callsign == "WB6RQN"
     assert session_state.val_snr_correction_mode == "no_offset"
-    assert session_state.val_analysis_direction == "tx"
+    assert session_state.val_analysis_direction == "rx"
     assert session_state.val_comp_mode == "reference_station"
     assert session_state.val_max_peer_distance_km == 5000
     assert session_state.val_min_opportunities == 5
@@ -2104,6 +2104,9 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_results_time_bin_compare == "3h"
     assert session_state.val_results_time_bin_absolute == "3h"
     assert session_state.val_results_segment_time_bin_absolute == "auto"
+    assert session_state.val_results_selected_stations_compare == [
+        {"callsign": "VE6PDQ", "locator": "DO34IR"}
+    ]
     assert session_state.val_start_d == date(2010, 12, 19)
     assert session_state.val_start_t == time(12, 0)
     assert session_state.val_end_d == date(2010, 12, 20)

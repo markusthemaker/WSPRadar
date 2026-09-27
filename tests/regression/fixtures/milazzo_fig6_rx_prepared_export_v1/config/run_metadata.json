@@ -1,0 +1,69 @@
+{
+  "app": "WSPRadar.org",
+  "version": "v0.99m",
+  "export_signature": "b233cb3e83a6642d337705a5359cb5ef76fbf974d3d19730a8f9e38d45b4970c",
+  "exported_utc": "2026-09-27T09:54:22Z",
+  "language": "en",
+  "run_mode": "RX",
+  "database_source": "wspr_live",
+  "blocks_present": {
+    "benchmark": true,
+    "performance": false
+  },
+  "callsign": "KP4MD",
+  "reference_or_benchmark_mode": "reference_station",
+  "band": "40m",
+  "time_window": {
+    "start_utc": "2010-12-19T12:00Z",
+    "end_utc": "2010-12-20T20:00Z"
+  },
+  "benchmark_snr_correction_mode": "no_offset",
+  "benchmark_snr_correction_db": 0.0,
+  "thresholds_and_filters": {
+    "solar_state": "all",
+    "max_peer_distance_km": 5000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_joint_spots_per_station": 1,
+    "min_confirmed_opportunities_per_peer": 5,
+    "min_joint_stations_per_map_segment": 1
+  },
+  "result_blocks": [
+    {
+      "analysis_id": "rx_benchmark",
+      "title": "RX Benchmark: KP4MD (Target) vs. WB6RQN (Reference)",
+      "folder": "benchmark",
+      "result_mode": "benchmark",
+      "decode_filter_mode": "legacy_no_code",
+      "analysis_cache_file": "benchmark/analysis_cache.parquet",
+      "selected_segment": "Full Range | All Directions",
+      "selected_distance": "Full Range",
+      "selected_direction": "All Directions",
+      "selected_ranges": [],
+      "selected_directions": [],
+      "selected_stations": [
+        "VE6PDQ (DO34IR)"
+      ],
+      "selected_station_label": null,
+      "selected_station_context": null,
+      "selected_station_count": 1,
+      "selected_station_role": null,
+      "selected_evidence_weighting": "Single selected path",
+      "selected_evidence_figures": {},
+      "benchmark_evidence_figures": {},
+      "show_non_joint": true,
+      "show_zero_target": false,
+      "evidence_time_bin": "3h",
+      "segment_evidence_time_bin": "3h",
+      "is_sequential": false,
+      "performance_method_version": null
+    }
+  ],
+  "fixture_provenance": {
+    "execution": "offline SQLite replay of frozen user-supplied wspr.rocks reports",
+    "source_reference": "tests/regression/reference_fixtures/milazzo_fig6_rx_v1",
+    "provider_queried": false,
+    "database_source_field_meaning": "wspr_live is the required production provider-enum value used by this offline export harness; it is not a claim that these supplied reports were obtained from wspr.live. The actual input provenance is the frozen source reference.",
+    "scope": "export package snapshot; not an independent scientific oracle or a full receiver-activity capture"
+  }
+}

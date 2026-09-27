@@ -1,0 +1,125 @@
+{
+  "app": "WSPRadar.org",
+  "blocks": [
+    {
+      "analysis_cache_file": "benchmark/analysis_cache.parquet",
+      "analysis_id": "rx_benchmark",
+      "evidence_time_bin": "3h",
+      "folder": "benchmark",
+      "is_sequential": false,
+      "performance_method_version": null,
+      "result_mode": "benchmark",
+      "selected_direction": "All Directions",
+      "selected_distance": "Full Range",
+      "show_non_joint": true,
+      "tests": [
+        {
+          "column_count": 8,
+          "description": "station insight table shape, columns, joint/spot sums and median columns",
+          "exists": true,
+          "kind": "table",
+          "metrics": {
+            "max_decimal_places_Median \u0394 SNR (dB)": 1,
+            "mean_of_Median \u0394 SNR (dB)": 10.0,
+            "median_of_Median \u0394 SNR (dB)": 10.0,
+            "segment_station_metric_column": "Median \u0394 SNR (dB)",
+            "segment_station_metric_max": 12.0,
+            "segment_station_metric_mean": 10.0,
+            "segment_station_metric_median": 10.0,
+            "segment_station_metric_min": 8.0,
+            "segment_station_metric_non_null": 2,
+            "sum_Joint Spots": 5,
+            "sum_Only KP4MD": 26,
+            "sum_Only WB6RQN": 3
+          },
+          "name": "table_station_insights_current_segment.csv",
+          "rows": 2
+        },
+        {
+          "column_count": 10,
+          "description": "selected-station drill-down shape and columns",
+          "exists": true,
+          "kind": "table",
+          "metrics": {
+            "max_decimal_places_KP4MD SNR (dB)": 1,
+            "max_decimal_places_WB6RQN SNR (dB)": 1,
+            "max_decimal_places_\u0394 SNR (dB)": 1,
+            "mean_of_KP4MD SNR (dB)": -16.455,
+            "mean_of_WB6RQN SNR (dB)": -26.8,
+            "mean_of_\u0394 SNR (dB)": 12.333,
+            "median_of_KP4MD SNR (dB)": -17.0,
+            "median_of_WB6RQN SNR (dB)": -30.0,
+            "median_of_\u0394 SNR (dB)": 8.0
+          },
+          "name": "table_drilldown_selected_stations.csv",
+          "rows": 13
+        },
+        {
+          "column_count": 10,
+          "description": "all-station current-segment drill-down shape and columns, including non-joint evidence where applicable",
+          "exists": true,
+          "kind": "table",
+          "metrics": {
+            "max_decimal_places_KP4MD SNR (dB)": 1,
+            "max_decimal_places_WB6RQN SNR (dB)": 1,
+            "max_decimal_places_\u0394 SNR (dB)": 1,
+            "mean_of_KP4MD SNR (dB)": -20.226,
+            "mean_of_WB6RQN SNR (dB)": -26.75,
+            "mean_of_\u0394 SNR (dB)": 12.2,
+            "median_of_KP4MD SNR (dB)": -20.0,
+            "median_of_WB6RQN SNR (dB)": -29.5,
+            "median_of_\u0394 SNR (dB)": 8.0
+          },
+          "name": "table_drilldown_all_stations_current_segment.csv",
+          "rows": 34
+        },
+        {
+          "description": "PNG presence and readability",
+          "exists": true,
+          "height": 3632,
+          "kind": "figure",
+          "name": "figure_map_highres.png",
+          "width": 3498
+        },
+        {
+          "description": "PNG presence and readability",
+          "exists": true,
+          "height": 1654,
+          "kind": "figure",
+          "name": "figure_segment_insight.png",
+          "width": 3885
+        },
+        {
+          "description": "PNG presence and readability",
+          "exists": true,
+          "height": 1639,
+          "kind": "figure",
+          "name": "figure_segment_temporal_evidence.png",
+          "width": 3815
+        },
+        {
+          "description": "PNG presence and readability",
+          "exists": true,
+          "height": 1639,
+          "kind": "figure",
+          "name": "figure_selected_station_evidence.png",
+          "width": 3815
+        },
+        {
+          "column_count": 11,
+          "description": "parquet cache readability, row count, column count and schema",
+          "exists": true,
+          "kind": "analysis_cache",
+          "name": "analysis_cache.parquet",
+          "rows": 34
+        }
+      ],
+      "title": "RX Benchmark: KP4MD (Target) vs. WB6RQN (Reference)"
+    }
+  ],
+  "built_utc": "2026-09-27T09:54:34Z",
+  "export_signature": "b233cb3e83a6642d337705a5359cb5ef76fbf974d3d19730a8f9e38d45b4970c",
+  "fixture_name": "milazzo_fig6_rx_prepared_export_v1",
+  "scope": "fixture package integrity and exported evidence-shape regression",
+  "version": "v0.99m"
+}

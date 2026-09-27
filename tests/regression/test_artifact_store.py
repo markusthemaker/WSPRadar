@@ -301,7 +301,7 @@ def test_active_read_lease_serializes_ttl_cleanup(tmp_path):
 
 
 def test_no_touch_lease_preserves_demo_query_publication_time(tmp_path):
-    """Keep demo freshness absolute while coordinating a disk-cache read."""
+    """Preserve demo publication time while coordinating a disk-cache read."""
     store = ArtifactStore(lock_stripes=4)
     artifact_path = store.namespace_path(
         tmp_path,
@@ -537,6 +537,42 @@ def test_result_export_reset_retires_without_deleting_active_parquet(tmp_path):
     assert SESSION_ARTIFACT_PATHS_KEY not in state
 
 
+@pytest.mark.parametrize("use_runtime_cleanup", [False, True])
+@pytest.mark.parametrize("demo_age_seconds", [10 * 365 * 86400, -86400])
+def test_cleanup_preserves_permanent_demos_but_reaps_abandoned_writes(
+    tmp_path, monkeypatch, use_runtime_cleanup, demo_age_seconds,
+):
+    """Neither runtime nor shared-TTL cleanup expires a published demo file."""
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(data_engine, "_last_artifact_cleanup_monotonic", None)
+    monkeypatch.setattr(ARTIFACT_STORE, "_stale_lock_seconds", 60.0)
+    demo_path = data_engine._query_cache_path("SELECT retained_demo", is_demo=True)
+    ordinary_path = data_engine._query_cache_path("SELECT ordinary_query")
+    for path in (demo_path, ordinary_path):
+        ARTIFACT_STORE.write(path, lambda temporary: temporary.write_bytes(b"published"))
+    _make_stale(demo_path, seconds=demo_age_seconds)
+    _make_stale(ordinary_path, seconds=7200)
+    demo_mtime = demo_path.stat().st_mtime
+    abandoned_path = demo_path.with_name(f".{demo_path.name}.{'a' * 32}.tmp")
+    abandoned_path.write_bytes(b"interrupted")
+    _make_stale(abandoned_path, seconds=7200)
+    recent_path = demo_path.with_name(f".{demo_path.name}.{'b' * 32}.tmp")
+    recent_path.write_bytes(b"in progress")
+
+    removed = (
+        data_engine.cleanup_old_parquets()
+        if use_runtime_cleanup
+        else cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+    )
+
+    assert removed == {"queries": 1, "demo-queries": 1, "session-artifacts": 0}
+    assert demo_path.read_bytes() == b"published"
+    assert demo_path.stat().st_mtime == demo_mtime
+    assert not ordinary_path.exists()
+    assert not abandoned_path.exists()
+    assert recent_path.read_bytes() == b"in progress"
+
+
 def test_namespace_cleanup_applies_independent_query_lifetimes(tmp_path):
     """Expire ordinary data before demo queries and never age derived data here."""
     store = ArtifactStore(lock_stripes=4)
@@ -768,6 +804,10 @@ def test_query_cache_paths_are_isolated_by_database_and_demo_policy(
 
     assert len({path.resolve() for path in paths}) == 6
     assert [path.parent.name for path in standard_paths] == ["wspr_live", "wd2", "wd1"]
-    assert [path.parent.name for path in demo_paths] == ["wspr_live", "wd2", "wd1"]
+    assert [path.parent.parent.name for path in demo_paths] == ["wspr_live", "wd2", "wd1"]
+    assert all(
+        path.parent.name == f"v{data_engine.DEMO_QUERY_CACHE_FORMAT_VERSION}"
+        for path in demo_paths
+    )
     assert all(path.parent.parent.name == "queries" for path in standard_paths)
-    assert all(path.parent.parent.name == "demo-queries" for path in demo_paths)
+    assert all(path.parent.parent.parent.name == "demo-queries" for path in demo_paths)

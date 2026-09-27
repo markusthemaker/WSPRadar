@@ -125,8 +125,9 @@ python -m pytest tests/regression -q
 The Windows runner invokes `.\.venv\Scripts\python.exe -u -m pytest` directly,
 keeps pytest attached to the foreground terminal, validates the fixed serial
 fallback chunks, and propagates pytest's exit code. The dated complete-run
-record is maintained in `AGENT_README.md`. The fixture-integrity test is skipped
-when no generated fixture is committed under `tests/regression/fixtures/`. One
+record is maintained in `AGENT_README.md`. Prepared-export integrity coverage
+requires the committed Milazzo fixture under `tests/regression/fixtures/`; a
+missing fixture fails its availability check. One
 existing Matplotlib pending-deprecation warning is emitted from
 `ui/plots/evidence_figures.py`.
 

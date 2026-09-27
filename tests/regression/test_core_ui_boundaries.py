@@ -382,15 +382,16 @@ def test_demo_compare_uses_direct_ram_and_disk_cache_with_copy_on_read(
     assert ram_value_before_mutation == pytest.approx(-12.3)
     assert float(second_disk_result.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
     assert disk_result.artifact_path == cache_path
-    assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+    assert cache_path.parent.name == f"v{data_engine.DEMO_QUERY_CACHE_FORMAT_VERSION}"
+    assert cache_path.parent.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
 
 
-def test_demo_compare_disk_reload_does_not_extend_absolute_expiry(
+def test_demo_compare_disk_and_ram_reuse_do_not_expire_or_touch_publication(
     tmp_path,
     monkeypatch,
 ):
-    """Anchor RAM and disk freshness to the original demo publication time."""
-    query = "SELECT demo_compare_absolute_expiry FORMAT CSVWithNames"
+    """Reuse old validated demo rows without aging out either cache tier."""
+    query = "SELECT demo_compare_permanent_cache FORMAT CSVWithNames"
     request_count = 0
 
     def fake_get(*_args, **_kwargs):
@@ -404,10 +405,8 @@ def test_demo_compare_disk_reload_does_not_extend_absolute_expiry(
 
     data_engine.fetch_wspr_data(query, is_demo=True)
     cache_path = data_engine._query_cache_path(query, is_demo=True)
-    late_publication_time = (
-        time.time() - data_engine.DEMO_QUERY_CACHE_TTL_SEC + 300.0
-    )
-    os.utime(cache_path, (late_publication_time, late_publication_time))
+    publication_time = time.time() - (10 * 365 * 24 * 3600)
+    os.utime(cache_path, (publication_time, publication_time))
     published_mtime = cache_path.stat().st_mtime
     data_engine._dataframe_cache.clear()
 
@@ -417,26 +416,83 @@ def test_demo_compare_disk_reload_does_not_extend_absolute_expiry(
         is_demo=True,
         database_provider=WSPR_DATABASE_PROVIDERS[0],
     )
-    initial_ram_expiry = data_engine._dataframe_cache[cache_key][0]
     first_ram_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    future_time = time.time() + (20 * 365 * 24 * 3600)
+    monkeypatch.setattr(data_engine.time, "time", lambda: future_time)
     second_ram_result = data_engine.fetch_wspr_data(query, is_demo=True)
-    repeated_ram_expiry = data_engine._dataframe_cache[cache_key][0]
+    data_engine._dataframe_cache.clear()
+    future_disk_result = data_engine.fetch_wspr_data(query, is_demo=True)
 
     assert request_count == 1
     assert disk_result.source == FetchSource.DISK_CACHE
     assert first_ram_result.source == FetchSource.MEMORY_CACHE
     assert second_ram_result.source == FetchSource.MEMORY_CACHE
-    assert cache_path.stat().st_mtime == pytest.approx(published_mtime, abs=0.01)
-    assert initial_ram_expiry == pytest.approx(
-        published_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC,
-        abs=0.01,
+    assert future_disk_result.source == FetchSource.DISK_CACHE
+    assert all(
+        int(result.dataframe.loc[0, "has_u"]) == 0
+        for result in (
+            disk_result, first_ram_result, second_ram_result, future_disk_result,
+        )
     )
-    assert repeated_ram_expiry == initial_ram_expiry
-    assert data_engine._query_cache_expiry_epoch(
-        cache_path,
-        data_engine.DEMO_QUERY_CACHE_TTL_SEC,
-        now=published_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC + 1.0,
-    ) is None
+    assert cache_path.stat().st_mtime == pytest.approx(published_mtime, abs=0.01)
+    assert data_engine._dataframe_cache[cache_key].expires_at_epoch is None
+
+
+def test_demo_format_change_invalidates_ram_and_disk_without_changing_standard(
+    tmp_path,
+    monkeypatch,
+):
+    """A format revision must bypass old demo rows in both cache tiers."""
+    query = "SELECT demo_format_revision FORMAT CSVWithNames"
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse(b"peer_sign,stat_val\nK1AAA,-12.3\n")
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    standard_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    initial_demo_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    standard_path = data_engine._query_cache_path(query, is_demo=False)
+    original_demo_path = data_engine._query_cache_path(query, is_demo=True)
+    standard_key = data_engine._memory_cache_key(
+        query, is_demo=False, database_provider=provider,
+    )
+    original_demo_key = data_engine._memory_cache_key(
+        query, is_demo=True, database_provider=provider,
+    )
+
+    monkeypatch.setattr(
+        data_engine,
+        "DEMO_QUERY_CACHE_FORMAT_VERSION",
+        data_engine.DEMO_QUERY_CACHE_FORMAT_VERSION + 1,
+    )
+    assert data_engine._query_cache_path(query, is_demo=True) != original_demo_path
+    assert data_engine._memory_cache_key(
+        query, is_demo=True, database_provider=provider,
+    ) != original_demo_key
+    assert not data_engine.is_wspr_query_cached(query, is_demo=True)
+    revised_demo_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    standard_ram_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    data_engine._dataframe_cache.clear()
+    revised_demo_disk_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    standard_disk_result = data_engine.fetch_wspr_data(query, is_demo=False)
+
+    assert request_count == 3
+    assert standard_result.source == FetchSource.WSPR_LIVE
+    assert initial_demo_result.source == FetchSource.WSPR_LIVE
+    assert revised_demo_result.source == FetchSource.WSPR_LIVE
+    assert revised_demo_disk_result.source == FetchSource.DISK_CACHE
+    assert standard_ram_result.source == FetchSource.MEMORY_CACHE
+    assert standard_disk_result.source == FetchSource.DISK_CACHE
+    assert data_engine._query_cache_path(query, is_demo=False) == standard_path
+    assert data_engine._memory_cache_key(
+        query, is_demo=False, database_provider=provider,
+    ) == standard_key
 
 
 def test_identical_csv_query_caches_are_isolated_by_database_source(monkeypatch):

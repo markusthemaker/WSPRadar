@@ -272,7 +272,7 @@ def _render_fetch_error(
         artifact_parts = set(fetch_result.artifact_path.parts)
         if ArtifactNamespace.DEMO_QUERY.value in artifact_parts:
             failure_diagnostics["cache_namespace"] = ArtifactNamespace.DEMO_QUERY.value
-            failure_diagnostics["cache_policy"] = "demo_absolute_24h"
+            failure_diagnostics["cache_policy"] = "demo_versioned_persistent"
         elif ArtifactNamespace.QUERY.value in artifact_parts:
             failure_diagnostics["cache_namespace"] = ArtifactNamespace.QUERY.value
             failure_diagnostics["cache_policy"] = "standard_access_1h"

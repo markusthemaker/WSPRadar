@@ -382,7 +382,7 @@ class ArtifactStore:
         cache_root,
         namespace: ArtifactNamespace | str,
         *,
-        ttl_seconds: float,
+        ttl_seconds: float | None,
         now: float | None = None,
     ) -> int:
         """Delete stale published files without racing active operations.
@@ -392,6 +392,8 @@ class ArtifactStore:
         separately under their encoded destination lock. Empty directories are
         deliberately retained because pruning them can race a writer between
         parent creation and opening its temporary output.
+        A None TTL preserves published files while still removing abandoned
+        atomic temporary siblings.
         """
         namespace = ArtifactNamespace(namespace)
         namespace_root = self.namespace_path(cache_root, namespace)
@@ -403,6 +405,8 @@ class ArtifactStore:
             namespace,
             now=now,
         )
+        if ttl_seconds is None:
+            return removed
         candidates = [
             path
             for path in namespace_root.rglob("*")
@@ -662,24 +666,22 @@ def cleanup_artifact_namespaces(
     """Clean each TTL-managed namespace according to its own lifecycle.
 
     ``ttl_seconds`` is retained as an internal compatibility fallback for
-    callers that have not yet separated the three policies.
+    callers that have not yet separated ordinary-query and session policies.
+    Demo queries have no age-based expiry unless a finite demo TTL is supplied
+    explicitly; the compatibility fallback never expires permanent demo data.
     """
     query_ttl_seconds = (
         ttl_seconds if query_ttl_seconds is None else query_ttl_seconds
-    )
-    demo_query_ttl_seconds = (
-        ttl_seconds if demo_query_ttl_seconds is None else demo_query_ttl_seconds
     )
     session_ttl_seconds = (
         ttl_seconds if session_ttl_seconds is None else session_ttl_seconds
     )
     if None in (
         query_ttl_seconds,
-        demo_query_ttl_seconds,
         session_ttl_seconds,
     ):
         raise TypeError(
-            "query, demo-query, and session TTL values must all be provided"
+            "query and session TTL values must both be provided"
         )
 
     removed = {

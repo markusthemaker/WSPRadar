@@ -603,8 +603,8 @@ Streamlit UI. It provides:
   32 entries after deep-byte accounting;
 - provider-scoped exact-query SHA-256 disk-cache keys, including a write-through
   raw Parquet L2 for ordinary Benchmark CSV rows;
-- a separate provider-scoped demo-query namespace with an absolute 24-hour
-  freshness lifetime;
+- a separate provider- and cache-format-scoped demo-query namespace whose
+  validated entries have no time-based expiry;
 - CSV and Parquet response handling;
 - quote-aware logical CSV-record counting while transport chunks are buffered,
   direct Pandas parsing from that byte buffer, and Parquet-footer row inspection
@@ -1970,9 +1970,15 @@ returning the modified configuration to the ordinary one-hour query-cache
 policy. Visible demo metadata is a separate presentation/provenance field: it
 survives filter/evidence adaptations but is detached by an experiment-definition
 change. Thus an unchanged loaded demo and an immediately launched demo share the
-same 24-hour cache namespace and provider-affinity behavior, while no modified
+same permanent cache namespace and provider-affinity behavior, while no modified
 scientific request receives that cache policy merely because explanatory demo
 context remains visible.
+
+Demo data acquisition remains on demand: neither application startup nor demo
+configuration loading prefetches query results. The first analysis fetches any
+missing entries; subsequent runs reuse valid entries while the cache filesystem
+survives. Retained raw data does not automatically reflect later upstream archive
+corrections, but each run still applies the current scientific processing code.
 
 The first FIFO ticket can become active only when an analysis slot and a
 complete-run provider reservation are both available. Provider reservation uses
@@ -2045,7 +2051,7 @@ local and do not discard a valid CSV response or trigger provider failover.
 | Namespace | Contents | Lifecycle |
 | --- | --- | --- |
 | `queries` | Provider-scoped ordinary exact-query rows stored as Parquet, including locally serialized Benchmark CSV rows | One-hour last-access freshness and cleanup. |
-| `demo-queries` | Provider-scoped raw Benchmark and Performance demo-query rows, stored as Parquet | Absolute 24-hour freshness and cleanup; reads never extend publication time. |
+| `demo-queries` | Provider- and cache-format-scoped raw Benchmark and Performance demo-query rows, stored as Parquet | Validated entries have no time-based expiry; published files are excluded from TTL cleanup and reads preserve publication time. |
 | `derived-analysis` | Shared basemap PNGs | Reused across sessions; no current TTL cleanup. |
 | `session-artifacts` | Per-owner, per-run scoped evidence and compact map station/segment Parquet aggregates | Active leases/touches plus one-hour cleanup. |
 
@@ -2053,6 +2059,18 @@ All artifact paths are validated to remain under the configured cache root.
 Publication uses unique sibling temporary paths and `os.replace`. Lock
 bookkeeping is bounded with 64 in-process stripes, while lock files provide
 cross-process exclusion when processes share the same filesystem and cache root.
+
+`DEMO_QUERY_CACHE_TTL_SEC = None` is the explicit permanent-retention policy.
+`core/data_engine.py` owns `DEMO_QUERY_CACHE_FORMAT_VERSION = 1`; this compatibility
+identifier, provider identity and the exact SQL determine demo-cache identity.
+Disk entries live under `demo-queries/<database-source>/v1/`, and the RAM identity
+includes the same format version. A query change or format-version increment
+therefore cannot reuse incompatible entries. The initial versioned layout also
+ignores existing unversioned demo files; it does not migrate or delete them.
+Missing, unreadable or invalid cached rows follow the existing reserved-request
+replan and acquisition path. Application release numbers do not invalidate valid
+demo data. Demo result-row overflow markers describe rejected requests rather than
+validated rows and retain a separate finite 24-hour lifetime.
 
 Submission-triggered TTL cleanup is process-local single-flight and throttled to
 one completed sweep per 60 seconds. Overlapping or more-recent callers return
@@ -2064,29 +2082,32 @@ Ordinary namespace sweeps exclude every recognized unique atomic temporary
 sibling from TTL and future-timestamp decisions. A separate orphan pass considers
 only temporary names that encode the store's atomic-publication contract and are
 older than the stale-lock horizon, then acquires and rechecks under the encoded
-destination's key lock before deletion. Query and demo-query timestamps are
+destination's key lock before deletion. Ordinary query timestamps are
 compared with a fresh clock reading at each decision; only a modification time
 more than five seconds ahead is treated as materially future-dated. Routine
 cleanup deliberately does not prune empty namespace or provider directories,
 because removing a writer's parent between directory creation and temporary-file
 open would violate the atomic-publication lifecycle. Published derived basemaps
 remain untimed, but their recognized stale temporary siblings participate in
-the orphan pass.
+the orphan pass. Published demo-query files are likewise untimed: their
+modification time cannot expire or invalidate them, but abandoned temporary
+siblings still participate in the orphan pass.
 
 Read leases and access touching prevent normal TTL cleanup from deleting a file
 that an active session is inspecting. An active rerun refreshes its registered
 session artifacts before global TTL cleanup and again after any admission wait.
 Old run fragments can remain until their lease/access state permits cleanup.
 Demo-query reads still take the same-key coordination lock but deliberately do
-not touch the file: its publication mtime is the immutable freshness anchor,
-and any RAM L1 entry expires at that same absolute deadline.
+not touch the file: its publication mtime remains unchanged for provenance,
+without controlling reuse. Valid demo RAM L1 entries likewise have no time-based
+expiry, while the existing entry-count and byte limits can still evict them.
 
 Benchmark continues to request upstream CSV because that is its established
 transport and parser path, but every accepted CSV exact query is converted to
 raw Parquet in its policy-specific disk L2 before transport normalization and
 scientific post-fetch processing, after numeric response validation has passed.
 Ordinary Benchmark uses the one-hour
-last-access `queries` namespace; guided-demo Benchmark uses the absolute 24-hour
+last-access `queries` namespace; guided-demo Benchmark uses the permanent
 `demo-queries` namespace. Performance keeps its upstream Parquet transport and
 publishes it under the same ordinary/demo namespace policy. The optional
 process-memory DataFrame L1 stores isolated normalized copies only when they fit
@@ -2273,9 +2294,10 @@ capabilities.
    XSRF protection. The deployment reason is not documented in code. Restoring
    protection requires deployment testing, but the current state is a real public
    deployment risk.
-4. **Unbounded persistent cache size:** TTL cleanup exists for queries and
-   session artifacts, but there are no byte/file quotas and derived basemaps do
-   not expire.
+4. **Unbounded persistent cache size:** TTL cleanup exists for ordinary queries
+   and session artifacts, but there are no byte/file quotas; published demo-query
+   entries and derived basemaps do not expire. Obsolete demo-query format
+   directories and unversioned entries are retained until explicitly removed.
 5. **Export memory:** ZIPs are built and retained in memory. Single-export gating
    limits concurrency but not the size of one export.
 6. **Dependency reproducibility:** Most Python dependencies are unpinned. There

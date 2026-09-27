@@ -317,7 +317,41 @@ def test_publication_setup_and_archive_selectors_are_distinguished(reference_run
     assert reference_run.configuration["end_utc"] - reference_run.configuration["start_utc"] == pd.Timedelta(hours=1)
     installed = json.loads((Path(__file__).parents[2] / "config/demos/03_zander_tx_buddy_experiment_a.config").read_text(encoding="utf-8"))
     frozen = _read_json(REFERENCE_DIRECTORY, "demo.config")
-    assert installed["settings"] == frozen["settings"]
+    installed_settings = installed["settings"]
+    frozen_settings = frozen["settings"]
+    for section in ("comparison_parameters", "advanced_parameters", "results_view"):
+        assert installed_settings[section] == frozen_settings[section]
+    installed_core = installed_settings["core_parameters"]
+    frozen_core = frozen_settings["core_parameters"]
+    assert {key: value for key, value in installed_core.items() if key != "time_selection"} == {
+        key: value for key, value in frozen_core.items() if key != "time_selection"
+    }
+    assert installed_core["time_selection"] == {
+        "start_utc": "2022-05-21T09:45Z", "end_utc": "2022-05-21T10:30Z",
+    }
+    assert frozen_core["time_selection"] == {
+        "start_utc": "2022-05-21T09:30Z", "end_utc": "2022-05-21T10:30Z",
+    }
+    assert "09:45–10:30 UTC" in installed["profile"]["description"]["en"]
+
+
+def test_installed_0945_demo_window_preserves_all_independently_checked_evidence(reference_run):
+    installed = json.loads((Path(__file__).parents[2] / "config/demos/03_zander_tx_buddy_experiment_a.config").read_text(encoding="utf-8"))
+    installed_run = _calculate_run(reference_run.source_rows, configuration_document=installed)
+    assert installed_run.configuration["end_utc"] - installed_run.configuration["start_utc"] == pd.Timedelta(minutes=45)
+    # Keep the broader captured configuration as provenance. The shortened
+    # installed window must preserve every row, not merely the sample count.
+    _assert_scientific_rows(installed_run.sql_rows, pd.read_csv(REFERENCE_DIRECTORY / "expected_sql_rows.csv"))
+    _assert_scientific_rows(installed_run.processed, pd.read_csv(REFERENCE_DIRECTORY / "expected_retained_rows.csv"))
+    for frame_name in ("sql_rows", "processed", "stations", "units", "points"):
+        pd.testing.assert_frame_equal(
+            getattr(installed_run, frame_name), getattr(reference_run, frame_name), check_exact=True,
+        )
+    expected_histogram = pd.read_csv(REFERENCE_DIRECTORY / "expected_histogram_1db.csv", float_precision="round_trip")
+    histogram = installed_run.recipe["spot_histogram"]
+    np.testing.assert_array_equal(histogram["centers"], expected_histogram.delta_snr_db)
+    np.testing.assert_array_equal(histogram["counts"], expected_histogram.joint_spots)
+    assert len(installed_run.points) == histogram["value_count"] == 166
 
 
 def test_frozen_sql_oracle_detects_wrong_mode_and_power_normalization(reference_run):

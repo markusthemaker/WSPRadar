@@ -196,7 +196,7 @@ def _outcome_counts(units):
     return units.outcome.value_counts().to_dict()
 
 
-def test_demo_uses_correct_geographic_counts_and_unchanged_scientific_settings(reference_run):
+def test_demo_uses_figure6_rx_direction_and_preserves_other_scientific_settings(installed_rx_demo_run):
     installed = json.loads((REPOSITORY_DIRECTORY / "config/demos/05_milazzo_tx_buddy.config").read_text(encoding="utf-8"))
     frozen_settings = _read_json("demo.config")["settings"]
     installed_settings = installed["settings"]
@@ -204,28 +204,33 @@ def test_demo_uses_correct_geographic_counts_and_unchanged_scientific_settings(r
         assert installed_settings[section] == frozen_settings[section]
     installed_core = installed_settings["core_parameters"]
     frozen_core = frozen_settings["core_parameters"]
-    assert {key: value for key, value in installed_core.items() if key != "time_selection"} == {
-        key: value for key, value in frozen_core.items() if key != "time_selection"
+    assert {key: value for key, value in installed_core.items() if key not in {"time_selection", "analysis_direction"}} == {
+        key: value for key, value in frozen_core.items() if key not in {"time_selection", "analysis_direction"}
     }
+    assert installed["profile"]["id"] == "milazzo_tx_buddy"
+    assert installed_core["analysis_direction"] == "rx"
+    assert frozen_core["analysis_direction"] == "tx"
     assert pd.Timestamp(installed_core["time_selection"]["start_utc"]) == PAPER_START_UTC
     assert pd.Timestamp(installed_core["time_selection"]["end_utc"]) == PAPER_END_UTC
     assert frozen_core["time_selection"] == {
         "start_utc": "2010-12-18T00:00Z", "end_utc": "2010-12-21T00:00Z",
     }
-    assert reference_run.context.max_peer_distance_km == 5000
-    assert reference_run.context.reference_snr_correction_db == 0
+    assert installed_rx_demo_run.context.run_mode == "RX"
+    assert installed_rx_demo_run.context.max_peer_distance_km == 5000
+    assert installed_rx_demo_run.context.reference_snr_correction_db == 0
     description = installed["profile"]["description"]["en"]
-    assert "45 Joint observations across 30 receivers and nine shared cycles" in description
-    assert "mean **−3.96 dB** and median **−4 dB**" in description
-    assert "1 Joint Spot, 56 Only KP4MD and 0 Only WB6RQN" in description
-    assert "normalization to 1 W" in description and "ΔSNR = −2 dB" in description
-    assert "Figure 7" in description and "printed direction is reversed" in description
+    assert "Figure 6" in description and "DO34IR" in description.upper() and "DO34" in description
+    assert description.index("WSPRadar_Demo_Milazzo_Figure6.pdf") < description.index("WSPRadar_Demo_Milazzo_Figure7.pdf")
     assert "have not yet been reconciled" not in description
 
 
-def test_publication_window_demo_matches_the_independent_frozen_subpopulation(reference_run):
-    installed = json.loads((REPOSITORY_DIRECTORY / "config/demos/05_milazzo_tx_buddy.config").read_text(encoding="utf-8"))
-    publication_run = _calculate_run(reference_run.source_rows, configuration_document=installed)
+def test_tx_publication_window_matches_the_independent_frozen_subpopulation(reference_run):
+    configuration = _read_json("demo.config")
+    configuration["settings"]["core_parameters"]["time_selection"] = {
+        "start_utc": PAPER_START_UTC.strftime("%Y-%m-%dT%H:%MZ"),
+        "end_utc": PAPER_END_UTC.strftime("%Y-%m-%dT%H:%MZ"),
+    }
+    publication_run = _calculate_run(reference_run.source_rows, configuration_document=configuration)
     expected = _read_csv("expected_native_units.csv")
     timestamps = pd.to_datetime(expected.evidence_utc, utc=True)
     expected = expected[timestamps.ge(PAPER_START_UTC) & timestamps.lt(PAPER_END_UTC)]
@@ -790,6 +795,54 @@ def rx_reference_run(verified_reference_files):
     return _calculate_run(_read_rx_csv("source_rows.csv"), configuration_document=configuration)
 
 
+@pytest.fixture(scope="module")
+def installed_rx_demo_run(rx_reference_run):
+    configuration = json.loads(
+        (REPOSITORY_DIRECTORY / "config/demos/05_milazzo_tx_buddy.config").read_text(encoding="utf-8")
+    )
+    return _calculate_run(rx_reference_run.source_rows, configuration_document=configuration)
+
+
+def test_installed_rx_demo_replays_the_independent_figure6_path_evidence(installed_rx_demo_run):
+    # This supplied VE6PDQ path proves exact pairing, not archive-wide RX counts
+    # or the absence of Target activity on other transmitting paths.
+    _assert_scientific_rows(installed_rx_demo_run.sql_rows, _read_rx_csv("expected_sql_rows.csv"))
+    _assert_native_units(installed_rx_demo_run.units, _read_rx_csv("expected_native_units.csv"))
+    assert _outcome_counts(installed_rx_demo_run.units) == {
+        "target_only": 26, "joint": 5, "reference_only": 3,
+    }
+    assert installed_rx_demo_run.source_rows.tx_sign.eq("VE6PDQ").all()
+    assert set(installed_rx_demo_run.source_rows.rx_sign) == {"KP4MD", "WB6RQN"}
+    assert sorted(installed_rx_demo_run.points.metric) == [7, 7, 8, 17, 22]
+    assert installed_rx_demo_run.points.metric.median() == 8
+    assert installed_rx_demo_run.points.plot_time.nunique() == 5
+
+
+def test_installed_rx_demo_preselection_preserves_full_locator_pair_populations(installed_rx_demo_run):
+    from ui.inspector.selection_state import station_selection_default_rows
+
+    configured_identities = installed_rx_demo_run.configuration["selected_stations_compare"]
+    assert configured_identities == [{"callsign": "VE6PDQ", "locator": "DO34IR"}]
+    selected_rows, missing_identities = station_selection_default_rows(
+        installed_rx_demo_run.stations, "peer_sign", "peer_grid", configured_identities,
+    )
+    assert not missing_identities and len(selected_rows) == 1
+    selected_station = installed_rx_demo_run.stations.iloc[selected_rows[0]]
+    assert (selected_station.peer_sign, selected_station.peer_grid) == ("VE6PDQ", "DO34ir")
+    pairs = _canonical_units(installed_rx_demo_run.units)
+    pairs = pairs[pairs.outcome.eq("joint")]
+    selected_pairs = pairs[
+        pairs.peer_sign.eq(selected_station.peer_sign) & pairs.peer_grid.eq(selected_station.peer_grid)
+    ]
+    _assert_native_units(selected_pairs, _read_rx_csv("expected_paired_rows.csv").query("peer_grid == 'DO34ir'"))
+    assert selected_pairs.delta_snr_db.tolist() == [8, 22, 7]
+    assert selected_pairs.delta_snr_db.median() == 8
+    other_locator_pairs = pairs[pairs.peer_sign.eq("VE6PDQ") & pairs.peer_grid.eq("DO34")]
+    assert other_locator_pairs.delta_snr_db.tolist() == [17, 7]
+    assert other_locator_pairs.delta_snr_db.median() == 12
+    assert set(selected_pairs.time_slot).isdisjoint(other_locator_pairs.time_slot)
+
+
 def _paper_matches_from_sql(sql_rows):
     """Recover report-scale SNR from each present endpoint at reported 5 W."""
     matches = []
@@ -1242,6 +1295,75 @@ def test_figure7_paper_oracle_rejects_broken_calculations(reference_run, mutatio
         _figure7_matches_from_source_bound_sql(changed, reference_run.source_rows)
 
 
+@pytest.mark.parametrize("run_fixture,direction,expected_metrics", [
+    ("rx_reference_run", "RX", [7, 7, 8, 17, 22]),
+    ("reference_run", "TX", [-2]),
+])
+def test_publication_joint_survival_guides_preserve_exact_frozen_endpoints(
+    request, run_fixture, direction, expected_metrics,
+):
+    from scripts import build_milazzo_publication_overlays as overlays
+
+    run = request.getfixturevalue(run_fixture)
+    reports = overlays.sql_endpoint_reports(run, direction)
+    pairs = overlays.paired_evidence_points(run)
+    connections = overlays._joint_survival_connections(reports, pairs)
+    expected_pairs = (
+        _read_rx_csv("expected_paired_rows.csv") if direction == "RX"
+        else _read_csv("expected_paired_rows.csv")
+    )
+    expected_pairs["utc"] = pd.to_datetime(expected_pairs.time_slot * 120, unit="s", utc=True)
+    expected_pairs = expected_pairs[
+        expected_pairs.peer_sign.eq("VE6PDQ")
+        & expected_pairs.utc.ge(PAPER_START_UTC)
+        & expected_pairs.utc.lt(PAPER_END_UTC)
+    ].sort_values(["utc", "peer_grid"])
+    # Frozen independently reviewed pair identities prevent linking nearby
+    # unpaired reports or collapsing DO34 and DO34ir into one locator.
+    expected_connections = [{
+        "utc": pair.utc.isoformat(), "peer_grid": pair.peer_grid,
+        "target_snr_at_37_dbm": pair.target_snr_db + 7,
+        "reference_snr_at_37_dbm": pair.reference_snr_db + 7,
+        "paired_delta_snr_db": pair.delta_snr_db,
+    } for pair in expected_pairs.itertuples()]
+    assert connections == expected_connections
+    assert len(connections) == len(expected_metrics)
+    assert sorted(connection["paired_delta_snr_db"] for connection in connections) == expected_metrics
+    assert reports.passes_target_active_gate.sum() > 2 * len(connections)
+
+
+@pytest.mark.parametrize("invalid_endpoint", [
+    "missing", "duplicate", "different_full_locator", "gate_excluded", "different_delta",
+])
+def test_publication_joint_survival_guides_reject_unreconciled_endpoints(
+    rx_reference_run, invalid_endpoint,
+):
+    from scripts import build_milazzo_publication_overlays as overlays
+
+    reports = overlays.sql_endpoint_reports(rx_reference_run, "RX")
+    pairs = overlays.paired_evidence_points(rx_reference_run).sort_values(["plot_time", "grid"]).iloc[[0]].copy()
+    pair = pairs.iloc[0]
+    selected_endpoint = (
+        pd.to_datetime(reports.utc, utc=True).eq(pd.Timestamp(pair.plot_time))
+        & reports.peer_grid.eq(pair.grid)
+        & reports.series.eq("WB6RQN")
+    )
+    assert selected_endpoint.sum() == 1
+    if invalid_endpoint == "missing":
+        reports = reports.loc[~selected_endpoint].copy()
+    elif invalid_endpoint == "duplicate":
+        reports = pd.concat([reports, reports.loc[selected_endpoint]], ignore_index=True)
+    elif invalid_endpoint == "different_full_locator":
+        assert pair.grid == "DO34ir"
+        reports.loc[selected_endpoint, "peer_grid"] = "DO34"
+    elif invalid_endpoint == "gate_excluded":
+        reports.loc[selected_endpoint, "passes_target_active_gate"] = False
+    else:
+        pairs["metric"] += 1
+    with pytest.raises(ValueError, match="Joint survival"):
+        overlays._joint_survival_connections(reports, pairs)
+
+
 @pytest.mark.parametrize("run_fixture,expected_metrics,identity_count", [
     ("rx_reference_run", [7, 7, 8, 17, 22], 2),
     ("reference_run", [-2], 1),
@@ -1397,12 +1519,31 @@ def test_publication_pdf_uses_three_panel_style_with_vector_evidence_and_linked_
     assert presentation["panel_b_underlay"]["opacity"] == 1.0
     layout = presentation["layout_checks"]
     original_plot = np.array(layout["panel_a_plot_bounds"])
+    reconstruction_plot = np.array(layout["panel_b_plot_bounds"])
     native_plot = np.array(layout["panel_c_plot_bounds"])
     density_scale = np.array(layout["panel_c_density_bounds"])
-    # Match the visible paper graph, not the larger image or requested axes box.
-    np.testing.assert_allclose(native_plot[[0, 2, 3]], original_plot[[0, 2, 3]], rtol=0, atol=1e-10)
-    assert density_scale[0] == pytest.approx(layout["panel_a_legend_left"], abs=1e-10)
+    # Stack reconstruction and native evidence on identical time coordinates;
+    # retain the visible paper graph size, not its larger requested image box.
+    np.testing.assert_allclose(native_plot[[0, 2, 3]], reconstruction_plot[[0, 2, 3]], rtol=0, atol=1e-10)
+    np.testing.assert_allclose(native_plot[[2, 3]], original_plot[[2, 3]], rtol=0, atol=1e-10)
+    assert native_plot[1] + native_plot[3] < reconstruction_plot[1]
+    np.testing.assert_allclose(layout["panel_b_time_limits"], layout["panel_c_time_limits"], rtol=0, atol=1e-10)
+    assert density_scale[0] == pytest.approx(layout["panel_a_legend_left"] + .5, abs=1e-10)
     np.testing.assert_allclose(density_scale[[1, 3]], native_plot[[1, 3]], rtol=0, atol=1e-10)
+    connections = presentation["joint_survival_connections"]
+    assert layout["joint_survival_guide_count"] == len(connections) == (5 if figure_number == 6 else 1)
+    assert sorted(connection["paired_delta_snr_db"] for connection in connections) == (
+        [7, 7, 8, 17, 22] if figure_number == 6 else [-2]
+    )
+    guide_endpoints = layout["joint_survival_guide_endpoints"]
+    assert len(guide_endpoints) == len(connections)
+    for guide in guide_endpoints:
+        source_x, source_y = guide["source_figure_xy"]
+        native_x, native_y = guide["native_figure_xy"]
+        assert source_x == pytest.approx(native_x, abs=1e-10)
+        assert reconstruction_plot[0] <= source_x <= reconstruction_plot[0] + reconstruction_plot[2]
+        assert reconstruction_plot[1] <= source_y <= reconstruction_plot[1] + reconstruction_plot[3]
+        assert native_plot[1] <= native_y <= native_plot[1] + native_plot[3]
     summary_legend = layout["panel_c_summary_legend_bounds"]
     exact_legend = layout["panel_c_exact_legend_bounds"]
     for legend in (summary_legend, exact_legend):

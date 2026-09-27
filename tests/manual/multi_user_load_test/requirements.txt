@@ -1,0 +1,4 @@
+# Load-test tooling only; application dependencies stay in ../../../requirements.txt.
+# Both pins support the repository's Python 3.10 development container.
+playwright==1.63.0
+psutil==7.2.2

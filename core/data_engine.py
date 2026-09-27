@@ -19,6 +19,7 @@ import requests
 from config import (
     CACHE_DIR,
     DEMO_QUERY_CACHE_TTL_SEC,
+    DEMO_QUERY_FAILURE_CACHE_TTL_SEC,
     MAX_ANALYSIS_RESULT_ROWS,
     QUERY_DATAFRAME_CACHE_MAX_BYTES,
     QUERY_DATAFRAME_CACHE_MAX_ENTRIES,
@@ -52,6 +53,10 @@ from core.snr_utils import SNR_VALUE_COLUMNS, round_snr_like_columns
 http_session = requests.Session()
 http_session.headers.update({"Accept-Encoding": "gzip, deflate"})
 
+# Bump only when raw demo cache representation or interpretation becomes
+# incompatible. SQL and provider identity already distinguish query changes;
+# application releases alone must not invalidate retained historical rows.
+DEMO_QUERY_CACHE_FORMAT_VERSION = 1
 _RESULT_ROW_LIMIT_CACHE_MAX_ENTRIES = 128
 _HTTP_CHUNK_BYTES = 1024 * 1024
 _HTTP_ERROR_BODY_MAX_BYTES = 64 * 1024
@@ -304,7 +309,7 @@ def _result_row_limit_cache_put(
 
 
 def _replace_dataframe_cache_with_row_limit_marker(cache_key, *, is_demo):
-    """Evict oversized cached rows while preserving their original expiry."""
+    """Evict oversized rows and retain only a finite rejection marker."""
     with _dataframe_cache_guard:
         cached_entry = _dataframe_cache.pop(cache_key, None)
     expires_at = (
@@ -312,7 +317,7 @@ def _replace_dataframe_cache_with_row_limit_marker(cache_key, *, is_demo):
         if cached_entry is not None
         else None
     )
-    if expires_at is not None:
+    if expires_at is not None and math.isfinite(expires_at):
         _result_row_limit_cache_put(
             cache_key,
             expires_at_epoch=expires_at,
@@ -320,7 +325,7 @@ def _replace_dataframe_cache_with_row_limit_marker(cache_key, *, is_demo):
     else:
         _result_row_limit_cache_put(
             cache_key,
-            ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+            ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
         )
 
 
@@ -330,7 +335,7 @@ def _query_digest(sql_query):
 
 
 def _memory_cache_key(sql_query, *, is_demo, database_provider):
-    cache_mode = "demo" if is_demo else "standard"
+    cache_mode = f"demo-v{DEMO_QUERY_CACHE_FORMAT_VERSION}" if is_demo else "standard"
     return f"{database_provider.key}:{cache_mode}:{_query_digest(sql_query)}"
 
 
@@ -338,6 +343,7 @@ def _query_cache_path(sql_query, database_provider=None, *, is_demo=False):
     """Return a mode- and provider-scoped exact-query Parquet cache path."""
     provider = _database_provider(database_provider)
     digest = hashlib.sha256(sql_query.encode("utf-8")).hexdigest()
+    version_parts = (f"v{DEMO_QUERY_CACHE_FORMAT_VERSION}",) if is_demo else ()
     return ARTIFACT_STORE.namespace_path(
         CACHE_DIR,
         (
@@ -346,17 +352,25 @@ def _query_cache_path(sql_query, database_provider=None, *, is_demo=False):
             else ArtifactNamespace.QUERY
         ),
         provider.key,
+        *version_parts,
         f"query_{digest}.parquet",
     )
 
 
 def _query_cache_expiry_epoch(cache_path, ttl_seconds, *, now=None):
-    """Return an mtime-anchored expiry, or ``None`` when stale or missing."""
+    """Return a reuse deadline, infinity for permanent files, or None on a miss.
+
+    A None TTL disables timestamp-based expiry, including future timestamps.
+    Infinity is only an internal eligibility sentinel; decoded rows must still
+    pass the normal cache and analysis validation before they can be used.
+    """
     reference_time = time.time() if now is None else float(now)
     try:
         freshness_anchor = cache_path.stat().st_mtime
     except OSError:
         return None
+    if ttl_seconds is None:
+        return math.inf
     # Re-anchoring a future timestamp to ``now`` on every read would silently
     # turn an absolute lifetime into a sliding one until the clock caught up.
     if freshness_anchor > reference_time:
@@ -366,9 +380,18 @@ def _query_cache_expiry_epoch(cache_path, ttl_seconds, *, now=None):
 
 
 def _query_cache_ttl_seconds(*, is_demo):
-    """Return the freshness lifetime for one query-cache policy."""
+    """Return the freshness lifetime, or None for retained demo data."""
     return (
         DEMO_QUERY_CACHE_TTL_SEC
+        if is_demo
+        else STANDARD_QUERY_CACHE_TTL_SEC
+    )
+
+
+def _query_failure_cache_ttl_seconds(*, is_demo):
+    """Keep oversized-query rejection markers finite even for permanent demos."""
+    return (
+        DEMO_QUERY_FAILURE_CACHE_TTL_SEC
         if is_demo
         else STANDARD_QUERY_CACHE_TTL_SEC
     )
@@ -519,11 +542,7 @@ def _cached_strict_target_evidence(
         except FetchResultRowLimitExceeded:
             _result_row_limit_cache_put(
                 cache_key,
-                **(
-                    {"expires_at_epoch": cache_expires_at}
-                    if is_demo
-                    else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
-                ),
+                ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
             )
             return None
         except (OSError, ValueError, KeyError):
@@ -557,11 +576,7 @@ def _cached_strict_target_evidence(
             except FetchResultRowLimitExceeded:
                 _result_row_limit_cache_put(
                     cache_key,
-                    **(
-                        {"expires_at_epoch": cache_expires_at}
-                        if is_demo
-                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
-                    ),
+                    ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
                 )
                 return None
             except (OSError, ValueError, KeyError):
@@ -1033,7 +1048,7 @@ def _fetch_wspr_data_standard(
     written through to a provider- and policy-isolated raw Parquet artifact,
     followed by CSV transport normalization.
     Standard artifacts have sliding one-hour freshness; demos retain their
-    absolute 24-hour publication deadline. Large frames remain disk-only when
+    versioned, permanent retention policy. Large frames remain disk-only when
     the optional process-memory L1 declines them by byte policy.
     """
     provider = _database_provider(database_provider)
@@ -1117,11 +1132,7 @@ def _fetch_wspr_data_standard(
                     pass
                 _result_row_limit_cache_put(
                     cache_key,
-                    **(
-                        {"expires_at_epoch": cache_expires_at}
-                        if is_demo
-                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
-                    ),
+                    ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
                 )
                 return _result_row_limit_error_result(
                     sql_query,
@@ -1140,11 +1151,7 @@ def _fetch_wspr_data_standard(
                 _dataframe_cache_put(
                     cache_key,
                     frame,
-                    **(
-                        {"expires_at_epoch": cache_expires_at}
-                        if is_demo
-                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
-                    ),
+                    ttl_seconds=cache_ttl_seconds,
                 )
                 return FetchResult(
                     dataframe=frame,
@@ -1200,7 +1207,7 @@ def _fetch_wspr_data_standard(
             if isinstance(exc, FetchResultRowLimitExceeded):
                 _result_row_limit_cache_put(
                     cache_key,
-                    ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+                    ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
                 )
             return _request_error_result(
                 exc,
@@ -1222,7 +1229,7 @@ def _fetch_wspr_data_standard(
             if len(frame) > MAX_ANALYSIS_RESULT_ROWS:
                 _result_row_limit_cache_put(
                     cache_key,
-                    ttl_seconds=cache_ttl_seconds,
+                    ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
                 )
                 return _result_row_limit_error_result(
                     sql_query,
@@ -1272,19 +1279,7 @@ def _fetch_wspr_data_standard(
         _dataframe_cache_put(
             cache_key,
             frame,
-            **(
-                {
-                    "expires_at_epoch": (
-                        _query_cache_expiry_epoch(
-                            cache_path,
-                            DEMO_QUERY_CACHE_TTL_SEC,
-                        )
-                        or time.time() + DEMO_QUERY_CACHE_TTL_SEC
-                    )
-                }
-                if is_demo
-                else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
-            ),
+            ttl_seconds=cache_ttl_seconds,
         )
         elapsed = time.time() - start_time
         print(
@@ -1376,11 +1371,7 @@ def _fetch_wspr_parquet(
                     pass
                 _result_row_limit_cache_put(
                     cache_key,
-                    **(
-                        {"expires_at_epoch": cache_expires_at}
-                        if is_demo
-                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
-                    ),
+                    ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
                 )
                 return _result_row_limit_error_result(
                     sql_query,
@@ -1471,7 +1462,7 @@ def _fetch_wspr_parquet(
             if isinstance(exc, FetchResultRowLimitExceeded):
                 _result_row_limit_cache_put(
                     cache_key,
-                    ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+                    ttl_seconds=_query_failure_cache_ttl_seconds(is_demo=is_demo),
                 )
                 try:
                     cache_path.unlink()
