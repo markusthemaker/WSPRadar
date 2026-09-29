@@ -31,14 +31,14 @@ measurement system.
 - TX and RX Performance analyses that compare target opportunities with signals seen
   by other active stations.
 - TX and RX comparison analyses for local/reference setups, hardware A/B cases,
-  and deterministic scheduled TX A/B pairs.
+  and exact same-cycle Reference comparisons.
 - Interactive configuration through a novice-oriented Guided Input flow or the
   full Classic editor, with English and German presentation in both views.
 - Geographic station and segment aggregation on an azimuthal-equidistant map.
 - Segment Inspector views with station tables, evidence figures, and drilldown
   tables backed by projected Parquet reads.
 - Optional Benchmark Delta-SNR outlier-candidate reporting at native Joint Spot
-  or complete Scheduled Pair resolution, with robust local baselines,
+  resolution, with robust local baselines,
   duration-descriptive grouping, path/cross-path review, and traceable paired
   evidence. Enabled exports add a qualified path-event summary and its linked
   chronological paired-evidence table; disabled exports retain the historical
@@ -190,7 +190,7 @@ from the preceding session.
 The current runnable configuration schema is version 1 and remains explicitly
 pre-production. It is not the first public production contract and may be
 revised in place until the first production release; earlier unpublished
-version-1 documents may therefore be rejected without migration. TX Hardware
+version-1 documents are rejected when they do not match the current schema; no input migration or retired-field aliases are supported.
 Every active comparison stores `snr_correction_mode` separately from
 `snr_correction_db`. `no_offset` and `establish_offset` require an applied
 correction of exactly `0.0 dB`; `established_offset` carries a documented signed
@@ -200,16 +200,14 @@ the controlled offset-establishment workflow. Performance-only configurations om
 both fields. Applicable unpublished version-1 documents that lack the mode are
 rejected rather than interpreted from an ambiguous numeric zero.
 
-TX Hardware A/B settings select a `tx_ab_method`. The simultaneous branch stores
-the distinct `reference_callsign` and derives both paths' grid-4 from the core Target QTH, so
-it does not serialize a redundant `reference_qth`. The sequential branch uses a
-shared `repeat_interval_minutes` plus disjoint `target_start_minute` and
-`reference_start_minute` phases. The visible UI names these three controls
-**Repeat Interval**, **Target Start**, and **Reference Start**; supported
-intervals are 4, 6, 10, 12, 20, 30, and 60 minutes, starts are even phases below
-the selected interval, and new sessions default to 10, 0, and 2 minutes
-respectively. Scheduled transmissions are paired by their planned starts; the
-unpublished fixed-bin prototype is not part of the public contract.
+Reference Setup/Station uses exact Target and Reference callsigns and same-cycle
+remote-peer evidence. Target QTH is the only manually entered analysis locator;
+the Reference grid-4 is resolved from the selected archive, role, band and effective
+UTC window. One candidate resolves automatically; multiple candidates require explicit
+selection with reported locator variants, counts and time coverage available for review.
+No reports and source failure are distinct. Discovery and the analysis share one provider.
+Reference Neighbourhood uses the Local Median. Sequential TX A/B and its schedule fields
+are retired; unsupported unpublished configurations are rejected without migration.
 
 `results_view` is divided into `performance` and, when applicable, `benchmark`.
 It preserves each branch's Segment Inspector range/direction, segment temporal
@@ -230,18 +228,15 @@ Benchmark advanced parameters preserve the outlier-reporting toggle and, only
 when it is enabled, the three shared detector gates. The normal
 configuration-changed lifecycle applies: editing these controls does not run an
 analysis automatically. New analyses default to `6.0 dB`, `3.0`, and `3.0 dB`.
-Version-1 saved configurations and public URLs that omit those fields retain
-their original `3.0 dB`, `4.0`, and `3.0 dB` meaning; current writers serialize
-the changed values explicitly.
+Saved configurations and public URLs use only the current shared detector fields
+and defaults. Retired duration-specific fields and former omission-default
+mappings are rejected; current writers serialize the applicable values.
 
 `config/config_codec.py` owns document-envelope and current-version validation;
 `ui/config_io.py` owns semantic settings validation, Streamlit-state
-application, and writing. No migration is promised between unpublished
-pre-production version-1 revisions. Once a configuration schema is published
-for production, each subsequent schema bump must add ordered migrations from
-every preceding supported production version before the writer changes.
-Unsupported versions are rejected instead of being interpreted with guessed
-defaults. The formal JSON Schema enumerates valid fields, values, and
+application, and writing. Only the current schema and canonical fields are
+accepted. Unsupported versions, retired aliases and earlier formats are
+rejected without migration or guessed defaults. The formal JSON Schema enumerates valid fields, values, and
 conditional branches.
 
 Local Neighborhood uses Local Median Neighborhood in both input views. The
@@ -258,11 +253,12 @@ fields; neither owns a separate scientific configuration. The selected
 `input_view`, four-way Classic Question, and Guided navigation choices are
 transient session UI state and are not added to the version-1 saved-config
 contract. Classic asks RX/TX Performance or RX/TX Benchmark first, then reuses
-the shared Target/window fields and conditionally requires a Benchmark design.
-While Benchmark intent is selected but its design is still absent, Run, Save
-Config, and public-URL synchronization remain gated, while the advanced panel
-explicitly uses Benchmark thresholds rather than interpreting canonical
-`val_comp_mode = "none"` as an operator-selected Performance setup. Correction
+the shared Target/window fields and adds the Benchmark design when applicable.
+Selecting RX/TX Benchmark without an existing design initializes `reference_station`;
+an existing Reference Setup/Station or Reference Neighbourhood choice is preserved.
+Run reports incomplete or invalid fields locally before submission; Save Config
+and public-URL synchronization require a valid canonical configuration. The advanced
+panel uses Benchmark thresholds for Benchmark intent. Correction
 mode is durable
 operator/configuration provenance rather than navigation state: both editors
 preserve it, Guided renders its choice from the canonical mode, and the shared
@@ -434,8 +430,9 @@ Useful files when tracing behavior:
 - `core/geographic_scope.py`: strict great-circle peer-scope validation and
   vectorized post-fetch filtering, plus conservative date-line/pole-aware
   bounding boxes for the SQL Local Neighborhood prefilter.
-- `core/tx_ab_schedule.py`: periodic TX A/B validation, exact schedule SQL, and
-  stable planned-pair assignment.
+- `core/reference_location.py`: bounded Reference-location discovery and candidate evidence.
+- `ui/reference_location_state.py` and `ui/reference_location.py`: discovery state and UI.
+- `ui/input_validation_state.py`: lightweight shared field-validation state.
 - `core/data_engine.py`: bounded upstream HTTP and query cache.
 - `core/provider_dispatch.py`: provider priority, rolling request reservations,
   circuit cooldowns, and complete-run leases.
@@ -476,7 +473,7 @@ Useful files when tracing behavior:
   existing Inspector fragment, and canonical absolute UTC-window
   writing.
 - `ui/time_window.py`: once-per-session absolute UTC defaults, widget-state
-  quantization, and effective-window validation.
+  minute normalization, and effective-window validation.
 - `ui/url_state.py`, `ui/url_synchronizer.py`, and `ui/share_analysis.py`:
   versioned public-URL adaptation through canonical config validation,
   fragment-safe browser synchronization, and data-only sharing controls.
@@ -502,10 +499,6 @@ Useful files when tracing behavior:
   and anchor-bounded table-layout controller for demand-driven full-manual
   rendering.
 - `core/artifact_store.py`: artifact namespaces and lifecycle.
-
-The separate `tools/Timed-AB-Relay-Switch/` utility has its own README,
-requirements, launch wrappers, and local configuration. Do not assume that
-changes to it are exercised by the Streamlit regression suite.
 
 ## Testing and Checks
 
@@ -609,6 +602,12 @@ reviewed fixture revision, not automatic snapshot regeneration.
 
 ### Running checks
 
+The 2026-09-28 Reference workflow and current-configuration cleanup passed the
+complete foreground regression runner: **3,330 passed, 3 existing xfailed,
+1 existing warning in 466.35 seconds**, exit 0. The initial failures, corrections,
+and final focused follow-up are recorded in the
+[Reference workflow regression debrief](docs/reference-workflow-regression-debrief.md).
+
 [Runtime verification records, 2026-09-26 and 2026-09-27](docs/verification-history.md#recent-runtime-checks-2026-09-26-27).
 
 Focused regression testing is the default for incremental work, including
@@ -696,7 +695,7 @@ pending-deprecation warning originates in `ui/plots/evidence_figures.py`.
 Compile the repository Python sources:
 
 ```powershell
-python -m compileall -q app.py config core docs ui scripts tests tools
+python -m compileall -q app.py config core docs ui scripts tests
 ```
 
 Check whitespace in the patch:

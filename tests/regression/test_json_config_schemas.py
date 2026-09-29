@@ -99,8 +99,8 @@ def _no_comparison_config():
     }
 
 
-def _tx_hardware_ab_config():
-    """Return a representative periodic-start TX hardware A/B config."""
+def _tx_reference_config():
+    """Return a representative fixed TX reference config."""
     config = _no_comparison_config()
     settings = config["settings"]
     settings["core_parameters"]["analysis_direction"] = "tx"
@@ -109,11 +109,9 @@ def _tx_hardware_ab_config():
         "end_utc": "2026-07-14T23:45Z",
     }
     settings["comparison_parameters"] = {
-        "mode": "hardware_ab",
-        "tx_ab_method": "sequential",
-        "repeat_interval_minutes": 10,
-        "target_start_minute": 0,
-        "reference_start_minute": 2,
+        "mode": "reference_station",
+        "reference_qth": "JN37",
+        "reference_callsign": "CALL/P",
         "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
     }
@@ -149,12 +147,12 @@ def _tx_hardware_ab_config():
     return config
 
 
-def _tx_simultaneous_hardware_ab_config():
-    """Return a representative simultaneous TX hardware A/B config."""
-    config = _tx_hardware_ab_config()
+def _tx_controlled_reference_config():
+    """Return a representative controlled TX reference config."""
+    config = _tx_reference_config()
     config["settings"]["comparison_parameters"] = {
-        "mode": "hardware_ab",
-        "tx_ab_method": "simultaneous",
+        "mode": "reference_station",
+        "reference_qth": "JN37",
         "reference_callsign": "DL1MKS/P",
         "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
@@ -162,12 +160,13 @@ def _tx_simultaneous_hardware_ab_config():
     return config
 
 
-def _rx_hardware_ab_config():
-    """Return a representative RX hardware A/B config."""
-    config = _tx_hardware_ab_config()
+def _rx_controlled_reference_config():
+    """Return a representative controlled RX reference config."""
+    config = _tx_reference_config()
     config["settings"]["core_parameters"]["analysis_direction"] = "rx"
     config["settings"]["comparison_parameters"] = {
-        "mode": "hardware_ab",
+        "mode": "reference_station",
+        "reference_qth": "JN37",
         "reference_callsign": "DL1MKS/P",
         "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
@@ -177,7 +176,7 @@ def _rx_hardware_ab_config():
 
 def _reference_station_config():
     """Return a fixed Reference Station config with an independent grid-4."""
-    config = _rx_hardware_ab_config()
+    config = _rx_controlled_reference_config()
     config["settings"]["comparison_parameters"] = {
         "mode": "reference_station",
         "reference_callsign": "DL2XYZ",
@@ -190,7 +189,7 @@ def _reference_station_config():
 
 def _local_neighborhood_config():
     """Return a dynamic local-neighborhood comparison config."""
-    config = _rx_hardware_ab_config()
+    config = _rx_controlled_reference_config()
     config["settings"]["comparison_parameters"] = {
         "mode": "local_neighborhood",
         "local_benchmark": "local_median",
@@ -275,8 +274,8 @@ def test_formal_schema_rejects_legacy_result_branch_names(
     legacy_key,
     canonical_key,
 ):
-    """Keep legacy aliases reader-only and outside the formal write contract."""
-    config = _tx_hardware_ab_config()
+    """Reject obsolete aliases at both schema and reader boundaries."""
+    config = _tx_reference_config()
     results_view = config["settings"]["results_view"]
     results_view[legacy_key] = results_view.pop(canonical_key)
 
@@ -320,7 +319,7 @@ def test_outlier_reporting_schema_is_optional_and_compare_only(
     ]
     assert field_name not in performance_advanced["properties"]
 
-    old_compare_config = _tx_hardware_ab_config()
+    old_compare_config = _tx_reference_config()
     config_validator.validate(old_compare_config)
     old_compare_config["settings"]["advanced_parameters"][field_name] = True
     config_validator.validate(old_compare_config)
@@ -353,7 +352,7 @@ def test_outlier_detector_schema_is_enabled_only_and_bounded(
         )
         assert config_field not in compare_advanced["required"]
 
-    enabled_config = _tx_hardware_ab_config()
+    enabled_config = _tx_reference_config()
     enabled_advanced = enabled_config["settings"]["advanced_parameters"]
     enabled_advanced["report_delta_snr_outlier_candidates"] = True
     enabled_advanced.update(
@@ -424,9 +423,9 @@ def test_every_demo_is_an_ordinary_config_matching_the_formal_schema(
     "configuration_factory",
     [
         _no_comparison_config,
-        _tx_hardware_ab_config,
-        _tx_simultaneous_hardware_ab_config,
-        _rx_hardware_ab_config,
+        _tx_reference_config,
+        _tx_controlled_reference_config,
+        _rx_controlled_reference_config,
         _reference_station_config,
         _local_neighborhood_config,
     ],
@@ -558,7 +557,7 @@ def test_formal_schema_preserves_explicit_correction_meaning(
     snr_correction_db,
 ):
     """Accept every valid mode/value pairing without inferring from numeric zero."""
-    config = _rx_hardware_ab_config()
+    config = _rx_controlled_reference_config()
     comparison = config["settings"]["comparison_parameters"]
     comparison["snr_correction_mode"] = snr_correction_mode
     comparison["snr_correction_db"] = snr_correction_db
@@ -572,7 +571,7 @@ def test_formal_schema_rejects_nonzero_uncorrected_modes(
     snr_correction_mode,
 ):
     """Require no-offset and establishment runs to remain numerically uncorrected."""
-    config = _rx_hardware_ab_config()
+    config = _rx_controlled_reference_config()
     comparison = config["settings"]["comparison_parameters"]
     comparison["snr_correction_mode"] = snr_correction_mode
     comparison["snr_correction_db"] = 0.1
@@ -585,7 +584,7 @@ def test_formal_schema_rejects_missing_preproduction_correction_mode(
     config_validator,
 ):
     """Reject ambiguous unpublished v1 files instead of guessing from 0.0 dB."""
-    config = _rx_hardware_ab_config()
+    config = _rx_controlled_reference_config()
     del config["settings"]["comparison_parameters"]["snr_correction_mode"]
 
     with pytest.raises(ValidationError):
@@ -618,7 +617,7 @@ def test_formal_schema_rejects_local_offset_establishment(config_validator):
 
 def test_formal_schema_accepts_two_hour_station_evidence_bins(config_validator):
     """Keep the formal saved-config contract aligned with the multi-day UI."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     results_view = config["settings"]["results_view"]
     results_view["benchmark"]["station_evidence_time_bin"] = "2h"
     results_view["performance"]["station_evidence_time_bin"] = "2h"
@@ -630,7 +629,7 @@ def test_formal_schema_accepts_null_empty_and_single_station_selections(
     config_validator,
 ):
     """Distinguish automatic, deselected, and one explicit station identity."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     results_view = config["settings"]["results_view"]
     results_view["performance"]["selected_stations"] = None
     results_view["benchmark"]["selected_stations"] = []
@@ -647,7 +646,7 @@ def test_formal_schema_allows_benchmark_multi_selection_only_when_enabled(
     config_validator,
 ):
     """Keep the formal cross-field opt-in aligned with semantic validation."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     config["settings"]["results_view"]["benchmark"][
         "selected_stations"
     ] = [
@@ -697,7 +696,7 @@ def test_profile_description_accepts_newlines_links_and_no_german_translation(
 
 def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validator):
     """Accept durable Performance and Benchmark segment-bin choices."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     performance_view = config["settings"]["results_view"]["performance"]
     benchmark_view = config["settings"]["results_view"]["benchmark"]
     performance_view["segment_evidence_time_bin"] = "12h"
@@ -711,15 +710,15 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
     ("segment_evidence_time_bin", "station_evidence_time_bin"),
 )
 @pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
-@pytest.mark.parametrize("time_bin", ("2m", "5m", "10m", "15m", "30m"))
-def test_formal_schema_accepts_adaptive_and_legacy_minute_evidence_bins(
+@pytest.mark.parametrize("time_bin", ("2m", "10m", "30m"))
+def test_formal_schema_accepts_current_minute_evidence_bins(
     config_validator,
     evidence_field,
     result_mode,
     time_bin,
 ):
-    """Accept advertised minute bins and retained legacy saved choices."""
-    config = _tx_hardware_ab_config()
+    """Accept advertised current minute bins."""
+    config = _tx_reference_config()
     config["settings"]["results_view"][result_mode][evidence_field] = time_bin
 
     config_validator.validate(config)
@@ -736,7 +735,7 @@ def test_formal_schema_rejects_unsupported_minute_evidence_bin(
     result_mode,
 ):
     """Reject minute widths outside the canonical and compatibility sets."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     config["settings"]["results_view"][result_mode][evidence_field] = "4m"
 
     with pytest.raises(ValidationError):
@@ -747,7 +746,7 @@ def test_formal_schema_rejects_obsolete_selected_benchmark_temporal_view(
     config_validator,
 ):
     """Reject the retired view toggle as an unknown saved-config property."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     config["settings"]["results_view"]["benchmark"][
         "station_evidence_temporal_view"
     ] = "chronological"
@@ -829,7 +828,7 @@ def test_formal_schema_rejects_obsolete_selected_benchmark_temporal_view(
 )
 def test_v1_nested_results_view_rejects_invalid_state(config_validator, mutate):
     """Reject incomplete, malformed, duplicate, or obsolete result-view state."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     mutate(config)
 
     with pytest.raises(ValidationError):
@@ -902,10 +901,17 @@ def test_inactive_fields_are_rejected(config_validator, mutate):
         config_validator.validate(config)
 
 
-def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
-    """Reject TX schedule controls when the core direction is RX."""
-    config = deepcopy(_tx_hardware_ab_config())
-    config["settings"]["core_parameters"]["analysis_direction"] = "rx"
+def test_formal_schema_rejects_removed_hardware_mode(config_validator):
+    config = _tx_reference_config()
+    config["settings"]["comparison_parameters"]["mode"] = "hardware_ab"
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+
+def test_reference_station_schema_rejects_removed_context(config_validator):
+    config = _reference_station_config()
+    config["settings"]["comparison_parameters"]["reference_intent"] = "controlled_setup"
     with pytest.raises(ValidationError):
         config_validator.validate(config)
 
@@ -928,20 +934,13 @@ def test_reference_station_schema_rejects_grid6_reference_qth(config_validator):
         config_validator.validate(config)
 
 
-@pytest.mark.parametrize(
-    "config_factory",
-    [_rx_hardware_ab_config, _tx_simultaneous_hardware_ab_config],
-)
-def test_hardware_schema_rejects_redundant_reference_qth(
-    config_validator,
-    config_factory,
-):
-    """Keep Target QTH as the sole serialized Hardware location."""
+@pytest.mark.parametrize("reference_qth", ["", "JN37"])
+@pytest.mark.parametrize("config_factory", [_rx_controlled_reference_config, _tx_controlled_reference_config])
+def test_reference_schema_accepts_pending_and_resolved_locations(config_validator, config_factory, reference_qth):
     config = config_factory()
-    config["settings"]["comparison_parameters"]["reference_qth"] = "JN37"
+    config["settings"]["comparison_parameters"]["reference_qth"] = reference_qth
+    config_validator.validate(config)
 
-    with pytest.raises(ValidationError):
-        config_validator.validate(config)
 
 
 @pytest.mark.parametrize(
@@ -1027,7 +1026,7 @@ def test_selected_station_schema_uses_the_same_callsign_contract(
     callsign,
 ):
     """Do not weaken identity validation in persisted station selections."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     config["settings"]["results_view"]["performance"]["selected_stations"][0][
         "callsign"
     ] = callsign
@@ -1055,7 +1054,7 @@ def test_selected_station_schema_accepts_supported_archive_callsign_tokens(
     callsign,
 ):
     """Keep persisted peer identities aligned with the core callsign grammar."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     config["settings"]["results_view"]["performance"]["selected_stations"][0][
         "callsign"
     ] = callsign
@@ -1066,18 +1065,18 @@ def test_selected_station_schema_accepts_supported_archive_callsign_tokens(
 @pytest.mark.parametrize(
     ("config_factory", "inactive_field", "inactive_value"),
     [
-        (_tx_simultaneous_hardware_ab_config, "repeat_interval_minutes", 10),
-        (_tx_hardware_ab_config, "reference_callsign", "DL1MKS/P"),
-        (_rx_hardware_ab_config, "tx_ab_method", "simultaneous"),
+        (_tx_controlled_reference_config, "repeat_interval_minutes", 10),
+        (_tx_reference_config, "target_start_minute", 0),
+        (_rx_controlled_reference_config, "tx_ab_method", "simultaneous"),
     ],
 )
-def test_hardware_ab_method_branches_reject_inactive_fields(
+def test_fixed_reference_rejects_removed_schedule_fields(
     config_validator,
     config_factory,
     inactive_field,
     inactive_value,
 ):
-    """Keep simultaneous identities and sequential schedules mutually exclusive."""
+    """Reject obsolete schedule keys instead of changing their scientific meaning."""
     config = config_factory()
     config["settings"]["comparison_parameters"][inactive_field] = inactive_value
 
@@ -1160,7 +1159,7 @@ def test_tx_hardware_ab_schedule_contract_rejects_invalid_branches(
     comparison_parameters,
 ):
     """Reject unsupported, overlapping, out-of-range, or mixed schedule fields."""
-    config = _tx_hardware_ab_config()
+    config = _tx_reference_config()
     config["settings"]["comparison_parameters"] = comparison_parameters
 
     with pytest.raises(ValidationError):
@@ -1179,17 +1178,18 @@ def test_tx_hardware_ab_schedule_contract_rejects_invalid_branches(
         (60, 58, 0),
     ],
 )
-def test_periodic_tx_hardware_ab_accepts_every_supported_interval_and_phase_edge(
+def test_former_valid_periodic_schedules_are_rejected(
     config_validator,
     repeat_interval_minutes,
     target_start_minute,
     reference_start_minute,
 ):
-    """Accept each supported repeat interval through its greatest valid phase."""
-    config = _tx_hardware_ab_config()
+    """Even formerly valid phases must not be silently converted."""
+    config = _tx_reference_config()
     comparison = config["settings"]["comparison_parameters"]
     comparison["repeat_interval_minutes"] = repeat_interval_minutes
     comparison["target_start_minute"] = target_start_minute
     comparison["reference_start_minute"] = reference_start_minute
 
-    config_validator.validate(config)
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)

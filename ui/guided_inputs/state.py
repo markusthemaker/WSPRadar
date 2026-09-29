@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from numbers import Integral
 from typing import Any, Mapping, MutableMapping
 
 from config import (
@@ -11,7 +10,6 @@ from config import (
     MAP_SCOPE_OPTIONS,
     MAX_DYNAMIC_RADIUS_KM,
     SNR_CORRECTION_MODES,
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
@@ -48,7 +46,7 @@ COMPARISON_MODES = BENCHMARK_MODES
 
 
 def canonicalize_guided_use_case(guided_use_case: object) -> object:
-    """Normalize a bounded legacy Guided token without emitting it again."""
+    """Validate the current Guided question token."""
     return canonicalize_analysis_question(guided_use_case)
 
 
@@ -72,7 +70,6 @@ def guided_facts(state: Mapping[str, Any]) -> dict[str, Any]:
         "band": state.get("val_band"),
         "benchmark_mode": state.get("val_comp_mode"),
         "local_benchmark": state.get("val_local_benchmark"),
-        "tx_ab_method": state.get("val_tx_ab_method"),
         "snr_correction_mode": state.get("val_snr_correction_mode"),
     }
 
@@ -100,7 +97,7 @@ def _target_and_window_complete(state: Mapping[str, Any]) -> bool:
 
 
 def _reference_design_complete(state: Mapping[str, Any]) -> bool:
-    """Validate only the identity/neighborhood/schedule branch currently selected."""
+    """Validate only the identity or neighborhood branch currently selected."""
     benchmark_mode = state.get("val_comp_mode")
     if benchmark_mode == "local_neighborhood":
         radius_km = state.get("val_ref_radius_km")
@@ -111,44 +108,15 @@ def _reference_design_complete(state: Mapping[str, Any]) -> bool:
             and 10 <= radius_km <= MAX_DYNAMIC_RADIUS_KM
             and radius_km % 10 == 0
         )
-    if benchmark_mode not in {"hardware_ab", "reference_station"}:
+    if benchmark_mode != "reference_station":
         return False
-
     target_callsign = str(state.get("val_callsign", "")).strip().upper()
     reference_callsign = str(state.get("val_ref_callsign", "")).strip().upper()
-    if benchmark_mode == "reference_station":
-        return (
-            is_valid_callsign(reference_callsign)
-            and reference_callsign != target_callsign
-            and is_valid_grid4(state.get("val_ref_qth", ""))
-        )
-
-    analysis_direction = state.get("val_analysis_direction")
-    if analysis_direction == "rx" or state.get("val_tx_ab_method") == "simultaneous":
-        return (
-            is_valid_callsign(reference_callsign)
-            and reference_callsign != target_callsign
-        )
-    if analysis_direction != "tx" or state.get("val_tx_ab_method") != "sequential":
-        return False
-    repeat_interval = state.get("val_tx_ab_repeat_interval_minutes")
-    target_start = state.get("val_tx_ab_target_start_minute")
-    reference_start = state.get("val_tx_ab_reference_start_minute")
-    if (
-        isinstance(repeat_interval, bool)
-        or not isinstance(repeat_interval, Integral)
-        or repeat_interval not in TX_AB_REPEAT_INTERVAL_OPTIONS
-        or isinstance(target_start, bool)
-        or not isinstance(target_start, Integral)
-        or isinstance(reference_start, bool)
-        or not isinstance(reference_start, Integral)
-    ):
-        return False
-    permitted_starts = tuple(range(0, int(repeat_interval), 2))
+    reference_qth = str(state.get("val_ref_qth", "")).strip().upper()
     return (
-        int(target_start) in permitted_starts
-        and int(reference_start) in permitted_starts
-        and int(target_start) != int(reference_start)
+        is_valid_callsign(reference_callsign)
+        and reference_callsign != target_callsign
+        and (not reference_qth or is_valid_grid4(reference_qth))
     )
 
 
@@ -284,7 +252,7 @@ def apply_general_scope_defaults(state: MutableMapping[str, Any]) -> None:
 
 
 def _population_exclusion_result_type(state: Mapping[str, Any]) -> str:
-    """Resolve Performance or Benchmark intent before a Guided design exists."""
+    """Resolve the Guided result family from its question or canonical design."""
     guided_use_case = canonicalize_guided_use_case(
         state.get("guided_use_case")
     )

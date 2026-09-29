@@ -43,19 +43,16 @@ def validate_map_analysis_mode(*, analysis_kind: str, is_compare: bool) -> bool:
 
 
 def map_preparation_columns(
-    *, analysis_kind: str, is_compare: bool, is_sequential: bool
+    *, analysis_kind: str, is_compare: bool
 ) -> tuple[str, ...]:
     """Return the projection consumed from fully post-filtered evidence.
 
-    Scheduled evidence already carries its authoritative pair IDs. Reference
-    summary fields remain available to simultaneous map aggregation; detailed
+    Reference summary fields remain available to simultaneous map aggregation; detailed
     Reference rows and other inspection/export evidence stay in the artifact.
     """
     if validate_map_analysis_mode(analysis_kind=analysis_kind, is_compare=is_compare):
         return OPPORTUNITY_MAP_EXPORT_COLUMNS
     peer_columns = ("peer_sign", "peer_grid", "peer_lat", "peer_lon")
-    if is_sequential:
-        return (*peer_columns, "tx_ab_pair_id", "is_me", "stat_val")
     return (
         *peer_columns,
         "snr_u_norm",
@@ -117,16 +114,12 @@ def build_map_data_result(
     *,
     analysis_id: str,
     is_compare: bool,
-    is_sequential: bool,
     analysis_kind: str,
     center_latitude: float,
     center_longitude: float,
     min_spots: int,
     min_opportunities: int,
     base_min_stations: int,
-    tx_ab_repeat_interval_minutes: int,
-    tx_ab_target_start_minute: int,
-    tx_ab_reference_start_minute: int,
     owns_input: bool = False,
 ) -> MapDataBuildResult:
     """Return language-free map aggregates and any reproducible diagnostic."""
@@ -247,12 +240,8 @@ def build_map_data_result(
     else:
         station_rows, segment_rows = aggregate_compare_map_data(
             work,
-            is_sequential=is_sequential,
             min_spots=int(min_spots),
             base_min_stations=int(base_min_stations),
-            tx_ab_repeat_interval_minutes=int(tx_ab_repeat_interval_minutes),
-            tx_ab_target_start_minute=int(tx_ab_target_start_minute),
-            tx_ab_reference_start_minute=int(tx_ab_reference_start_minute),
             owns_input=True,
         )
 
@@ -279,7 +268,6 @@ def build_map_data_result(
         segment_rows=segment_rows,
         analysis_id=str(analysis_id),
         is_compare=bool(is_compare),
-        is_sequential=bool(is_sequential),
         analysis_kind=str(analysis_kind),
         diagnostic=diagnostic,
     )
@@ -291,16 +279,12 @@ def build_map_data(
     *,
     analysis_id: str,
     is_compare: bool,
-    is_sequential: bool,
     analysis_kind: str,
     center_latitude: float,
     center_longitude: float,
     min_spots: int,
     min_opportunities: int,
     base_min_stations: int,
-    tx_ab_repeat_interval_minutes: int,
-    tx_ab_target_start_minute: int,
-    tx_ab_reference_start_minute: int,
     owns_input: bool = False,
 ) -> MapData | None:
     """Return map aggregates while preserving the historical public contract."""
@@ -308,15 +292,11 @@ def build_map_data(
         frame,
         analysis_id=analysis_id,
         is_compare=is_compare,
-        is_sequential=is_sequential,
         analysis_kind=analysis_kind,
         center_latitude=center_latitude,
         center_longitude=center_longitude,
         min_spots=min_spots,
         min_opportunities=min_opportunities,
         base_min_stations=base_min_stations,
-        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
         owns_input=owns_input,
     ).map_data

@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from core.artifact_store import read_parquet_artifact
-from core.tx_ab_schedule import assign_tx_ab_pair_columns
 
 COMPARE_OUTCOME_TARGET_ONLY = "target_only"
 COMPARE_OUTCOME_JOINT = "joint"
@@ -55,20 +54,14 @@ def _prepare_identity_meta(identity_df):
 def _build_compare_unit_rows(
     station_df,
     identity_df,
-    is_sequential,
     *,
     paired_identity_df=None,
-    tx_ab_repeat_interval_minutes=10,
-    tx_ab_target_start_minute=0,
-    tx_ab_reference_start_minute=2,
 ):
-    """Build one canonical row per retained simultaneous cycle or scheduled pair.
+    """Build one canonical row per retained simultaneous cycle.
 
     ``identity_df`` defines the active callsign-plus-locator population.
     ``paired_identity_df`` identifies the subset admitted to segment-level
-    paired-Delta-SNR views; coverage retains all active identities. Sequential
-    rows are reduced to one planned pair per receiver after applying the
-    established per-side micro-median contract. Each retained unit also keeps
+    paired-Delta-SNR views; coverage retains all active identities. Each retained unit also keeps
     its nullable full-precision Target and correction-adjusted Reference SNR
     components without changing the established Delta-SNR projection.
     """
@@ -92,181 +85,64 @@ def _build_compare_unit_rows(
     if work.empty:
         return _empty_compare_unit_df()
 
-    if is_sequential:
-        if "tx_ab_pair_id" not in work.columns:
-            required_schedule_columns = {"time", "is_me"}
-            if not required_schedule_columns.issubset(work.columns):
-                return _empty_compare_unit_df()
-            work = assign_tx_ab_pair_columns(
-                work,
-                repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-                target_start_minute_utc=tx_ab_target_start_minute,
-                reference_start_minute_utc=tx_ab_reference_start_minute,
-            )
-        required_columns = {
-            "peer_sign",
-            "peer_grid",
-            "identity",
-            "identity_order",
-            "tx_ab_pair_id",
-            "is_me",
-            "stat_val",
-        }
-        if not required_columns.issubset(work.columns):
-            return _empty_compare_unit_df()
-
-        pair_rows = work[list(required_columns)].copy()
-        pair_rows["is_me"] = pd.to_numeric(
-            pair_rows["is_me"],
-            errors="coerce",
-        )
-        pair_rows["stat_val"] = pd.to_numeric(
-            pair_rows["stat_val"],
-            errors="coerce",
-        )
-        pair_rows["tx_ab_pair_id"] = pd.to_numeric(
-            pair_rows["tx_ab_pair_id"],
-            errors="coerce",
-        )
-        pair_rows = pair_rows[pair_rows["tx_ab_pair_id"].notna()].copy()
-        if pair_rows.empty:
-            return _empty_compare_unit_df()
-        pair_rows["tx_ab_pair_id"] = pair_rows["tx_ab_pair_id"].astype("int64")
-        pair_keys = [
-            "peer_sign",
-            "peer_grid",
-            "identity",
-            "identity_order",
-            "tx_ab_pair_id",
-        ]
-        target_pairs = (
-            pair_rows[pair_rows["is_me"] == 1]
-            .groupby(pair_keys, dropna=False, observed=True)
-            .agg(
-                target_decode_count=("stat_val", "count"),
-                target_snr=("stat_val", "median"),
-            )
-            .reset_index()
-        )
-        reference_pairs = (
-            pair_rows[pair_rows["is_me"] == 0]
-            .groupby(pair_keys, dropna=False, observed=True)
-            .agg(
-                reference_decode_count=("stat_val", "count"),
-                reference_snr=("stat_val", "median"),
-            )
-            .reset_index()
-        )
-        units = target_pairs.merge(
-            reference_pairs,
-            on=pair_keys,
-            how="outer",
-        )
-        units["target_decode_count"] = (
-            pd.to_numeric(units["target_decode_count"], errors="coerce")
-            .fillna(0)
-            .astype("int64")
-        )
-        units["reference_decode_count"] = (
-            pd.to_numeric(units["reference_decode_count"], errors="coerce")
-            .fillna(0)
-            .astype("int64")
-        )
-        has_target = units["target_decode_count"] > 0
-        has_reference = units["reference_decode_count"] > 0
-        units["outcome"] = np.select(
-            [
-                has_target & has_reference,
-                has_target & ~has_reference,
-                ~has_target & has_reference,
-            ],
-            [
-                COMPARE_OUTCOME_JOINT,
-                COMPARE_OUTCOME_TARGET_ONLY,
-                COMPARE_OUTCOME_REFERENCE_ONLY,
-            ],
-            default="",
-        )
-        units["target_snr_db"] = np.where(
-            has_target,
-            pd.to_numeric(units["target_snr"], errors="coerce"),
-            np.nan,
-        )
-        units["reference_snr_db"] = np.where(
-            has_reference,
-            pd.to_numeric(units["reference_snr"], errors="coerce"),
-            np.nan,
-        )
-        units["evidence_utc"] = pd.to_datetime(
-            units["tx_ab_pair_id"],
-            unit="m",
-            utc=True,
-            errors="coerce",
-        )
-        units["metric"] = np.where(
-            units["outcome"] == COMPARE_OUTCOME_JOINT,
-            units["target_snr_db"] - units["reference_snr_db"],
-            np.nan,
-        )
-    else:
-        required_columns = {
-            "peer_sign",
-            "peer_grid",
-            "identity",
-            "identity_order",
-            "time_slot",
-            "has_u",
-            "has_r",
-            "snr_u_norm",
-            "snr_r_norm",
-        }
-        if not required_columns.issubset(work.columns):
-            return _empty_compare_unit_df()
-        units = work[list(required_columns)].copy()
-        for column in [
-            "time_slot",
-            "has_u",
-            "has_r",
-            "snr_u_norm",
-            "snr_r_norm",
-        ]:
-            units[column] = pd.to_numeric(units[column], errors="coerce")
-        has_target = units["has_u"] > 0
-        has_reference = units["has_r"] > 0
-        units["outcome"] = np.select(
-            [
-                has_target & has_reference,
-                has_target & ~has_reference,
-                ~has_target & has_reference,
-            ],
-            [
-                COMPARE_OUTCOME_JOINT,
-                COMPARE_OUTCOME_TARGET_ONLY,
-                COMPARE_OUTCOME_REFERENCE_ONLY,
-            ],
-            default="",
-        )
-        units["target_snr_db"] = np.where(
-            has_target,
-            pd.to_numeric(units["snr_u_norm"], errors="coerce"),
-            np.nan,
-        )
-        units["reference_snr_db"] = np.where(
-            has_reference,
-            pd.to_numeric(units["snr_r_norm"], errors="coerce"),
-            np.nan,
-        )
-        units["evidence_utc"] = pd.to_datetime(
-            units["time_slot"] * 120,
-            unit="s",
-            utc=True,
-            errors="coerce",
-        )
-        units["metric"] = np.where(
-            units["outcome"] == COMPARE_OUTCOME_JOINT,
-            units["target_snr_db"] - units["reference_snr_db"],
-            np.nan,
-        )
+    required_columns = {
+        "peer_sign",
+        "peer_grid",
+        "identity",
+        "identity_order",
+        "time_slot",
+        "has_u",
+        "has_r",
+        "snr_u_norm",
+        "snr_r_norm",
+    }
+    if not required_columns.issubset(work.columns):
+        return _empty_compare_unit_df()
+    units = work[list(required_columns)].copy()
+    for column in [
+        "time_slot",
+        "has_u",
+        "has_r",
+        "snr_u_norm",
+        "snr_r_norm",
+    ]:
+        units[column] = pd.to_numeric(units[column], errors="coerce")
+    has_target = units["has_u"] > 0
+    has_reference = units["has_r"] > 0
+    units["outcome"] = np.select(
+        [
+            has_target & has_reference,
+            has_target & ~has_reference,
+            ~has_target & has_reference,
+        ],
+        [
+            COMPARE_OUTCOME_JOINT,
+            COMPARE_OUTCOME_TARGET_ONLY,
+            COMPARE_OUTCOME_REFERENCE_ONLY,
+        ],
+        default="",
+    )
+    units["target_snr_db"] = np.where(
+        has_target,
+        pd.to_numeric(units["snr_u_norm"], errors="coerce"),
+        np.nan,
+    )
+    units["reference_snr_db"] = np.where(
+        has_reference,
+        pd.to_numeric(units["snr_r_norm"], errors="coerce"),
+        np.nan,
+    )
+    units["evidence_utc"] = pd.to_datetime(
+        units["time_slot"] * 120,
+        unit="s",
+        utc=True,
+        errors="coerce",
+    )
+    units["metric"] = np.where(
+        units["outcome"] == COMPARE_OUTCOME_JOINT,
+        units["target_snr_db"] - units["reference_snr_db"],
+        np.nan,
+    )
 
     units = units[
         units["outcome"].isin(COMPARE_OUTCOMES)
@@ -452,21 +328,12 @@ def _retain_thresholded_compare_outcomes(
 def _build_evidence_points(
     station_df,
     identity_df,
-    is_sequential,
-    *,
-    tx_ab_repeat_interval_minutes=10,
-    tx_ab_target_start_minute=0,
-    tx_ab_reference_start_minute=2,
 ):
     """Build Benchmark Delta-SNR points for selected station identities."""
     comparison_units = _build_compare_unit_rows(
         station_df,
         identity_df,
-        is_sequential,
         paired_identity_df=identity_df,
-        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
     )
     return _compare_joint_evidence_points(comparison_units)
 
@@ -475,11 +342,6 @@ def _build_segment_compare_units(
     scope_identity_df,
     paired_identity_df,
     parquet_path,
-    is_sequential,
-    *,
-    tx_ab_repeat_interval_minutes=10,
-    tx_ab_target_start_minute=0,
-    tx_ab_reference_start_minute=2,
 ):
     """Load one projected active-scope frame and build all retained Benchmark units.
 
@@ -506,16 +368,13 @@ def _build_segment_compare_units(
         scope_meta = _prepare_identity_meta(ordered_scope_meta)
 
     read_columns = ["peer_sign", "peer_grid"]
-    if is_sequential:
-        read_columns += ["tx_ab_pair_id", "is_me", "stat_val"]
-    else:
-        read_columns += [
-            "time_slot",
-            "has_u",
-            "has_r",
-            "snr_u_norm",
-            "snr_r_norm",
-        ]
+    read_columns += [
+        "time_slot",
+        "has_u",
+        "has_r",
+        "snr_u_norm",
+        "snr_r_norm",
+    ]
 
     try:
         raw_df = read_parquet_artifact(
@@ -535,11 +394,7 @@ def _build_segment_compare_units(
     comparison_units = _build_compare_unit_rows(
         raw_df,
         scope_meta,
-        is_sequential,
         paired_identity_df=paired_identity_df,
-        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
     )
     return _retain_thresholded_compare_outcomes(
         comparison_units,
@@ -550,21 +405,12 @@ def _build_segment_compare_units(
 def _build_segment_evidence_points(
     df_seg,
     parquet_path,
-    is_sequential,
-    *,
-    tx_ab_repeat_interval_minutes=10,
-    tx_ab_target_start_minute=0,
-    tx_ab_reference_start_minute=2,
 ):
     """Build Benchmark segment evidence from projected station-identity rows."""
     comparison_units = _build_segment_compare_units(
         df_seg,
         df_seg,
         parquet_path,
-        is_sequential,
-        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
     )
     return _compare_joint_evidence_points(
         comparison_units,

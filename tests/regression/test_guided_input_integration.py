@@ -14,7 +14,7 @@ from unittest.mock import Mock
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from i18n import GUIDED_INPUTS, T
+from i18n import GUIDED_INPUTS, RESULT_GUIDANCE, T
 from ui import callbacks, classic_inputs, config_io, page_navigation
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.analysis_submission_state import (
@@ -45,6 +45,8 @@ from streamlit.testing.v1 import AppTest
 
 project_root = Path(sys.argv[1]).resolve()
 initial_state = json.loads(sys.argv[2])
+click_run = initial_state.pop("_probe_click_run", False)
+time_edits = initial_state.pop("_probe_time_edits", [])
 application = AppTest.from_file(
     str(project_root / "app.py"),
     default_timeout=60,
@@ -57,7 +59,20 @@ for key, value in initial_state.items():
         value = time.fromisoformat(value)
     application.session_state[key] = value
 application.run()
+for key, value in time_edits:
+    application.time_input(key).set_value(time.fromisoformat(value)).run()
+if time_edits:
+    application.run()
+if click_run:
+    application.button(key="run_analysis_button").click().run()
 result = {
+    "field_errors": dict(application.session_state["_input_field_errors"]) if "_input_field_errors" in application.session_state else {},
+    "field_error_styles": [item.value for item in application.markdown if item.value.startswith("<style>.st-key-")],
+    "run_mode": application.session_state["run_mode"],
+    "time_values": {
+        key: application.session_state[key].isoformat()
+        for key in ("val_start_t", "val_end_t")
+    },
     "exceptions": [str(exception.value) for exception in application.exception],
     "run_actions": [
         {
@@ -136,10 +151,6 @@ def _canonical_state(**overrides):
             "val_ref_qth": "",
             "val_ref_radius_km": 100,
             "val_benchmark_offset_db": 0.0,
-            "val_tx_ab_method": "simultaneous",
-            "val_tx_ab_repeat_interval_minutes": 10,
-            "val_tx_ab_target_start_minute": 0,
-            "val_tx_ab_reference_start_minute": 2,
             "val_solar": "all",
             "val_max_peer_distance_km": 22000,
             "val_exclude_special_callsigns": False,
@@ -338,8 +349,8 @@ def test_classic_review_does_not_claim_readiness_for_invalid_configuration(
 def test_guided_definitions_reuse_documentation_defined_term_markup():
     """Highlight introduced domain terms without recoloring ordinary emphasis."""
     expected_terms = {
-        "en": ("Target", "Performance", "Benchmark", "SNR", "ΔSNR"),
-        "de": ("Target", "Performance", "Benchmark", "Referenz", "ΔSNR"),
+        "en": ("Target", "Performance", "Benchmark"),
+        "de": ("Target", "Performance", "Benchmark"),
     }
 
     for language, terms in expected_terms.items():
@@ -361,14 +372,9 @@ def test_guided_definitions_reuse_documentation_defined_term_markup():
     )
 
 
-def test_reference_design_options_use_localized_captioned_radio_rows(monkeypatch):
-    """Separate Reference designs and make each explanation selectable."""
-    expected_titles = {
-        "en": "Reference designs",
-        "de": "Referenzdesigns",
-    }
-
-    for language, expected_title in expected_titles.items():
+def test_reference_design_options_route_localized_descriptions_into_radio_captions(monkeypatch):
+    """Place each complete explanation directly under its Reference choice."""
+    for language in ("en", "de"):
         markdown = Mock()
         radio = Mock()
         monkeypatch.setattr(
@@ -378,6 +384,7 @@ def test_reference_design_options_use_localized_captioned_radio_rows(monkeypatch
                 session_state=_canonical_state(lang=language),
                 markdown=markdown,
                 radio=radio,
+                columns=Mock(return_value=(_NullContext(), _NullContext())),
             ),
         )
 
@@ -386,7 +393,7 @@ def test_reference_design_options_use_localized_captioned_radio_rows(monkeypatch
             GUIDED_INPUTS[language],
         )
 
-        markdown.assert_called_once_with(f"**{expected_title}**")
+        markdown.assert_not_called()
         options = GUIDED_INPUTS[language]["options"]["reference_design"]
         positional_args, keyword_args = radio.call_args
         assert positional_args == (
@@ -396,6 +403,7 @@ def test_reference_design_options_use_localized_captioned_radio_rows(monkeypatch
         assert keyword_args["captions"] == tuple(
             option["description"] for option in options.values()
         )
+        assert all(set(option) == {"label", "description"} for option in options.values())
         assert keyword_args["width"] == "stretch"
         assert keyword_args["on_change"] is renderer._handle_reference_design_change
         assert [
@@ -404,12 +412,12 @@ def test_reference_design_options_use_localized_captioned_radio_rows(monkeypatch
         ] == [option["label"] for option in options.values()]
 
 
-def test_guided_reference_subchoices_move_into_shared_caption_controls(
+def test_guided_reference_uses_shared_fields_without_duplicate_explanations(
     monkeypatch,
 ):
-    """Remove duplicated guides while retaining the complete localized choices."""
+    """Use the shared field tooltips instead of repeating the Reference intro."""
     cases = (
-        ("hardware_ab", "tx"),
+        ("reference_station", "tx"),
         ("local_neighborhood", "rx"),
     )
 
@@ -417,6 +425,7 @@ def test_guided_reference_subchoices_move_into_shared_caption_controls(
         markdown = Mock()
         caption = Mock()
         shared_reference_fields = Mock()
+        correction_field = Mock()
         monkeypatch.setattr(
             renderer,
             "st",
@@ -431,6 +440,7 @@ def test_guided_reference_subchoices_move_into_shared_caption_controls(
                 radio=Mock(),
                 info=Mock(),
                 warning=Mock(),
+                columns=Mock(return_value=(_NullContext(), _NullContext())),
             ),
         )
         monkeypatch.setattr(
@@ -438,28 +448,126 @@ def test_guided_reference_subchoices_move_into_shared_caption_controls(
             "render_reference_design_fields",
             shared_reference_fields,
         )
+        monkeypatch.setattr(renderer, "render_reference_correction_field", correction_field)
 
         renderer._render_reference_design_fields(T["en"], GUIDED_INPUTS["en"])
 
-        markdown.assert_called_once_with("**Reference designs**")
+        markdown.assert_not_called()
         caption.assert_not_called()
+        correction_field.assert_not_called()
         keyword_args = shared_reference_fields.call_args.kwargs
         assert "local_benchmark_content" not in keyword_args
-        assert keyword_args["should_show_local_benchmark_explanation"] is True
-        assert keyword_args["tx_ab_method_content"] is (
-            GUIDED_INPUTS["en"]["options"]["tx_ab_method"]
-        )
-        assert keyword_args["help_overrides"]["tx_ab_method"] == (
-            GUIDED_INPUTS["en"]["messages"]["tx_ab_method_help"]
-        )
+        assert "should_show_local_benchmark_explanation" not in keyword_args
+        assert "tx_ab_method_content" not in keyword_args
+        assert "reference_callsign" in keyword_args["help_overrides"]
 
 
-def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_reference_layout_keeps_correction_in_its_editor_specific_section(input_view, language):
+    """Keep one correction input in Guided offset or Classic Reference fields."""
+    script = '''
+import streamlit as st
+from i18n import GUIDED_INPUTS, T
+from ui.components.config_panel import render_benchmark_expander
+from ui.guided_inputs import renderer
+
+language = st.session_state.lang
+if st.session_state.input_view == "classic":
+    render_benchmark_expander(T[language])
+else:
+    renderer._render_reference_design_fields(T[language], GUIDED_INPUTS[language])
+    renderer._render_offset_calibration_fields(T[language], GUIDED_INPUTS[language])
+    st.button("Continue to calibration", key="layout_continue_calibration",
+              on_click=renderer._continue_to, args=("offset_calibration",))
+'''
+    application = AppTest.from_string(script, default_timeout=10)
+    initial_state = _canonical_state(
+        input_view=input_view,
+        lang=language,
+        guided_use_case="rx_benchmark",
+        classic_question="rx_benchmark",
+        guided_reference_design="reference_station",
+        val_comp_mode="reference_station",
+        val_ref_callsign="CALL/P",
+        val_ref_qth="JO63",
+    )
+    for key, value in initial_state.items():
+        application.session_state[key] = value
+    application.run()
+    assert application.exception.values == []
+    columns = application.get("column")
+    assert len(columns) == 2
+    selector_key = "guided_reference_design" if input_view == "guided" else CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY
+    assert [widget.key for widget in columns[0].radio] == [selector_key]
+    expected_captions = (
+        tuple(
+            option["description"]
+            for option in GUIDED_INPUTS[language]["options"]["reference_design"].values()
+        )
+        if input_view == "guided"
+        else ()
+    )
+    assert tuple(columns[0].radio[0].proto.captions) == expected_captions
+    assert len(columns[0].text_input) == 0
+    reference_field_keys = ["val_ref_callsign"]
+    if input_view == "classic":
+        reference_field_keys.append("_val_benchmark_offset_db_text")
+    assert [widget.key for widget in columns[1].text_input] == reference_field_keys
+    assert len(application.text_input) == len(reference_field_keys)
+    assert len(application.caption) == 0
+    assert len(application.info) == 0
+    assert application.session_state["val_ref_qth"] == "JO63"
+    if input_view == "guided":
+        application.radio("val_snr_correction_mode").set_value("established_offset").run()
+        assert application.exception.values == []
+        assert [widget.key for widget in application.get("column")[1].text_input] == [
+            "val_ref_callsign",
+        ]
+        assert [widget.key for widget in application.text_input] == [
+            "val_ref_callsign", "_val_benchmark_offset_db_text",
+        ]
+        assert application.session_state["val_snr_correction_mode"] == "established_offset"
+    assert application.text_input("_val_benchmark_offset_db_text").value == ""
+
+    if input_view == "guided":
+        application.text_input("_val_benchmark_offset_db_text").set_value("0.0").run()
+        assert application.exception.values == []
+        assert application.session_state["val_benchmark_offset_db"] == 0.0
+        assert application.session_state["val_snr_correction_mode"] == "established_offset"
+
+    application.text_input("_val_benchmark_offset_db_text").set_value("-1.7").run()
+    assert application.exception.values == []
+    assert application.session_state["val_benchmark_offset_db"] == -1.7
+    assert application.session_state["val_snr_correction_mode"] == "established_offset"
+    assert application.session_state["val_ref_qth"] == "JO63"
+    if input_view == "guided":
+        assert application.session_state["guided_active_node"] == "offset_calibration"
+        application.button("layout_continue_calibration").click().run()
+        assert application.session_state["guided_active_node"] == "offset_calibration"
+        assert application.session_state["val_benchmark_offset_db"] == -1.7
+        assert len(application.text_input) == 2
+        assert application.radio("val_snr_correction_mode").value == "established_offset"
+        application.radio("val_snr_correction_mode").set_value("no_offset").run()
+        assert application.exception.values == []
+        assert application.session_state["val_benchmark_offset_db"] == 0.0
+        assert [widget.key for widget in application.text_input] == ["val_ref_callsign"]
+        application.radio("val_snr_correction_mode").set_value("establish_offset").run()
+        assert application.exception.values == []
+        assert application.session_state["val_benchmark_offset_db"] == 0.0
+        assert [widget.key for widget in application.text_input] == ["val_ref_callsign"]
+
+
+@pytest.mark.parametrize("intent", ["no_offset", "established_offset", "establish_offset"])
+def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch, intent):
     """Make each complete offset explanation part of its selection."""
     for language in ("en", "de"):
         markdown = Mock()
         radio = Mock()
         info = Mock()
+        warning = Mock()
+        correction_field = Mock()
+        monkeypatch.setattr(renderer, "render_reference_correction_field", correction_field)
         monkeypatch.setattr(
             renderer,
             "st",
@@ -469,10 +577,12 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
                     guided_use_case="rx_benchmark",
                     guided_reference_design="reference_station",
                     val_comp_mode="reference_station",
+                    val_snr_correction_mode=intent,
                 ),
                 markdown=markdown,
                 radio=radio,
                 info=info,
+                warning=warning,
             ),
         )
 
@@ -483,8 +593,22 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
 
         options = GUIDED_INPUTS[language]["options"]["offset_intent"]
         messages = GUIDED_INPUTS[language]["messages"]
-        markdown.assert_called_once_with(messages["correction_formula"])
-        info.assert_called_once_with(messages["reference_calibration"])
+        if intent == "established_offset":
+            correction_field.assert_called_once_with(
+                T[language],
+                on_change=renderer._guided_experiment_definition_change,
+                on_change_args=("offset_calibration",),
+            )
+        else:
+            correction_field.assert_not_called()
+        expected_markdown = [messages["correction_formula"]]
+        if intent == "establish_offset":
+            warning.assert_called_once_with(messages["calibration_run_notice"])
+            expected_markdown.append(messages["establish_reference_guidance"])
+        else:
+            warning.assert_not_called()
+        assert [call.args[0] for call in markdown.call_args_list] == expected_markdown
+        info.assert_not_called()
         positional_args, keyword_args = radio.call_args
         assert positional_args == (
             GUIDED_INPUTS[language]["steps"]["offset_calibration"]["title"],
@@ -502,37 +626,20 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
         ] == [option["label"] for option in options.values()]
 
 
-def test_benchmark_terminology_uses_three_bulleted_definitions():
-    """Indent each Benchmark term as a distinct bilingual list item."""
-    expected_term_labels = {
-        "en": ("SNR", "ΔSNR", "Joint evidence"),
-        "de": ("SNR", "ΔSNR", "Joint-Evidenz"),
-    }
-
-    for language, term_labels in expected_term_labels.items():
-        reference_body = GUIDED_INPUTS[language]["steps"][
-            "reference_design"
-        ]["body_md"]
-        bullet_lines = [
-            line
-            for line in reference_body.splitlines()
-            if line.startswith("- ")
-        ]
-
-        assert len(bullet_lines) == 3
-        assert bullet_lines[0].startswith(
-            f'- <strong class="defined-term">{term_labels[0]}</strong>'
-        )
-        assert bullet_lines[1].startswith(
-            f'- <strong class="defined-term">{term_labels[1]}</strong>'
-        )
-        assert bullet_lines[2].startswith(
-            f"- **{term_labels[2]}**"
-        )
-        assert not any(
-            line.startswith(">")
-            for line in reference_body.splitlines()
-        )
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_reference_intro_avoids_repeated_metric_definitions_preserved_in_results(language):
+    """Keep Reference selection concise and define metrics beside the results."""
+    reference_body = GUIDED_INPUTS[language]["steps"]["reference_design"]["body_md"]
+    options = GUIDED_INPUTS[language]["options"]["reference_design"]
+    assert all(option["label"] not in reference_body for option in options.values())
+    assert all(option["description"] not in reference_body for option in options.values())
+    assert not any(line.startswith("- ") for line in reference_body.splitlines())
+    assert '<strong class="defined-term">SNR</strong>' not in reference_body
+    assert '<strong class="defined-term">ΔSNR</strong>' not in reference_body
+    for section in ("context_rx_compare", "context_tx_compare"):
+        guidance = RESULT_GUIDANCE[language]["sections"][section]["read"]
+        assert '<strong class="defined-term">SNR</strong>' in guidance
+        assert '<strong class="defined-term">Delta SNR (ΔSNR)</strong>' in guidance
 
 
 @pytest.mark.parametrize("is_ready,is_busy", [(True, False), (False, False), (True, True)])
@@ -615,11 +722,14 @@ def test_guided_demo_metadata_is_localized_and_initially_expanded(
     }
 
 
-def test_known_reference_guidance_uses_informational_callout(monkeypatch):
-    """Reserve warning styling for actionable or invalid Guided Input states."""
+@pytest.mark.parametrize("benchmark_mode", ["reference_station", "local_neighborhood"])
+@pytest.mark.parametrize("correction", [0.0, 1.2])
+def test_reference_panel_keeps_only_actionable_correction_warning(monkeypatch, benchmark_mode, correction):
+    """The intro owns explanation; only a retained local correction needs a warning."""
     session_state = _canonical_state(
-        guided_reference_design="reference_station",
-        val_comp_mode="reference_station",
+        guided_reference_design=benchmark_mode,
+        val_comp_mode=benchmark_mode,
+        val_benchmark_offset_db=correction,
     )
     info = Mock()
     warning = Mock()
@@ -632,16 +742,21 @@ def test_known_reference_guidance_uses_informational_callout(monkeypatch):
             radio=Mock(),
             info=info,
             warning=warning,
+            columns=Mock(return_value=(_NullContext(), _NullContext())),
         ),
     )
     monkeypatch.setattr(renderer, "render_reference_design_fields", Mock())
+    monkeypatch.setattr(renderer, "render_reference_correction_field", Mock())
 
     renderer._render_reference_design_fields(T["en"], GUIDED_INPUTS["en"])
 
-    info.assert_called_once_with(
-        GUIDED_INPUTS["en"]["messages"]["known_reference_note"]
-    )
-    warning.assert_not_called()
+    info.assert_not_called()
+    if benchmark_mode == "local_neighborhood" and correction != 0.0:
+        warning.assert_called_once_with(
+            GUIDED_INPUTS["en"]["messages"]["local_existing_correction_warning"].format(offset=correction)
+        )
+    else:
+        warning.assert_not_called()
 
 
 def test_guided_demo_walkthrough_only_opens_the_requested_flow_node(monkeypatch):
@@ -745,8 +860,9 @@ def test_guided_demo_shortcut_rechecks_readiness_before_submission(
     assert claim_analysis_submission_request(session_state) is None
 
 
-def test_guided_continue_advances_without_requesting_a_browser_scroll(monkeypatch):
-    """Open the next panel while replacing only the stale coarse URL fragment."""
+@pytest.mark.parametrize("next_node", ["target_and_window", "reference_design", "offset_calibration", "scope_and_evidence", "review_and_run"])
+def test_guided_continue_requests_the_next_panel_heading(monkeypatch, next_node):
+    """Every Continue opens and targets the next panel, preserving science values."""
     session_state = _canonical_state(
         guided_active_node="use_case",
         guided_collapse_all=True,
@@ -757,18 +873,19 @@ def test_guided_continue_advances_without_requesting_a_browser_scroll(monkeypatc
         SimpleNamespace(session_state=session_state),
     )
 
-    renderer._continue_to("target_and_window")
+    renderer._continue_to(next_node)
     navigation_request = page_navigation.consume_page_navigation_request(
         session_state
     )
 
-    assert session_state.guided_active_node == "target_and_window"
+    assert session_state.guided_active_node == next_node
     assert session_state.guided_collapse_all is False
     assert navigation_request is not None
     assert navigation_request["anchor_id"] == (
         page_navigation.PARAMETER_SETTINGS_ANCHOR_ID
     )
-    assert navigation_request["should_scroll"] is False
+    assert navigation_request["should_scroll"] is True
+    assert navigation_request["panel_key"] == f"guided_step_{next_node}"
 
 
 def test_demo_metadata_precedes_steps_but_ready_review_remains_open(monkeypatch):
@@ -1025,9 +1142,12 @@ def test_editing_a_demo_step_closes_metadata_and_keeps_that_step_active(
 def test_localized_use_case_descriptions_are_part_of_the_radio_choices(
     monkeypatch,
 ):
-    """Attach every localized implication to its selector without duplication."""
+    """Render localized choice descriptions followed by their shared limits."""
     radio = Mock()
     markdown = Mock()
+    rendered = Mock()
+    rendered.attach_mock(radio, "radio")
+    rendered.attach_mock(markdown, "markdown")
     monkeypatch.setattr(
         renderer,
         "st",
@@ -1039,6 +1159,7 @@ def test_localized_use_case_descriptions_are_part_of_the_radio_choices(
     )
 
     for language in ("en", "de"):
+        rendered.reset_mock()
         options = GUIDED_INPUTS[language]["options"]["use_cases"]
         renderer._render_use_case_selector(
             T[language],
@@ -1057,8 +1178,10 @@ def test_localized_use_case_descriptions_are_part_of_the_radio_choices(
             renderer._handle_use_case_change
         )
         assert radio.call_args.kwargs["width"] == "stretch"
-
-    markdown.assert_not_called()
+        markdown.assert_called_once_with(
+            GUIDED_INPUTS[language]["messages"]["use_case_limits"]
+        )
+        assert [call[0] for call in rendered.mock_calls] == ["radio", "markdown"]
 
 
 def test_scope_panel_always_shows_active_controls_without_preset_choice(monkeypatch):
@@ -1111,7 +1234,7 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(
             "performance",
         ),
         (
-            "hardware_ab",
+            "reference_station",
             "compare_evidence_requirements_body",
             "success_evidence_requirements_body",
             "benchmark",
@@ -1180,7 +1303,7 @@ def test_guided_outlier_setting_invalidates_results_and_requires_manual_run(
     """Retire stale evidence while keeping the edited Guided node open."""
     session_state = _canonical_state(
         guided_use_case="rx_benchmark",
-        val_comp_mode="hardware_ab",
+        val_comp_mode="reference_station",
         guided_scope_mode="custom",
         run_mode="RX",
         active_demo_profile="hardware-demo",
@@ -1301,6 +1424,64 @@ def test_guided_demo_launcher_is_load_only_while_classic_keeps_direct_run():
         }
 
 
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+def test_empty_benchmark_selection_defaults_to_fixed_reference(monkeypatch, input_view, direction):
+    """A first Benchmark question selects the fixed Reference in both editors."""
+    session_state = _canonical_state(
+        input_view=input_view,
+        guided_use_case=None,
+        classic_question=None,
+        val_analysis_direction=None,
+        val_callsign="",
+        val_qth="",
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    question = f"{direction}_benchmark"
+    if input_view == "guided":
+        session_state.guided_use_case = question
+        renderer._handle_use_case_change()
+    else:
+        session_state[CLASSIC_QUESTION_KEY] = question
+        callbacks.handle_classic_question_change()
+    assert session_state.val_analysis_direction == direction
+    assert session_state.val_comp_mode == "reference_station"
+    assert session_state.guided_reference_design == "reference_station"
+    assert session_state.guided_last_benchmark_mode == "reference_station"
+    assert session_state.val_ref_callsign == ""
+    assert session_state.val_ref_qth == ""
+
+
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("current_mode", ["none", "local_neighborhood"])
+def test_benchmark_selection_preserves_existing_neighborhood(monkeypatch, input_view, direction, current_mode):
+    """The fixed Reference default cannot replace a current or retained neighborhood."""
+    session_state = _canonical_state(
+        input_view=input_view,
+        val_comp_mode=current_mode,
+        guided_reference_design="local_neighborhood" if current_mode != "none" else None,
+        guided_last_benchmark_mode="local_neighborhood",
+        val_ref_radius_km=150,
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    question = f"{direction}_benchmark"
+    if input_view == "guided":
+        session_state.guided_use_case = question
+        renderer._handle_use_case_change()
+    else:
+        session_state[CLASSIC_QUESTION_KEY] = question
+        callbacks.handle_classic_question_change()
+    assert session_state.val_comp_mode == "local_neighborhood"
+    assert session_state.guided_reference_design == "local_neighborhood"
+    assert session_state.guided_last_benchmark_mode == "local_neighborhood"
+    assert session_state.val_ref_radius_km == 150
+    session_state.input_view = "classic" if input_view == "guided" else "guided"
+    callbacks.handle_input_view_change()
+    assert session_state.val_comp_mode == "local_neighborhood"
+    assert session_state.guided_reference_design == "local_neighborhood"
+
+
 def test_guided_use_case_maps_to_canonical_state_and_invalidates_active_results(
     monkeypatch,
 ):
@@ -1334,7 +1515,7 @@ def test_guided_use_case_maps_to_canonical_state_and_invalidates_active_results(
     assert session_state.guided_reference_design is None
     assert session_state.guided_last_benchmark_mode == "reference_station"
     assert session_state.val_ref_callsign == "DL2XYZ"
-    assert session_state.val_ref_qth == "JO63"
+    assert session_state.val_ref_qth == ""
 
 
 def test_guided_result_family_defaults_preserve_only_explicit_filter_edits(
@@ -1398,14 +1579,10 @@ def test_classic_question_applies_defaults_and_preserves_manual_filter_edits(
     session_state[CLASSIC_QUESTION_KEY] = "rx_benchmark"
     callbacks.handle_classic_question_change()
 
-    assert session_state.val_comp_mode == "none"
+    assert session_state.val_comp_mode == "reference_station"
+    assert session_state.guided_reference_design == "reference_station"
     assert session_state.val_exclude_special_callsigns is False
     assert session_state.val_filter_moving is False
-    assert is_classic_input_ready(session_state) is False
-
-    session_state[CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY] = "hardware_ab"
-    callbacks.handle_classic_benchmark_design_change()
-    assert session_state.val_comp_mode == "hardware_ab"
     assert is_classic_input_ready(session_state) is True
 
     session_state._val_exclude_special_callsigns = True
@@ -1490,10 +1667,10 @@ if show_filters:
     assert application.toggle("_val_filter_moving").value is True
 
 
-def test_incomplete_guided_benchmark_intent_survives_opening_classic(
+def test_default_guided_reference_design_survives_opening_classic(
     monkeypatch,
 ):
-    """Keep a design-pending Benchmark and its defaults across editor views."""
+    """Keep the default fixed Reference and its defaults across editor views."""
     for switch_path in ("selector", "guided_action"):
         session_state = _canonical_state(
             input_view="guided",
@@ -1509,7 +1686,7 @@ def test_incomplete_guided_benchmark_intent_survives_opening_classic(
 
         session_state.guided_use_case = "rx_benchmark"
         renderer._handle_use_case_change()
-        assert session_state.val_comp_mode == "none"
+        assert session_state.val_comp_mode == "reference_station"
         assert session_state.val_exclude_special_callsigns is False
         assert session_state.val_filter_moving is False
 
@@ -1521,70 +1698,26 @@ def test_incomplete_guided_benchmark_intent_survives_opening_classic(
 
         assert session_state.input_view == "classic"
         assert session_state[CLASSIC_QUESTION_KEY] == "rx_benchmark"
-        assert session_state.val_comp_mode == "none"
+        assert session_state.val_comp_mode == "reference_station"
         assert session_state.val_exclude_special_callsigns is False
         assert session_state.val_filter_moving is False
-        assert is_classic_input_ready(session_state) is False
+        assert is_classic_input_ready(session_state) is True
 
 
-def test_guided_direction_change_requires_hardware_design_confirmation(
-    monkeypatch,
-):
-    """Do not reinterpret RX Hardware identity as a TX Hardware schedule."""
-    session_state = _canonical_state(
-        run_mode="RX",
-        guided_use_case="tx_benchmark",
-        guided_reference_design="hardware_ab",
-        guided_last_benchmark_mode="hardware_ab",
-        val_snr_correction_mode="established_offset",
-        val_analysis_direction="rx",
-        val_comp_mode="hardware_ab",
-        val_ref_callsign="DL1ABC-1",
-        val_benchmark_offset_db=1.4,
-        val_tx_ab_method="sequential",
-        val_tx_ab_repeat_interval_minutes=20,
-        val_tx_ab_target_start_minute=4,
-        val_tx_ab_reference_start_minute=6,
-    )
+def test_guided_direction_change_retains_design_but_clears_resolved_location(monkeypatch):
+    session_state = _canonical_state(guided_use_case="tx_benchmark", guided_reference_design="reference_station", guided_last_benchmark_mode="reference_station", val_analysis_direction="rx", val_comp_mode="reference_station", val_ref_callsign="CALL/P", val_ref_qth="JO62", val_benchmark_offset_db=1.4, val_snr_correction_mode="established_offset", _reference_location_resolution={"status":"resolved"})
     _install_shared_streamlit_state(monkeypatch, session_state)
-
     renderer._handle_use_case_change()
-
     assert session_state.val_analysis_direction == "tx"
-    assert session_state.val_comp_mode == "none"
-    assert session_state.guided_reference_design is None
-    assert session_state.guided_last_benchmark_mode is None
+    assert session_state.val_comp_mode == "reference_station"
+    assert session_state.val_ref_callsign == "CALL/P"
+    assert session_state.val_ref_qth == ""
+    assert "_reference_location_resolution" not in session_state
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
-    assert session_state.val_tx_ab_method == "simultaneous"
-    assert session_state.val_tx_ab_repeat_interval_minutes == 10
-    assert session_state.val_tx_ab_target_start_minute == 0
-    assert session_state.val_tx_ab_reference_start_minute == 2
-    assert session_state.val_ref_callsign == "DL1ABC-1"
-    assert session_state.run_mode is None
-    assert session_state.configuration_changed_since_run is True
 
 
-def test_direction_change_clears_hardware_retained_behind_performance(monkeypatch):
-    """Do not reactivate RX Hardware semantics after crossing TX Performance."""
-    session_state = _canonical_state(
-        guided_use_case="rx_performance",
-        guided_last_benchmark_mode="hardware_ab",
-        val_analysis_direction="rx",
-        val_comp_mode="none",
-        val_ref_callsign="DL1ABC-1",
-    )
-    _install_shared_streamlit_state(monkeypatch, session_state)
 
-    session_state.guided_use_case = "tx_performance"
-    renderer._handle_use_case_change()
-    session_state.guided_use_case = "tx_benchmark"
-    renderer._handle_use_case_change()
-
-    assert session_state.val_analysis_direction == "tx"
-    assert session_state.val_comp_mode == "none"
-    assert session_state.guided_reference_design is None
-    assert session_state.guided_last_benchmark_mode is None
 
 
 def test_direction_change_resets_reference_station_pair_correction(monkeypatch):
@@ -1607,7 +1740,7 @@ def test_direction_change_resets_reference_station_pair_correction(monkeypatch):
     assert session_state.val_analysis_direction == "tx"
     assert session_state.val_comp_mode == "reference_station"
     assert session_state.val_ref_callsign == "DL2XYZ"
-    assert session_state.val_ref_qth == "JO63"
+    assert session_state.val_ref_qth == ""
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
 
@@ -1615,7 +1748,7 @@ def test_direction_change_resets_reference_station_pair_correction(monkeypatch):
 def test_reference_branch_change_clears_only_pair_specific_canonical_values(
     monkeypatch,
 ):
-    """Deactivate fixed-Reference identity/correction while retaining scope."""
+    """Retain the Reference callsign but invalidate location and correction."""
     session_state = _canonical_state(
         guided_use_case="rx_benchmark",
         guided_reference_design="local_neighborhood",
@@ -1634,7 +1767,7 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
 
     assert session_state.val_comp_mode == "local_neighborhood"
     assert session_state.guided_last_benchmark_mode == "local_neighborhood"
-    assert session_state.val_ref_callsign == ""
+    assert session_state.val_ref_callsign == "DL2XYZ"
     assert session_state.val_ref_qth == ""
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
@@ -1645,61 +1778,70 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
     assert session_state.val_min_stations == 2
 
 
-def test_known_station_to_hardware_requires_reference_identity_confirmation(
-    monkeypatch,
-):
-    """Do not reinterpret a remote station identity as a co-located path."""
-    session_state = _canonical_state(
-        guided_use_case="rx_benchmark",
-        guided_reference_design="hardware_ab",
-        val_snr_correction_mode="established_offset",
-        val_comp_mode="reference_station",
-        val_ref_callsign="DL2XYZ",
-        val_ref_qth="JO63",
-        val_benchmark_offset_db=1.2,
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_loaded_demo_reference_design_round_trip_retains_station_and_later_steps(language):
+    """A temporary neighbourhood choice must not erase the demo's station input."""
+    script = '''
+import streamlit as st
+from config import DEMO_PROFILES
+from i18n import T
+from ui.callbacks import load_demo_profile_config, set_reset_config
+from ui.guided_inputs.renderer import render_guided_inputs
+from ui.state_manager import init_session_state
+
+init_session_state()
+st.button("Load first demo", key="test_load_demo", on_click=load_demo_profile_config,
+          args=(next(iter(DEMO_PROFILES)),))
+st.button("Reset test settings", key="test_reset", on_click=set_reset_config)
+result = render_guided_inputs(T[st.session_state.lang])
+st.session_state["test_available_nodes"] = result.available_nodes
+'''
+    application = AppTest.from_string(script, default_timeout=20)
+    application.session_state["lang"] = language
+    application.run()
+    application.button("test_load_demo").click().run()
+    assert not application.exception
+    reference = application.session_state["val_ref_callsign"]
+    assert reference
+    application.button("guided_demo_walkthrough").click().run()
+    application.button("guided_continue_use_case").click().run()
+    application.button("guided_continue_target_and_window").click().run()
+    expected_nodes = tuple(application.session_state["test_available_nodes"])
+    assert expected_nodes[-3:] == (
+        "offset_calibration", "scope_and_evidence", "review_and_run",
     )
-    _install_shared_streamlit_state(monkeypatch, session_state)
 
-    renderer._handle_reference_design_change()
+    for expected_reference in (reference, "CALL/P"):
+        application.radio("guided_reference_design").set_value("local_neighborhood").run()
+        assert not application.exception
+        assert "scope_and_evidence" in application.session_state["test_available_nodes"]
+        assert "review_and_run" in application.session_state["test_available_nodes"]
+        assert "offset_calibration" not in application.session_state["test_available_nodes"]
+        # A rerun while the callsign widget is hidden must retain its canonical value.
+        application.run()
+        application.radio("guided_reference_design").set_value("reference_station").run()
+        assert not application.exception
+        assert application.text_input("val_ref_callsign").value == expected_reference
+        assert tuple(application.session_state["test_available_nodes"]) == expected_nodes
+        assert application.session_state["val_ref_qth"] == ""
+        assert application.session_state["val_benchmark_offset_db"] == 0.0
+        assert application.session_state["val_snr_correction_mode"] == "no_offset"
+        assert application.session_state["run_mode"] is None
+        application.text_input("val_ref_callsign").set_value("CALL/P").run()
 
-    assert session_state.val_comp_mode == "hardware_ab"
-    assert session_state.val_ref_callsign == ""
-    assert session_state.val_ref_qth == ""
-    assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_snr_correction_mode == "no_offset"
-
-
-def test_hardware_to_known_station_requires_reference_identity_confirmation(
-    monkeypatch,
-):
-    """Do not reinterpret a local path alias and stale grid as a remote station."""
-    session_state = _canonical_state(
-        guided_use_case="rx_benchmark",
-        guided_reference_design="reference_station",
-        val_snr_correction_mode="established_offset",
-        val_comp_mode="hardware_ab",
-        val_ref_callsign="DL1ABC-1",
-        val_ref_qth="JO63",
-        val_benchmark_offset_db=-0.8,
-    )
-    _install_shared_streamlit_state(monkeypatch, session_state)
-
-    renderer._handle_reference_design_change()
-
-    assert session_state.val_comp_mode == "reference_station"
-    assert session_state.val_ref_callsign == ""
-    assert session_state.val_ref_qth == ""
-    assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_snr_correction_mode == "no_offset"
+    application.button("test_reset").click().run()
+    assert application.session_state["val_ref_callsign"] == ""
+    application.button("test_load_demo").click().run()
+    assert application.session_state["val_ref_callsign"] == reference
 
 
 def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
     """Preserve an entered offset, but pin no-offset/calibration runs to zero."""
     session_state = _canonical_state(
         guided_use_case="rx_benchmark",
-        guided_reference_design="hardware_ab",
+        guided_reference_design="reference_station",
         val_snr_correction_mode="established_offset",
-        val_comp_mode="hardware_ab",
+        val_comp_mode="reference_station",
         val_ref_callsign="DL1ABC-1",
         val_benchmark_offset_db=-1.3,
     )
@@ -1724,57 +1866,28 @@ def test_guided_identity_edit_clears_established_pair_correction(monkeypatch):
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
         val_ref_qth="JO63",
+        _reference_location_resolution={"status": "resolved"},
         val_benchmark_offset_db=1.2,
     )
     _install_shared_streamlit_state(monkeypatch, session_state)
 
     renderer._guided_correction_context_change("target_and_window")
 
+    assert session_state.val_ref_qth == ""
+    assert "_reference_location_resolution" not in session_state
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.guided_active_node == "target_and_window"
 
 
-def test_german_review_uses_localized_target_and_complete_tx_schedule(monkeypatch):
-    """Keep review prose localized and expose every scheduled pairing control."""
-    session_state = _canonical_state(
-        lang="de",
-        guided_use_case="tx_benchmark",
-        guided_reference_design="hardware_ab",
-        guided_last_benchmark_mode="hardware_ab",
-        val_analysis_direction="tx",
-        val_comp_mode="hardware_ab",
-        val_tx_ab_method="sequential",
-        val_tx_ab_repeat_interval_minutes=20,
-        val_tx_ab_target_start_minute=4,
-        val_tx_ab_reference_start_minute=6,
-    )
-    markdown = Mock()
-    monkeypatch.setattr(
-        renderer,
-        "st",
-        SimpleNamespace(
-            session_state=session_state,
-            markdown=markdown,
-            warning=Mock(),
-            button=Mock(),
-            empty=Mock(return_value="review-slot"),
-        ),
-    )
+def test_german_review_uses_resolved_reference_location(monkeypatch):
+    session_state = _canonical_state(lang="de", guided_use_case="tx_benchmark", guided_reference_design="reference_station", guided_last_benchmark_mode="reference_station", val_analysis_direction="tx", val_comp_mode="reference_station", val_ref_callsign="CALL/P", val_ref_qth="JO62")
+    monkeypatch.setattr(renderer, "st", SimpleNamespace(session_state=session_state))
+    review = renderer._reference_review_value(GUIDED_INPUTS["de"])
+    assert "CALL/P" in review
+    assert "JO62" in review
+    assert "Referenzaufbau/-station" in review
 
-    assert renderer._reference_review_value(GUIDED_INPUTS["de"]) == (
-        "Nach festem Zeitplan abwechseln · Wiederholintervall 20 min · "
-        "Target 04 UTC · Referenz 06 UTC"
-    )
-    assert (
-        renderer._render_review_and_run(T["de"], GUIDED_INPUTS["de"])
-        == "review-slot"
-    )
-    review_markdown = markdown.call_args.args[0]
-    assert "DL1ABC bei JO62QM" in review_markdown
-    assert " at " not in review_markdown
-    assert "Remote Stationsfilter" in review_markdown
-    assert "geplante Paare ≥ 1 je Station" in review_markdown
 
 
 def test_switching_to_classic_preserves_configuration_context_and_results(
@@ -1818,8 +1931,8 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
         input_view="guided",
         run_mode="TX",
         guided_use_case="rx_benchmark",
-        guided_reference_design="hardware_ab",
-        guided_last_benchmark_mode="hardware_ab",
+        guided_reference_design="reference_station",
+        guided_last_benchmark_mode="reference_station",
         val_snr_correction_mode="established_offset",
         guided_scope_mode="custom",
         guided_reconstruct_requested=False,
@@ -1950,9 +2063,9 @@ def test_loading_performance_config_clears_previous_transient_benchmark_design(
     """Do not let config history choose a later Benchmark branch."""
     session_state = _canonical_state(
         classic_question="rx_benchmark",
-        guided_last_benchmark_mode="hardware_ab",
-        guided_reference_design="hardware_ab",
-        val_comp_mode="hardware_ab",
+        guided_last_benchmark_mode="reference_station",
+        guided_reference_design="reference_station",
+        val_comp_mode="reference_station",
     )
     monkeypatch.setattr(
         config_io,
@@ -2039,20 +2152,22 @@ def _run_application_with_state(initial_state):
     return result
 
 
-def test_guided_run_and_save_actions_are_gated_by_terminal_readiness():
-    """Expose primary RX/TX Run actions only when Guided inputs are ready."""
+def test_guided_run_validates_incomplete_inputs_and_save_requires_readiness():
+    """Keep Run available to reveal required fields without submitting invalid data."""
     incomplete_application = _run_application_with_state(
         {
             "lang": "en",
             "input_view": "guided",
+            "_probe_click_run": True,
         }
     )
 
-    assert incomplete_application["run_actions"] == []
+    assert len(incomplete_application["run_actions"]) == 1
+    assert incomplete_application["run_actions"][0]["disabled"] is False
+    assert "guided_use_case" in incomplete_application["field_errors"]
+    assert incomplete_application["run_mode"] is None
     assert incomplete_application["save_actions"] == []
-    assert incomplete_application["warnings"] == [
-        GUIDED_INPUTS["en"]["validation"]["use_case"]
-    ]
+    assert GUIDED_INPUTS["en"]["validation"]["use_case"] in incomplete_application["warnings"]
 
     for direction, use_case, expected_label in (
         ("rx", "rx_performance", "Run RX Analysis"),
@@ -2077,7 +2192,7 @@ def test_guided_run_and_save_actions_are_gated_by_terminal_readiness():
         ]
 
 
-def test_classic_benchmark_actions_wait_for_a_design():
+def test_classic_run_reports_missing_design_and_save_waits_for_readiness():
     """Exercise pending and complete Classic Benchmark states through AppTest."""
     pending_application = _run_application_with_state(
         _canonical_state(
@@ -2085,14 +2200,16 @@ def test_classic_benchmark_actions_wait_for_a_design():
             classic_question="rx_benchmark",
             guided_use_case="rx_benchmark",
             val_comp_mode="none",
+            _probe_click_run=True,
         )
     )
 
-    assert pending_application["errors"] == []
+    assert "val_comp_mode" in pending_application["field_errors"]
+    assert pending_application["run_mode"] is None
     assert pending_application["run_actions"] == [
         {
             "label": "Run RX Analysis",
-            "disabled": True,
+            "disabled": False,
             "type": "primary",
         }
     ]
@@ -2124,7 +2241,27 @@ def test_classic_benchmark_actions_wait_for_a_design():
     ]
 
 
-def test_classic_invalid_windows_are_reported_and_blocked_before_submission():
+@pytest.mark.parametrize("input_view", ("guided", "classic"))
+def test_time_widget_edits_preserve_entered_minutes_across_rerun(input_view):
+    application = _run_application_with_state(
+        _canonical_state(
+            input_view=input_view,
+            val_start_d=date(2026, 7, 10),
+            val_start_t=time(9, 0),
+            val_end_d=date(2026, 7, 10),
+            val_end_t=time(11, 0),
+            _absolute_time_window_initialized=True,
+            _probe_time_edits=[("val_start_t", "09:50:00"), ("val_end_t", "10:20:00")],
+        )
+    )
+    assert application["time_values"] == {"val_start_t": "09:50:00", "val_end_t": "10:20:00"}
+    assert application["errors"] == []
+    assert application["save_actions"] == [{"label": "Save Config", "disabled": False}]
+    assert application["run_mode"] is None
+
+
+@pytest.mark.parametrize("input_view", ("guided", "classic"))
+def test_invalid_windows_are_reported_and_blocked_before_submission(input_view):
     """Render exact and retained-invalid windows without a widget exception."""
     invalid_windows = (
         (
@@ -2148,26 +2285,45 @@ def test_classic_invalid_windows_are_reported_and_blocked_before_submission():
             time(0, 0),
             "err_time_order",
         ),
+        (
+            date(2026, 7, 10),
+            time(12, 0),
+            date(2026, 7, 10),
+            time(11, 0),
+            "err_time_order",
+        ),
+        (
+            date(2026, 7, 10),
+            time(9, 50),
+            date(2026, 7, 10),
+            time(9, 50),
+            "err_time_order",
+        ),
     )
 
     for start_date, start_time, end_date, end_time, error_key in invalid_windows:
         invalid_application = _run_application_with_state(
             _canonical_state(
-                input_view="classic",
+                input_view=input_view,
                 val_start_d=start_date,
                 val_start_t=start_time,
                 val_end_d=end_date,
                 val_end_t=end_time,
                 _absolute_time_window_initialized=True,
+                _probe_click_run=True,
             )
         )
 
         assert invalid_application["exceptions"] == []
-        assert invalid_application["errors"] == [T["en"][error_key]]
+        assert T["en"][error_key] in invalid_application["errors"]
+        for field in ("val_start_d", "val_start_t", "val_end_d", "val_end_t"):
+            assert field in invalid_application["field_errors"]
+            assert any(f".st-key-{field}" in style for style in invalid_application["field_error_styles"])
+        assert invalid_application["run_mode"] is None
         assert invalid_application["run_actions"] == [
             {
                 "label": "Run RX Analysis",
-                "disabled": True,
+                "disabled": False,
                 "type": "primary",
             }
         ]

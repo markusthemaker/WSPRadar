@@ -109,17 +109,6 @@ _SIMULTANEOUS_COMPARISON_QUERY_COLUMNS = frozenset({
     "best_ref_sign",
     "best_ref_dist",
 })
-_SEQUENTIAL_COMPARISON_QUERY_COLUMNS = frozenset({
-    "time",
-    "peer_sign",
-    "peer_grid",
-    "peer_lat",
-    "peer_lon",
-    "snr",
-    "power",
-    "stat_val",
-    "is_me",
-})
 
 
 def _expected_database_source(provider_key: str) -> DatabaseSource:
@@ -142,9 +131,7 @@ def _schema_error(fetch_result: FetchResult, analysis: AnalysisPlan) -> FetchRes
         required_columns = frozenset(OPPORTUNITY_QUERY_COLUMNS)
     else:
         required_columns = (
-            _SEQUENTIAL_COMPARISON_QUERY_COLUMNS
-            if analysis.get("is_sequential")
-            else _SIMULTANEOUS_COMPARISON_QUERY_COLUMNS
+            _SIMULTANEOUS_COMPARISON_QUERY_COLUMNS
         )
         if analysis.get("is_local_median"):
             required_columns = required_columns.union({"ref_detail_rows"})

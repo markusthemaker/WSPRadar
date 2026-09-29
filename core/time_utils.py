@@ -4,7 +4,6 @@ import re
 from datetime import datetime, timedelta, timezone
 
 
-UTC_QUANTUM_MINUTES = 15
 DEFAULT_UTC_WINDOW_DURATION = timedelta(hours=24)
 _UTC_MINUTE_PATTERN = re.compile(
     r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
@@ -36,10 +35,9 @@ def _aware_utc(timestamp: datetime, *, field: str) -> datetime:
     return timestamp.astimezone(timezone.utc)
 
 
-def quantize_time(timestamp: datetime) -> datetime:
-    """Floor a timestamp to a 15-minute boundary for stable query caching."""
-    minute = (timestamp.minute // UTC_QUANTUM_MINUTES) * UTC_QUANTUM_MINUTES
-    return timestamp.replace(minute=minute, second=0, microsecond=0)
+def floor_to_minute(timestamp: datetime) -> datetime:
+    """Match the minute precision shared by time inputs, configs and URLs."""
+    return timestamp.replace(second=0, microsecond=0)
 
 
 def parse_utc_minute(value: str, *, field: str = "timestamp") -> datetime:
@@ -72,20 +70,20 @@ def normalize_utc_window(
     current_utc: datetime | None = None,
     minimum_start_utc: datetime | None = None,
 ) -> tuple[datetime, datetime]:
-    """Return quantized UTC endpoints after validating the analysis interval.
+    """Return minute-precision UTC endpoints after validating the interval.
 
-    Validation applies to the effective 15-minute query boundaries. The
-    interval is half-open, must have positive duration, must not exceed
-    ``max_duration``, and cannot end after the current quantized UTC boundary.
+    Every entered minute is preserved. The interval is half-open, must have
+    positive duration, must not exceed ``max_duration``, and cannot end after
+    the current UTC minute.
     """
     if not isinstance(max_duration, timedelta) or max_duration <= timedelta(0):
         raise ValueError("max_duration must be a positive timedelta.")
 
-    effective_start_utc = quantize_time(
+    effective_start_utc = floor_to_minute(
         _aware_utc(start_utc, field="start_utc")
     )
-    effective_end_utc = quantize_time(_aware_utc(end_utc, field="end_utc"))
-    effective_current_utc = quantize_time(
+    effective_end_utc = floor_to_minute(_aware_utc(end_utc, field="end_utc"))
+    effective_current_utc = floor_to_minute(
         _aware_utc(
             current_utc or datetime.now(timezone.utc),
             field="current_utc",
@@ -93,7 +91,7 @@ def normalize_utc_window(
     )
 
     if minimum_start_utc is not None:
-        effective_minimum_start_utc = quantize_time(
+        effective_minimum_start_utc = floor_to_minute(
             _aware_utc(minimum_start_utc, field="minimum_start_utc")
         )
         if effective_start_utc < effective_minimum_start_utc:
@@ -114,7 +112,7 @@ def normalize_utc_window(
     if effective_end_utc > effective_current_utc:
         raise UtcWindowValidationError(
             "future",
-            "end_utc must not be after the current quantized UTC boundary.",
+            "end_utc must not be after the current UTC minute.",
         )
     return effective_start_utc, effective_end_utc
 
@@ -124,10 +122,10 @@ def resolve_default_utc_window(
     current_utc: datetime | None = None,
     duration: timedelta = DEFAULT_UTC_WINDOW_DURATION,
 ) -> tuple[datetime, datetime]:
-    """Resolve one stable absolute window ending at the current UTC quantum."""
+    """Resolve one stable absolute window ending at the current UTC minute."""
     if not isinstance(duration, timedelta) or duration <= timedelta(0):
         raise ValueError("duration must be a positive timedelta.")
-    effective_end_utc = quantize_time(
+    effective_end_utc = floor_to_minute(
         _aware_utc(
             current_utc or datetime.now(timezone.utc),
             field="current_utc",

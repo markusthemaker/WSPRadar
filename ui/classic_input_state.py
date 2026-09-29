@@ -39,8 +39,8 @@ def synchronize_classic_input_state(
 ) -> str | None:
     """Replace Classic transients from explicit editor intent or canonical state.
 
-    ``preferred_question`` is used when moving from Guided Input because a
-    Benchmark question can be valid before a canonical design exists. Loaded
+    ``preferred_question`` preserves the selected question when moving from
+    Guided Input. Loaded
     configurations omit that argument so their complete canonical branch always
     replaces any stale transient Classic question.
     """

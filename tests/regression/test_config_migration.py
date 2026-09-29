@@ -29,7 +29,6 @@ def _valid_settings(
     *,
     analysis_direction="rx",
     comparison_mode="reference_station",
-    tx_ab_method="simultaneous",
 ):
     """Return one valid grouped settings object for the requested active branches."""
     time_selection = {
@@ -51,26 +50,6 @@ def _valid_settings(
                 "neighborhood_radius_km": 100,
             }
         )
-    elif comparison_mode == "hardware_ab" and analysis_direction == "rx":
-        comparison_parameters.update(
-            {
-                "reference_callsign": "DL1MKS/P",
-            }
-        )
-    elif comparison_mode == "hardware_ab":
-        comparison_parameters["tx_ab_method"] = tx_ab_method
-        if tx_ab_method == "simultaneous":
-            comparison_parameters.update(
-                {
-                    "reference_callsign": "DL1MKS/P",
-                }
-            )
-        else:
-            comparison_parameters.update({
-                "repeat_interval_minutes": 10,
-                "target_start_minute": 0,
-                "reference_start_minute": 2,
-            })
 
     advanced_parameters = {
         "solar_state": "all",
@@ -155,42 +134,16 @@ def test_current_config_document_validates_complete_settings():
     assert config["snr_correction_mode"] == "no_offset"
 
 
-def test_config_reader_accepts_unambiguous_legacy_result_branch_names():
-    """Read old version-1 branch names without retaining them in canonical state."""
-    canonical_document = _config_document()
-    legacy_document = deepcopy(canonical_document)
-    legacy_results_view = legacy_document["settings"]["results_view"]
-    legacy_results_view["success"] = legacy_results_view.pop("performance")
-    legacy_results_view["compare"] = legacy_results_view.pop("benchmark")
-
-    assert config_io.validate_config_document(legacy_document) == (
-        config_io.validate_config_document(canonical_document)
-    )
-    assert set(legacy_document["settings"]["results_view"]) == {
-        "success",
-        "compare",
-    }
+@pytest.mark.parametrize("legacy_key, canonical_key", [("success", "performance"), ("compare", "benchmark")])
+def test_config_reader_rejects_previous_result_branch_names(legacy_key, canonical_key):
+    document = _config_document()
+    branches = document["settings"]["results_view"]
+    branches[legacy_key] = branches.pop(canonical_key)
+    with pytest.raises(ValueError, match="results_view"):
+        config_io.validate_config_document(document)
 
 
-def test_resaving_legacy_result_branch_names_emits_only_canonical_names():
-    """Canonicalize old branch names once an accepted config is written again."""
-    legacy_document = _config_document()
-    legacy_results_view = legacy_document["settings"]["results_view"]
-    legacy_results_view["success"] = legacy_results_view.pop("performance")
-    legacy_results_view["compare"] = legacy_results_view.pop("benchmark")
-    normalized = config_io.validate_config_document(legacy_document)
-    session_state = {"lang": "en"}
-    config_io.apply_config_state_values(normalized, session_state)
 
-    payload_bytes, _filename = config_io.build_config_payload(
-        title="Canonicalized Benchmark",
-        state=session_state,
-    )
-    written_results_view = json.loads(payload_bytes)["settings"]["results_view"]
-
-    assert set(written_results_view) == {"performance", "benchmark"}
-    assert "success" not in written_results_view
-    assert "compare" not in written_results_view
 
 
 @pytest.mark.parametrize(
@@ -208,7 +161,7 @@ def test_config_reader_rejects_legacy_and_canonical_result_key_collisions(
 
     with pytest.raises(
         ValueError,
-        match=rf"cannot contain both '{legacy_key}' and '{canonical_key}'",
+        match="results_view",
     ):
         config_io.validate_config_document(document)
 
@@ -330,7 +283,7 @@ def test_correction_mode_preserves_meaning_independently_from_numeric_value(
     snr_correction_db,
 ):
     """Keep correction provenance explicit even when distinct modes use 0.0 dB."""
-    settings = _valid_settings(comparison_mode="hardware_ab")
+    settings = _valid_settings(comparison_mode="reference_station")
     settings["comparison_parameters"]["snr_correction_mode"] = snr_correction_mode
     settings["comparison_parameters"]["snr_correction_db"] = snr_correction_db
 
@@ -342,7 +295,7 @@ def test_correction_mode_preserves_meaning_independently_from_numeric_value(
 
 def test_preproduction_v1_rejects_missing_correction_mode_instead_of_guessing():
     """Do not infer correction meaning from an ambiguous numeric zero."""
-    settings = _valid_settings(comparison_mode="hardware_ab")
+    settings = _valid_settings(comparison_mode="reference_station")
     del settings["comparison_parameters"]["snr_correction_mode"]
 
     with pytest.raises(ValueError, match="snr_correction_mode"):
@@ -354,7 +307,7 @@ def test_uncorrected_modes_reject_nonzero_correction(
     snr_correction_mode,
 ):
     """Require modes that promise an uncorrected run to carry exactly 0.0 dB."""
-    settings = _valid_settings(comparison_mode="hardware_ab")
+    settings = _valid_settings(comparison_mode="reference_station")
     settings["comparison_parameters"]["snr_correction_mode"] = snr_correction_mode
     settings["comparison_parameters"]["snr_correction_db"] = 0.1
 
@@ -409,11 +362,11 @@ def test_local_neighborhood_rejects_invalid_session_method_when_saving_or_runnin
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_local_neighborhood_accepts_supported_localized_median_state(language):
-    """Keep localized supported session values canonical without accepting alternatives."""
-    assert config_io.validate_local_benchmark_state(
-        T[language]["opt_local_median"]
-    ) == "local_median"
+def test_local_neighborhood_rejects_localized_labels_as_canonical_state(language):
+    """Presentation text never chooses a scientific method."""
+    with pytest.raises(config_io.LocalBenchmarkValidationError, match="local_median"):
+        config_io.validate_local_benchmark_state(T[language]["opt_local_median"])
+
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
@@ -497,19 +450,14 @@ def test_reference_station_requires_an_exact_grid4_reference_qth():
 
 
 @pytest.mark.parametrize("analysis_direction", ["rx", "tx"])
-def test_hardware_ab_rejects_a_serialized_reference_qth(analysis_direction):
-    """Persist only the Target QTH from which Hardware grid-4 is derived."""
-    settings = _valid_settings(
-        analysis_direction=analysis_direction,
-        comparison_mode="hardware_ab",
-    )
-    settings["comparison_parameters"]["reference_qth"] = "JO62"
+@pytest.mark.parametrize("reference_qth", ["", "JO62"])
+def test_reference_location_persists_resolved_or_pending(analysis_direction, reference_qth):
+    """An unresolved reference is explicit and never means every grid."""
+    settings = _valid_settings(analysis_direction=analysis_direction)
+    settings["comparison_parameters"]["reference_qth"] = reference_qth
+    normalized = config_io.validate_config_document(_config_document(settings))
+    assert normalized["reference_qth"] == reference_qth
 
-    with pytest.raises(
-        ValueError,
-        match=r"Unknown settings\.comparison_parameters field.*reference_qth",
-    ):
-        config_io.validate_config_document(_config_document(settings))
 
 
 @pytest.mark.parametrize(
@@ -554,16 +502,13 @@ def test_identity_validation_rejects_unicode_before_uppercase_expansion(
         config_io.validate_config_document(_config_document(settings))
 
 
-def test_tx_hardware_v1_requires_explicit_method_without_legacy_fallback():
-    """Keep the revised pre-production v1 contract strict and unambiguous."""
-    settings = _valid_settings(
-        analysis_direction="tx",
-        comparison_mode="hardware_ab",
-    )
-    settings["comparison_parameters"].pop("tx_ab_method")
-
-    with pytest.raises(ValueError, match="tx_ab_method"):
+@pytest.mark.parametrize("legacy_mode", ["hardware_ab", "sequential"])
+def test_retired_comparison_modes_are_rejected_without_conversion(legacy_mode):
+    settings = _valid_settings(analysis_direction="tx")
+    settings["comparison_parameters"]["mode"] = legacy_mode
+    with pytest.raises(ValueError, match="mode"):
         config_io.validate_config_document(_config_document(settings))
+
 
 
 def test_config_envelope_preparation_returns_an_independent_copy():
@@ -591,8 +536,8 @@ def test_two_hour_station_evidence_bins_round_trip_through_config_validation():
     assert config["station_evidence_time_bin_absolute"] == "2h"
 
 
-def test_station_evidence_advertised_order_and_legacy_validation_set():
-    """Separate advertised adaptive bins from accepted legacy values."""
+def test_station_evidence_advertised_order_matches_validation_set():
+    """Allow only current canonical bins at the persistence boundary."""
     assert STATION_EVIDENCE_TIME_BIN_OPTIONS == (
         "2m",
         "10m",
@@ -605,7 +550,7 @@ def test_station_evidence_advertised_order_and_legacy_validation_set():
         "24h",
     )
     assert STATION_EVIDENCE_TIME_BINS == frozenset(
-        STATION_EVIDENCE_TIME_BIN_OPTIONS + ("5m", "15m")
+        STATION_EVIDENCE_TIME_BIN_OPTIONS
     )
 
 
@@ -658,7 +603,7 @@ def test_temporal_evidence_time_bin_policy(
 
 @pytest.mark.parametrize(
     "retained_time_bin",
-    ("2m", "5m", "10m", "15m", "30m"),
+    ("2m", "10m", "30m"),
 )
 def test_temporal_evidence_policy_retains_one_valid_off_tier_choice(
     retained_time_bin,
@@ -693,9 +638,9 @@ def test_performance_segment_evidence_bin_rejects_an_unsupported_width():
 
 
 @pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
-@pytest.mark.parametrize("time_bin", ("2m", "5m", "10m", "15m", "30m"))
+@pytest.mark.parametrize("time_bin", ("2m", "10m", "30m"))
 def test_station_evidence_minute_bins_round_trip(result_mode, time_bin):
-    """Accept adaptive minute bins and the two legacy persisted choices."""
+    """Accept the current adaptive minute bins."""
     settings = _valid_settings()
     settings["results_view"][result_mode]["station_evidence_time_bin"] = time_bin
 
@@ -873,8 +818,7 @@ def test_initial_tx_ab_contract_rejects_prototype_fields(
     """Keep unpublished pairing and fixed-bin fields out of pre-production v1."""
     settings = _valid_settings(
         analysis_direction="tx",
-        comparison_mode="hardware_ab",
-        tx_ab_method="sequential",
+        comparison_mode="reference_station",
     )
     settings["comparison_parameters"][prototype_field] = prototype_value
 
@@ -1047,7 +991,7 @@ def test_config_writer_preserves_explicit_offset_establishment_mode():
     state = {
         "lang": "en",
         "val_analysis_direction": "rx",
-        "val_comp_mode": "hardware_ab",
+        "val_comp_mode": "reference_station",
         "val_ref_callsign": "DL1MKS/P",
         "val_snr_correction_mode": "establish_offset",
         "val_benchmark_offset_db": 0.0,
@@ -1155,8 +1099,8 @@ def test_noninteractive_export_writer_allows_a_profileless_config():
     ] == "rx"
 
 
-def test_config_writer_serializes_the_effective_quantized_utc_window():
-    """Persist the same effective absolute boundaries used by analysis."""
+def test_config_writer_and_reader_preserve_entered_minute_window():
+    """Persist and reload exact minute boundaries without quarter-hour snapping."""
     session_state = {
         "lang": "en",
         "val_analysis_direction": "tx",
@@ -1174,9 +1118,12 @@ def test_config_writer_serializes_the_effective_quantized_utc_window():
     assert json.loads(config_bytes)["settings"]["core_parameters"][
         "time_selection"
     ] == {
-        "start_utc": "2026-07-16T10:15Z",
-        "end_utc": "2026-07-17T10:30Z",
+        "start_utc": "2026-07-16T10:17Z",
+        "end_utc": "2026-07-17T10:44Z",
     }
+    reloaded, _ = config_io.validate_config_upload(config_bytes)
+    assert reloaded["start_utc"].isoformat() == "2026-07-16T10:17:00+00:00"
+    assert reloaded["end_utc"].isoformat() == "2026-07-17T10:44:00+00:00"
 
 
 def test_loading_active_only_config_resets_inactive_widget_state():
@@ -1195,7 +1142,6 @@ def test_loading_active_only_config_resets_inactive_widget_state():
         "val_ref_radius_km": 250,
         "val_snr_correction_mode": "established_offset",
         "val_benchmark_offset_db": 1.2,
-        "val_tx_ab_method": "sequential",
         "val_min_spots": 50,
         "val_results_show_non_joint": True,
         "val_results_show_zero_target": True,
@@ -1218,7 +1164,6 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     assert session_state["val_ref_radius_km"] == 100
     assert session_state["val_snr_correction_mode"] == "no_offset"
     assert session_state["val_benchmark_offset_db"] == 0.0
-    assert session_state["val_tx_ab_method"] == "simultaneous"
     assert session_state["val_min_spots"] == 1
     assert session_state["val_exclude_special_callsigns"] is False
     assert session_state["val_filter_moving"] is False
@@ -1242,150 +1187,36 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     assert session_state["val_results_selected_stations_absolute"] is None
 
 
-@pytest.mark.parametrize(
-    (
-        "analysis_direction",
-        "comparison_mode",
-        "tx_ab_method",
-        "expected_comparison_fields",
-    ),
-    [
-        ("rx", "none", "simultaneous", {"mode"}),
-        (
-            "rx",
-            "reference_station",
-            "simultaneous",
-            {
-                "mode",
-                "reference_callsign",
-                "reference_qth",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-        (
-            "rx",
-            "local_neighborhood",
-            "simultaneous",
-            {
-                "mode",
-                "local_benchmark",
-                "neighborhood_radius_km",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-        (
-            "rx",
-            "hardware_ab",
-            "simultaneous",
-            {
-                "mode",
-                "reference_callsign",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-        (
-            "tx",
-            "hardware_ab",
-            "simultaneous",
-            {
-                "mode",
-                "tx_ab_method",
-                "reference_callsign",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-        (
-            "tx",
-            "hardware_ab",
-            "sequential",
-            {
-                "mode",
-                "tx_ab_method",
-                "repeat_interval_minutes",
-                "target_start_minute",
-                "reference_start_minute",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-    ],
-)
-def test_comparison_modes_use_only_their_active_fields(
-    analysis_direction,
-    comparison_mode,
-    tx_ab_method,
-    expected_comparison_fields,
-):
-    """Keep each mode self-contained without persisting hidden mode state."""
-    settings = _valid_settings(
-        analysis_direction=analysis_direction,
-        comparison_mode=comparison_mode,
-        tx_ab_method=tx_ab_method,
-    )
-
+@pytest.mark.parametrize("analysis_direction", ["rx", "tx"])
+@pytest.mark.parametrize("comparison_mode", ["none", "reference_station", "local_neighborhood"])
+def test_comparison_modes_use_only_their_active_fields(analysis_direction, comparison_mode):
+    settings = _valid_settings(analysis_direction=analysis_direction, comparison_mode=comparison_mode)
     normalized = config_io.validate_config_document(_config_document(settings))
-
-    assert set(settings["comparison_parameters"]) == expected_comparison_fields
     assert normalized["benchmark_mode"] == comparison_mode
+    expected = {"none": {"mode"}, "reference_station": {"mode", "reference_callsign", "reference_qth", "snr_correction_mode", "snr_correction_db"}, "local_neighborhood": {"mode", "local_benchmark", "neighborhood_radius_km", "snr_correction_mode", "snr_correction_db"}}
+    assert set(settings["comparison_parameters"]) == expected[comparison_mode]
     if comparison_mode == "none":
         assert "min_joint_spots_per_station" not in settings["advanced_parameters"]
         assert set(settings["results_view"]) == {"performance"}
 
 
-@pytest.mark.parametrize(
-    ("tx_ab_method", "expected_fields"),
-    [
-        (
-            "simultaneous",
-            {
-                "mode",
-                "tx_ab_method",
-                "reference_callsign",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-        (
-            "sequential",
-            {
-                "mode",
-                "tx_ab_method",
-                "repeat_interval_minutes",
-                "target_start_minute",
-                "reference_start_minute",
-                "snr_correction_mode",
-                "snr_correction_db",
-            },
-        ),
-    ],
-)
-def test_tx_hardware_writer_omits_inactive_method_fields(
-    tx_ab_method,
-    expected_fields,
-):
-    """Do not let hidden identity or schedule state affect saved TX A/B work."""
-    state = {
-        "val_analysis_direction": "tx",
-        "val_comp_mode": T["en"]["opt_comp_self"],
-        "val_callsign": "DL1MKS",
-        "val_qth": "JN37",
-        "val_ref_callsign": "DL1MKS/P",
-        "val_ref_qth": "JO62",
-        "val_tx_ab_method": tx_ab_method,
-        "val_tx_ab_repeat_interval_minutes": 10,
-        "val_tx_ab_target_start_minute": 0,
-        "val_tx_ab_reference_start_minute": 2,
-    }
 
+@pytest.mark.parametrize("reference_qth", ["", "JO62"])
+def test_reference_writer_preserves_pending_or_resolved_location(reference_qth):
+    state = {"val_analysis_direction": "tx", "val_comp_mode": "reference_station", "val_callsign": "CALL", "val_qth": "JN37", "val_ref_callsign": "CALL/P", "val_ref_qth": reference_qth}
     settings = config_io._settings_from_session_state(state, "en")
-
-    assert set(settings["comparison_parameters"]) == expected_fields
-    assert "reference_qth" not in settings["comparison_parameters"]
+    comparison = settings["comparison_parameters"]
+    assert set(comparison) == {"mode", "reference_callsign", "reference_qth", "snr_correction_mode", "snr_correction_db"}
+    assert comparison["reference_qth"] == reference_qth
     config_io.normalize_config_settings(settings)
+
+
+def test_removed_reference_context_is_rejected():
+    settings = _valid_settings(comparison_mode="reference_station")
+    settings["comparison_parameters"]["reference_intent"] = "controlled_setup"
+    with pytest.raises(ValueError, match="reference_intent"):
+        config_io.normalize_config_settings(settings)
+
 
 
 @pytest.mark.parametrize(
@@ -1436,7 +1267,7 @@ def test_legacy_time_selection_shapes_are_rejected(legacy_time_selection):
         (
             "2099-01-01T00:00Z",
             "2099-01-02T00:00Z",
-            "current quantized UTC boundary",
+            "current UTC minute",
         ),
     ],
 )
@@ -1575,7 +1406,7 @@ def test_config_load_seeds_inspector_intent_through_its_owner(monkeypatch):
         {"callsign": "f4wbn", "locator": "jn18ab"},
     ]
     settings["results_view"]["benchmark"]["selected_directions"] = ["NW", "N"]
-    settings["results_view"]["benchmark"]["station_evidence_time_bin"] = "5m"
+    settings["results_view"]["benchmark"]["station_evidence_time_bin"] = "10m"
     normalized = config_io.normalize_config_settings(settings)
     seeded_fields = []
     real_seed = config_io.seed_inspector_selection_state
@@ -1598,7 +1429,7 @@ def test_config_load_seeds_inspector_intent_through_its_owner(monkeypatch):
         {"callsign": "F4WBN", "locator": "JN18AB"},
     ]
     assert session_state["val_results_selected_directions_compare"] == ["NW", "N"]
-    assert session_state["val_results_time_bin_compare"] == "5m"
+    assert session_state["val_results_time_bin_compare"] == "10m"
     normalized["selected_stations_compare"][0]["callsign"] = "CHANGED"
     assert session_state["val_results_selected_stations_compare"][0]["callsign"] == "F4WBN"
 
@@ -1674,8 +1505,8 @@ def test_enabled_outlier_detector_settings_default_and_round_trip():
     ] == 3.25
 
 
-def test_version_1_document_preserves_omitted_outlier_gate_meaning():
-    """Interpret omitted enabled gates using their original version-1 policy."""
+def test_current_document_omitted_outlier_gates_use_current_defaults():
+    """Interpret omitted enabled gates using the authoritative current policy."""
     settings = _valid_settings()
     settings["advanced_parameters"][
         "report_delta_snr_outlier_candidates"
@@ -1685,8 +1516,8 @@ def test_version_1_document_preserves_omitted_outlier_gate_meaning():
         _config_document(settings)
     )
 
-    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.0
-    assert normalized["delta_snr_outlier_minimum_robust_z"] == 4.0
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 6.0
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 3.0
     assert (
         normalized["delta_snr_outlier_maximum_baseline_difference_db"]
         == 3.0
@@ -1716,58 +1547,15 @@ def test_enabled_outlier_detector_settings_require_bounded_finite_numbers(
         config_io.normalize_config_settings(settings)
 
 
-def test_legacy_outlier_detector_settings_migrate_from_short_burst_values():
-    """Map an experimental duration policy to the former Short burst midpoint."""
+@pytest.mark.parametrize("field", ["delta_snr_outlier_spot_minimum_departure_db", "delta_snr_outlier_burst_minimum_departure_db", "delta_snr_outlier_sustained_minimum_departure_db", "delta_snr_outlier_spot_minimum_robust_z", "delta_snr_outlier_burst_minimum_robust_z", "delta_snr_outlier_sustained_minimum_robust_z"])
+def test_removed_outlier_fields_are_rejected_by_document_reader(field):
     settings = _valid_settings()
-    advanced = settings["advanced_parameters"]
-    advanced["report_delta_snr_outlier_candidates"] = True
-    advanced.update(
-        {
-            "delta_snr_outlier_spot_minimum_departure_db": 6.0,
-            "delta_snr_outlier_burst_minimum_departure_db": 3.25,
-            "delta_snr_outlier_sustained_minimum_departure_db": 2.0,
-            "delta_snr_outlier_spot_minimum_robust_z": 6.5,
-            "delta_snr_outlier_burst_minimum_robust_z": 4.25,
-            "delta_snr_outlier_sustained_minimum_robust_z": 3.0,
-            "delta_snr_outlier_maximum_baseline_difference_db": 2.75,
-        }
-    )
-
-    normalized = config_io.validate_config_document(
-        _config_document(settings)
-    )
-
-    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.25
-    assert normalized["delta_snr_outlier_minimum_robust_z"] == 4.25
-    assert (
-        normalized["delta_snr_outlier_maximum_baseline_difference_db"]
-        == 2.75
-    )
-    assert not any(
-        legacy_fragment in field_name
-        for field_name in normalized
-        for legacy_fragment in ("_spot_", "_burst_", "_sustained_")
-    )
+    settings["advanced_parameters"].update({"report_delta_snr_outlier_candidates": True, field: 3.0})
+    with pytest.raises(ValueError, match="Unknown settings.advanced_parameters field"):
+        config_io.validate_config_document(_config_document(settings))
 
 
-def test_legacy_outlier_detector_settings_default_missing_short_burst_values():
-    """Use the former Short burst defaults when legacy siblings omit them."""
-    settings = _valid_settings()
-    advanced = settings["advanced_parameters"]
-    advanced["report_delta_snr_outlier_candidates"] = True
-    advanced.update(
-        {
-            "delta_snr_outlier_spot_minimum_departure_db": 7.0,
-            "delta_snr_outlier_sustained_minimum_robust_z": 2.5,
-        }
-    )
 
-    normalized = config_io.validate_config_document(
-        _config_document(settings)
-    )
-
-    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.0
-    assert normalized["delta_snr_outlier_minimum_robust_z"] == 3.5
 
 
 @pytest.mark.parametrize(
@@ -1789,13 +1577,13 @@ def test_legacy_outlier_detector_settings_reject_mixed_shared_gates(
 
     with pytest.raises(
         ValueError,
-        match="cannot mix legacy duration-specific.*shared detector thresholds",
+        match="Unknown settings.advanced_parameters field",
     ):
         config_io.validate_config_document(_config_document(settings))
 
 
-def test_normalizer_rejects_legacy_outlier_fields_outside_document_migration():
-    """Keep legacy conversion isolated to the versioned document boundary."""
+def test_normalizer_rejects_removed_outlier_fields():
+    """Keep the same strict contract at direct normalization and document boundaries."""
     settings = _valid_settings()
     settings["advanced_parameters"].update(
         {
@@ -1838,3 +1626,11 @@ def test_disabled_outlier_detector_settings_are_retained_only_in_session_state()
         match=r"Unknown settings\.advanced_parameters field",
     ):
         config_io.normalize_config_settings(inactive_settings)
+
+
+@pytest.mark.parametrize("time_bin", ["5m", "15m"])
+def test_compatibility_only_temporal_bins_are_rejected(time_bin):
+    settings = _valid_settings()
+    settings["results_view"]["benchmark"]["station_evidence_time_bin"] = time_bin
+    with pytest.raises(ValueError, match="station_evidence_time_bin"):
+        config_io.validate_config_document(_config_document(settings))

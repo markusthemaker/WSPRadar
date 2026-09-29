@@ -46,7 +46,7 @@ def _patch_shared_render_dependency(monkeypatch, name, replacement):
 
 
 def _prepare_and_render_selected_evidence(
-    station_rows, selected_identity_df, is_sequential,
+    station_rows, selected_identity_df,
     repeat_interval_minutes, target_start_minute, reference_start_minute,
     *, t, analysis_id, run_id, scope_token, cache_key, analysis_context,
     language, outlier_model=None, timing_collector=None, **preparation_inputs,
@@ -55,8 +55,8 @@ def _prepare_and_render_selected_evidence(
     session_state = inspector_selected.st.session_state
     preparation = InspectorPreparation(session_state, run_id, timing_collector)
     prepared = preparation.prepare_selected_benchmark_evidence(
-        station_rows, selected_identity_df, is_sequential,
-        repeat_interval_minutes, target_start_minute, reference_start_minute,
+        station_rows, selected_identity_df,
+
         t=t, analysis_id=analysis_id, cache_key=cache_key,
         analysis_context=analysis_context,
         preferred_time_bin=session_state.get(inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY),
@@ -70,7 +70,7 @@ def _prepare_and_render_selected_evidence(
         ),
         session_state=session_state, preparation=preparation, t=t,
         analysis_context=analysis_context, language=language,
-        is_sequential=is_sequential, outlier_model=outlier_model,
+         outlier_model=outlier_model,
     )
 
 
@@ -108,27 +108,6 @@ def test_compare_segment_summary_reports_distribution_median_and_mean():
     ]
 
 
-def test_compare_segment_summary_uses_localized_scheduled_pair_wording():
-    """Keep sequential TX A/B summaries distinct from simultaneous joint spots."""
-    summary = inspector_presentation.compare_metric_distribution_summary(
-        [1.0, 2.0, 6.0],
-        T["de"]["fmt_results_scheduled_pair_delta_summary"],
-        total_count=12345,
-        joint_count=6789,
-        joint_label=T["de"]["tbl_col_joint_pairs"],
-    )
-
-    assert summary == (
-        "Geplante Paare (n=12'345; Joint-Paare=6'789) · "
-        "Median +2.0 dB · Mittelwert +3.0 dB"
-    )
-    assert inspector_presentation.compare_metric_distribution_summary(
-        [],
-        T["en"]["fmt_results_joint_spot_delta_summary"],
-        total_count=0,
-        joint_count=0,
-        joint_label="Joint",
-    ) is None
 
 
 def test_compare_summary_count_uses_apostrophe_thousands_separator():
@@ -147,7 +126,7 @@ def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
             )
         ))
     analysis_context = SimpleNamespace(
-        comparison_mode="hardware_ab",
+        comparison_mode="reference_station",
         reference_callsign="<REF>",
         reference_snr_correction_db=1.2,
     )
@@ -155,7 +134,7 @@ def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
     inspector_common.render_reference_correction_notice(
         T["en"],
         is_compare=True,
-        is_sequential=False,
+
         analysis_context=analysis_context,
     )
 
@@ -170,7 +149,7 @@ def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
     inspector_common.render_reference_correction_notice(
         T["en"],
         is_compare=True,
-        is_sequential=False,
+
         analysis_context=analysis_context,
     )
     assert len(rendered_markup) == 1
@@ -314,7 +293,7 @@ def test_segment_inspector_labels_use_the_bilingual_catalog(
         ("K1AAA (FN31)",),
         2,
         analysis_id="RX_COMP",
-        is_sequential=False,
+
         translations=translations,
     ) == figure_title
 
@@ -455,7 +434,7 @@ def _render_segment_temporal_for_test(
             "fig_delta_snr_outlier_candidate": "* Delta-SNR candidate",
         },
         is_compare=is_compare,
-        is_sequential=False,
+
         analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
         language="en",
         outlier_model=outlier_model,
@@ -680,7 +659,7 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
     rendered = _prepare_and_render_selected_evidence(
         pd.DataFrame(),
         selected_identity_df,
-        False,
+
         10,
         0,
         2,
@@ -782,7 +761,7 @@ def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
     rendered = _prepare_and_render_selected_evidence(
         pd.DataFrame(),
         selected_identity_df,
-        False,
+
         10,
         0,
         2,
@@ -910,7 +889,7 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
             cache_key=("segment",),
             t=T["en"],
             is_compare=True,
-            is_sequential=False,
+
             analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
             language="en",
         )
@@ -951,7 +930,7 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         _prepare_and_render_selected_evidence(
             pd.DataFrame(),
             selected_identity,
-            False,
+
             10,
             0,
             2,
@@ -1122,10 +1101,7 @@ def test_outlier_detector_resolution_is_independent_of_display_bin():
         assert "time_bin" not in keywords
         assert "paired_unit_cadence_minutes" in keywords
         cadence = keywords["paired_unit_cadence_minutes"]
-        assert isinstance(cadence, ast.IfExp)
-        assert "is_sequential" in ast.unparse(cadence.test)
-        assert "tx_ab_repeat_interval_minutes" in ast.unparse(cadence.body)
-        assert ast.literal_eval(cadence.orelse) == 2.0
+        assert ast.literal_eval(cadence) == 2.0
     assert "selected_outlier_time_bin" not in inspect.getsource(inspector_preparation)
 
 
@@ -1195,7 +1171,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     result = _prepare_and_render_selected_evidence(
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
-        False,
+
         10,
         0,
         2,
@@ -1287,7 +1263,7 @@ def test_one_sided_selected_path_renders_empty_absolute_frame_and_coverage(
         pd.DataFrame(
             {"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}
         ),
-        False,
+
         10,
         0,
         2,
@@ -1355,157 +1331,20 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_benchmark_figures():
     ).startswith("TX Benchmark Temporal:")
 
 
-@pytest.mark.parametrize(
-    (
-        "language",
-        "analysis_id",
-        "is_sequential",
-        "expected_labels",
-    ),
-    (
-        pytest.param(
-            "en",
-            "RX_COMPARE",
-            False,
-            {
-                "station_vote_y": "TX Stations",
-                "station_folded_y": "Avg. TX Stations",
-                "unit_y": "Transmitter-Cycles",
-                "unit_folded_y": "Avg. Transmitter-Cycles",
-                "selected_title_unit": "Retained WSPR Cycles",
-                "selected_unit_y": "WSPR Cycles",
-                "selected_unit_folded_y": "Avg. WSPR Cycles",
-                "selected_chronological_title": (
-                    "Retained WSPR Cycles over Time (6 h bins)"
-                ),
-                "selected_utc_hour_title": (
-                    "Retained WSPR Cycles by UTC Hour (1 h bins)"
-                ),
-            },
-            id="en-rx-simultaneous",
-        ),
-        pytest.param(
-            "en",
-            "TX_COMPARE",
-            False,
-            {
-                "station_vote_y": "RX Stations",
-                "station_folded_y": "Avg. RX Stations",
-                "unit_y": "Receiver-Cycles",
-                "unit_folded_y": "Avg. Receiver-Cycles",
-                "selected_title_unit": "Retained WSPR Cycles",
-                "selected_unit_y": "WSPR Cycles",
-                "selected_unit_folded_y": "Avg. WSPR Cycles",
-                "selected_chronological_title": (
-                    "Retained WSPR Cycles over Time (6 h bins)"
-                ),
-                "selected_utc_hour_title": (
-                    "Retained WSPR Cycles by UTC Hour (1 h bins)"
-                ),
-            },
-            id="en-tx-simultaneous",
-        ),
-        pytest.param(
-            "en",
-            "TX_COMPARE",
-            True,
-            {
-                "station_vote_y": "RX Stations",
-                "station_folded_y": "Avg. RX Stations",
-                "unit_y": "Scheduled A/B Pairs",
-                "unit_folded_y": "Avg. Scheduled A/B Pairs",
-                "selected_title_unit": "Scheduled A/B Pairs",
-                "selected_unit_y": "Scheduled A/B Pairs",
-                "selected_unit_folded_y": "Avg. Scheduled A/B Pairs",
-                "selected_chronological_title": (
-                    "Scheduled A/B Pairs over Time (6 h bins)"
-                ),
-                "selected_utc_hour_title": (
-                    "Scheduled A/B Pairs by UTC Hour (1 h bins)"
-                ),
-            },
-            id="en-tx-scheduled",
-        ),
-        pytest.param(
-            "de",
-            "RX_COMPARE",
-            False,
-            {
-                "station_vote_y": "TX-Stationen",
-                "station_folded_y": "Ø TX-Stationen",
-                "unit_y": "Senderzyklen",
-                "unit_folded_y": "Ø Senderzyklen",
-                "selected_title_unit": "Berücksichtigte WSPR-Zyklen",
-                "selected_unit_y": "WSPR-Zyklen",
-                "selected_unit_folded_y": "Ø WSPR-Zyklen",
-                "selected_chronological_title": (
-                    "Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)"
-                ),
-                "selected_utc_hour_title": (
-                    "Berücksichtigte WSPR-Zyklen\n"
-                    "nach UTC-Stunde (1-h-Bins)"
-                ),
-            },
-            id="de-rx-simultaneous",
-        ),
-        pytest.param(
-            "de",
-            "TX_COMPARE",
-            False,
-            {
-                "station_vote_y": "RX-Stationen",
-                "station_folded_y": "Ø RX-Stationen",
-                "unit_y": "Empfängerzyklen",
-                "unit_folded_y": "Ø Empfängerzyklen",
-                "selected_title_unit": "Berücksichtigte WSPR-Zyklen",
-                "selected_unit_y": "WSPR-Zyklen",
-                "selected_unit_folded_y": "Ø WSPR-Zyklen",
-                "selected_chronological_title": (
-                    "Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)"
-                ),
-                "selected_utc_hour_title": (
-                    "Berücksichtigte WSPR-Zyklen\n"
-                    "nach UTC-Stunde (1-h-Bins)"
-                ),
-            },
-            id="de-tx-simultaneous",
-        ),
-        pytest.param(
-            "de",
-            "TX_COMPARE",
-            True,
-            {
-                "station_vote_y": "RX-Stationen",
-                "station_folded_y": "Ø RX-Stationen",
-                "unit_y": "Geplante A/B-Paare",
-                "unit_folded_y": "Ø geplante A/B-Paare",
-                "selected_title_unit": "Geplante A/B-Paare",
-                "selected_unit_y": "Geplante A/B-Paare",
-                "selected_unit_folded_y": "Ø geplante A/B-Paare",
-                "selected_chronological_title": (
-                    "Geplante A/B-Paare im Zeitverlauf (6 h-Bins)"
-                ),
-                "selected_utc_hour_title": (
-                    "Geplante A/B-Paare\nnach UTC-Stunde (1-h-Bins)"
-                ),
-            },
-            id="de-tx-scheduled",
-        ),
-    ),
-)
+@pytest.mark.parametrize(('language', 'analysis_id', 'expected_labels'), [pytest.param('en', 'RX_COMPARE', {'station_vote_y': 'TX Stations', 'station_folded_y': 'Avg. TX Stations', 'unit_y': 'Transmitter-Cycles', 'unit_folded_y': 'Avg. Transmitter-Cycles', 'selected_title_unit': 'Retained WSPR Cycles', 'selected_unit_y': 'WSPR Cycles', 'selected_unit_folded_y': 'Avg. WSPR Cycles', 'selected_chronological_title': 'Retained WSPR Cycles over Time (6 h bins)', 'selected_utc_hour_title': 'Retained WSPR Cycles by UTC Hour (1 h bins)'}, id='en-rx-simultaneous'), pytest.param('en', 'TX_COMPARE', {'station_vote_y': 'RX Stations', 'station_folded_y': 'Avg. RX Stations', 'unit_y': 'Receiver-Cycles', 'unit_folded_y': 'Avg. Receiver-Cycles', 'selected_title_unit': 'Retained WSPR Cycles', 'selected_unit_y': 'WSPR Cycles', 'selected_unit_folded_y': 'Avg. WSPR Cycles', 'selected_chronological_title': 'Retained WSPR Cycles over Time (6 h bins)', 'selected_utc_hour_title': 'Retained WSPR Cycles by UTC Hour (1 h bins)'}, id='en-tx-simultaneous'), pytest.param('de', 'RX_COMPARE', {'station_vote_y': 'TX-Stationen', 'station_folded_y': 'Ø TX-Stationen', 'unit_y': 'Senderzyklen', 'unit_folded_y': 'Ø Senderzyklen', 'selected_title_unit': 'Berücksichtigte WSPR-Zyklen', 'selected_unit_y': 'WSPR-Zyklen', 'selected_unit_folded_y': 'Ø WSPR-Zyklen', 'selected_chronological_title': 'Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)', 'selected_utc_hour_title': 'Berücksichtigte WSPR-Zyklen\nnach UTC-Stunde (1-h-Bins)'}, id='de-rx-simultaneous'), pytest.param('de', 'TX_COMPARE', {'station_vote_y': 'RX-Stationen', 'station_folded_y': 'Ø RX-Stationen', 'unit_y': 'Empfängerzyklen', 'unit_folded_y': 'Ø Empfängerzyklen', 'selected_title_unit': 'Berücksichtigte WSPR-Zyklen', 'selected_unit_y': 'WSPR-Zyklen', 'selected_unit_folded_y': 'Ø WSPR-Zyklen', 'selected_chronological_title': 'Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)', 'selected_utc_hour_title': 'Berücksichtigte WSPR-Zyklen\nnach UTC-Stunde (1-h-Bins)'}, id='de-tx-simultaneous')])
 def test_compare_coverage_labels_route_all_compare_design_families(
     language,
     analysis_id,
-    is_sequential,
+
     expected_labels,
 ):
-    """Route bilingual RX, TX, and scheduled units into every visible axis."""
+    """Route bilingual RX and TX cycle units into every visible axis."""
     target_label = "Target-only sentinel"
     reference_label = "Reference-only sentinel"
     labels = inspector_presentation.compare_coverage_figure_labels(
         T[language],
         analysis_id,
-        is_sequential=is_sequential,
+
         target_only_label=target_label,
         joint_label="Joint",
         reference_only_label=reference_label,
@@ -1546,7 +1385,7 @@ def test_compare_coverage_preserves_local_benchmark_outcome_label():
     labels = inspector_presentation.compare_coverage_figure_labels(
         T["en"],
         "TX_COMPARE",
-        is_sequential=False,
+
         target_only_label="Only G3ZIL",
         joint_label="Joint",
         reference_only_label="Only Local Benchmark",
@@ -1575,7 +1414,7 @@ def test_compare_coverage_uses_semantic_outcome_names_in_both_languages(
     labels = inspector_presentation.compare_coverage_figure_labels(
         translations,
         "RX_COMPARE",
-        is_sequential=False,
+
         target_only_label=translations["leg_only_me"].format(
             callsign=translations["txt_target"]
         ),
@@ -1625,7 +1464,7 @@ def test_compare_coverage_share_labels_separate_axes_from_legends(
     labels = inspector_presentation.compare_coverage_figure_labels(
         T[language],
         "RX_COMPARE",
-        is_sequential=False,
+
         target_only_label="Only Target",
         joint_label="Joint",
         reference_only_label="Only Reference",
@@ -1641,7 +1480,6 @@ def test_compare_coverage_share_labels_separate_axes_from_legends(
     (
         "language",
         "expected_simultaneous_note",
-        "expected_scheduled_note",
     ),
     (
         (
@@ -1653,10 +1491,6 @@ def test_compare_coverage_share_labels_separate_axes_from_legends(
                 "symmetric. Joint Evidence Share shows pair coverage within "
                 "those same cycles."
             ),
-            (
-                "Scheduled-pair evidence · Joint Evidence Share measures "
-                "completed-pair coverage"
-            ),
         ),
         (
             "de",
@@ -1667,26 +1501,21 @@ def test_compare_coverage_share_labels_separate_axes_from_legends(
                 "sind daher nicht symmetrisch. Der Joint-Evidenzanteil zeigt "
                 "die Paarabdeckung innerhalb dieser Zyklen."
             ),
-            (
-                "Evidenz aus geplanten Paaren · Der Joint-Evidenzanteil misst "
-                "die Abdeckung vollständiger Paare"
-            ),
         ),
     ),
 )
 def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
     language,
     expected_simultaneous_note,
-    expected_scheduled_note,
 ):
-    """Pin bilingual Target-activity copy while retaining scheduled routing."""
+    """Pin bilingual Target-activity copy for both directions."""
     translations = T[language]
     for analysis_id in ("RX_COMPARE", "TX_COMPARE"):
         simultaneous_labels = (
             inspector_presentation.compare_coverage_figure_labels(
                 translations,
                 analysis_id,
-                is_sequential=False,
+
                 target_only_label="Only Target",
                 joint_label="Joint",
                 reference_only_label="Only Reference",
@@ -1697,15 +1526,7 @@ def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
             == expected_simultaneous_note
         )
 
-    scheduled_labels = inspector_presentation.compare_coverage_figure_labels(
-        translations,
-        "TX_COMPARE",
-        is_sequential=True,
-        target_only_label="Only Target",
-        joint_label="Joint",
-        reference_only_label="Only Reference",
-    )
-    assert scheduled_labels["gate_note"] == expected_scheduled_note
+
 
 
 def test_long_selected_windows_include_one_and_two_hour_choices():
@@ -1794,12 +1615,12 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
         inspector_preparation.compare_temporal_time_bin_policy(
             start,
             start + pd.Timedelta(days=31),
-            "5m",
+            "10m",
         )
     )
-    assert options == ["5m", "1h", "2h", "3h", "6h", "12h", "24h"]
+    assert options == ["10m", "1h", "2h", "3h", "6h", "12h", "24h"]
     assert default == "12h"
-    assert cache_token == "5m"
+    assert cache_token == "10m"
     assert (
         inspector_preparation.compare_temporal_time_bin_policy(
             start,
@@ -1810,7 +1631,7 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
     )
 
     session_state = {
-        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "5m",
+        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "10m",
     }
     _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
@@ -1820,21 +1641,21 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
         inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
         options,
         default,
-    ) == "5m"
-    assert session_state["segment_time_widget"] == "5m"
+    ) == "10m"
+    assert session_state["segment_time_widget"] == "10m"
     assert (
         session_state[
             inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
         ]
-        == "5m"
+        == "10m"
     )
 
 
 def test_performance_models_key_only_on_an_off_tier_retained_bin():
     """Reuse precomputed in-tier profiles when either Performance selector changes."""
     start = pd.Timestamp("2026-07-01T00:00:00Z")
-    assert inspector_preparation.compare_temporal_time_bin_policy(start, start + pd.Timedelta(hours=24), "2h")[2] is None
-    assert inspector_preparation.compare_temporal_time_bin_policy(start, start + pd.Timedelta(hours=24), "5m")[2] == "5m"
+    assert inspector_preparation.compare_temporal_time_bin_policy(start, start + pd.Timedelta(days=31), "2h")[2] is None
+    assert inspector_preparation.compare_temporal_time_bin_policy(start, start + pd.Timedelta(days=31), "10m")[2] == "10m"
     segment_source = inspect.getsource(InspectorPreparation.prepare_performance_segment)
     selected_source = inspect.getsource(InspectorPreparation.prepare_selected_performance)
     assert segment_source.count("compare_temporal_time_bin_policy(") == 1
@@ -2126,7 +1947,7 @@ def test_manual_drilldown_controls_use_center_inputs_and_one_line_window(
             "rall_dall",
             translations,
             False,
-            False,
+
             SimpleNamespace(),
             "en",
             analysis_start_utc=pd.Timestamp("2026-07-10T00:00:00Z"),
@@ -2194,7 +2015,7 @@ def test_time_bin_widget_falls_back_deterministically_when_option_is_unavailable
     monkeypatch,
 ):
     session_state = {
-        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY: "5m",
+        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY: "10m",
     }
     _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
@@ -2986,7 +2807,7 @@ def test_selected_station_evidence_accepts_enabled_multiple_identities(
     rendered = _prepare_and_render_selected_evidence(
         pd.DataFrame(),
         selected_identity_df,
-        False,
+
         10,
         0,
         2,
@@ -3053,7 +2874,7 @@ def test_unset_view_state_preserves_data_dependent_inspector_defaults(monkeypatc
         inspector_selected.st.session_state,
         "time_widget",
         inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
-        ["15m", "30m", "1h", "3h"],
+        ["10m", "30m", "1h", "3h"],
         "30m",
     ) == "30m"
 
@@ -3117,7 +2938,7 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
     segment_figure_recipe = evidence_figures._segment_figure_export_recipe(
         title="Observed-scale Benchmark",
         selected_segment="Full Range | All Directions",
-        is_sequential=False,
+
         station_values=station_values,
         spot_values=metric_values,
         panel_labels=["Only Target", "Joint", "Both", "Only Reference"],
@@ -3216,7 +3037,6 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
 def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):
     session_state = {}
     _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
-    monkeypatch.setattr(inspector_common, 'get_matplotlib_render_mode', lambda: "image")
     monkeypatch.setattr(inspector_preparation, 'log_performance_event', lambda *args, **kwargs: None)
 
     calls = {"build": 0, "render": 0, "display": 0, "dispose": 0}
@@ -3261,11 +3081,6 @@ def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):
 def test_cached_recipe_key_tracks_shared_temporal_layout_version(monkeypatch):
     """Invalidate preview PNGs when the shared temporal layout changes."""
     captured_keys = []
-    monkeypatch.setattr(
-        inspector_common,
-        'get_matplotlib_render_mode',
-        lambda: "image",
-    )
 
     def capture_cache_key(_run_id, _namespace, cache_key, *_args, **_kwargs):
         captured_keys.append(cache_key)
@@ -3344,7 +3159,7 @@ def test_missing_benchmark_selected_artifact_retains_selected_export_identity(mo
         translations=T["en"], analysis_id="RX_COMP", run_id=17,
         analysis_context=SimpleNamespace(reference_snr_correction_db=0.0), presentation_context=SimpleNamespace(language="en"),
         analysis_start_t=None, analysis_end_t=None, parquet_path="retired.parquet",
-        timing_collector=None, is_sequential=False,
+        timing_collector=None,
     )
     station_view = SimpleNamespace(
         selected_rows=(0,), station_column="Station", locator_column="Locator",

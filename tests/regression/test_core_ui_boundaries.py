@@ -13,7 +13,7 @@ from config import WSPR_DATABASE_PROVIDERS
 from core import data_engine, map_data as map_data_module, plot_engine
 from core.analysis_context import (
     AnalysisContext,
-    COMPARISON_HARDWARE_AB,
+    COMPARISON_REFERENCE_STATION,
     COMPARISON_REFERENCE_STATION,
 )
 from core.analysis_runner import build_analysis_batches
@@ -194,11 +194,6 @@ def test_result_diagnostic_warnings_have_bilingual_placeholder_parity():
             "minimum_qualifying_stations_per_map_segment",
         },
         "warn_benchmark_no_qualifying_result_simultaneous": {
-            "title",
-            "minimum_joint_evidence_per_station",
-            "minimum_qualifying_stations_per_map_segment",
-        },
-        "warn_benchmark_no_qualifying_result_sequential": {
             "title",
             "minimum_joint_evidence_per_station",
             "minimum_qualifying_stations_per_map_segment",
@@ -545,16 +540,16 @@ def test_map_data_is_pure_for_compare_aggregates():
         source,
         analysis_id="TX_COMP",
         is_compare=True,
-        is_sequential=False,
+
         analysis_kind="comparison",
         center_latitude=47.0,
         center_longitude=8.0,
         min_spots=1,
         min_opportunities=5,
         base_min_stations=1,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
+
     )
 
     pd.testing.assert_frame_equal(source, original)
@@ -598,16 +593,16 @@ def test_compare_map_transfers_its_owned_working_frame_to_aggregation(
         source,
         analysis_id="RX_COMP",
         is_compare=True,
-        is_sequential=False,
+
         analysis_kind="comparison",
         center_latitude=47.0,
         center_longitude=8.0,
         min_spots=1,
         min_opportunities=3,
         base_min_stations=1,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
+
         owns_input=True,
     )
 
@@ -651,16 +646,16 @@ def test_success_map_reuses_owned_peer_aggregate_for_station_rows(monkeypatch):
         source,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
         center_latitude=47.0,
         center_longitude=8.0,
         min_spots=1,
         min_opportunities=3,
         base_min_stations=1,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
+
         owns_input=True,
     )
 
@@ -691,16 +686,16 @@ def test_performance_no_eligible_station_diagnostic_includes_target_only_success
         source,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
         center_latitude=47.0,
         center_longitude=8.0,
         min_spots=1,
         min_opportunities=6,
         base_min_stations=2,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
+
     )
 
     assert result.map_data is None
@@ -737,16 +732,16 @@ def test_performance_keeps_station_rows_when_no_segment_meets_threshold():
         source,
         analysis_id="TX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
         center_latitude=0.0,
         center_longitude=0.0,
         min_spots=1,
         min_opportunities=1,
         base_min_stations=2,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
+
     )
 
     assert result.map_data is not None
@@ -782,16 +777,16 @@ def test_map_data_rejects_noncanonical_analysis_modes(
             pd.DataFrame({"unused": [1]}),
             analysis_id="TX_ABS",
             is_compare=is_compare,
-            is_sequential=False,
+
             analysis_kind=analysis_kind,
             center_latitude=47.0,
             center_longitude=8.0,
             min_spots=1,
             min_opportunities=1,
             base_min_stations=1,
-            tx_ab_repeat_interval_minutes=10,
-            tx_ab_target_start_minute=0,
-            tx_ab_reference_start_minute=2,
+
+
+
         )
 
 
@@ -820,7 +815,7 @@ def test_generate_map_plot_returns_explicit_map_figure_contract(monkeypatch):
         source,
         "Title",
         False,
-        False,
+
         START_TIME,
         END_TIME,
         22000,
@@ -860,14 +855,14 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
     english = view_models.build_compare_inspector_view_model(
         scope_rows,
         analysis_id="TX_COMP",
-        is_sequential=False,
+
         analysis_context=context,
         presentation_context=_presentation("en"),
     )
     german = view_models.build_compare_inspector_view_model(
         scope_rows,
         analysis_id="TX_COMP",
-        is_sequential=False,
+
         analysis_context=context,
         presentation_context=_presentation("de"),
     )
@@ -887,26 +882,6 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
     assert list(english.station_table.columns) != list(german.station_table.columns)
 
 
-def test_hardware_compare_labels_use_fixed_identities_or_scheduled_roles():
-    """Expose callsigns for simultaneous paths and roles for one-callsign schedules."""
-    simultaneous_context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        reference_callsign="DL2XYZ/P",
-        reference_qth="JN37",
-    )
-    simultaneous = view_models._compare_labels(
-        simultaneous_context,
-        T["en"],
-        is_sequential=False,
-    )
-    sequential = view_models._compare_labels(
-        simultaneous_context,
-        T["en"],
-        is_sequential=True,
-    )
-
-    assert simultaneous[:2] == ("DL1MKS", "DL2XYZ/P")
-    assert sequential[:2] == ("Target", "Reference")
 
 
 def test_compare_view_model_exposes_one_table_and_joint_evidence_identities():
@@ -924,7 +899,7 @@ def test_compare_view_model_exposes_one_table_and_joint_evidence_identities():
     )
     kwargs = {
         "analysis_id": "TX_COMP",
-        "is_sequential": False,
+
         "analysis_context": _analysis_context(),
         "presentation_context": _presentation("en"),
     }

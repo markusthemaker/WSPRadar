@@ -9,7 +9,6 @@ import time
 from config import (
     DEFAULT_BAND,
     DEMO_PROFILES,
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
@@ -59,7 +58,7 @@ from ui.population_exclusion_state import (
     transition_population_exclusion_result_type,
 )
 from ui.time_window import (
-    quantize_utc_window_state,
+    normalize_utc_window_state,
     set_suggested_end_date_from_start_date,
     set_default_utc_window_state,
 )
@@ -68,12 +67,6 @@ from ui.analysis_submission_state import (
     cancel_analysis_submission,
 )
 
-
-def _demo_config_document(profile):
-    """Return the ordinary config document exposed directly or by the UI adapter."""
-    if isinstance(profile, dict) and isinstance(profile.get("configuration"), dict):
-        return profile["configuration"]
-    return profile
 
 def reset_audit():
     """Invalidate a scientific population, scope, or evidence-filter edit.
@@ -133,7 +126,8 @@ def reset_delta_snr_outlier_detector_defaults(
 
 def handle_time_window_change(after_change=None, after_change_args=()):
     """Canonicalize edited UTC endpoints before running the owning callback."""
-    quantize_utc_window_state(st.session_state)
+    clear_reference_location_resolution()
+    normalize_utc_window_state(st.session_state)
     if after_change is not None:
         after_change(*after_change_args)
 
@@ -160,13 +154,13 @@ def handle_reference_correction_context_change():
 
     Reference-side corrections are established for one controlled path or
     Target–Reference pair and operating design. Carrying one across a changed
-    identity, QTH, band, local method, or TX schedule would silently alter every
+    identity, QTH, band, or local method would silently alter every
     reported Delta SNR under a context for which it was not established.
     """
+    clear_reference_location_resolution()
     active_mode = st.session_state.get("val_comp_mode")
     retained_mode = st.session_state.get("guided_last_benchmark_mode")
     comparison_modes = {
-        "hardware_ab",
         "reference_station",
         "local_neighborhood",
     }
@@ -175,75 +169,6 @@ def handle_reference_correction_context_change():
         st.session_state.val_snr_correction_mode = "no_offset"
     reset_experiment_definition()
 
-
-def _normalize_tx_ab_schedule_state(changed_start=None):
-    """Keep periodic TX A/B starts valid and disjoint after one UI change."""
-    repeat_interval = st.session_state.get(
-        "val_tx_ab_repeat_interval_minutes",
-        10,
-    )
-    if repeat_interval not in TX_AB_REPEAT_INTERVAL_OPTIONS:
-        repeat_interval = 10
-    permitted_starts = tuple(range(0, int(repeat_interval), 2))
-
-    target_start = st.session_state.get("val_tx_ab_target_start_minute", 0)
-    reference_start = st.session_state.get("val_tx_ab_reference_start_minute", 2)
-    if target_start not in permitted_starts:
-        target_start = permitted_starts[0]
-    if reference_start not in permitted_starts:
-        reference_start = next(
-            start for start in permitted_starts if start != target_start
-        )
-    if target_start == reference_start:
-        if changed_start == "reference":
-            target_start = next(
-                start for start in permitted_starts if start != reference_start
-            )
-        else:
-            reference_start = next(
-                start for start in permitted_starts if start != target_start
-            )
-
-    st.session_state.val_tx_ab_repeat_interval_minutes = int(repeat_interval)
-    st.session_state.val_tx_ab_target_start_minute = int(target_start)
-    st.session_state.val_tx_ab_reference_start_minute = int(reference_start)
-
-
-def _finish_tx_ab_schedule_change(after_change=None, after_change_args=()):
-    """Run the requested editor callback after schedule normalization."""
-    if after_change is None:
-        reset_experiment_definition()
-    else:
-        after_change(*(after_change_args or ()))
-
-
-def handle_tx_ab_repeat_interval_change(after_change=None, after_change_args=()):
-    """Reconcile both UTC starts, then invalidate the owning editor's result."""
-    _normalize_tx_ab_schedule_state()
-    _finish_tx_ab_schedule_change(after_change, after_change_args)
-
-
-def handle_tx_ab_target_start_change(after_change=None, after_change_args=()):
-    """Keep Reference Start disjoint, then notify the owning editor."""
-    _normalize_tx_ab_schedule_state(changed_start="target")
-    _finish_tx_ab_schedule_change(after_change, after_change_args)
-
-
-def handle_tx_ab_reference_start_change(after_change=None, after_change_args=()):
-    """Keep Target Start disjoint, then notify the owning editor."""
-    _normalize_tx_ab_schedule_state(changed_start="reference")
-    _finish_tx_ab_schedule_change(after_change, after_change_args)
-
-
-def swap_tx_ab_starts(after_change=None, after_change_args=()):
-    """Swap schedule attribution, then notify the owning editor."""
-    target_start = st.session_state.val_tx_ab_target_start_minute
-    st.session_state.val_tx_ab_target_start_minute = (
-        st.session_state.val_tx_ab_reference_start_minute
-    )
-    st.session_state.val_tx_ab_reference_start_minute = target_start
-    _normalize_tx_ab_schedule_state()
-    _finish_tx_ab_schedule_change(after_change, after_change_args)
 
 def update_lang():
     """Relocalize completed evidence, retiring any in-flight UI submission.
@@ -297,7 +222,7 @@ def _apply_demo_profile_values(profile_key):
     if not profile:
         return
 
-    normalized_config = validate_config_document(_demo_config_document(profile))
+    normalized_config = validate_config_document(profile["configuration"])
     st.session_state.guided_last_benchmark_mode = None
     apply_config_state_values(normalized_config, st.session_state)
 
@@ -381,7 +306,7 @@ def run_demo_profile(profile_key):
 
 def handle_comp_mode_change():
     """
-    Reset active results and correction when the benchmark design changes.
+    Reset active results, discovered location and correction after design edits.
     """
     transition_population_exclusion_result_type(
         st.session_state,
@@ -389,6 +314,7 @@ def handle_comp_mode_change():
             st.session_state.get("val_comp_mode")
         ),
     )
+    clear_reference_location_resolution()
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
     reset_experiment_definition()
@@ -426,38 +352,8 @@ def handle_classic_benchmark_design_change():
 
 
 def handle_analysis_direction_change():
-    """
-    Reset active results after selecting RX or TX analysis direction.
-
-    Hardware A/B uses direction-specific parameters. Changing direction while
-    that design is active or retained returns to Performance-only mode so an RX
-    identity can never become a TX schedule configuration, or vice versa.
-    Reference Station and Local Neighborhood keep their identities/scope but
-    clear any direction-specific correction.
-    """
-    active_mode = st.session_state.get("val_comp_mode")
-    retained_mode = st.session_state.get("guided_last_benchmark_mode")
-    if active_mode == "hardware_ab" or retained_mode == "hardware_ab":
-        st.session_state.val_comp_mode = "none"
-        transition_population_exclusion_result_type(
-            st.session_state,
-            PERFORMANCE_RESULT_TYPE,
-        )
-        st.session_state.guided_reference_design = None
-        st.session_state.guided_last_benchmark_mode = None
-        st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.val_snr_correction_mode = "no_offset"
-        st.session_state.val_tx_ab_method = "simultaneous"
-        st.session_state.val_tx_ab_repeat_interval_minutes = 10
-        st.session_state.val_tx_ab_target_start_minute = 0
-        st.session_state.val_tx_ab_reference_start_minute = 2
-    elif active_mode in {"reference_station", "local_neighborhood"} or retained_mode in {
-        "reference_station",
-        "local_neighborhood",
-    }:
-        st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.val_snr_correction_mode = "no_offset"
-    reset_experiment_definition()
+    """Clear direction-specific correction and location discovery after RX/TX edits."""
+    handle_reference_correction_context_change()
 
 def set_reset_config(*, reset_time_window=True):
     """
@@ -473,17 +369,15 @@ def set_reset_config(*, reset_time_window=True):
         set_default_utc_window_state(st.session_state)
     st.session_state.val_solar = "all"
     st.session_state.val_comp_mode = "none"
-    st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
     st.session_state.val_local_benchmark = "local_median"
     st.session_state.val_ref_callsign = ""
     st.session_state.val_ref_qth = ""
-    st.session_state.val_tx_ab_method = "simultaneous"
-    st.session_state.val_tx_ab_repeat_interval_minutes = 10
-    st.session_state.val_tx_ab_target_start_minute = 0
-    st.session_state.val_tx_ab_reference_start_minute = 2
+    st.session_state.pop("_input_field_errors", None)
+    st.session_state.pop("_input_validation_attempted", None)
+    st.session_state.pop("_reference_location_resolution", None)
     st.session_state.val_max_peer_distance_km = 22000
     reset_population_exclusion_state(st.session_state)
     st.session_state.val_min_spots = 1
@@ -520,3 +414,9 @@ def set_reset_config(*, reset_time_window=True):
     for state_key in tuple(st.session_state.keys()):
         if state_key.startswith("config_save_"):
             st.session_state.pop(state_key, None)
+
+
+def clear_reference_location_resolution():
+    """Invalidate a resolved Reference location after discovery-scope edits."""
+    st.session_state.val_ref_qth = ""
+    st.session_state.pop("_reference_location_resolution", None)

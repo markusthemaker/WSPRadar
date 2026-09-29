@@ -43,7 +43,7 @@ def _localized_selected_evidence_recipe(
     time_agg,
     *,
     language="en",
-    is_sequential=False,
+
     **overrides,
 ):
     """Build one localized dual-panel selected-Benchmark recipe."""
@@ -58,9 +58,7 @@ def _localized_selected_evidence_recipe(
         "analysis_end_t": analysis_end_t,
         "count_label": translations[
             (
-                "fig_scheduled_pair_count"
-                if is_sequential
-                else "fig_joint_spot_count"
+                "fig_joint_spot_count"
             )
         ],
         "chronological_title": translations[
@@ -82,9 +80,7 @@ def _localized_selected_evidence_recipe(
         ].replace("{count}", "{utc_date_count}"),
         "density_label": translations[
             (
-                "fig_relative_scheduled_pair_density"
-                if is_sequential
-                else "fig_relative_joint_spot_density"
+                "fig_relative_joint_spot_density"
             )
         ],
         "folded_unavailable_text": translations[
@@ -102,7 +98,7 @@ def _localized_selected_evidence_recipe(
         plot_df,
         evidence_title,
         time_agg,
-        is_sequential,
+
         **presentation,
     )
 
@@ -114,7 +110,7 @@ def _localized_segment_temporal_recipe(
     count_label=None,
     *,
     language="en",
-    is_sequential=False,
+
     **overrides,
 ):
     """Build a segment-temporal recipe with explicit localized labels."""
@@ -125,9 +121,7 @@ def _localized_segment_temporal_recipe(
     )
     resolved_count_label = count_label or translations[
         (
-            "fig_scheduled_pair_count"
-            if is_sequential
-            else "fig_joint_spot_count"
+            "fig_joint_spot_count"
         )
     ]
     chronological_title = translations["fig_segment_chronological_delta"]
@@ -155,9 +149,7 @@ def _localized_segment_temporal_recipe(
         ].replace("{count}", "{utc_date_count}"),
         "density_label": translations[
             (
-                "fig_relative_scheduled_pair_density"
-                if is_sequential
-                else "fig_relative_joint_spot_density"
+                "fig_relative_joint_spot_density"
             )
         ],
         "folded_unavailable_text": translations[
@@ -223,7 +215,7 @@ def _correction_footer_segment_recipe(notice=""):
     return _segment_figure_export_recipe(
         title="RX Benchmark",
         selected_segment="Full Range | All Directions",
-        is_sequential=False,
+
         station_values=[-1.0, 1.0],
         spot_values=[-2.0, 0.0, 2.0],
         panel_labels=["Only Target", "Joint", "Both (Async)", "Only Reference"],
@@ -270,7 +262,7 @@ def test_compare_segment_recipe_retains_histograms_without_observation_vectors()
     """Keep exact Segment Insight statistics independent of evidence row count."""
     recipe = _correction_footer_segment_recipe()
 
-    assert recipe["schema_version"] == 2
+    assert recipe["schema_version"] == 3
     assert "station_values" not in recipe
     assert "spot_values" not in recipe
     assert recipe["station_histogram"]["counts"].sum() == 2
@@ -482,7 +474,7 @@ def _render_compare_evidence_figure(metric_values, identity_labels):
         plot_df,
         "Selected Station Evidence",
         "3h",
-        is_sequential=False,
+
     )
     assert recipe["kind"] == "selected_benchmark_temporal"
     assert "temporal_view" not in recipe
@@ -747,7 +739,7 @@ def test_segment_and_selected_recipes_keep_their_own_evidence_medians():
         selected_plot_df,
         "Selected Evidence",
         "3h",
-        is_sequential=False,
+
     )
 
     assert segment_recipe["median_focus"]["median_db"] == pytest.approx(6.0)
@@ -857,7 +849,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
         plot_df,
         "Selected Evidence",
         "3h",
-        is_sequential=False,
+
     )
 
     assert recipe["median_focus"]["median_db"] == pytest.approx(6.0)
@@ -957,7 +949,7 @@ def test_selected_time_heatmap_uses_panel_max_relative_density():
         plot_df,
         "Selected Evidence",
         "1h",
-        is_sequential=False,
+
     )
 
     figure = render_selected_evidence_export_figure(recipe)
@@ -1008,7 +1000,7 @@ def test_selected_compare_can_render_folded_utc_hour_density():
         plot_df,
         "Selected Folded Evidence",
         "3h",
-        is_sequential=False,
+
         folded_title="UTC profile",
         folded_x_label="UTC clock hour",
         density_label="Relative selected density",
@@ -1184,7 +1176,7 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         plot_df,
         "Selected Folded Evidence",
         "3h",
-        is_sequential=False,
+
         folded_title="UTC-Profil",
         folded_x_label="UTC-Stunde",
         folded_unavailable_text=placeholder,
@@ -1264,7 +1256,7 @@ def test_selected_compare_dual_panels_share_guide_and_median_hierarchy(
         plot_df,
         "Selected Evidence",
         "3h",
-        is_sequential=False,
+
     )
 
     figure = render_selected_evidence_export_figure(recipe)
@@ -1658,7 +1650,7 @@ def test_segment_benchmark_temporal_recipe_and_dual_density_figure():
     )
 
     assert recipe["kind"] == "segment_benchmark_temporal"
-    assert recipe["schema_version"] == 6
+    assert recipe["schema_version"] == 7
     assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
     assert recipe["utc_date_count"] == 2
@@ -2087,51 +2079,6 @@ def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():
         dispose_matplotlib_figure(figure)
 
 
-def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
-    """Keep periodic TX A/B relative density distinct from old spot-bin wording."""
-    plot_df = pd.DataFrame(
-        {
-            "identity": ["A (AA00)", "A (AA00)"],
-            "plot_time": pd.to_datetime(
-                ["2026-07-01T00:00:00Z", "2026-07-01T00:10:00Z"],
-                utc=True,
-            ),
-            "metric": [1.0, 2.0],
-        }
-    )
-    recipe = _localized_selected_evidence_recipe(
-        plot_df,
-        "Scheduled Evidence",
-        "1h",
-        is_sequential=True,
-        time_bin_options=("1h", "3h"),
-    )
-
-    figure = render_selected_evidence_export_figure(recipe)
-    try:
-        assert "Relative scheduled-pair density (% of panel maximum)" in {
-            axis.get_ylabel() for axis in figure.axes
-        }
-        chronological_axis, folded_axis, _colorbar_axis = figure.axes
-        assert not _texts_with_gid(
-            chronological_axis,
-            "folded-utc-unavailable-annotation",
-        )
-        _assert_folded_unavailable_annotation(
-            figure,
-            folded_axis,
-            T["en"]["fig_segment_folded_unavailable"],
-        )
-        assert "requires paired evidence" in T["en"][
-            "fig_segment_folded_unavailable"
-        ]
-        assert folded_axis.get_gid() == "compare-temporal-folded-axis"
-        assert not any(
-            isinstance(collection, QuadMesh)
-            for collection in folded_axis.collections
-        )
-    finally:
-        dispose_matplotlib_figure(figure)
 
 
 def test_compare_chronological_bins_anchor_to_selected_start_and_keep_gaps():

@@ -87,8 +87,8 @@ COMPARE_MEDIAN_FOCUS_BROAD_ANCHORS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0, 60.0)
 COMPARE_MEDIAN_FOCUS_BROAD_LABELS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0)
 COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES = 256 * 1024
 COMPARE_RECIPE_ARRAY_ENCODING = "numpy-zlib-v1"
-COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 2
-COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 6
+COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 3
+COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 7
 COMPARE_TEMPORAL_MEMBERSHIP_MIDPOINT_EPS_MULTIPLIER = 8.0
 DELTA_SNR_OUTLIER_MARKER_SIZE = 84
 DELTA_SNR_OUTLIER_MARKER_FACE_COLOR = "#FF2BD6"
@@ -133,7 +133,7 @@ def _compact_compare_recipe_array(values, *, dtype):
 
 
 def _compare_recipe_array_values(value, *, dtype):
-    """Decode one compact Benchmark recipe array or accept its legacy ndarray."""
+    """Decode a compressed Benchmark recipe array or its uncompressed ndarray."""
     requested_dtype = np.dtype(dtype)
     if not (
         isinstance(value, Mapping)
@@ -2241,7 +2241,6 @@ def _selected_evidence_export_recipe(
     plot_df,
     evidence_title,
     time_agg,
-    is_sequential,
     *,
     analysis_start_t,
     analysis_end_t,
@@ -2301,7 +2300,6 @@ def _selected_evidence_export_recipe(
         reference_snr_correction_notice=reference_snr_correction_notice,
         time_bin_options=time_bin_options,
     )
-    recipe["is_sequential"] = bool(is_sequential)
     recipe["selected_identity_count"] = selected_identity_count
     return recipe
 
@@ -2315,7 +2313,6 @@ def _segment_figure_export_recipe(
     *,
     title,
     selected_segment,
-    is_sequential,
     station_values,
     spot_values,
     panel_labels,
@@ -2337,7 +2334,6 @@ def _segment_figure_export_recipe(
         "schema_version": COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION,
         "title": title,
         "selected_segment": selected_segment,
-        "is_sequential": bool(is_sequential),
         "station_histogram": _vertical_metric_histogram_recipe(
             station_values
         ),

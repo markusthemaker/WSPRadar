@@ -18,7 +18,6 @@ from config import (
     CONFIG_DOCUMENT_FORMAT,
     CONFIG_KEYS,
     CONFIG_SCHEMA_VERSION,
-    DB_URL,
     DEFAULT_BAND,
     DEMO_QUERY_CACHE_TTL_SEC,
     DEMO_QUERY_FAILURE_CACHE_TTL_SEC,
@@ -283,7 +282,6 @@ def test_wspr_database_provider_priority_and_limits_are_explicit():
     )
     assert WSPR_PROVIDER_ACQUIRE_TIMEOUT_SEC == 600
     assert WSPR_PROVIDER_ACQUIRE_POLL_INTERVAL_SEC == 0.5
-    assert DB_URL == WSPR_DATABASE_PROVIDERS[0].url
 
 
 def test_demo_configs_follow_filename_order_and_keep_canonical_settings():

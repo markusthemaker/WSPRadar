@@ -9,42 +9,16 @@ from config import (
     BAND_MAP,
     DEFAULT_BAND,
     SNR_CORRECTION_MODES,
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
 )
-from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
 from ui.classic_input_state import initialize_classic_input_state
 from ui.inspector.selection_state import seed_inspector_selection_state
 from ui.population_exclusion_state import initialize_population_exclusion_state
 from ui.time_window import initialize_utc_window_state
 
-
-_LEGACY_GUIDED_USE_CASE_ALIASES = {
-    "rx_success": "rx_performance",
-    "tx_success": "tx_performance",
-    "rx_compare": "rx_benchmark",
-    "tx_compare": "tx_benchmark",
-}
-_BENCHMARK_MODES = frozenset(
-    {"hardware_ab", "reference_station", "local_neighborhood"}
-)
-
-
-def _canonicalize_localized_state(value, canonical_to_translation_key, fallback):
-    """Return a stable token for legacy sessions that still hold display text."""
-    if value in canonical_to_translation_key:
-        return value
-    legacy_canonical_value = LEGACY_LOCALIZED_STATE_VALUES.get(value)
-    if legacy_canonical_value in canonical_to_translation_key:
-        return legacy_canonical_value
-    for translations in T.values():
-        for canonical, translation_key in canonical_to_translation_key.items():
-            if value == translations.get(translation_key):
-                return canonical
-    return fallback
 
 def get_browser_language() -> str:
     """
@@ -80,11 +54,7 @@ def init_session_state():
     if st.session_state.get("input_view") not in {"guided", "classic"}:
         st.session_state.input_view = "guided"
     guided_use_case = st.session_state.get("guided_use_case")
-    if guided_use_case in _LEGACY_GUIDED_USE_CASE_ALIASES:
-        st.session_state.guided_use_case = _LEGACY_GUIDED_USE_CASE_ALIASES[
-            guided_use_case
-        ]
-    elif guided_use_case not in {
+    if guided_use_case not in {
         None,
         "rx_performance",
         "tx_performance",
@@ -97,17 +67,7 @@ def init_session_state():
     if "guided_reference_design" not in st.session_state:
         st.session_state.guided_reference_design = None
     if "guided_last_benchmark_mode" not in st.session_state:
-        legacy_benchmark_mode = st.session_state.pop(
-            "guided_last_compare_mode",
-            None,
-        )
-        st.session_state.guided_last_benchmark_mode = (
-            legacy_benchmark_mode
-            if legacy_benchmark_mode in _BENCHMARK_MODES
-            else None
-        )
-    else:
-        st.session_state.pop("guided_last_compare_mode", None)
+        st.session_state.guided_last_benchmark_mode = None
     if st.session_state.get("guided_scope_mode") not in {
         "general",
         "custom",
@@ -142,19 +102,9 @@ def init_session_state():
     initialize_utc_window_state(st.session_state)
         
     # --- Default Benchmark Design ---
-    st.session_state.val_comp_mode = _canonicalize_localized_state(
-        st.session_state.get("val_comp_mode"),
-        {
-            "none": "opt_comp_none",
-            "hardware_ab": "opt_comp_self",
-            "reference_station": "opt_comp_buddy",
-            "local_neighborhood": "opt_comp_radius",
-        },
-        "none",
-    )
+    if st.session_state.get("val_comp_mode") not in {"none", "reference_station", "local_neighborhood"}:
+        st.session_state.val_comp_mode = "none"
     initialize_classic_input_state(st.session_state)
-    if "val_ref_stations" not in st.session_state: 
-        st.session_state.val_ref_stations = 10
     if "val_ref_radius_km" not in st.session_state:
         st.session_state.val_ref_radius_km = 100
     if "val_benchmark_offset_db" not in st.session_state:
@@ -171,58 +121,16 @@ def init_session_state():
         "establish_offset",
     }:
         st.session_state.val_benchmark_offset_db = 0.0
-    local_benchmark_state = st.session_state.get("val_local_benchmark", "local_median")
-    st.session_state.val_local_benchmark = (
-        _canonicalize_localized_state(
-            local_benchmark_state,
-            {"local_median": "opt_local_median"},
-            local_benchmark_state,
-        )
-        if isinstance(local_benchmark_state, str)
-        else local_benchmark_state
-    )
+    if "val_local_benchmark" not in st.session_state:
+        st.session_state.val_local_benchmark = "local_median"
     if "val_ref_callsign" not in st.session_state: 
         st.session_state.val_ref_callsign = ""
     if "val_ref_qth" not in st.session_state:
         st.session_state.val_ref_qth = ""
-    if st.session_state.get("val_tx_ab_method") not in {
-        "simultaneous",
-        "sequential",
-    }:
-        st.session_state.val_tx_ab_method = "simultaneous"
-    if "val_tx_ab_repeat_interval_minutes" not in st.session_state:
-        st.session_state.val_tx_ab_repeat_interval_minutes = 10
-        st.session_state.val_tx_ab_target_start_minute = 0
-        st.session_state.val_tx_ab_reference_start_minute = 2
 
-    repeat_interval = st.session_state.get("val_tx_ab_repeat_interval_minutes", 10)
-    if repeat_interval not in TX_AB_REPEAT_INTERVAL_OPTIONS:
-        repeat_interval = 10
-    permitted_starts = tuple(range(0, int(repeat_interval), 2))
-    target_start = st.session_state.get("val_tx_ab_target_start_minute", 0)
-    reference_start = st.session_state.get("val_tx_ab_reference_start_minute", 2)
-    if target_start not in permitted_starts:
-        target_start = permitted_starts[0]
-    if reference_start not in permitted_starts or reference_start == target_start:
-        reference_start = next(
-            start for start in permitted_starts if start != target_start
-        )
-
-    st.session_state.val_tx_ab_repeat_interval_minutes = int(repeat_interval)
-    st.session_state.val_tx_ab_target_start_minute = int(target_start)
-    st.session_state.val_tx_ab_reference_start_minute = int(reference_start)
-        
     # --- Default Advanced Configurations ---
-    st.session_state.val_solar = _canonicalize_localized_state(
-        st.session_state.get("val_solar"),
-        {
-            "all": "opt_solar_all",
-            "day": "opt_solar_day",
-            "night": "opt_solar_night",
-            "greyline": "opt_solar_grey",
-        },
-        "all",
-    )
+    if st.session_state.get("val_solar") not in {"all", "day", "night", "greyline"}:
+        st.session_state.val_solar = "all"
     if "val_max_peer_distance_km" not in st.session_state:
         st.session_state.val_max_peer_distance_km = 22000
     initialize_population_exclusion_state(st.session_state)
@@ -274,10 +182,6 @@ def init_session_state():
         "val_ref_radius_km",
         "val_benchmark_offset_db",
         "val_snr_correction_mode",
-        "val_tx_ab_method",
-        "val_tx_ab_repeat_interval_minutes",
-        "val_tx_ab_target_start_minute",
-        "val_tx_ab_reference_start_minute",
         "val_solar",
         "val_max_peer_distance_km",
         "val_exclude_special_callsigns",

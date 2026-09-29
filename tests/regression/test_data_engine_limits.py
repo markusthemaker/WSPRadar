@@ -752,7 +752,7 @@ def test_cached_strict_target_evidence_keeps_primary_eligible_during_cooldown(
     legacy_query = f"SELECT '{uuid.uuid4().hex}' LEGACY"
     analysis = {
         "analysis_kind": "comparison",
-        "is_sequential": False,
+
         "query": strict_query,
         "legacy_query": legacy_query,
         "response_format": "csv",
@@ -822,7 +822,7 @@ def test_demo_compare_disk_cache_informs_strict_and_legacy_request_estimate(
     legacy_query = "SELECT demo_compare_legacy"
     analysis = {
         "analysis_kind": "comparison",
-        "is_sequential": False,
+
         "query": strict_query,
         "legacy_query": legacy_query,
         "response_format": "csv",
@@ -879,7 +879,7 @@ def test_complete_demo_compare_cache_requires_strict_and_legacy_rows(
     primary, wd2, _wd1 = WSPR_DATABASE_PROVIDERS
     analysis = {
         "analysis_kind": "comparison",
-        "is_sequential": False,
+
         "query": "SELECT bundle_compare_strict",
         "legacy_query": "SELECT bundle_compare_legacy",
         "response_format": "csv",
@@ -932,7 +932,7 @@ def test_demo_compare_first_fetch_publishes_and_second_fetch_reuses_disk_rows(
     compare_legacy_query = "SELECT demo_bundle_compare_legacy FORMAT CSVWithNames"
     analysis = {
         "analysis_kind": "comparison",
-        "is_sequential": False,
+
         "query": compare_strict_query,
         "legacy_query": compare_legacy_query,
         "response_format": "csv",
@@ -1119,7 +1119,7 @@ def test_standard_csv_disk_cache_informs_strict_and_legacy_request_estimate(
     legacy_query = "SELECT standard_compare_legacy FORMAT CSVWithNames"
     analysis = {
         "analysis_kind": "comparison",
-        "is_sequential": False,
+
         "query": strict_query,
         "legacy_query": legacy_query,
         "response_format": "csv",
@@ -1161,7 +1161,7 @@ def test_standard_admission_inspection_deletes_corrupt_l2_without_touching(
     query = "SELECT corrupt_standard_cache FORMAT CSVWithNames"
     analysis = {
         "analysis_kind": "comparison",
-        "is_sequential": False,
+
         "query": query,
         "response_format": "csv",
     }
@@ -1201,7 +1201,7 @@ def test_standard_admission_inspection_deletes_oversized_l2_and_keeps_marker(
     query = "SELECT oversized_standard_cache FORMAT Parquet"
     analysis = {
         "analysis_kind": "opportunity",
-        "is_sequential": False,
+
         "query": query,
         "response_format": "parquet",
     }

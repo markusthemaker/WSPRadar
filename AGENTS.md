@@ -15,7 +15,6 @@ generated end-user and scientific manual, not the repository engineering guide.
 | `docs/` | English and German manuals plus lazy PDF generation. |
 | `tests/regression/` | Regression and contract tests for scientific, persistence, concurrency, UI-boundary, and performance-sensitive behavior. |
 | `scripts/` | Routine Git/release commands, regression launchers and README synchronization; specialist fixture, figure and verification tools are under `scripts/internal/`. See `scripts/README.md`. |
-| `tools/Timed-AB-Relay-Switch/` | Separate USB relay console utility; it is not part of the Streamlit runtime. |
 | `.streamlit/` | Streamlit theme and server configuration. |
 | `.devcontainer/` | Linux development-container definition and native package setup. |
 | `.github/workflows/` | Deployment wake-up automation and regression-manifest validation. There is currently no full regression or lint workflow. |
@@ -134,7 +133,7 @@ existing Matplotlib pending-deprecation warning is emitted from
 Compile all Python sources:
 
 ```powershell
-python -m compileall -q app.py config core docs ui scripts tests tools
+python -m compileall -q app.py config core docs ui scripts tests
 ```
 
 Check patch whitespace:
@@ -954,10 +953,9 @@ technically correct or already present.
 - Organize Part I around the operator's analysis question rather than around a
   generic inventory of screens. Chapter 2 uses the four analysis families **RX
   Performance**, **TX Performance**, **RX Benchmark**, and **TX Benchmark**.
-  RX Benchmark distinguishes Hardware A/B, Reference Station / Buddy Test,
-  and Local Median Neighborhood. TX Benchmark distinguishes
-  simultaneous Hardware A/B, sequential Hardware A/B, Reference Station / Buddy
-  Test, and Local Median Neighborhood.
+  RX and TX Benchmark each distinguish Reference Setup/Station and Reference
+  Neighbourhood. Both use same-cycle evidence; experimental intent describes
+  controlled setups or independent stations without selecting another method.
 - Keep Section 2.5 explicitly scoped as an optional expert diagnostic tool for
   finding and reviewing temporary Delta-SNR departures. It owns practical use,
   report reading and investigation guidance, not a recommendation that every
@@ -1211,7 +1209,7 @@ multi-stage-method ownership rule below:
 - **References:** the consolidated source list follows Chapter 8 and precedes
   Part IV.
 - **Part IV — Practical Supplements:** Appendix A owns parallel WSJT-X setup;
-  Appendix B owns sequential TX A/B scheduling, switching and device examples;
+  Appendix B owns simultaneous TX Reference setup and archive preflight;
   Appendix C owns Reference SNR Calibration. The License follows Appendix C.
 
 Use this timing test when placement is unclear:
@@ -1249,20 +1247,11 @@ must not reproduce the complete mechanics.
 Examples:
 
 - define the power-normalization equation in Section 7.5; retain `report actual power` as a warning in the TX A/B playbook;
-- for sequential TX A/B, treat Sections 7.1 and 7.7 as jointly necessary:
-  Section 7.1 owns the time model and window eligibility, while Section 7.7
-  presents the end-to-end pair construction, micro-medians, one-sided outcomes
-  and aggregation sequence. Section 7.6 owns the interpretation of paired
-  evidence and Decode Outcomes, and Section 7.3 may state the
-  Target/Reference-swap consequence of the tie rule. Cross-reference Sections
-  7.1 and 7.7 together from practical guidance; retain `pairing is automatic
-  and deterministic` in the playbook;
-- define exact schedule choices in Section 4.3; retain `enter each path's actual recurrence and UTC phase` in the playbook;
 - define Delta-SNR outlier controls in Section 4.6, expert practical use and
   interpretation in Section 2.5, and the complete notation and equations in
   Section 7.11; cross-reference these sections rather than copying the formulas;
-- keep the Ultimate3S and QMX schedule examples in Appendix B, Sections B.3 and
-  B.4, and link to them from the playbook.
+- keep simultaneous-TX device and archive-preflight guidance in Appendix B
+  and link to it from the playbook.
 
 #### Relocation protocol
 

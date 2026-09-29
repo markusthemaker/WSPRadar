@@ -168,11 +168,11 @@ def _run_reference(mode, *, minimum=5, source_rows=None):
     assert warning is None
     map_result = build_map_data_result(
         processed, analysis_id=analysis.id, is_compare=analysis.is_compare,
-        is_sequential=analysis.is_sequential, analysis_kind=analysis.analysis_kind,
+         analysis_kind=analysis.analysis_kind,
         center_latitude=latitude, center_longitude=longitude,
         min_spots=1, min_opportunities=minimum, base_min_stations=1,
-        tx_ab_repeat_interval_minutes=10, tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
     )
     assert map_result.diagnostic is None
     stations = map_result.map_data.station_rows
@@ -419,7 +419,7 @@ def test_station_and_projected_drilldown_exports_preserve_success_and_provenance
         parquet_path, selected, inspector.export_station_column,
         inspector.export_locator_column, inspector.distance_column,
         inspector.azimuth_column, reference_run.analysis.id,
-        False, False, False, TARGET_CALLSIGN, "", T["en"],
+         False, False, TARGET_CALLSIGN, "", T["en"],
     )
     assert message is None
     assert len(drilldown) == 7

@@ -375,7 +375,7 @@ class OwnedExportContent:
         return tuple(self._content)
 
     def materialize_field(self, key) -> Any:
-        """Copy only one requested top-level field for a compatibility reader."""
+        """Copy one top-level field while preserving isolated Mapping access."""
         if not isinstance(self._content, Mapping):
             raise TypeError("Export content fields require a top-level mapping.")
         return _clone_graph(

@@ -33,14 +33,10 @@ BENCHMARK_RESULTS_VIEW_KEY = "benchmark"
 RESULTS_VIEW_KEYS = frozenset(
     {PERFORMANCE_RESULTS_VIEW_KEY, BENCHMARK_RESULTS_VIEW_KEY}
 )
-LEGACY_RESULTS_VIEW_KEY_ALIASES = (
-    ("success", PERFORMANCE_RESULTS_VIEW_KEY),
-    ("compare", BENCHMARK_RESULTS_VIEW_KEY),
-)
 
 ANALYSIS_DIRECTIONS = frozenset({"rx", "tx"})
 COMPARISON_MODES = frozenset(
-    {"none", "hardware_ab", "reference_station", "local_neighborhood"}
+    {"none", "reference_station", "local_neighborhood"}
 )
 SNR_CORRECTION_MODES = frozenset(
     {"no_offset", "established_offset", "establish_offset"}
@@ -55,10 +51,6 @@ TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS = (
     "6h",
     "12h",
     "24h",
-)
-LEGACY_TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS = (
-    "5m",
-    "15m",
 )
 TEMPORAL_EVIDENCE_TIME_BIN_PRESETS = (
     (
@@ -85,7 +77,6 @@ TEMPORAL_EVIDENCE_TIME_BIN_PRESETS = (
 STATION_EVIDENCE_TIME_BIN_OPTIONS = TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS
 STATION_EVIDENCE_TIME_BINS = frozenset(
     TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS
-    + LEGACY_TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS
 )
 SEGMENT_EVIDENCE_TIME_BINS = STATION_EVIDENCE_TIME_BINS | {
     "auto",
@@ -121,11 +112,8 @@ def temporal_evidence_time_bin_policy_for_duration(
 ):
     """Return adaptive options/default while retaining one valid saved choice.
 
-    ``5m`` and ``15m`` remain accepted solely for saved-config and public-URL
-    compatibility. They are included in a returned option list only when one is
-    the explicitly retained value. The same rule preserves any valid current
-    choice that falls outside the adaptive tier without silently changing its
-    meaning.
+    A valid current choice outside the adaptive tier remains available without
+    changing its meaning.
     """
     if not hasattr(duration, "total_seconds"):
         raise TypeError("Temporal evidence duration must provide total_seconds().")
@@ -199,6 +187,3 @@ PROFILE_ID_TOKEN_PATTERN = (
 )
 PROFILE_ID_PATTERN = rf"^{PROFILE_ID_TOKEN_PATTERN}$"
 LOCALIZED_LANGUAGE_PATTERN = r"^[a-z]{2}(?:-[A-Z]{2})?$"
-
-TX_AB_REPEAT_INTERVAL_OPTIONS = (4, 6, 10, 12, 20, 30, 60)
-TX_AB_METHODS = frozenset({"simultaneous", "sequential"})

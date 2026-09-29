@@ -230,7 +230,7 @@ def _production_temporal_recipe(run):
     time_bin = run.configuration["station_evidence_time_bin_compare"]
     return _selected_evidence_export_recipe(
         paired_evidence_points(run), "VE6PDQ paired evidence", time_bin,
-        run.analysis.is_sequential,
+
         analysis_start_t=START, analysis_end_t=END,
         reference_snr_correction_db=run.context.reference_snr_correction_db,
         count_label=labels["fig_joint_spot_count"],

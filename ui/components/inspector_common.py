@@ -15,7 +15,6 @@ from config import TEMPORAL_IQR_BAND_ALPHA
 from ui.inspector.preparation import INSPECTOR_CACHE_VERSION
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
-    get_matplotlib_render_mode,
     matplotlib_render_span_label,
     render_matplotlib_figure,
     render_matplotlib_image_bytes,
@@ -33,7 +32,6 @@ COMPACT_DATAFRAME_HEIGHT_PX = (
     * COMPACT_DATAFRAME_ROW_HEIGHT_PX
     + 2
 )
-
 
 
 def format_metric_or_none(value, decimals=0):
@@ -77,7 +75,6 @@ def render_reference_correction_notice(
     t,
     *,
     is_compare,
-    is_sequential,
     analysis_context,
 ):
     """Render the completed run's configured correction as a compact notice."""
@@ -85,7 +82,6 @@ def render_reference_correction_notice(
         analysis_context,
         t,
         is_compare=is_compare,
-        is_sequential=is_sequential,
     )
     if not note:
         return
@@ -156,31 +152,28 @@ def render_cached_recipe(
 ):
     """Render a compact recipe, reusing preview PNG bytes when available."""
     timing_collector = preparation.timing_collector
-    render_mode = get_matplotlib_render_mode()
     png_key = (
         INSPECTOR_CACHE_VERSION,
         INSPECTOR_PNG_RENDER_VERSION,
         TEMPORAL_EVIDENCE_LAYOUT_VERSION,
         TEMPORAL_IQR_BAND_ALPHA,
-        render_mode,
         subject,
         cache_key,
     )
-    if render_mode == "image":
-        image_bytes, hit = preparation.cache_get(
-            "png",
-            png_key,
-            item=subject,
+    image_bytes, hit = preparation.cache_get(
+        "png",
+        png_key,
+        item=subject,
+    )
+    if hit:
+        render_matplotlib_image_bytes(
+            image_bytes,
+            width="stretch",
+            timing_collector=timing_collector,
+            subject=subject,
+            cache_detail="session cache hit",
         )
-        if hit:
-            render_matplotlib_image_bytes(
-                image_bytes,
-                width="stretch",
-                timing_collector=timing_collector,
-                subject=subject,
-                cache_detail="session cache hit",
-            )
-            return image_bytes
+        return image_bytes
 
     with timed_span(timing_collector, build_label):
         figure = render_figure(recipe)
@@ -196,7 +189,7 @@ def render_cached_recipe(
             )
     finally:
         dispose_matplotlib_figure(figure)
-    if image_bytes is not None and render_mode == "image":
+    if image_bytes is not None:
         preparation.cache_put(
             "png",
             png_key,

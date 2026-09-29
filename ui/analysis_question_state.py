@@ -16,19 +16,13 @@ ANALYSIS_QUESTION_CHOICES = (
     "tx_benchmark",
 )
 BENCHMARK_MODES = frozenset(
-    {"hardware_ab", "reference_station", "local_neighborhood"}
+    {"reference_station", "local_neighborhood"}
 )
-_LEGACY_ANALYSIS_QUESTION_ALIASES = {
-    "rx_success": "rx_performance",
-    "tx_success": "tx_performance",
-    "rx_compare": "rx_benchmark",
-    "tx_compare": "tx_benchmark",
-}
 
 
 def canonicalize_analysis_question(question: object) -> object:
-    """Normalize one bounded legacy question token without guessing intent."""
-    return _LEGACY_ANALYSIS_QUESTION_ALIASES.get(question, question)
+    """Return a current question token, or no selection for an invalid token."""
+    return question if question in ANALYSIS_QUESTION_CHOICES else None
 
 
 def analysis_question_result_type(question: object) -> str:
@@ -63,10 +57,8 @@ def apply_analysis_question_choice(
     The question is transient presentation state. This function updates the
     existing canonical configuration fields and shared retained Benchmark-design
     transients without creating a second scientific configuration. A first
-    Benchmark choice may intentionally
-    leave ``val_comp_mode`` as ``none`` until the operator chooses a design;
-    callers must therefore use the returned question when determining UI
-    readiness instead of interpreting that temporary value as Performance.
+    Benchmark choice defaults to one fixed Reference; an existing valid
+    Benchmark design remains selected when changing direction or input view.
     """
     canonical_question = canonicalize_analysis_question(question)
     if canonical_question not in ANALYSIS_QUESTION_CHOICES:
@@ -85,19 +77,7 @@ def apply_analysis_question_choice(
     if active_or_retained_design not in BENCHMARK_MODES:
         active_or_retained_design = state.get("guided_last_benchmark_mode")
 
-    if did_change_direction and active_or_retained_design == "hardware_ab":
-        # RX Hardware A/B identities and TX schedule semantics are not
-        # interchangeable. Keep Benchmark intent but require a fresh design.
-        state["val_comp_mode"] = "none"
-        state["guided_reference_design"] = None
-        state["guided_last_benchmark_mode"] = None
-        state["val_benchmark_offset_db"] = 0.0
-        state["val_snr_correction_mode"] = "no_offset"
-        state["val_tx_ab_method"] = "simultaneous"
-        state["val_tx_ab_repeat_interval_minutes"] = 10
-        state["val_tx_ab_target_start_minute"] = 0
-        state["val_tx_ab_reference_start_minute"] = 2
-    elif did_change_direction and active_or_retained_design in {
+    if did_change_direction and active_or_retained_design in {
         "reference_station",
         "local_neighborhood",
     }:
@@ -105,6 +85,10 @@ def apply_analysis_question_choice(
         # correction established for one direction is not valid for the other.
         state["val_benchmark_offset_db"] = 0.0
         state["val_snr_correction_mode"] = "no_offset"
+
+    if did_change_direction:
+        state["val_ref_qth"] = ""
+        state.pop("_reference_location_resolution", None)
 
     state["val_analysis_direction"] = analysis_direction
     if result_type == PERFORMANCE_RESULT_TYPE:
@@ -123,8 +107,9 @@ def apply_analysis_question_choice(
             state["val_comp_mode"] = retained_design
             state["guided_reference_design"] = retained_design
         else:
-            state["val_comp_mode"] = "none"
-            state["guided_reference_design"] = None
+            state["val_comp_mode"] = "reference_station"
+            state["guided_reference_design"] = "reference_station"
+            state["guided_last_benchmark_mode"] = "reference_station"
 
     transition_population_exclusion_result_type(state, result_type)
     return str(canonical_question)

@@ -279,12 +279,12 @@ def production_replay(document, source, output):
     processed_path = output / "production_processed.parquet"
     processed.to_parquet(processed_path, index=False)
     processed.to_csv(output / "production_processed.csv", index=False)
-    map_result = build_map_data_result(processed, analysis_id=analysis.id, is_compare=analysis.is_compare, is_sequential=analysis.is_sequential, analysis_kind=analysis.analysis_kind, center_latitude=latitude, center_longitude=longitude, min_spots=context.min_joint_spots_per_station, min_opportunities=context.min_confirmed_opportunities_per_peer, base_min_stations=context.min_joint_stations_per_map_segment, tx_ab_repeat_interval_minutes=context.tx_ab_repeat_interval_minutes, tx_ab_target_start_minute=context.tx_ab_target_start_minute, tx_ab_reference_start_minute=context.tx_ab_reference_start_minute)
+    map_result = build_map_data_result(processed, analysis_id=analysis.id, is_compare=analysis.is_compare,  analysis_kind=analysis.analysis_kind, center_latitude=latitude, center_longitude=longitude, min_spots=context.min_joint_spots_per_station, min_opportunities=context.min_confirmed_opportunities_per_peer, base_min_stations=context.min_joint_stations_per_map_segment)
     assert map_result.map_data is not None, map_result.diagnostic
     map_data = map_result.map_data
     map_data.station_rows.to_csv(output / "production_station_rows.csv", index=False)
     map_data.segment_rows.to_csv(output / "production_segment_rows.csv", index=False)
-    inspector = InspectorContext(analysis_id=analysis.id, title=analysis.title, is_compare=False, is_sequential=False, parquet_path=processed_path, line1_str="", translations=T["en"], max_peer_distance_km=context.max_peer_distance_km, analysis_context=context, presentation_context=presentation, analysis_kind=analysis.analysis_kind, run_id=1, analysis_start_t=configuration["start_utc"], analysis_end_t=configuration["end_utc"])
+    inspector = InspectorContext(analysis_id=analysis.id, title=analysis.title, is_compare=False,  parquet_path=processed_path, line1_str="", translations=T["en"], max_peer_distance_km=context.max_peer_distance_km, analysis_context=context, presentation_context=presentation, analysis_kind=analysis.analysis_kind, run_id=1, analysis_start_t=configuration["start_utc"], analysis_end_t=configuration["end_utc"])
     scope = InspectorScope(selected_ranges=(), selected_directions=(), range_summary=T["en"]["opt_full_range"], direction_summary=T["en"]["opt_all_dirs"], selected_segment="Full Range | All Directions", active_scope_summary="Full Range | All Directions", scope_token="all", distance_scope_intervals=((0., 5000.),))
     preparation = InspectorPreparation(session, 1)
     segment = preparation.prepare_performance_segment(inspector, scope, map_data.station_rows, retained_time_bin="3h")

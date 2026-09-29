@@ -19,11 +19,12 @@ from ui.analysis_submission_state import (
 )
 from ui.run_lifecycle import handoff_input_view_submission
 from ui.analysis_question_state import apply_analysis_question_choice
-from ui.callbacks import reset_audit, reset_experiment_definition
+from ui.callbacks import clear_reference_location_resolution, reset_audit, reset_experiment_definition
 from ui.classic_input_state import (
     classic_result_type,
     synchronize_classic_input_state,
 )
+from ui.components.config_panel import _render_field_error
 from ui.components.config_fields import (
     render_delta_snr_outlier_reporting_field,
     render_evidence_threshold_fields,
@@ -44,6 +45,7 @@ from ui.components.config_review import (
 from ui.config_io import validate_config_document
 from ui.page_navigation import (
     PARAMETER_SETTINGS_ANCHOR_ID,
+    page_navigation_marker_html,
     request_page_navigation,
 )
 from ui.population_exclusion_state import (
@@ -101,7 +103,8 @@ def _guided_experiment_definition_change(node_id: str) -> None:
 
 
 def _guided_correction_context_change(node_id: str) -> None:
-    """Invalidate any established offset whose scientific context was edited."""
+    """Invalidate a resolved location and offset after a context edit."""
+    clear_reference_location_resolution()
     active_mode = st.session_state.get("val_comp_mode")
     retained_mode = st.session_state.get("guided_last_benchmark_mode")
     if active_mode in COMPARISON_MODES or retained_mode in COMPARISON_MODES:
@@ -135,17 +138,9 @@ def _handle_reference_design_change() -> None:
         BENCHMARK_RESULT_TYPE,
     )
     if new_mode != previous_mode:
-        # Fixed-Reference identities and corrections have design-specific
-        # meanings. Reinterpreting a remote station as a co-located path (or a
-        # local path alias as a remote station) would silently create a complete
-        # but invalid experiment, so require explicit identity confirmation.
-        st.session_state.val_ref_callsign = ""
-        st.session_state.val_ref_qth = ""
-        st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.val_snr_correction_mode = "no_offset"
-    if new_mode == "local_neighborhood":
-        st.session_state.val_ref_callsign = ""
-        st.session_state.val_ref_qth = ""
+        # Retain the station entry for switching back, but its discovered
+        # location and established correction belong to the previous design.
+        clear_reference_location_resolution()
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
     _guided_experiment_definition_change("reference_design")
@@ -166,7 +161,7 @@ def _loaded_demo_scope_values(profile_key: str | None) -> dict[str, Any] | None:
     profile = DEMO_PROFILES.get(profile_key)
     if not profile:
         return None
-    configuration = profile.get("configuration", profile)
+    configuration = profile["configuration"]
     normalized = validate_config_document(configuration)
     return {
         "val_solar": normalized["solar_state"],
@@ -215,13 +210,14 @@ def _loaded_demo_scope_matches_current_state() -> bool:
 
 
 def _continue_to(next_node: str) -> None:
-    """Advance the accordion without changing scientific state."""
+    """Open and navigate to the next panel without changing scientific state."""
     st.session_state.guided_active_node = next_node
     st.session_state.guided_collapse_all = False
     request_page_navigation(
         st.session_state,
         PARAMETER_SETTINGS_ANCHOR_ID,
-        should_scroll=False,
+        should_scroll=True,
+        panel_key=f"guided_step_{next_node}",
     )
 
 
@@ -295,6 +291,8 @@ def _render_use_case_selector(t, guided_content):
         on_change=_handle_use_case_change,
         width="stretch",
     )
+    _render_field_error("guided_use_case")
+    st.markdown(guided_content["messages"]["use_case_limits"])
 
 
 def _render_target_and_window_fields(t, guided_content):
@@ -316,62 +314,51 @@ def _render_target_and_window_fields(t, guided_content):
 
 
 def _render_reference_design_fields(t, guided_content):
-    """Render captioned Reference choices and existing branch-specific fields."""
+    """Place Reference selection left and its editable fields right."""
     options = guided_content["options"]["reference_design"]
     messages = guided_content["messages"]
-    st.markdown(f"**{messages['reference_designs_title']}**")
-    st.radio(
-        guided_content["steps"]["reference_design"]["title"],
-        tuple(options),
-        key="guided_reference_design",
-        index=None,
-        label_visibility="collapsed",
-        format_func=lambda value: options[value]["label"],
-        captions=tuple(option["description"] for option in options.values()),
-        on_change=_handle_reference_design_change,
-        width="stretch",
-    )
     benchmark_mode = st.session_state.get("val_comp_mode")
-    if benchmark_mode == "hardware_ab":
-        st.info(messages["controlled_path_note"])
-    elif benchmark_mode == "reference_station":
-        st.info(messages["known_reference_note"])
-    elif benchmark_mode == "local_neighborhood":
-        st.info(messages["local_neighborhood_note"])
-        correction_db = float(
-            st.session_state.get("val_benchmark_offset_db", 0.0)
+    selection_column, fields_column = st.columns([0.5, 0.5], gap="large")
+    with selection_column:
+        st.radio(
+            guided_content["steps"]["reference_design"]["title"],
+            tuple(options),
+            key="guided_reference_design",
+            index=None,
+            label_visibility="collapsed",
+            format_func=lambda value: options[value]["label"],
+            captions=tuple(option["description"] for option in options.values()),
+            on_change=_handle_reference_design_change,
+            width="stretch",
         )
-        if correction_db != 0.0:
-            st.warning(
-                messages["local_existing_correction_warning"].format(
-                    offset=correction_db
-                )
+        _render_field_error("val_comp_mode", widget_key="guided_reference_design")
+        if benchmark_mode == "local_neighborhood":
+            correction_db = float(
+                st.session_state.get("val_benchmark_offset_db", 0.0)
             )
-    if benchmark_mode in COMPARISON_MODES:
-        render_reference_design_fields(
-            t,
-            on_change=_guided_correction_context_change,
-            on_change_args=("reference_design",),
-            tx_ab_method_content=guided_content["options"]["tx_ab_method"],
-            should_show_local_benchmark_explanation=True,
-            help_overrides={
-                "reference_callsign": messages["reference_callsign_help"],
-                "reference_qth": messages["reference_grid4_help"],
-                "local_radius": messages["local_radius_help"],
-                "tx_ab_method": messages["tx_ab_method_help"],
-            },
-        )
+            if correction_db != 0.0:
+                st.warning(
+                    messages["local_existing_correction_warning"].format(
+                        offset=correction_db
+                    )
+                )
+    with fields_column:
+        if benchmark_mode in COMPARISON_MODES:
+            render_reference_design_fields(
+                t,
+                on_change=_guided_correction_context_change,
+                on_change_args=("reference_design",),
+                help_overrides={
+                    "reference_callsign": messages["reference_callsign_help"],
+                    "local_radius": messages["local_radius_help"],
+                },
+            )
 
 
 def _render_offset_calibration_fields(t, guided_content):
     """Render correction intent, formula, live sign consequence, and guidance."""
     options = guided_content["options"]["offset_intent"]
     messages = guided_content["messages"]
-    benchmark_mode = st.session_state.get("val_comp_mode")
-    if benchmark_mode == "hardware_ab":
-        st.info(messages["hardware_calibration"])
-    else:
-        st.info(messages["reference_calibration"])
     st.markdown(messages["correction_formula"])
     st.radio(
         guided_content["steps"]["offset_calibration"]["title"],
@@ -394,13 +381,8 @@ def _render_offset_calibration_fields(t, guided_content):
     if correction_db != 0.0:
         st.success(messages["correction_consequence"].format(offset=correction_db))
     if intent == "establish_offset":
-        guidance_key = (
-            "establish_hardware_guidance"
-            if benchmark_mode == "hardware_ab"
-            else "establish_reference_guidance"
-        )
         st.warning(messages["calibration_run_notice"])
-        st.markdown(messages[guidance_key])
+        st.markdown(messages["establish_reference_guidance"])
 
 
 def _render_scope_and_evidence_fields(t, guided_content):
@@ -606,6 +588,7 @@ def render_guided_inputs(t) -> GuidedRenderResult:
             )
         else:
             expander_label = f"{step_number} · {content['title']}"
+        panel_key = f"guided_step_{node_id}"
         with st.expander(
             expander_label,
             expanded=(
@@ -626,7 +609,10 @@ def render_guided_inputs(t) -> GuidedRenderResult:
             ),
             icon=":material/route:",
         ):
-            st.markdown(content["body_md"], unsafe_allow_html=True)
+            st.markdown(
+                page_navigation_marker_html(st.session_state, panel_key) + content["body_md"],
+                unsafe_allow_html=True,
+            )
             renderer_result = CONTROL_RENDERERS[node["renderer"]](
                 t,
                 guided_content,

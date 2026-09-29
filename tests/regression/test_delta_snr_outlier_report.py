@@ -409,13 +409,13 @@ def test_default_path_summary_is_compact_and_duration_aware():
         impulse,
         _report_view_model(impulse_model).cards[0],
         T["en"],
-        False,
+
     )
     burst_text = inspector_outliers.format_outlier_candidate_facts(
         burst,
         _report_view_model(burst_model).cards[0],
         T["en"],
-        True,
+
     )
 
     assert impulse_text == (
@@ -425,7 +425,7 @@ def test_default_path_summary_is_compact_and_duration_aware():
         "- **Largest single-cycle departure:** +5.5 dB"
     )
     assert burst_text == (
-        "3 complete Scheduled Pairs · first-to-last span 8 min · median "
+        "3 Joint Spots · first-to-last span 8 min · median "
         "interval 4 min · largest gap 4 min\n\n"
         "- **Expected local ΔSNR:** +0.3 dB\n"
         "- **Observed median ΔSNR:** −4.2 dB\n"
@@ -1026,7 +1026,7 @@ def _render_outlier_drilldown_controls_for_test(
         "active",
         T["en"],
         True,
-        False,
+
         AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION),
         "en",
         session_state=session_state,
@@ -1037,22 +1037,10 @@ def _render_outlier_drilldown_controls_for_test(
     return control_result, render_state
 
 
-@pytest.mark.parametrize(
-    ("is_sequential", "expander_label_key"),
-    (
-        (
-            False,
-            "exp_outlier_wspr_cycle_evidence",
-        ),
-        (
-            True,
-            "exp_outlier_scheduled_pair_evidence",
-        ),
-    ),
-)
+@pytest.mark.parametrize('expander_label_key', ['exp_outlier_wspr_cycle_evidence'])
 def test_report_renders_one_card_per_detector_entry_without_hourly_nesting(
     monkeypatch,
-    is_sequential,
+
     expander_label_key,
 ):
     """Hide a redundant one-row table but retain multi-cycle evidence."""
@@ -1069,7 +1057,7 @@ def test_report_renders_one_card_per_detector_entry_without_hourly_nesting(
         analysis_id="RX_COMP",
         run_id=9,
         scope_token="active",
-        is_sequential=is_sequential,
+
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
@@ -1118,7 +1106,7 @@ def test_report_renders_one_card_per_detector_entry_without_hourly_nesting(
     assert "Path 1 · B2BBB (BB11) · SW" in second_card_markup
     assert "Path 2 · C3CCC (CC22) · WSW" in second_card_markup
     expected_impulse_count = (
-        "1 complete Scheduled Pair" if is_sequential else "1 Joint Spot"
+        "1 Joint Spot"
     )
     assert expected_impulse_count in render_state.cards[0].caption_calls[0]
     assert "median interval —" in (
@@ -1210,7 +1198,7 @@ def test_repeated_candidates_on_one_path_keep_labeled_timeframes(monkeypatch):
         analysis_id="RX_COMP",
         run_id=9,
         scope_token="active",
-        is_sequential=False,
+
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
@@ -1276,7 +1264,7 @@ def test_station_insights_actions_select_the_requested_paths(
         analysis_id="RX_COMP",
         run_id=9,
         scope_token="active",
-        is_sequential=False,
+
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
@@ -1467,7 +1455,7 @@ def test_drilldown_actions_preload_exact_context_and_navigate_directly(
         analysis_id="RX_COMP",
         run_id=9,
         scope_token="active",
-        is_sequential=False,
+
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
@@ -1629,7 +1617,7 @@ def test_enabled_empty_report_uses_native_cycle_counters(monkeypatch):
             analysis_id="RX_COMP",
             run_id=9,
             scope_token="active",
-            is_sequential=False,
+
             analysis_context=AnalysisContext(
                 comparison_mode=COMPARISON_REFERENCE_STATION
             ),

@@ -9,7 +9,6 @@ from types import SimpleNamespace
 import pytest
 
 from core.analysis_context import (
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_REFERENCE_STATION,
     LOCAL_BENCHMARK_MEDIAN,
@@ -62,17 +61,14 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "hdr_results_selected_station_evidence",
     "hdr_results_drilldown",
     "hdr_results_download_evidence",
-    "sub_results_compare_scheduled",
     "sub_results_rx_success",
     "sub_results_tx_success",
     "sub_results_map_compare",
     "sub_results_map_success",
     "sub_results_segment_inspector",
     "sub_results_comparison_evidence_joint",
-    "sub_results_comparison_evidence_scheduled",
     "fmt_results_station_delta_summary",
     "fmt_results_joint_spot_delta_summary",
-    "fmt_results_scheduled_pair_delta_summary",
     "sub_results_temporal_evidence",
     "sub_results_success_evidence",
     "sub_results_success_temporal",
@@ -82,12 +78,9 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "sub_results_download_evidence",
     "txt_results_metadata",
     "txt_results_reference_grid4",
-    "txt_results_shared_grid4",
     "txt_results_reference_benchmark",
-    "txt_results_tx_schedule",
     "txt_results_configured_snr_correction",
     "txt_results_snr_correction_reference_identity",
-    "txt_results_snr_correction_reference_schedule",
     "txt_results_snr_correction_reference_benchmark",
     "txt_results_evidence_path",
     "txt_results_evidence_path_success",
@@ -107,8 +100,6 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "lbl_results_level_rows",
     "unit_joint_spot_singular",
     "unit_joint_spot_plural",
-    "unit_scheduled_pair_singular",
-    "unit_scheduled_pair_plural",
     "unit_confirmed_opportunity_singular",
     "unit_confirmed_opportunity_plural",
     "unit_station_singular",
@@ -232,21 +223,17 @@ EXPECTED_COMPARE_COVERAGE_PRESENTATION_KEYS = {
     "fig_compare_coverage_station_folded_y_tx",
     "fig_compare_coverage_unit_y_rx",
     "fig_compare_coverage_unit_y_tx",
-    "fig_compare_coverage_unit_y_scheduled",
     "fig_compare_coverage_unit_folded_y_rx",
     "fig_compare_coverage_unit_folded_y_tx",
-    "fig_compare_coverage_unit_folded_y_scheduled",
     "fig_compare_joint_share_station",
     "fig_compare_joint_share_outcome",
     "fig_compare_joint_share_y",
     "fig_compare_coverage_gate_simultaneous",
-    "fig_compare_coverage_gate_scheduled",
     "fig_selected_compare_coverage_title_rx",
     "fig_selected_compare_coverage_title_tx",
     "fig_selected_compare_coverage_chronological_title",
     "fig_selected_compare_coverage_utc_hour_title",
     "fig_selected_compare_coverage_unit_simultaneous",
-    "fig_selected_compare_coverage_unit_scheduled",
     "fig_selected_compare_coverage_unit_y_simultaneous",
     "fig_selected_compare_coverage_unit_folded_y_simultaneous",
     "fig_selected_compare_joint_share",
@@ -332,7 +319,7 @@ def test_result_context_titles_and_subtitles_cover_every_analysis_family(
     analysis = {
         "id": analysis_id,
         "is_compare": is_compare,
-        "is_sequential": False,
+
         "title": f"{direction} Benchmark: {comparison_context}",
     }
     analysis_context = SimpleNamespace(
@@ -458,96 +445,17 @@ def test_success_result_subtitles_and_map_titles_match_directional_contract():
     )
 
 
-@pytest.mark.parametrize("language", ("en", "de"))
-@pytest.mark.parametrize("analysis_id", ("RX_COMP", "TX_COMP"))
-def test_scheduled_compare_uses_dynamic_callsign_and_schedule_subtitle(
-    language,
-    analysis_id,
-):
-    """Distinguish scheduled Compare evidence from simultaneous station pairs."""
-    direction = analysis_id.split("_", 1)[0]
-    context = build_result_context(
-        {
-            "id": analysis_id,
-            "is_compare": True,
-            "is_sequential": True,
-            "title": "unused scheduled figure title",
-        },
-        SimpleNamespace(callsign="g3zil", band="20m", qth="io90"),
-        datetime(2026, 7, 1),
-        datetime(2026, 7, 2),
-        T[language],
-    )
-
-    assert context.title == T[language]["hdr_results_compare"].format(
-        direction=direction
-    )
-    assert context.subtitle == T[language][
-        "sub_results_compare_scheduled"
-    ].format(callsign="G3ZIL")
 
 
-@pytest.mark.parametrize(
-    (
-        "language",
-        "comparison_mode",
-        "is_sequential",
-        "correction_db",
-        "expected_notice",
-    ),
-    (
-        (
-            "en",
-            COMPARISON_REFERENCE_STATION,
-            False,
-            1.24,
-            "Configured SNR correction: +1.2 dB applied to Reference (ON4AWM1)",
-        ),
-        (
-            "de",
-            COMPARISON_REFERENCE_STATION,
-            False,
-            1.24,
-            "Konfigurierte SNR-Korrektur: +1,2 dB auf die Referenz (ON4AWM1) angewendet",
-        ),
-        (
-            "en",
-            COMPARISON_HARDWARE_AB,
-            True,
-            -1.24,
-            "Configured SNR correction: -1.2 dB applied to Reference schedule",
-        ),
-        (
-            "de",
-            COMPARISON_HARDWARE_AB,
-            True,
-            -1.24,
-            "Konfigurierte SNR-Korrektur: -1,2 dB auf den Referenz-Zeitplan angewendet",
-        ),
-        (
-            "en",
-            COMPARISON_LOCAL_NEIGHBORHOOD,
-            False,
-            1.2,
-            "Configured SNR correction: +1.2 dB applied to Reference benchmark",
-        ),
-        (
-            "de",
-            COMPARISON_LOCAL_NEIGHBORHOOD,
-            False,
-            1.2,
-            "Konfigurierte SNR-Korrektur: +1,2 dB auf den Referenz-Benchmark angewendet",
-        ),
-    ),
-)
+@pytest.mark.parametrize(('language', 'comparison_mode', 'correction_db', 'expected_notice'), [('en', COMPARISON_REFERENCE_STATION, 1.24, 'Configured SNR correction: +1.2 dB applied to Reference (ON4AWM1)'), ('de', COMPARISON_REFERENCE_STATION, 1.24, 'Konfigurierte SNR-Korrektur: +1,2 dB auf die Referenz (ON4AWM1) angewendet'), ('en', COMPARISON_LOCAL_NEIGHBORHOOD, 1.2, 'Configured SNR correction: +1.2 dB applied to Reference benchmark'), ('de', COMPARISON_LOCAL_NEIGHBORHOOD, 1.2, 'Konfigurierte SNR-Korrektur: +1,2 dB auf den Referenz-Benchmark angewendet')])
 def test_configured_snr_correction_notice_names_the_corrected_reference_side(
     language,
     comparison_mode,
-    is_sequential,
+
     correction_db,
     expected_notice,
 ):
-    """Name fixed, scheduled, and benchmark Reference recipients explicitly."""
+    """Name fixed and neighbourhood Reference recipients explicitly."""
     notice = configured_snr_correction_notice(
         SimpleNamespace(
             comparison_mode=comparison_mode,
@@ -556,7 +464,7 @@ def test_configured_snr_correction_notice_names_the_corrected_reference_side(
         ),
         T[language],
         is_compare=True,
-        is_sequential=is_sequential,
+
     )
 
     assert notice == expected_notice
@@ -597,7 +505,7 @@ def test_compare_header_places_escaped_correction_below_run_metadata():
         {
             "id": "RX_COMP",
             "is_compare": True,
-            "is_sequential": False,
+
             "title": "RX Benchmark: Target vs. Reference",
         },
         SimpleNamespace(
@@ -640,7 +548,7 @@ def test_fixed_reference_grid4_is_part_of_compare_metadata(
         {
             "id": analysis_id,
             "is_compare": True,
-            "is_sequential": False,
+
             "title": "Benchmark: Target vs. Reference",
         },
         SimpleNamespace(
@@ -680,7 +588,7 @@ def test_local_compare_metadata_names_the_benchmark_and_radius(
         {
             "id": "RX_COMP",
             "is_compare": True,
-            "is_sequential": False,
+
         },
         SimpleNamespace(
             comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
@@ -697,60 +605,6 @@ def test_local_compare_metadata_names_the_benchmark_and_radius(
     assert "Grid-4" not in constraint
 
 
-@pytest.mark.parametrize("language", ("en", "de"))
-def test_hardware_compare_metadata_uses_shared_target_grid_and_active_schedule(
-    language,
-):
-    """Use Target Grid-4 for Hardware A/B and expose only an active schedule."""
-    translations = T[language]
-    analysis_context = SimpleNamespace(
-        qth="jo20ot",
-        reference_qth="zz99",
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-    simultaneous = comparison_constraint_text(
-        {
-            "id": "TX_COMP",
-            "is_compare": True,
-            "is_sequential": False,
-        },
-        analysis_context,
-        translations,
-    )
-    sequential = comparison_constraint_text(
-        {
-            "id": "TX_COMP",
-            "is_compare": True,
-            "is_sequential": True,
-        },
-        analysis_context,
-        translations,
-    )
-    success = comparison_constraint_text(
-        {
-            "id": "TX_ABS",
-            "is_compare": False,
-            "is_sequential": False,
-        },
-        analysis_context,
-        translations,
-    )
-
-    shared_grid = translations["txt_results_shared_grid4"].format(
-        grid4="JO20"
-    )
-    schedule = translations["txt_results_tx_schedule"].format(
-        interval=10,
-        target_phase="00",
-        reference_phase="02",
-    )
-    assert simultaneous == shared_grid
-    assert "ZZ99" not in simultaneous
-    assert sequential == f"{shared_grid} · {schedule}"
-    assert success == ""
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -812,7 +666,7 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
         [station_identity],
         1,
         analysis_id=analysis_id,
-        is_sequential=False,
+
         translations=translations,
     )
     assert selected_station == translations[
@@ -853,7 +707,7 @@ def test_selected_station_helpers_preserve_default_singleton_contract():
             (),
             12,
             analysis_id="RX_COMP",
-            is_sequential=False,
+
             translations=T["en"],
         )
 
@@ -895,7 +749,7 @@ def test_selected_station_helpers_describe_multiple_compare_identities():
         station_identities,
         12,
         analysis_id="RX_COMP",
-        is_sequential=False,
+
         translations=T["en"],
         allow_multiple=True,
     ) == (
@@ -912,22 +766,15 @@ def test_selected_station_helpers_describe_multiple_compare_identities():
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
-@pytest.mark.parametrize(
-    ("is_compare", "is_sequential", "unit_name"),
-    (
-        (True, False, "joint_spot"),
-        (True, True, "scheduled_pair"),
-        (False, False, "confirmed_opportunity"),
-    ),
-)
+@pytest.mark.parametrize(('is_compare', 'unit_name'), [(True, 'joint_spot'), (False, 'confirmed_opportunity')])
 @pytest.mark.parametrize(
     ("count", "plurality"),
     ((1, "singular"), (2, "plural")),
 )
-def test_evidence_units_distinguish_compare_scheduled_and_success(
+def test_evidence_units_distinguish_compare_and_success(
     language,
     is_compare,
-    is_sequential,
+
     unit_name,
     count,
     plurality,
@@ -936,26 +783,18 @@ def test_evidence_units_distinguish_compare_scheduled_and_success(
     assert evidence_unit_label(
         count,
         is_compare=is_compare,
-        is_sequential=is_sequential,
+
         translations=T[language],
     ) == T[language][f"unit_{unit_name}_{plurality}"]
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
-@pytest.mark.parametrize(
-    ("analysis_id", "is_compare", "is_sequential", "unit_key"),
-    (
-        ("RX_COMP", True, False, "unit_joint_spot_plural"),
-        ("TX_COMP", True, True, "unit_scheduled_pair_plural"),
-        ("RX_ABS", False, False, "unit_confirmed_opportunity_plural"),
-        ("TX_ABS", False, False, "unit_confirmed_opportunity_plural"),
-    ),
-)
+@pytest.mark.parametrize(('analysis_id', 'is_compare', 'unit_key'), [('RX_COMP', True, 'unit_joint_spot_plural'), ('RX_ABS', False, 'unit_confirmed_opportunity_plural'), ('TX_ABS', False, 'unit_confirmed_opportunity_plural')])
 def test_scope_evidence_summary_is_mode_aware_and_localizes_counts(
     language,
     analysis_id,
     is_compare,
-    is_sequential,
+
     unit_key,
 ):
     """Keep factual evidence depth readable without changing count ownership."""
@@ -972,7 +811,7 @@ def test_scope_evidence_summary_is_mode_aware_and_localizes_counts(
         5374,
         analysis_id=analysis_id,
         is_compare=is_compare,
-        is_sequential=is_sequential,
+
         translations=translations,
     ) == translations["txt_results_evidence_scope"].format(
         station_count=expected_station_count,
@@ -1050,30 +889,29 @@ def test_segment_statistics_use_scope_data_markup_and_escape_each_line():
 def test_dynamic_result_values_are_escaped_at_the_html_boundary():
     """Treat callsigns, figure titles, scope, and station identities as text."""
     callsign = "<call&sign>"
-    scheduled_context = build_result_context(
+    performance_context = build_result_context(
         {
-            "id": "RX_COMP",
-            "is_compare": True,
-            "is_sequential": True,
-            "title": "RX Benchmark: ignored",
+            "id": "RX_ABS",
+            "is_compare": False,
+            "title": "RX Performance: ignored",
         },
         SimpleNamespace(callsign=callsign, band="<20m>", qth='io"90'),
         datetime(2026, 7, 1),
         datetime(2026, 7, 2),
         T["en"],
     )
-    scheduled_markup = result_context_html(scheduled_context)
-    assert callsign not in scheduled_markup
-    assert "&lt;CALL&amp;SIGN&gt;" in scheduled_markup
-    assert "&lt;20m&gt;" in scheduled_markup
-    assert "IO&quot;90" in scheduled_markup
+    performance_markup = result_context_html(performance_context)
+    assert callsign not in performance_markup
+    assert "&lt;CALL&amp;SIGN&gt;" in performance_markup
+    assert "&lt;20m&gt;" in performance_markup
+    assert "IO&quot;90" in performance_markup
 
     malicious_title = "<img src=x onerror=alert(1)>"
     compare_context = build_result_context(
         {
             "id": "TX_COMP",
             "is_compare": True,
-            "is_sequential": False,
+
             "title": f"TX Benchmark: {malicious_title}",
         },
         SimpleNamespace(callsign="target", band="20m", qth="JO62"),
@@ -1099,7 +937,7 @@ def test_dynamic_result_values_are_escaped_at_the_html_boundary():
         [station_identity],
         1,
         analysis_id="RX_COMP",
-        is_sequential=False,
+
         translations=T["en"],
     )
     station_markup = evidence_level_header_html(
@@ -1229,7 +1067,6 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
             "fig_compare_coverage_station_folded_y_tx": "Avg. RX Stations",
             "fig_compare_coverage_unit_folded_y_rx": "Avg. Transmitter-Cycles",
             "fig_compare_coverage_unit_folded_y_tx": "Avg. Receiver-Cycles",
-            "fig_compare_coverage_unit_folded_y_scheduled": "Avg. Scheduled A/B Pairs",
             "fig_selected_compare_coverage_chronological_title": (
                 "{unit} over Time ({time_bin} bins)"
             ),
@@ -1238,9 +1075,6 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
             ),
             "fig_selected_compare_coverage_unit_simultaneous": (
                 "Retained WSPR Cycles"
-            ),
-            "fig_selected_compare_coverage_unit_scheduled": (
-                "Scheduled A/B Pairs"
             ),
             "fig_selected_compare_coverage_unit_y_simultaneous": (
                 "WSPR Cycles"
@@ -1258,7 +1092,6 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
             "fig_compare_coverage_station_folded_y_tx": "Ø RX-Stationen",
             "fig_compare_coverage_unit_folded_y_rx": "Ø Senderzyklen",
             "fig_compare_coverage_unit_folded_y_tx": "Ø Empfängerzyklen",
-            "fig_compare_coverage_unit_folded_y_scheduled": "Ø geplante A/B-Paare",
             "fig_selected_compare_coverage_chronological_title": (
                 "{unit} im Zeitverlauf ({time_bin}-Bins)"
             ),
@@ -1267,9 +1100,6 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
             ),
             "fig_selected_compare_coverage_unit_simultaneous": (
                 "Berücksichtigte WSPR-Zyklen"
-            ),
-            "fig_selected_compare_coverage_unit_scheduled": (
-                "Geplante A/B-Paare"
             ),
             "fig_selected_compare_coverage_unit_y_simultaneous": (
                 "WSPR-Zyklen"
@@ -1289,7 +1119,6 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
                 "fig_selected_compare_coverage_chronological_title",
                 "fig_selected_compare_coverage_utc_hour_title",
                 "fig_selected_compare_coverage_unit_simultaneous",
-                "fig_selected_compare_coverage_unit_scheduled",
             )
         )
         assert "Comparison Units" not in selected_copy

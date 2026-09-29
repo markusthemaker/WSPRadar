@@ -15,7 +15,7 @@ def resolve_demo_profile_text(profile, field, language, fallback=""):
 
     Installed demos require English profile text, while German translations are
     optional. This resolver keeps that convention at the presentation boundary
-    and returns ``fallback`` only for malformed compatibility input.
+    and returns ``fallback`` only for malformed presentation input.
     """
     localized_values = profile.get(field, {}) if isinstance(profile, dict) else {}
     if not isinstance(localized_values, dict):
@@ -71,13 +71,12 @@ def _read_demo_document(profile_path):
 
 
 def load_demo_profiles(path=DEMO_PROFILES_DIR):
-    """Load filename-ordered configs into the legacy demo-profile mapping.
+    """Load filename-ordered configs into the demo-profile mapping.
 
     Every regular ``*.config`` file is accepted and ordered lexicographically by
     its complete filename. Filenames are opaque ordering keys and are independent
-    of the required ``profile.id`` stored in each document. The compatibility
-    mapping retains the ``id``, ``label``, ``description``, and ``configuration``
-    fields expected by existing UI consumers while rejecting duplicate profile
+    of the required ``profile.id`` stored in each document. The mapping provides the ``id``, ``label``, ``description``, and ``configuration``
+    fields expected by UI consumers while rejecting duplicate profile
     IDs that would collide in that mapping.
     """
     profiles_directory = Path(path)

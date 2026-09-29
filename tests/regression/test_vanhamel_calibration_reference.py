@@ -29,7 +29,8 @@ from core.math_utils import locator_to_latlon
 from core.presentation_context import PresentationContext
 from i18n import T
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
-from ui.config_io import apply_config_state_values, validate_config_document
+from ui.config_io import apply_config_state_values
+from frozen_reference_adapter import validate_frozen_reference_document, frozen_context_projection, frozen_document_projection
 from ui.inspector.evidence_data import (
     _build_compare_unit_rows, _compare_joint_evidence_points,
     _retain_thresholded_compare_outcomes,
@@ -82,7 +83,7 @@ def verified_reference_files():
 
 def _calculate_run(source_rows, *, reference_correction_db=None):
     """Run production calculations without reading independent expectations."""
-    configuration = validate_config_document(_read_json("demo.config"))
+    configuration = validate_frozen_reference_document(_read_json("demo.config"))
     session_values = {"lang": "en"}
     apply_config_state_values(configuration, session_values)
     session_values["run_mode"] = configuration["analysis_direction"].upper()
@@ -104,23 +105,23 @@ def _calculate_run(source_rows, *, reference_correction_db=None):
     assert warning is None
     preparation = build_map_data_result(
         processed, analysis_id=analysis.id, is_compare=analysis.is_compare,
-        is_sequential=analysis.is_sequential, analysis_kind=analysis.analysis_kind,
+         analysis_kind=analysis.analysis_kind,
         center_latitude=latitude, center_longitude=longitude,
         min_spots=context.min_joint_spots_per_station,
         min_opportunities=context.min_confirmed_opportunities_per_peer,
         base_min_stations=context.min_joint_stations_per_map_segment,
-        tx_ab_repeat_interval_minutes=context.tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=context.tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=context.tx_ab_reference_start_minute,
+
+
+
     )
     assert preparation.diagnostic is None and preparation.map_data is not None
     stations = preparation.map_data.station_rows
     inspector = build_compare_inspector_view_model(
-        stations, analysis_id=analysis.id, is_sequential=analysis.is_sequential,
+        stations, analysis_id=analysis.id,
         analysis_context=context, presentation_context=presentation,
     )
     units = _build_compare_unit_rows(
-        processed, stations, analysis.is_sequential,
+        processed, stations,
         paired_identity_df=inspector.build_evidence_identities(),
     )
     units = _retain_thresholded_compare_outcomes(units, stations)
@@ -128,7 +129,7 @@ def _calculate_run(source_rows, *, reference_correction_db=None):
     outcome_counts = compare_footer_counts(stations, max_dist_km=float("inf"))
     recipe = _segment_figure_export_recipe(
         title="Vanhamel receiver-chain calibration", selected_segment="Full Range | All Directions",
-        is_sequential=False, station_values=stations["stat_val"].dropna(),
+         station_values=stations["stat_val"].dropna(),
         spot_values=points["metric"],
         panel_labels=["Only Target", "Joint", "Both asynchronous", "Only Reference"],
         panel_station_counts=[outcome_counts[f"stat_{name}"] for name in ("only_u", "joint", "both_async", "only_r")],
@@ -184,7 +185,7 @@ def _assert_paper_mean(mean_db):
 def test_demo_pins_seven_day_reconstruction_and_zero_correction(reference_run):
     installed = json.loads((Path(__file__).parents[2] / "config/demos/01_vanhamel_rx_calibration.config").read_text(encoding="utf-8"))
     frozen = _read_json("demo.config")
-    assert installed["settings"] == frozen["settings"]
+    assert installed["settings"] == frozen_document_projection(frozen)["settings"]
     core = installed["settings"]["core_parameters"]
     assert core["time_selection"] == {
         "start_utc": "2021-02-06T06:00Z", "end_utc": "2021-02-13T06:00Z",

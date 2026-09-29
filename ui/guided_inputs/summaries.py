@@ -56,29 +56,14 @@ def reference_design_summary(state, guided_content, step_number, language):
         return summaries["reference_station"].format(
             step=step_number,
             callsign=str(state.get("val_ref_callsign", "")).upper(),
-            qth=str(state.get("val_ref_qth", "")).upper(),
+            qth=(str(state.get("val_ref_qth", "")).upper() or guided_content["messages"]["reference_location_pending_short"]),
         )
     if benchmark_mode == "local_neighborhood":
         return summaries["reference_local_median"].format(
             step=step_number,
             radius=state.get("val_ref_radius_km", 100),
         )
-    if (
-        state.get("val_analysis_direction") == "tx"
-        and state.get("val_tx_ab_method") == "sequential"
-    ):
-        return summaries["reference_hardware_tx_sequential"].format(
-            step=step_number
-        )
-    summary_key = (
-        "reference_hardware_tx_simultaneous"
-        if state.get("val_analysis_direction") == "tx"
-        else "reference_hardware_rx"
-    )
-    return summaries[summary_key].format(
-        step=step_number,
-        callsign=str(state.get("val_ref_callsign", "")).upper(),
-    )
+    return "—"
 
 
 def offset_calibration_summary(state, guided_content, step_number, language):

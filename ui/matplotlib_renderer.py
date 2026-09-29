@@ -1,7 +1,6 @@
 """Streamlit rendering helpers for Matplotlib figures."""
 
 from io import BytesIO
-import os
 from time import perf_counter
 
 import streamlit as st
@@ -13,8 +12,6 @@ from core.matplotlib_runtime import (
 )
 
 
-MATPLOTLIB_RENDER_MODE_ENV = "WSPRADAR_MATPLOTLIB_RENDER_MODE"
-DEFAULT_MATPLOTLIB_RENDER_MODE = "image"
 DEFAULT_MATPLOTLIB_IMAGE_DPI = 100
 DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL = 1
 
@@ -64,19 +61,10 @@ def _image_detail(*, byte_count=None, pixel_dimensions=None, dpi=None, compressi
     return " | ".join(details)
 
 
-def get_matplotlib_render_mode():
-    """Return the active Matplotlib display mode for Streamlit."""
-    mode = os.getenv(MATPLOTLIB_RENDER_MODE_ENV, DEFAULT_MATPLOTLIB_RENDER_MODE)
-    mode = str(mode).strip().lower()
-    if mode in {"pyplot", "st.pyplot"}:
-        return "pyplot"
-    return "image"
-
 
 def matplotlib_render_span_label(subject):
     """Return a profiler label that identifies the active Streamlit render path."""
-    streamlit_call = "savefig + st.image" if get_matplotlib_render_mode() == "pyplot" else "st.image"
-    return f"{streamlit_call} {subject}"
+    return f"st.image {subject}"
 
 
 def _save_figure_as_preview_png(fig, image_buffer, *, dpi, bbox_inches):
@@ -176,37 +164,6 @@ def render_matplotlib_figure(
 ):
     """Render a Matplotlib figure through the configured Streamlit display path."""
     pixel_dimensions = _figure_pixel_dimensions(fig, dpi)
-    if get_matplotlib_render_mode() == "pyplot":
-        # Keep the legacy mode's savefig path without deprecated st.pyplot kwargs.
-        # Explicit serialization preserves bbox_inches and honors the requested DPI;
-        # st.pyplot previously ignored this helper's DPI and rendered at 200 DPI.
-        image_buffer = BytesIO()
-        encode_start = perf_counter()
-        compression_level = _save_figure_as_preview_png(
-            fig,
-            image_buffer,
-            dpi=dpi,
-            bbox_inches=bbox_inches,
-        )
-        image_bytes = image_buffer.getvalue()
-        encoded_dimensions = _png_pixel_dimensions(image_bytes) or pixel_dimensions
-        detail = _image_detail(
-            byte_count=len(image_bytes),
-            pixel_dimensions=encoded_dimensions,
-            dpi=dpi,
-            compression_level=compression_level,
-        )
-        if timing_collector is not None:
-            timing_collector.add(f"{subject} PNG encode savefig", perf_counter() - encode_start, detail=detail)
-        render_matplotlib_image_bytes(
-            image_bytes,
-            width=width,
-            timing_collector=timing_collector,
-            subject=subject,
-            image_detail=detail,
-        )
-        # Preserve the optional mode's existing uncached Inspector lifecycle.
-        return None
 
     image_buffer = BytesIO()
     if bbox_inches is None:

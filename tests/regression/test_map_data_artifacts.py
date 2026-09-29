@@ -18,14 +18,13 @@ from core.map_models import MapData
 def _processed_map_evidence(family, direction):
     """Exercise the production post-filter boundary before projecting map input."""
     is_compare = family != "performance"
-    is_sequential = family == "scheduled"
     start = pd.Timestamp("2026-07-01T00:00:00Z")
     analysis = {
         "id": f"{direction}_{family}",
         "title": "Projection equivalence",
         "analysis_kind": "comparison" if is_compare else "opportunity",
         "is_compare": is_compare,
-        "is_sequential": is_sequential,
+
         "analysis_start_utc": start,
         "analysis_end_utc": start + pd.Timedelta(hours=1),
     }
@@ -51,17 +50,6 @@ def _processed_map_evidence(family, direction):
                     "target_seen": target_seen, "external_seen": reference_seen,
                     "target_snr": -12.3 if target_seen else float("nan"),
                 })
-            elif is_sequential:
-                for is_me, seen, offset, snr in (
-                    (1, target_seen, 0, -12.3),
-                    (0, reference_seen, 2, -15.7),
-                ):
-                    if seen:
-                        rows.append({
-                            **peer, "time": timestamp + pd.Timedelta(minutes=offset),
-                            "is_me": is_me, "stat_val": snr,
-                            "snr": snr, "power": 30.0,
-                        })
             else:
                 row = {
                     **peer, "time_slot": timestamp.value // 120_000_000_000,
@@ -87,7 +75,7 @@ def _processed_map_evidence(family, direction):
     (family, direction)
     for family in ("performance", "reference", "local_median")
     for direction in ("RX", "TX")
-] + [("scheduled", "TX")])
+])
 @pytest.mark.parametrize("minimum_support", [1, 4])
 def test_projected_staged_evidence_preserves_complete_map_results(
     tmp_path, family, direction, minimum_support,
@@ -103,7 +91,7 @@ def test_projected_staged_evidence_preserves_complete_map_results(
     columns = map_preparation_columns(
         analysis_kind=analysis["analysis_kind"],
         is_compare=analysis["is_compare"],
-        is_sequential=analysis["is_sequential"],
+
     )
     projected_frame = read_parquet_artifact(path, columns=list(columns))
     assert set(projected_frame.columns) == set(columns)
@@ -111,19 +99,16 @@ def test_projected_staged_evidence_preserves_complete_map_results(
     if family == "local_median":
         assert "ref_detail_rows" not in projected_frame
         assert {"best_ref_sign", "best_ref_dist"}.issubset(projected_frame.columns)
-    if family == "scheduled":
-        assert "tx_ab_pair_id" in projected_frame
-        assert "time" not in projected_frame
     kwargs = {
         "analysis_id": analysis["id"],
         "analysis_kind": analysis["analysis_kind"],
         "is_compare": analysis["is_compare"],
-        "is_sequential": analysis["is_sequential"],
+
         "center_latitude": 47.0, "center_longitude": 8.0,
         "min_spots": minimum_support, "min_opportunities": minimum_support,
         "base_min_stations": minimum_support,
-        "tx_ab_repeat_interval_minutes": 10,
-        "tx_ab_target_start_minute": 0, "tx_ab_reference_start_minute": 2,
+
+
         "owns_input": True,
     }
     full_result = build_map_data_result(full_frame, **kwargs)
@@ -146,7 +131,7 @@ def test_projected_staged_evidence_preserves_complete_map_results(
     assert path.read_bytes() == original_bytes
 
 
-@pytest.mark.parametrize("family", ["performance", "reference", "local_median", "scheduled"])
+@pytest.mark.parametrize("family", ["performance", "reference", "local_median"])
 def test_map_projection_accepts_schema_correct_empty_evidence(tmp_path, family):
     analysis, evidence = _processed_map_evidence(family, "TX")
     empty_evidence = evidence.iloc[:0]
@@ -155,7 +140,7 @@ def test_map_projection_accepts_schema_correct_empty_evidence(tmp_path, family):
     columns = map_preparation_columns(
         analysis_kind=analysis["analysis_kind"],
         is_compare=analysis["is_compare"],
-        is_sequential=analysis["is_sequential"],
+
     )
     projected = read_parquet_artifact(path, columns=list(columns))
     full_frame = read_parquet_artifact(path)
@@ -203,13 +188,13 @@ def _opportunity_map_data() -> MapData:
         segment_rows=segment_rows,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
 
 
-def _compare_map_data(*, is_sequential: bool) -> MapData:
-    """Return a valid simultaneous or scheduled-pair Compare aggregate pair."""
+def _compare_map_data( ) -> MapData:
+    """Return a valid same-cycle Compare aggregate pair."""
     station_columns = {
         "SegmentID": ["[0-2500km] N"],
         "dist_label": ["[0-2500km]"],
@@ -228,8 +213,6 @@ def _compare_map_data(*, is_sequential: bool) -> MapData:
         "count_only_u": [0],
         "count_only_r": [0],
     }
-    if is_sequential:
-        station_columns["joint_pairs_count"] = [4]
     segment_rows = pd.DataFrame({
         "SegmentID": ["[0-2500km] N"],
         "dist_label": ["[0-2500km]"],
@@ -243,9 +226,9 @@ def _compare_map_data(*, is_sequential: bool) -> MapData:
     return MapData(
         station_rows=pd.DataFrame(station_columns),
         segment_rows=segment_rows,
-        analysis_id="TX_COMP" if is_sequential else "RX_COMP",
+        analysis_id="RX_COMP",
         is_compare=True,
-        is_sequential=is_sequential,
+
         analysis_kind="comparison",
     )
 
@@ -263,7 +246,7 @@ def test_compact_map_artifacts_round_trip_without_presentation_state(tmp_path):
         paths,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
 
@@ -274,10 +257,9 @@ def test_compact_map_artifacts_round_trip_without_presentation_state(tmp_path):
     assert restored.is_compare is False
 
 
-@pytest.mark.parametrize("is_sequential", [False, True])
-def test_compact_compare_map_artifacts_round_trip(tmp_path, is_sequential):
-    """Preserve both simultaneous-spot and scheduled-pair Compare schemas."""
-    map_data = _compare_map_data(is_sequential=is_sequential)
+def test_compact_compare_map_artifacts_round_trip(tmp_path):
+    """Preserve the same-cycle Compare schema."""
+    map_data = _compare_map_data()
     paths = MapDataArtifactPaths(
         station_rows_path=tmp_path / "map_stations.parquet",
         segment_rows_path=tmp_path / "map_segments.parquet",
@@ -288,13 +270,13 @@ def test_compact_compare_map_artifacts_round_trip(tmp_path, is_sequential):
         paths,
         analysis_id=map_data.analysis_id,
         is_compare=True,
-        is_sequential=is_sequential,
+
         analysis_kind="comparison",
     )
 
     pd.testing.assert_frame_equal(restored.station_rows, map_data.station_rows)
     pd.testing.assert_frame_equal(restored.segment_rows, map_data.segment_rows)
-    assert restored.is_sequential is is_sequential
+    assert "is_sequential" not in vars(restored)
 
 
 def test_compact_success_map_allows_a_valid_empty_segment_table(tmp_path):
@@ -311,7 +293,7 @@ def test_compact_success_map_allows_a_valid_empty_segment_table(tmp_path):
         paths,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
 
@@ -321,7 +303,7 @@ def test_compact_success_map_allows_a_valid_empty_segment_table(tmp_path):
 
 def test_compact_compare_map_rejects_an_empty_segment_table(tmp_path):
     """Preserve the builder invariant that renderable Compare has sector data."""
-    map_data = _compare_map_data(is_sequential=False)
+    map_data = _compare_map_data()
     map_data.segment_rows = map_data.segment_rows.iloc[0:0].copy()
 
     with pytest.raises(ValueError, match="must be non-empty"):
@@ -380,7 +362,7 @@ def test_compact_map_artifact_read_rejects_incomplete_station_schema(tmp_path):
             paths,
             analysis_id="RX_ABS",
             is_compare=False,
-            is_sequential=False,
+
             analysis_kind="opportunity",
             artifact_reader=lambda path: (
                 frames["stations"]

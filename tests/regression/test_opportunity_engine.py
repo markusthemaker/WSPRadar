@@ -478,7 +478,7 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
         km_col,
         az_col,
         "RX_ABS",
-        False,
+
         False,
         False,
         "DL1MKS",
@@ -494,7 +494,7 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
         km_col,
         az_col,
         "RX_ABS",
-        False,
+
         False,
         False,
         "DL1MKS",
@@ -521,11 +521,6 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
                 {
                     "no_selection": "No station selected.",
                     "no_spots": "No spots available.",
-                    "no_pairs": "No scheduled pairs available.",
-                    "no_joint_pairs": (
-                        "No joint scheduled pairs are available for the selected "
-                        "station."
-                    ),
                     "no_joint_spots": (
                         "No joint spots are available for the selected station."
                     ),
@@ -540,11 +535,6 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
                 {
                     "no_selection": "Keine Station ausgewählt.",
                     "no_spots": "Keine Spots verfügbar.",
-                    "no_pairs": "Keine geplanten Paare verfügbar.",
-                    "no_joint_pairs": (
-                        "Für die ausgewählte Station sind keine gemeinsamen "
-                        "geplanten Paare verfügbar."
-                    ),
                     "no_joint_spots": (
                         "Für die ausgewählte Station sind keine Joint Spots "
                         "verfügbar."
@@ -581,7 +571,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
         station_rows_df,
         *,
         selected=selected_meta_df,
-        is_sequential=False,
+
         show_non_joint=False,
         is_local_median=False,
     ):
@@ -593,7 +583,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             km_col,
             az_col,
             "RX_COMP",
-            is_sequential,
+
             show_non_joint,
             is_local_median,
             "TARGET",
@@ -609,29 +599,6 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
     )
     _, messages["no_spots"] = build(pd.DataFrame())
 
-    monkeypatch.setattr(
-        drilldown_module,
-        "assign_tx_ab_pair_columns",
-        lambda *_args, **_kwargs: pd.DataFrame(),
-    )
-    _, messages["no_pairs"] = build(
-        pd.DataFrame({"unpaired": [True]}),
-        is_sequential=True,
-    )
-
-    _, messages["no_joint_pairs"] = build(
-        pd.DataFrame(
-            {
-                "time": ["2026-01-01T00:00:00Z"],
-                "peer_sign": ["K1AAA"],
-                "peer_grid": ["FN31"],
-                "tx_ab_pair_id": [1],
-                "is_me": [1],
-                "stat_val": [-10.0],
-            }
-        ),
-        is_sequential=True,
-    )
     _, messages["no_joint_spots"] = build(
         pd.DataFrame(
             {
@@ -861,11 +828,12 @@ def test_success_rate_scale_separates_zero_from_positive_evidence():
     )
 
 
-def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():
+@pytest.mark.parametrize("start_minute,end_minute", [(0, 0), (7, 11)])
+def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema(start_minute, end_minute):
     query = build_absolute_opportunity_query(
         mode="RX",
-        start_t=datetime(2026, 5, 27, tzinfo=timezone.utc),
-        end_t=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        start_t=datetime(2026, 5, 27, minute=start_minute, tzinfo=timezone.utc),
+        end_t=datetime(2026, 6, 1, minute=end_minute, tzinfo=timezone.utc),
         band_value="14",
         callsign="DL1MKS",
         qth="JN37UN",
@@ -876,8 +844,8 @@ def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():
     assert "max(toUInt8(rx_sign != 'DL1MKS')) AS external_seen" in query
     assert "(rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37' OR rx_sign != 'DL1MKS')" in query
     assert "substring(rx_loc, 1, 4) = 'JN37'" in query
-    assert "time >= '2026-05-27 00:00:00'" in query
-    assert "time < '2026-06-01 00:00:00'" in query
+    assert f"time >= '2026-05-27 00:{start_minute:02d}:00'" in query
+    assert f"time < '2026-06-01 00:{end_minute:02d}:00'" in query
     assert "band = 14" in query
     assert "code = 1" in query
     assert "tx_sign NOT LIKE 'Q%'" in query
@@ -1010,16 +978,19 @@ def test_rx_query_can_disable_decode_code_for_legacy_rows():
     assert query.endswith("FORMAT Parquet")
 
 
-def test_tx_query_uses_receiver_peers_and_target_schedule_when_requested():
+
+
+
+
+@pytest.mark.parametrize("start_minute,end_minute", [(0, 0), (7, 11)])
+def test_tx_query_uses_receiver_peers_and_exact_target_identity(start_minute, end_minute):
     query = build_absolute_opportunity_query(
         mode="TX",
-        start_t=datetime(2026, 5, 27, tzinfo=timezone.utc),
-        end_t=datetime(2026, 5, 28, tzinfo=timezone.utc),
+        start_t=datetime(2026, 5, 27, minute=start_minute, tzinfo=timezone.utc),
+        end_t=datetime(2026, 5, 28, minute=end_minute, tzinfo=timezone.utc),
         band_value="14",
         callsign="DL1MKS",
         qth="JN37",
-        target_repeat_interval_minutes=10,
-        target_start_minute_utc=2,
     )
 
     assert "tx_sign = 'DL1MKS'" in query
@@ -1027,17 +998,5 @@ def test_tx_query_uses_receiver_peers_and_target_schedule_when_requested():
     assert "substring(tx_loc, 1, 4) = 'JN37'" in query
     assert "rx_sign AS peer_sign" in query
     assert "rx_loc AS peer_grid" in query
-    assert "toMinute(time) % 10 = 2" in query
-
-
-def test_tx_query_requires_both_target_schedule_values():
-    with pytest.raises(ValueError, match="requires both repeat interval"):
-        build_absolute_opportunity_query(
-            mode="TX",
-            start_t=datetime(2026, 5, 27, tzinfo=timezone.utc),
-            end_t=datetime(2026, 5, 28, tzinfo=timezone.utc),
-            band_value="14",
-            callsign="DL1MKS",
-            qth="JN37",
-            target_repeat_interval_minutes=10,
-        )
+    assert f"time >= '2026-05-27 00:{start_minute:02d}:00'" in query
+    assert f"time < '2026-05-28 00:{end_minute:02d}:00'" in query

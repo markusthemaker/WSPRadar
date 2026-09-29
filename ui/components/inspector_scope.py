@@ -43,7 +43,6 @@ def render_scope_controls(context: InspectorContext, options_view_model, *, sess
     analysis_context = context.analysis_context
     presentation_context = context.presentation_context
     is_compare = context.is_compare
-    is_sequential = context.is_sequential
     valid_distances = options_view_model.valid_distances
     level_two_container = st.container(
         key=f"results_evidence_level_2_{analysis_id}_{run_id}"
@@ -67,7 +66,6 @@ def render_scope_controls(context: InspectorContext, options_view_model, *, sess
             key=f"results_guidance_segment_{analysis_id}_{run_id}",
             analysis_id=analysis_id,
             is_compare=is_compare,
-            is_sequential=is_sequential,
             analysis_context=analysis_context,
         )
 
@@ -200,7 +198,6 @@ def render_scope_controls(context: InspectorContext, options_view_model, *, sess
     )
 
 
-
 def render_segment_temporal_evidence(
     temporal_bundle,
     *,
@@ -212,7 +209,6 @@ def render_segment_temporal_evidence(
     cache_key,
     t,
     is_compare,
-    is_sequential,
     analysis_context,
     language,
     outlier_model=None,
@@ -247,7 +243,6 @@ def render_segment_temporal_evidence(
         ),
         analysis_id=analysis_id,
         is_compare=is_compare,
-        is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
 
@@ -396,7 +391,6 @@ def render_performance_segment_evidence(
                 opportunity_display_model["confirmed_opportunity_count"],
                 analysis_id=analysis_id,
                 is_compare=False,
-                is_sequential=False,
                 translations=t,
             ),
         ),
@@ -428,7 +422,6 @@ def render_performance_segment_evidence(
             ),
             analysis_id=analysis_id,
             is_compare=False,
-            is_sequential=False,
             analysis_context=analysis_context,
         )
 
@@ -450,14 +443,12 @@ def render_performance_segment_evidence(
             cache_key=segment_cache_key,
             t=t,
             is_compare=False,
-            is_sequential=False,
             analysis_context=analysis_context,
             language=presentation_context.language,
             timing_collector=timing_collector,
         )
 
     return segment_temporal_export
-
 
 
 def render_benchmark_segment_evidence(
@@ -470,7 +461,6 @@ def render_benchmark_segment_evidence(
     t = context.translations
     analysis_context = context.analysis_context
     presentation_context = context.presentation_context
-    is_sequential = context.is_sequential
     line1_str = context.line1_str
     timing_collector = context.timing_collector
     scope_token = scope.scope_token
@@ -490,9 +480,7 @@ def render_benchmark_segment_evidence(
     has_plot_data = compare_view_model.has_plot_data
     segment_temporal_export = None
     comparison_subtitle_key = (
-        "sub_results_comparison_evidence_scheduled"
-        if is_sequential
-        else "sub_results_comparison_evidence_joint"
+        "sub_results_comparison_evidence_joint"
     )
     scope_summary_placeholder.markdown(
         scope_summary_html(
@@ -502,7 +490,6 @@ def render_benchmark_segment_evidence(
                 segment_evidence_count,
                 analysis_id=analysis_id,
                 is_compare=True,
-                is_sequential=is_sequential,
                 translations=t,
             ),
         ),
@@ -531,13 +518,11 @@ def render_benchmark_segment_evidence(
             ),
             analysis_id=analysis_id,
             is_compare=True,
-            is_sequential=is_sequential,
             analysis_context=analysis_context,
         )
         render_reference_correction_notice(
             t,
             is_compare=True,
-            is_sequential=is_sequential,
             analysis_context=analysis_context,
         )
 
@@ -569,7 +554,6 @@ def render_benchmark_segment_evidence(
                 cache_key=segment_cache_key,
                 t=t,
                 is_compare=True,
-                is_sequential=is_sequential,
                 analysis_context=analysis_context,
                 language=presentation_context.language,
                 outlier_model=outlier_model,
@@ -577,9 +561,7 @@ def render_benchmark_segment_evidence(
             )
         else:
             no_joint_message = (
-                t["lbl_no_joint_pairs"]
-                if is_sequential
-                else t["lbl_no_joint"]
+                t["lbl_no_joint"]
             )
             st.info(no_joint_message, icon="??????")
             st.markdown(

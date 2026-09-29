@@ -21,7 +21,6 @@ from ui.result_guidance import (
 from ui.result_hierarchy import evidence_child_header_html
 
 
-
 def format_signed_outlier_db(value, translations):
     """Format one signed dB value with the active decimal separator."""
     numeric_value = float(value)
@@ -148,11 +147,10 @@ def validate_outlier_report_entry_counts(report_entry):
 
 def format_outlier_named_paired_unit_count(
     count,
-    is_sequential,
     translations,
 ):
     """Name any complete paired-unit count in established WSPRadar terms."""
-    unit_kind = "scheduled" if is_sequential else "joint"
+    unit_kind = "joint"
     count = int(count)
     number = "singular" if count == 1 else "plural"
     return translations[f"fmt_outlier_{unit_kind}_count_{number}"].format(
@@ -194,7 +192,6 @@ def format_outlier_candidate_facts(
     candidate,
     episode_card,
     translations,
-    is_sequential,
 ):
     """Format path-centred evidence timing and Delta-SNR interpretation facts."""
     evidence_times = candidate_joint_evidence_times(candidate, episode_card)
@@ -217,7 +214,6 @@ def format_outlier_candidate_facts(
     ].format(
         paired_count=format_outlier_named_paired_unit_count(
             len(evidence_times),
-            is_sequential,
             translations,
         ),
         first_to_last_span=format_outlier_duration_minutes(
@@ -419,7 +415,6 @@ def render_delta_snr_outlier_report(
     analysis_id,
     run_id,
     scope_token,
-    is_sequential,
     analysis_context,
 ):
     """Render native shared-gate detector episodes as review cards."""
@@ -447,14 +442,11 @@ def render_delta_snr_outlier_report(
         ),
         analysis_id=analysis_id,
         is_compare=True,
-        is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
     report_entries = outlier_model.report_entries
     paired_evidence_name = t[
-        "txt_outlier_paired_evidence_scheduled"
-        if is_sequential
-        else "txt_outlier_paired_evidence_joint"
+        "txt_outlier_paired_evidence_joint"
     ]
     if outlier_model.populated_station_cycle_count == 0:
         st.info(
@@ -506,9 +498,7 @@ def render_delta_snr_outlier_report(
             "Delta-SNR report view-model cards must match detector entries."
         )
     evidence_expander_key = (
-        "exp_outlier_scheduled_pair_evidence"
-        if is_sequential
-        else "exp_outlier_wspr_cycle_evidence"
+        "exp_outlier_wspr_cycle_evidence"
     )
     for episode_card, report_entry in zip(
         report_view_model.cards,
@@ -597,7 +587,6 @@ def render_delta_snr_outlier_report(
                         candidate,
                         episode_card,
                         t,
-                        is_sequential,
                     )
                 )
         if report_entry.flagged_station_count > 1:

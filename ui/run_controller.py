@@ -159,11 +159,7 @@ def _format_result_diagnostic_warning(t, analysis, diagnostic) -> str:
         return fallback_template.format(title=analysis["title"])
 
     if diagnostic.reason == BENCHMARK_NO_QUALIFYING_RESULT:
-        warning_key = (
-            "warn_benchmark_no_qualifying_result_sequential"
-            if analysis.get("is_sequential")
-            else "warn_benchmark_no_qualifying_result_simultaneous"
-        )
+        warning_key = "warn_benchmark_no_qualifying_result_simultaneous"
         warning_template = t.get(
             warning_key,
             t.get("warn_benchmark_no_qualifying_result", fallback_template),
@@ -228,7 +224,6 @@ def _analysis_plan_fingerprint(analyses) -> str:
             "id": str(analysis.get("id", "")),
             "analysis_kind": str(analysis.get("analysis_kind", "")),
             "is_compare": bool(analysis.get("is_compare")),
-            "is_sequential": bool(analysis.get("is_sequential")),
             "is_local_median": bool(analysis.get("is_local_median")),
             "response_format": str(analysis.get("response_format", "csv")),
             "absolute_mode": analysis.get("absolute_mode"),
@@ -666,6 +661,9 @@ def render_analysis_run(
     _refresh_session_artifacts_before_cleanup()
     request_counts_by_provider = {}
     committed_source = get_active_run_database_source(st.session_state)
+    if committed_source is None:
+        from ui.reference_location_state import resolved_discovery_source
+        committed_source = resolved_discovery_source(st.session_state, start_t, end_t)
     allowed_sources = {committed_source} if committed_source is not None else None
 
     def prepare_upstream_capacity():
@@ -1014,7 +1012,6 @@ def _render_map_result_block(
             ),
             analysis_id=analysis["id"],
             is_compare=analysis["is_compare"],
-            is_sequential=analysis["is_sequential"],
             analysis_context=analysis_context,
         )
         with st.container(
@@ -1047,7 +1044,6 @@ def _render_map_result_block(
                     ),
                     analysis_id=analysis["id"],
                     is_compare=analysis["is_compare"],
-                    is_sequential=analysis["is_sequential"],
                     analysis_context=analysis_context,
                 )
                 try:
@@ -1181,7 +1177,6 @@ def _render_deferred_inspectors(
                         data["analysis"]["id"],
                         data["analysis"]["title"],
                         data["analysis"]["is_compare"],
-                        data["analysis"]["is_sequential"],
                         data["enriched_df"],
                         data["parquet_path"],
                         data["line1_str"],
@@ -1341,7 +1336,6 @@ def _render_completed_analysis_run(
                     map_data_paths,
                     analysis_id=analysis["id"],
                     is_compare=analysis["is_compare"],
-                    is_sequential=analysis["is_sequential"],
                     analysis_kind=analysis["analysis_kind"],
                     diagnostic=diagnostic,
                 )
@@ -1544,6 +1538,9 @@ def _render_admitted_analysis_run(
             may_fallback = is_provider_failure and committed_source is None
             may_replan_capacity = is_capacity_failure and capacity_replans < 3
             if not may_fallback and not may_replan_capacity:
+                if is_provider_failure:
+                    from ui.reference_location_state import discard_failed_discovery_source
+                    discard_failed_discovery_source(st.session_state, provider.key)
                 if (
                     error is not None
                     and error.code == RESULT_ROW_LIMIT_EXCEEDED_CODE
@@ -1762,7 +1759,6 @@ def _render_admitted_analysis_run(
                 columns=list(map_preparation_columns(
                     analysis_kind=analysis["analysis_kind"],
                     is_compare=analysis["is_compare"],
-                    is_sequential=analysis["is_sequential"],
                 )),
             )
         except (OSError, ValueError) as exc:
@@ -1802,7 +1798,6 @@ def _render_admitted_analysis_run(
                     df,
                     analysis["title"],
                     analysis["is_compare"],
-                    analysis["is_sequential"],
                     start_t,
                     end_t,
                     max_peer_distance_km,

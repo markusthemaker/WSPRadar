@@ -437,7 +437,7 @@ def _map_export_test_block(artifact_paths):
         "analysis_id": "RX_ABS",
         "title": "RX Performance",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
         "map_context": {
             "parquet_path": str(artifact_paths["spots"]),
@@ -445,7 +445,7 @@ def _map_export_test_block(artifact_paths):
                 "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
                 "analysis_id": "RX_ABS",
                 "is_compare": False,
-                "is_sequential": False,
+
                 "analysis_kind": "opportunity",
                 "station_rows_path": str(artifact_paths["map_stations"]),
                 "segment_rows_path": str(artifact_paths["map_segments"]),
@@ -473,7 +473,7 @@ def _drilldown_evidence_export_fixture(parquet_path, *, is_compare=False):
         "analysis_id": analysis_id,
         "database_source": "wspr_live",
         "is_compare": is_compare,
-        "is_sequential": False,
+
         "analysis_kind": "comparison" if is_compare else "opportunity",
         "mode_folder": (
             results_export.BENCHMARK_EXPORT_FOLDER
@@ -487,7 +487,7 @@ def _drilldown_evidence_export_fixture(parquet_path, *, is_compare=False):
             }),
             "station_col": "Station", "loc_col": "Grid",
             "km_col": "km", "az_col": "az",
-            "analysis_id": analysis_id, "is_sequential": False,
+            "analysis_id": analysis_id,
             "show_non_joint": False, "is_local_median": False,
             "col_u_name": "Target", "ref_header": "Reference", "lang": "en",
         },
@@ -860,7 +860,7 @@ def test_export_signature_is_path_free_and_tracks_artifact_changes(
             "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
             "analysis_id": "RX_ABS",
             "is_compare": False,
-            "is_sequential": False,
+
             "analysis_kind": "opportunity",
             "station_rows_path": str(station_path),
             "segment_rows_path": str(segment_path),
@@ -959,7 +959,7 @@ def test_results_zip_preserves_registered_decode_filter_mode(
             "id": analysis_id,
             "title": f"{analysis_direction} {'Benchmark' if is_compare else 'Performance'}",
             "is_compare": is_compare,
-            "is_sequential": False,
+
             "analysis_kind": "comparison" if is_compare else "opportunity",
             **decode_policy_fields,
         },
@@ -1057,7 +1057,7 @@ def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
         {
             "settings": {
                 "comparison_parameters": {
-                    "mode": "hardware_ab",
+                    "mode": "reference_station",
                     "snr_correction_mode": "establish_offset",
                     "snr_correction_db": 0.0,
                 }
@@ -1359,7 +1359,7 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
         "run_id": 42,
         "val_callsign": "dl1mks",
         "val_analysis_direction": "rx",
-        "val_comp_mode": "hardware_ab",
+        "val_comp_mode": "reference_station",
         "val_band": "20m",
     }
     browser_calls = []
@@ -1420,7 +1420,7 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
                 "#wspradar-results-inspection"
             ),
             "title": (
-                "WSPRadar analysis: DL1MKS RX Hardware A/B on 20m"
+                "WSPRadar analysis: DL1MKS RX Reference Setup/Station on 20m"
             ),
             "message": T["en"]["share_analysis_message"],
             "labels": {
@@ -1655,7 +1655,6 @@ def test_export_marker_signature_tracks_payload_even_if_declared_hash_is_stale()
         ("schema_version", 999),
         ("analysis_id", "TX_ABS"),
         ("is_compare", True),
-        ("is_sequential", True),
         ("analysis_kind", "comparison"),
     ],
 )
@@ -1669,7 +1668,7 @@ def test_map_export_rejects_mismatched_compact_artifact_identity(
         "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
         "analysis_id": "RX_ABS",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
         "station_rows_path": "map_stations_RX_ABS.parquet",
         "segment_rows_path": "map_segments_RX_ABS.parquet",
@@ -1685,7 +1684,7 @@ def test_map_export_rejects_mismatched_compact_artifact_identity(
     block = {
         "analysis_id": "RX_ABS",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
         "map_context": {"map_data_artifacts": map_artifacts},
     }
@@ -1738,7 +1737,7 @@ def test_map_export_registration_rejects_unowned_artifact_paths(
                 "id": "RX_ABS",
                 "title": "RX Performance",
                 "is_compare": False,
-                "is_sequential": False,
+
                 "analysis_kind": "opportunity",
             },
             parquet_path=artifact_paths["spots"],
@@ -2318,7 +2317,7 @@ def test_benchmark_zoom_registration_requires_exact_outlier_overlay_provenance()
             y_label="Delta SNR (dB)",
             empty_text="No paired evidence.",
             evidence_unit_label="Individual Joint Spot",
-            is_sequential=False,
+
             outlier_overlay=overlay,
         )
     )
@@ -2776,7 +2775,7 @@ def test_disabled_registration_strips_stale_zoom_outlier_context(
             y_label="Delta SNR (dB)",
             empty_text="No paired evidence.",
             evidence_unit_label="Individual Joint Spot",
-            is_sequential=False,
+
             outlier_overlay=stale_overlay,
         )
     )
@@ -3058,7 +3057,7 @@ def test_enabled_outlier_tables_are_packaged_with_status_and_no_double_correctio
                 "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
                 "database_source": "wspr_live",
                 "is_compare": True,
-                "is_sequential": False,
+
                 "selected_stations": [],
                 "report_delta_snr_outlier_candidates": True,
                 "delta_snr_outlier_detector_version": (
@@ -3091,7 +3090,7 @@ def test_enabled_outlier_tables_are_packaged_with_status_and_no_double_correctio
                 },
             },
             "comparison_parameters": {
-                "mode": "hardware_ab",
+                "mode": "reference_station",
                 "snr_correction_db": 1.6,
             },
             "advanced_parameters": {},
@@ -3412,7 +3411,7 @@ def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
                 "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
                 "database_source": "wspr_live",
                 "is_compare": False,
-                "is_sequential": False,
+
                 "analysis_kind": "opportunity",
             }
         },
@@ -3695,7 +3694,7 @@ def test_success_results_zip_records_selected_figures_and_context(
         "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
         "database_source": "wspr_live",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
         "performance_method_version": "opportunity-v1",
     }
@@ -3887,7 +3886,7 @@ def test_results_zip_conditionally_packages_drilldown_zoom_figures_and_metadata(
         "mode_folder": folder,
         "database_source": "wspr_live",
         "is_compare": folder == results_export.BENCHMARK_EXPORT_FOLDER,
-        "is_sequential": False,
+
         "selected_stations": ["OK1FCX (JN79)"],
         "selected_station_count": 1,
         "drilldown_zoom_metadata": metadata,
@@ -3914,7 +3913,7 @@ def test_results_zip_conditionally_packages_drilldown_zoom_figures_and_metadata(
             },
             "comparison_parameters": {
                 "mode": (
-                    "hardware_ab"
+                    "reference_station"
                     if folder == results_export.BENCHMARK_EXPORT_FOLDER
                     else "none"
                 )
@@ -4052,7 +4051,7 @@ def test_benchmark_results_zip_records_coverage_figures_in_stable_order(
                     "end_utc": "2026-07-02T00:00Z",
                 },
             },
-            "comparison_parameters": {"mode": "hardware_ab"},
+            "comparison_parameters": {"mode": "reference_station"},
             "advanced_parameters": {},
         },
     }
@@ -4100,7 +4099,7 @@ def test_benchmark_results_zip_records_coverage_figures_in_stable_order(
         "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
         "database_source": "wspr_live",
         "is_compare": True,
-        "is_sequential": False,
+
         "analysis_kind": "comparison",
     }
     _register_inspector_export_fixture(
@@ -4278,7 +4277,7 @@ def test_performance_export_uses_performance_folder_and_metadata(
             "id": "RX_ABS",
             "title": "RX Performance",
             "is_compare": False,
-            "is_sequential": False,
+
             "analysis_kind": "opportunity",
             "absolute_method_version": "opportunity-v1",
         },
@@ -4307,7 +4306,7 @@ def test_performance_export_uses_performance_folder_and_metadata(
         "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
         "analysis_id": "RX_ABS",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
         "station_rows_path": str(artifact_paths["map_stations"].resolve()),
         "segment_rows_path": str(artifact_paths["map_segments"].resolve()),
@@ -4459,7 +4458,7 @@ def test_success_map_export_reuses_compact_aggregate_without_raw_evidence_read(
         "analysis_id": "RX_ABS",
         "title": "RX Performance",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
         "map_context": {
             "parquet_path": str(artifact_paths["spots"]),
@@ -4469,7 +4468,7 @@ def test_success_map_export_reuses_compact_aggregate_without_raw_evidence_read(
                 ),
                 "analysis_id": "RX_ABS",
                 "is_compare": False,
-                "is_sequential": False,
+
                 "analysis_kind": "opportunity",
                 "station_rows_path": str(artifact_paths["map_stations"]),
                 "segment_rows_path": str(artifact_paths["map_segments"]),
@@ -4501,7 +4500,7 @@ def test_success_map_export_reuses_compact_aggregate_without_raw_evidence_read(
     assert aggregate_identity == {
         "analysis_id": "RX_ABS",
         "is_compare": False,
-        "is_sequential": False,
+
         "analysis_kind": "opportunity",
     }
     assert len(render_calls) == 1

@@ -12,15 +12,15 @@ from config import MAX_ANALYSIS_RESULT_ROWS
 from core import analysis_runner
 from core.analysis_context import (
     AnalysisContext,
-    COMPARISON_HARDWARE_AB,
+    COMPARISON_REFERENCE_STATION,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
     LOCAL_BENCHMARK_MEDIAN,
-    SELF_TEST_RX,
-    SELF_TEST_TX,
-    TX_AB_METHOD_SEQUENTIAL,
-    TX_AB_METHOD_SIMULTANEOUS,
+
+
+
+
 )
 from core.analysis_runner import (
     AnalysisConfigError,
@@ -46,12 +46,27 @@ def _analysis_context(**overrides):
         "comparison_mode": COMPARISON_REFERENCE_STATION,
         "reference_callsign": "DL2XYZ",
         "reference_qth": "JO62",
-        "tx_ab_repeat_interval_minutes": 10,
-        "tx_ab_target_start_minute": 0,
-        "tx_ab_reference_start_minute": 2,
+
+
+
     }
     values.update(overrides)
     return AnalysisContext(**values)
+
+
+@pytest.mark.parametrize("obsolete_field", [
+    "is_sequential", "self_test_mode", "tx_ab_method", "unknown_science",
+])
+def test_analysis_context_reader_rejects_unknown_fields(obsolete_field):
+    with pytest.raises(ValueError, match=obsolete_field):
+        AnalysisContext.from_dict({"callsign": "DL1MKS", obsolete_field: True})
+
+
+def test_analysis_context_reader_preserves_current_defaults_and_round_trip():
+    context = AnalysisContext.from_dict({"callsign": "DL1MKS"})
+    assert context == AnalysisContext(callsign="DL1MKS")
+    assert AnalysisContext.from_dict(context.to_dict()) == context
+    assert AnalysisContext.from_dict(context) is context
 
 
 def _build_analyses(context, *, historical=False):
@@ -94,22 +109,10 @@ def test_no_benchmark_builds_only_the_directional_performance_analysis():
     )
 
 
-@pytest.mark.parametrize(
-    ("run_mode", "comparison_mode", "tx_ab_method"),
-    [
-        ("RX", COMPARISON_REFERENCE_STATION, TX_AB_METHOD_SIMULTANEOUS),
-        ("TX", COMPARISON_REFERENCE_STATION, TX_AB_METHOD_SIMULTANEOUS),
-        ("RX", COMPARISON_LOCAL_NEIGHBORHOOD, TX_AB_METHOD_SIMULTANEOUS),
-        ("TX", COMPARISON_LOCAL_NEIGHBORHOOD, TX_AB_METHOD_SIMULTANEOUS),
-        ("RX", COMPARISON_HARDWARE_AB, TX_AB_METHOD_SIMULTANEOUS),
-        ("TX", COMPARISON_HARDWARE_AB, TX_AB_METHOD_SIMULTANEOUS),
-        ("TX", COMPARISON_HARDWARE_AB, TX_AB_METHOD_SEQUENTIAL),
-    ],
-    ids=("rx-reference", "tx-reference", "rx-local", "tx-local", "rx-hardware", "tx-hardware", "tx-scheduled"),
-)
+@pytest.mark.parametrize(('run_mode', 'comparison_mode'), [('RX', COMPARISON_REFERENCE_STATION), ('TX', COMPARISON_REFERENCE_STATION), ('RX', COMPARISON_LOCAL_NEIGHBORHOOD), ('TX', COMPARISON_LOCAL_NEIGHBORHOOD)], ids=('rx-reference', 'tx-reference', 'rx-local', 'tx-local'))
 @pytest.mark.parametrize("exclude_special_callsigns", [False, True])
 def test_special_callsign_filter_preserves_benchmark_target_and_reference_roles(
-    run_mode, comparison_mode, tx_ab_method, exclude_special_callsigns,
+    run_mode, comparison_mode,  exclude_special_callsigns,
 ):
     """Execute both generated source predicates for every Benchmark design.
 
@@ -120,7 +123,6 @@ def test_special_callsign_filter_preserves_benchmark_target_and_reference_roles(
     peer_prefix = "tx" if run_mode == "RX" else "rx"
     ordinary_peers = {"DL2AAA", "DK3BBB", "DL0QAA", "DL1QAA"}
     special_peers = {"Q1XYZ", "0ABC", "1ABC"}
-    is_sequential = tx_ab_method == TX_AB_METHOD_SEQUENTIAL
     reference_grid = "JO62" if comparison_mode == COMPARISON_REFERENCE_STATION else "JN37"
 
     with closing(sqlite3.connect(":memory:")) as connection:
@@ -133,14 +135,14 @@ def test_special_callsign_filter_preserves_benchmark_target_and_reference_roles(
         )
         for special_prefix in ("Q", "0", "1"):
             target_callsign = f"{special_prefix}1ABC"
-            reference_callsign = target_callsign if is_sequential else f"{special_prefix}2XYZ"
+            reference_callsign = f"{special_prefix}2XYZ"
             context = _analysis_context(
                 run_mode=run_mode,
                 callsign=target_callsign,
                 reference_callsign=reference_callsign,
                 comparison_mode=comparison_mode,
-                self_test_mode=SELF_TEST_RX if run_mode == "RX" else SELF_TEST_TX,
-                tx_ab_method=tx_ab_method,
+
+
                 exclude_special_callsigns=exclude_special_callsigns,
                 neighborhood_radius_km=100,
             )
@@ -149,7 +151,7 @@ def test_special_callsign_filter_preserves_benchmark_target_and_reference_roles(
             observations = []
             for role, callsign, grid, minute in (
                 ("target", target_callsign, "JN37", 0),
-                ("reference", reference_callsign, reference_grid, 2 if is_sequential else 0),
+                ("reference", reference_callsign, reference_grid, 0),
             ):
                 for peer_callsign in sorted(ordinary_peers | special_peers):
                     observations.append((
@@ -195,9 +197,9 @@ def test_special_callsign_filter_preserves_benchmark_target_and_reference_roles(
         _analysis_context(run_mode="RX", comparison_mode=COMPARISON_REFERENCE_STATION),
         _analysis_context(
             run_mode="TX",
-            self_test_mode=SELF_TEST_TX,
-            comparison_mode=COMPARISON_HARDWARE_AB,
-            tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
+
+            comparison_mode=COMPARISON_REFERENCE_STATION,
+
         ),
         _analysis_context(
             run_mode="RX",
@@ -276,7 +278,6 @@ def test_analysis_plan_replacements_preserve_strict_plan_and_time_window():
     ("field_name", "replacement", "message"),
     [
         ("is_compare", False, "Benchmark comparison"),
-        ("is_sequential", 1, "boolean"),
         ("result_family", "performance", "Benchmark comparison"),
         ("response_format", "parquet", "csv responses"),
         ("analysis_kind", "unknown", "analysis_kind"),
@@ -311,7 +312,6 @@ def test_analysis_plan_rejects_missing_required_fields(field_name):
     ("field_name", "replacement", "message"),
     [
         ("is_compare", True, "Performance semantics"),
-        ("is_sequential", True, "Performance semantics"),
         ("is_local_median", True, "Local Median"),
         ("absolute_mode", None, "absolute_mode"),
         ("absolute_method_version", None, "absolute_method_version"),
@@ -387,29 +387,23 @@ def test_letter_only_reporting_identifier_builds_exact_rx_success_query():
 @pytest.mark.parametrize(
     "comparison_mode",
     [
-        COMPARISON_HARDWARE_AB,
+        COMPARISON_REFERENCE_STATION,
         COMPARISON_REFERENCE_STATION,
         COMPARISON_LOCAL_NEIGHBORHOOD,
     ],
 )
-@pytest.mark.parametrize(
-    ("run_mode", "self_test_mode", "expected_analysis_id"),
-    [
-        ("RX", SELF_TEST_RX, "RX_BENCHMARK"),
-        ("TX", SELF_TEST_TX, "TX_BENCHMARK"),
-    ],
-)
+@pytest.mark.parametrize(('run_mode', 'expected_analysis_id'), [('RX', 'RX_BENCHMARK'), ('TX', 'TX_BENCHMARK')])
 def test_benchmark_builds_only_the_directional_compare_analysis(
     comparison_mode,
     run_mode,
-    self_test_mode,
+
     expected_analysis_id,
 ):
     """Keep every benchmark run Compare-only in both analysis directions."""
     analyses = _build_analyses(
         _analysis_context(
             run_mode=run_mode,
-            self_test_mode=self_test_mode,
+
             comparison_mode=comparison_mode,
         )
     )
@@ -479,186 +473,24 @@ def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
         assert f"band = {band_value}" in analyses[0]["query"]
 
 
-def test_tx_ab_schedule_sql_filters_compare_to_both_configured_starts():
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def test_reference_station_rejects_identical_callsigns():
     context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
-        qth="JN37UN",
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
+        comparison_mode=COMPARISON_REFERENCE_STATION,
 
-    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
-
-    assert "toMinute(time) % 10 = 0" in tx_compare["query"]
-    assert "toMinute(time) % 10 = 2" in tx_compare["query"]
-    assert tx_compare["query"].count(
-        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
-    ) == 2
-
-
-def test_four_minute_tx_ab_schedule_uses_demo_query_contract():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
-        tx_ab_repeat_interval_minutes=4,
-        tx_ab_target_start_minute=2,
-        tx_ab_reference_start_minute=0,
-    )
-
-    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
-
-    assert "toMinute(time) % 4 = 2" in tx_compare["query"]
-    assert "toMinute(time) % 4 = 0" in tx_compare["query"]
-
-
-def test_tx_ab_schedule_rejects_overlapping_starts_before_sql_is_built():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=0,
-    )
-
-    with pytest.raises(ValueError, match="Invalid TX A/B schedule"):
-        _build_analyses(context)
-
-
-def test_tx_hardware_ab_defaults_to_simultaneous_fixed_reference_comparison():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        qth="JN37UN",
-        reference_callsign="DL2XYZ/P",
-        reference_qth="",
-    )
-
-    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
-
-    assert context.tx_ab_method == TX_AB_METHOD_SIMULTANEOUS
-    assert tx_compare["is_sequential"] is False
-    assert (
-        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
-        in tx_compare["query"]
-    )
-    assert (
-        "tx_sign = 'DL2XYZ/P' AND substring(tx_loc, 1, 4) = 'JN37'"
-        in tx_compare["query"]
-    )
-    assert "toMinute(time) %" not in tx_compare["query"]
-    assert tx_compare["title"] == (
-        "TX Benchmark: DL1MKS (Target) vs. DL2XYZ/P (Reference)"
-    )
-
-
-def test_sequential_tx_hardware_ab_preserves_shared_identity_and_schedule_title():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
-        reference_callsign="",
-        reference_qth="",
-    )
-
-    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
-
-    assert tx_compare["is_sequential"] is True
-    assert tx_compare["query"].count(
-        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
-    ) == 2
-    assert "toMinute(time) % 10 = 0" in tx_compare["query"]
-    assert "toMinute(time) % 10 = 2" in tx_compare["query"]
-    assert tx_compare["title"] == (
-        "TX Benchmark: DL1MKS (Target) vs. DL1MKS (Reference)"
-    )
-
-
-@pytest.mark.parametrize(
-    ("run_mode", "self_test_mode", "analysis_id"),
-    [
-        ("TX", SELF_TEST_TX, "TX_BENCHMARK"),
-        ("RX", SELF_TEST_RX, "RX_BENCHMARK"),
-    ],
-)
-def test_simultaneous_hardware_ab_reuses_fixed_reference_query_contract(
-    run_mode,
-    self_test_mode,
-    analysis_id,
-):
-    reference_analysis = _analysis_by_id(
-        _analysis_context(
-            comparison_mode=COMPARISON_REFERENCE_STATION,
-            run_mode=run_mode,
-            self_test_mode=self_test_mode,
-            qth="JN37UN",
-            reference_callsign="DL2XYZ",
-            reference_qth="JN37",
-            reference_snr_correction_db=1.2,
-        ),
-        analysis_id,
-    )
-    hardware_analysis = _analysis_by_id(
-        _analysis_context(
-            comparison_mode=COMPARISON_HARDWARE_AB,
-            tx_ab_method=TX_AB_METHOD_SIMULTANEOUS,
-            run_mode=run_mode,
-            self_test_mode=self_test_mode,
-            qth="JN37UN",
-            reference_callsign="DL2XYZ",
-            reference_qth="",
-            reference_snr_correction_db=1.2,
-        ),
-        analysis_id,
-    )
-
-    assert hardware_analysis["is_sequential"] is False
-    assert hardware_analysis["query"] == reference_analysis["query"]
-    assert hardware_analysis["title"] == reference_analysis["title"]
-
-
-@pytest.mark.parametrize(
-    ("self_test_mode", "tx_ab_method"),
-    [
-        (SELF_TEST_RX, TX_AB_METHOD_SIMULTANEOUS),
-        (SELF_TEST_TX, TX_AB_METHOD_SIMULTANEOUS),
-    ],
-)
-def test_hardware_ab_derives_reference_grid4_from_target_qth(
-    self_test_mode,
-    tx_ab_method,
-):
-    context = _analysis_context(
-        run_mode=self_test_mode.upper(),
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=self_test_mode,
-        tx_ab_method=tx_ab_method,
-        qth="JN37UN",
-        reference_callsign="DL2XYZ",
-        reference_qth="JO62",
-    )
-
-    comparison = _analysis_by_id(
-        context,
-        "RX_BENCHMARK" if self_test_mode == SELF_TEST_RX else "TX_BENCHMARK",
-    )
-
-    identity_column = "rx" if self_test_mode == SELF_TEST_RX else "tx"
-    assert (
-        f"{identity_column}_sign = 'DL2XYZ' AND "
-        f"substring({identity_column}_loc, 1, 4) = 'JN37'"
-        in comparison["query"]
-    )
-    assert "'JO62'" not in comparison["query"]
-
-
-def test_simultaneous_hardware_ab_rejects_identical_callsigns():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
         reference_callsign="DL1MKS",
         reference_qth="",
     )
@@ -670,15 +502,6 @@ def test_simultaneous_hardware_ab_rejects_identical_callsigns():
         _build_analyses(context)
 
 
-def test_tx_hardware_ab_rejects_unknown_method_before_query_construction():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method="parallel-ish",
-    )
-
-    with pytest.raises(ValueError, match="Unknown TX Hardware A/B method"):
-        _build_analyses(context)
 
 
 def test_reference_station_requires_valid_reference_qth():
@@ -779,13 +602,13 @@ def test_reference_station_matching_accepts_exact_suffix_callsigns_per_side(
     assert "tx_sign LIKE" not in tx_compare["query"]
 
 
-def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
+def test_rx_reference_station_matching_uses_exact_callsigns_to_protect_suffixes():
     context = _analysis_context(
         run_mode="RX",
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_RX,
+        comparison_mode=COMPARISON_REFERENCE_STATION,
+
         reference_callsign="DL1MKS/P",
-        reference_qth="",
+        reference_qth="JN37",
     )
 
     rx_compare = _analysis_by_id(context, "RX_BENCHMARK")
@@ -805,14 +628,14 @@ def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
     assert "rx_sign LIKE 'DL1MKS/P%'" not in rx_compare["query"]
 
 
-def test_rx_hardware_ab_matching_accepts_one_exact_reference_suffix_callsign():
+def test_rx_reference_station_matching_accepts_one_exact_reference_suffix_callsign():
     context = _analysis_context(
         run_mode="RX",
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_RX,
+        comparison_mode=COMPARISON_REFERENCE_STATION,
+
         callsign="DL1MKS/1",
         reference_callsign="DL1MKS/P",
-        reference_qth="",
+        reference_qth="JN37",
     )
 
     rx_compare = _analysis_by_id(context, "RX_BENCHMARK")
@@ -1020,23 +843,31 @@ def test_local_neighborhood_sql_retains_circle_membership_and_other_filters(
     ("run_mode", "analysis_id"),
     [("TX", "TX_BENCHMARK"), ("RX", "RX_BENCHMARK")],
 )
-def test_compare_queries_use_half_open_analysis_interval(run_mode, analysis_id):
+@pytest.mark.parametrize("start_minute,end_minute", [(0, 0), (7, 11)])
+def test_compare_queries_use_half_open_analysis_interval(run_mode, analysis_id, start_minute, end_minute):
     context = _analysis_context(run_mode=run_mode)
-
-    comparison = _analysis_by_id(context, analysis_id)
+    start = START_TIME.replace(minute=start_minute)
+    end = END_TIME.replace(minute=end_minute)
+    comparison, = build_analysis_batches(
+        context, start, end, 47.0, 8.0, "AND band = '14'",
+        presentation_context=PresentationContext(
+            labels=T["en"], solar_label=T["en"]["opt_solar_all"].split()[0],
+        ),
+    )
+    assert comparison["id"] == analysis_id
 
     for query in filter(None, (comparison["query"], comparison.get("legacy_query"))):
-        assert query.count("time >= '2026-05-27 00:00:00'") == 2
-        assert query.count("time < '2026-05-28 00:00:00'") == 2
+        assert query.count(f"time >= '{start:%Y-%m-%d %H:%M:%S}'") == 2
+        assert query.count(f"time < '{end:%Y-%m-%d %H:%M:%S}'") == 2
         assert "time BETWEEN" not in query
 
 
-def test_non_sequential_cycle_synchronization_keeps_only_target_active_slots():
+def test_same_cycle_synchronization_keeps_only_target_active_slots():
     context = _analysis_context()
     analysis = {
         "analysis_kind": "comparison",
         "is_compare": True,
-        "is_sequential": False,
+
         "title": "cycle sync",
     }
     rows = pd.DataFrame({
@@ -1053,30 +884,6 @@ def test_non_sequential_cycle_synchronization_keeps_only_target_active_slots():
     assert set(filtered["time_slot"]) == {1, 3}
 
 
-def test_sequential_comparison_does_not_apply_async_cycle_synchronization():
-    context = _analysis_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
-    )
-    analysis = {
-        "analysis_kind": "comparison",
-        "is_compare": True,
-        "is_sequential": True,
-        "title": "sequential",
-    }
-    rows = pd.DataFrame({
-        "time": [START_TIME, START_TIME + timedelta(minutes=2)],
-        "is_me": [1, 0],
-        "stat_val": [1.0, 0.0],
-        "has_u": [1, 0],
-    })
-
-    filtered, warning = apply_post_fetch_filters(rows, analysis, context, 47.0, 8.0, T["en"])
-
-    assert warning is None
-    assert len(filtered) == 2
-    assert filtered["tx_ab_pair_id"].nunique() == 1
 
 
 @pytest.mark.parametrize("timestamp_timezone", [None, "UTC", "Europe/Berlin"])
@@ -1140,26 +947,20 @@ def test_distinct_solar_timestamps_do_not_silently_discard_missing_instants():
         analysis_runner._classify_solar_timestamps(timestamps, 47.0, 8.0)
 
 
-@pytest.mark.parametrize(
-    ("analysis_kind", "run_mode", "is_sequential"),
-    [
-        ("opportunity", "TX", False),
-        ("opportunity", "RX", False),
-        ("comparison", "TX", False),
-        ("comparison", "RX", False),
-        ("comparison", "TX", True),
-    ],
-)
+
+
+@pytest.mark.parametrize("analysis_kind", ["opportunity", "comparison"])
+@pytest.mark.parametrize("run_mode", ["TX", "RX"])
 @pytest.mark.parametrize("solar_state", ["all", "day", "greyline", "night"])
-def test_solar_filter_shares_exact_instants_across_peers_and_scheduled_pair_sides(
-    monkeypatch, analysis_kind, run_mode, is_sequential, solar_state,
+def test_solar_filter_shares_exact_instants_across_peers(
+    monkeypatch, analysis_kind, run_mode,  solar_state,
 ):
-    """Retain rows and planned pair midpoints under every solar gate and mode."""
+    """Retain rows under every solar gate and active analysis mode."""
     context = _analysis_context(run_mode=run_mode, solar_state=solar_state)
     analysis = {
         "analysis_kind": analysis_kind,
         "is_compare": analysis_kind == "comparison",
-        "is_sequential": is_sequential,
+
         "title": "solar filter",
         "analysis_start_utc": START_TIME,
         "analysis_end_utc": END_TIME,
@@ -1167,7 +968,7 @@ def test_solar_filter_shares_exact_instants_across_peers_and_scheduled_pair_side
     row_records = []
     for minute in (0, 10, 20):
         for peer_sign, peer_grid in (("DL2XYZ", "JO62"), ("DL3ABC", "JN58")):
-            for is_me in ((1, 0) if is_sequential else (1,)):
+            for is_me in ((1,)):
                 timestamp = START_TIME + timedelta(minutes=minute + (2 if is_me == 0 else 0))
                 row_records.append({
                     "time": timestamp,
@@ -1184,10 +985,10 @@ def test_solar_filter_shares_exact_instants_across_peers_and_scheduled_pair_side
                 })
     rows = pd.DataFrame(row_records, index=[index * 7 for index in range(len(row_records))])
     expected_timestamps = [
-        pd.Timestamp(START_TIME + timedelta(minutes=minute + int(is_sequential)))
+        pd.Timestamp(START_TIME + timedelta(minutes=minute))
         for minute in (0, 10, 20)
     ]
-    if analysis_kind == "comparison" and not is_sequential:
+    if analysis_kind == 'comparison':
         expected_timestamps = [timestamp.tz_localize(None) for timestamp in expected_timestamps]
     classifications = dict(zip(expected_timestamps, ("day", "grey", "night")))
     calls = []

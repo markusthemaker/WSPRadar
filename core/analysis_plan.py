@@ -26,7 +26,6 @@ class AnalysisPlan(Mapping[str, object]):
     analysis_kind: str
     result_family: str
     is_compare: bool
-    is_sequential: bool
     response_format: str
     query: str
     decode_filter_mode: str
@@ -45,7 +44,7 @@ class AnalysisPlan(Mapping[str, object]):
                 raise ValueError(f"Analysis plan {field_name} must be a non-empty string")
         if not isinstance(self.query, str):
             raise TypeError("Analysis plan query must be a string")
-        for field_name in ("is_compare", "is_sequential"):
+        for field_name in ("is_compare",):
             if not isinstance(getattr(self, field_name), bool):
                 raise TypeError(f"Analysis plan {field_name} must be a boolean")
         if self.is_local_median is not None and not isinstance(self.is_local_median, bool):
@@ -61,7 +60,7 @@ class AnalysisPlan(Mapping[str, object]):
             raise ValueError("Analysis plan legacy_query requires legacy_no_code provenance")
 
         if self.analysis_kind == "opportunity":
-            if self.result_family != "performance" or self.is_compare or self.is_sequential:
+            if self.result_family != 'performance' or self.is_compare:
                 raise ValueError("Opportunity plans require non-comparison Performance semantics")
             if self.response_format != "parquet":
                 raise ValueError("Opportunity plans require parquet responses")
@@ -78,8 +77,6 @@ class AnalysisPlan(Mapping[str, object]):
                 raise ValueError("Comparison plans require csv responses")
             if self.absolute_mode is not None or self.absolute_method_version is not None:
                 raise ValueError("Comparison plans cannot carry Performance method metadata")
-            if self.is_sequential and self.is_local_median:
-                raise ValueError("Sequential comparison plans cannot use Local Median")
             if self.analysis_start_utc is None or self.analysis_end_utc is None:
                 raise ValueError("Comparison plans require their analysis time window")
         else:

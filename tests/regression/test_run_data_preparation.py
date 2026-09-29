@@ -33,7 +33,7 @@ def _comparison_plan():
         "analysis_kind": "comparison",
         "result_family": "benchmark",
         "is_compare": True,
-        "is_sequential": False,
+
         "analysis_start_utc": datetime(2017, 4, 1, tzinfo=timezone.utc),
         "analysis_end_utc": datetime(2017, 4, 2, tzinfo=timezone.utc),
         "decode_filter_mode": DECODE_FILTER_STRICT,
@@ -52,7 +52,7 @@ def _success_plan():
         "analysis_kind": "opportunity",
         "result_family": "performance",
         "is_compare": False,
-        "is_sequential": False,
+
         "absolute_mode": "RX",
         "analysis_start_utc": datetime(2017, 4, 1, tzinfo=timezone.utc),
         "analysis_end_utc": datetime(2017, 4, 2, tzinfo=timezone.utc),
@@ -697,37 +697,6 @@ def test_partial_comparison_schema_is_provider_scoped(tmp_path):
     assert exc_info.value.fetch_result.error.scope == FetchFailureScope.PROVIDER
 
 
-def test_partial_sequential_comparison_schema_is_provider_scoped(tmp_path):
-    """Reject marker-only sequential Compare rows before local processing."""
-    plan = {
-        **_comparison_plan(),
-        "id": "TX_COMP",
-        "is_sequential": True,
-    }
-    controller = _controller()
-    lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
-
-    def fake_fetch(_query, *, database_provider, request_permit, **_kwargs):
-        request_permit.consume_request()
-        return _result(database_provider.key, pd.DataFrame({"is_me": [1]}))
-
-    with pytest.raises(ProviderBundleFetchError) as exc_info:
-        prepare_provider_bundle(
-            [plan],
-            provider_lease=lease,
-            is_demo_run=False,
-            analysis_context=object(),
-            center_latitude=47.0,
-            center_longitude=8.0,
-            labels={"warn_no_data": "No data: {title}"},
-            artifact_paths={"TX_COMP": Path(tmp_path / "compare.parquet")},
-            fetch_data=fake_fetch,
-            post_fetch_filter=_post_fetch,
-        )
-    lease.release()
-
-    assert exc_info.value.fetch_result.error.code == "schema_error"
-    assert exc_info.value.fetch_result.error.scope == FetchFailureScope.PROVIDER
 
 
 def test_local_median_requires_contributor_detail_column(tmp_path):

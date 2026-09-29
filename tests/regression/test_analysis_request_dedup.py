@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from core.analysis_context import (
     AnalysisContext,
-    TX_AB_METHOD_SEQUENTIAL,
+
 )
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.run_controller import _analysis_request_fingerprint
@@ -57,25 +57,17 @@ def test_analysis_request_fingerprint_changes_with_scientific_inputs():
         replace(context, reference_qth="JO62")
     )
     assert _fingerprint(context) != _fingerprint(
-        replace(context, tx_ab_method=TX_AB_METHOD_SEQUENTIAL)
-    )
-    assert _fingerprint(context) != _fingerprint(
-        replace(context, tx_ab_repeat_interval_minutes=20)
-    )
-    assert _fingerprint(context) != _fingerprint(
-        replace(context, tx_ab_reference_start_minute=4)
-    )
-    assert _fingerprint(context) != _fingerprint(
         replace(context, max_peer_distance_km=10000)
     )
-    assert _fingerprint(context) != _fingerprint(context, end_t=END + timedelta(minutes=2))
+    assert _fingerprint(context) != _fingerprint(context, end_t=END + timedelta(minutes=1))
+    assert _fingerprint(context) != _fingerprint(context, start_t=START + timedelta(minutes=1))
 
 
 def test_correction_workflow_mode_does_not_change_request_fingerprint():
     """Exclude correction provenance when the applied numeric value is unchanged."""
     base_state = {
         "val_analysis_direction": "rx",
-        "val_comp_mode": "hardware_ab",
+        "val_comp_mode": "reference_station",
         "val_snr_correction_mode": "no_offset",
         "val_benchmark_offset_db": 0.0,
     }

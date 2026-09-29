@@ -7,16 +7,17 @@ from config import APP_VERSION
 
 T = {
     "en": {
-        'cfg_min_joint_pairs': "Minimum scheduled pairs per station",
-        'hlp_min_joint_pairs': "Sequential TX A/B requires at least X joint scheduled pairs per station. The same numeric threshold applies to one-sided scheduled-pair categories.",
-        'lbl_no_joint_pairs': "No joint scheduled pairs are available in this segment to calculate a \u0394 SNR histogram.",
-        'fig_scheduled_pair_count': "Scheduled pair count",
+        "fig_tx_abs": 'TX Performance: {callsign} — Target Heard vs. Other Signals Heard Only',
+
+
+
+
         'fig_joint_spot_count': "Joint spot count",
         'fig_relative_joint_spot_density': "Relative joint-spot density (% of panel maximum)",
-        'fig_relative_scheduled_pair_density': "Relative scheduled-pair density (% of panel maximum)",
+
         'lbl_time_aggregation_bin_size': "Select time aggregation bin size",
         'lbl_report_delta_snr_outlier_candidates': "Report ΔSNR outlier candidates",
-        'tt_report_delta_snr_outlier_candidates': "Detect path-level ΔSNR excursions at native Joint Spot or complete Scheduled Pair resolution against candidate-excluded, two-sided local baselines. Nearby same-sign residuals are grouped into spot impulses, short bursts, or sustained excursions for description, while every group must pass the same three qualification gates. Evidence without a defensible local baseline remains unclassified. Detection is independent of the displayed chronological aggregation; candidates are inspection prompts, not causal labels.",
+        'tt_report_delta_snr_outlier_candidates': """Detect path-level ΔSNR excursions at native Joint Spot resolution against candidate-excluded, two-sided local baselines. Nearby same-sign residuals are grouped into spot impulses, short bursts, or sustained excursions for description, while every group must pass the same three qualification gates. Evidence without a defensible local baseline remains unclassified. Detection is independent of the displayed chronological aggregation; candidates are inspection prompts, not causal labels.""",
         'lbl_delta_snr_outlier_minimum_departure_db': "Minimum absolute ΔSNR departure (dB)",
         'tt_delta_snr_outlier_minimum_departure_db': "Smallest permitted absolute difference between a grouped candidate's median ΔSNR and its candidate-excluded local baseline. Lower values increase sensitivity; higher values are stricter.",
         'lbl_delta_snr_outlier_minimum_robust_z': "Minimum robust z-score",
@@ -49,21 +50,21 @@ T = {
         'fig_compare_coverage_station_folded_y_tx': "Avg. RX Stations",
         'fig_compare_coverage_unit_y_rx': "Transmitter-Cycles",
         'fig_compare_coverage_unit_y_tx': "Receiver-Cycles",
-        'fig_compare_coverage_unit_y_scheduled': "Scheduled A/B Pairs",
+
         'fig_compare_coverage_unit_folded_y_rx': "Avg. Transmitter-Cycles",
         'fig_compare_coverage_unit_folded_y_tx': "Avg. Receiver-Cycles",
-        'fig_compare_coverage_unit_folded_y_scheduled': "Avg. Scheduled A/B Pairs",
+
         'fig_compare_joint_share_station': "Station-balanced Joint Evidence Share",
         'fig_compare_joint_share_outcome': "Outcome-level Joint Evidence Share",
         'fig_compare_joint_share_y': "Joint Evidence (%)",
         'fig_compare_coverage_gate_simultaneous': """WSPR cycles without evidence that the Target was operating are left out, so possible Target downtime is not counted as a loss.\nOnly Target and Only Reference are therefore not symmetric. Joint Evidence Share shows pair coverage within those same cycles.""",
-        'fig_compare_coverage_gate_scheduled': "Scheduled-pair evidence · Joint Evidence Share measures completed-pair coverage",
+
         'fig_selected_compare_coverage_title_rx': "RX Benchmark Selected Path Evidence Coverage: {station} ({locator})",
         'fig_selected_compare_coverage_title_tx': "TX Benchmark Selected Path Evidence Coverage: {station} ({locator})",
         'fig_selected_compare_coverage_chronological_title': "{unit} over Time ({time_bin} bins)",
         'fig_selected_compare_coverage_utc_hour_title': "{unit} by UTC Hour (1 h bins)",
         'fig_selected_compare_coverage_unit_simultaneous': "Retained WSPR Cycles",
-        'fig_selected_compare_coverage_unit_scheduled': "Scheduled A/B Pairs",
+
         'fig_selected_compare_coverage_unit_y_simultaneous': "WSPR Cycles",
         'fig_selected_compare_coverage_unit_folded_y_simultaneous': "Avg. WSPR Cycles",
         'fig_selected_compare_joint_share': "Joint Evidence Share",
@@ -136,25 +137,12 @@ T = {
         'fig_median_label': "Median",
         'fig_temporal_bin_median': "Bin median",
         'fig_temporal_bin_iqr': "Bin IQR (middle 50%)",
-        'fig_scheduled_pair_delta': "Scheduled-Pair \u0394 SNR",
+
         'tbl_col_joint_pairs': "Joint Pairs",
-        'tbl_col_pair': "Scheduled Pair (UTC)",
+
         'tbl_col_micro_a': "Target Micro-Median",
         'tbl_col_micro_b': "Reference Micro-Median",
         'tbl_col_pair_delta': "Pair \u0394",
-        'lbl_tx_ab_method': "TX A/B Method",
-        'opt_tx_ab_simultaneous': "Simultaneous TX",
-        'opt_tx_ab_sequential': "Sequential TX",
-        'lbl_tx_ab_schedule': "TX A/B Schedule",
-        'lbl_tx_ab_repeat_interval': "Repeat Interval",
-        'lbl_tx_ab_target_start': "Target Start",
-        'lbl_tx_ab_reference_start': "Reference Start",
-        'hlp_tx_ab_repeat_interval': "Actual recurrence of each physical path. WSPRadar accepts even WSPR-compatible intervals that divide one UTC hour.",
-        'hlp_tx_ab_start': "UTC minute phase for this path. Target and Reference starts are kept disjoint.",
-        'hlp_tx_ab_swap': "Swap Target and Reference schedule attribution.",
-        'txt_tx_ab_shared_interval': "Shared by Target and Reference paths",
-        'txt_tx_ab_schedule_valid': "Disjoint schedules · {separation} min separation · {transmissions} transmissions/hour/path",
-        'warn_tx_ab_high_duty': "This is a high-duty-cycle schedule. Confirm that the transmitter, network occupancy, and local operating practice permit it.",
         "btn_demo": "Load Demo",
         "btn_load_config": "Load Config",
         "btn_save_config": "Save Config",
@@ -187,19 +175,17 @@ T = {
         "share_analysis_title": "WSPRadar analysis: {callsign} {direction} {mode} on {band}",
         "share_analysis_message": "Open this link to reconstruct and rerun the analysis with the current WSPRadar code and upstream data.",
         "share_mode_performance": "Performance",
-        "share_mode_hardware_ab": "Hardware A/B",
-        "share_mode_reference_station": "Reference Station",
-        "share_mode_local_neighborhood": "Local Neighborhood",
+        "share_mode_reference_station": "Reference Setup/Station",
+        "share_mode_local_neighborhood": "Reference Neighbourhood",
         "hdr_results_compare": "{direction} Benchmark Results",
         "hdr_results_success": "{direction} Performance Results",
-        "sub_results_compare_scheduled": "{callsign} · Target schedule vs. Reference schedule",
+
         "sub_results_rx_success": "Target {callsign} · signals heard by the Target or by others only",
         "sub_results_tx_success": "Target {callsign} · Target heard or other signals heard only at active RX stations",
         "txt_results_metadata": "{band} · {utc_window} · Target QTH {qth}",
         "txt_results_reference_grid4": "Reference Locator {grid4}",
         "txt_results_shared_grid4": "Shared Locator {grid4}",
         "txt_results_reference_benchmark": "Reference benchmark {benchmark}",
-        "txt_results_tx_schedule": "TX schedule {interval} min · Target :{target_phase} · Reference :{reference_phase} UTC",
         "txt_results_configured_snr_correction": "Configured SNR correction: {correction_db} dB applied to {recipient}",
         "txt_results_snr_correction_reference_identity": "Reference ({callsign})",
         "txt_results_snr_correction_reference_schedule": "Reference schedule",
@@ -230,13 +216,13 @@ T = {
         "txt_results_transition_rows": "↓ Review the underlying evidence rows",
         "hdr_results_comparison_evidence": "Benchmark Evidence",
         "sub_results_comparison_evidence_joint": "Decode Outcomes, station medians, and joint-spot ΔSNR for the active scope.",
-        "sub_results_comparison_evidence_scheduled": "Decode Outcomes, station medians, and scheduled-pair ΔSNR for the active scope.",
+
         "fmt_results_station_delta_summary": "Stations{count_context} · Median {median} dB · Mean {mean} dB",
         "fmt_results_joint_spot_delta_summary": "Spots{count_context} · Median {median} dB · Mean {mean} dB",
-        "fmt_results_scheduled_pair_delta_summary": "Scheduled pairs{count_context} · Median {median} dB · Mean {mean} dB",
+
         "lbl_results_stations": "Stations",
         "lbl_results_spots": "Spots",
-        "lbl_results_scheduled_pairs": "Scheduled pairs",
+
         "hdr_results_temporal_evidence": "Temporal Evidence",
         "sub_results_temporal_evidence": "Absolute ΔSNR, paired-evidence coverage and UTC-hour patterns for the active scope.",
         "hdr_results_outlier_report": "Outlier Report",
@@ -256,14 +242,14 @@ T = {
         "fmt_outlier_candidate_timeframe": "Timeframe {utc_range}",
         "fmt_outlier_joint_count_singular": "1 Joint Spot",
         "fmt_outlier_joint_count_plural": "{count} Joint Spots",
-        "fmt_outlier_scheduled_count_singular": "1 complete Scheduled Pair",
-        "fmt_outlier_scheduled_count_plural": "{count} complete Scheduled Pairs",
+
+
         "fmt_outlier_path_observation_context": "{paired_count} · first-to-last span {first_to_last_span} · median interval {median_interval} · largest gap {largest_gap}",
         "fmt_outlier_path_delta_context": "- **Expected local ΔSNR:** {expected_local} dB\n- **Observed median ΔSNR:** {observed_median} dB\n- **Largest single-cycle departure:** {largest_departure} dB",
         "txt_outlier_paired_evidence_joint": "Joint Spots",
-        "txt_outlier_paired_evidence_scheduled": "complete Scheduled Pairs",
+
         "exp_outlier_wspr_cycle_evidence": "Chronological WSPR-cycle evidence · {utc_range}",
-        "exp_outlier_scheduled_pair_evidence": "Chronological Scheduled-pair evidence · {utc_range}",
+
         "col_outlier_evidence_utc": "UTC",
         "col_outlier_evidence_path": "Path",
         "col_outlier_evidence_direction": "Direction",
@@ -324,7 +310,7 @@ T = {
         "txt_export_outlier_departure_mixed": "Mixed",
         "txt_export_outlier_departure_neutral": "No signed departure",
         "txt_export_outlier_paired_unit_joint": "Joint Spot",
-        "txt_export_outlier_paired_unit_scheduled": "Complete Scheduled Pair",
+
         "txt_export_outlier_yes": "Yes",
         "txt_export_outlier_no": "No",
         "txt_export_outlier_boundary_start": "Start",
@@ -377,7 +363,7 @@ T = {
         "fig_drilldown_native_performance_unavailable": "No successful Target SNR is available in this time window. Unsuccessful opportunities have no recorded Target SNR.",
         "fig_drilldown_native_benchmark_unavailable": "No paired Δ SNR evidence is available in this time window.",
         "fig_drilldown_native_joint_spot": "Individual Joint Spot",
-        "fig_drilldown_native_scheduled_pair": "Individual complete Scheduled Pair",
+
         "fig_drilldown_native_successful_opportunity": "Individual successful confirmed opportunity",
         "fig_drilldown_outlier_candidate": "Outlier candidate",
         "fig_drilldown_outlier_focused_episode": "Focused episode",
@@ -390,8 +376,8 @@ T = {
         "txt_results_drilldown_filter_note": "Filter table changes only the displayed table; Zoom window limits both the focused plots and table, never the completed analysis.",
         "unit_joint_spot_singular": "joint spot",
         "unit_joint_spot_plural": "joint spots",
-        "unit_scheduled_pair_singular": "scheduled pair",
-        "unit_scheduled_pair_plural": "scheduled pairs",
+
+
         "unit_confirmed_opportunity_singular": "confirmed opportunity",
         "unit_confirmed_opportunity_plural": "confirmed opportunities",
         "unit_station_singular": "{count} contributing {station_type} station",
@@ -452,7 +438,6 @@ T = {
         "exp_metadata": "Metadata",
         "fig_rx_abs": "RX Performance: {callsign} — Heard by Target vs. Heard by Others Only",
         "fig_rx_comp": "RX Benchmark: {callsign} (Target) vs. {comp_title}",
-        "fig_tx_abs": "TX Performance: {callsign} — Target Heard vs. Other Signals Heard Only",
         "abs_rx_counter": "Elsewhere",
         "abs_rx_counter_short": "E",
         "abs_rx_target_column": "Target (T)",
@@ -475,9 +460,9 @@ T = {
         "hlp_min_stations_compare": """A map segment is displayed only when it contains at least this many qualifying stations with the required paired evidence. Each exact callsign + full reported locator identity counts once; the same callsign at different locators counts separately. One-sided evidence does not count toward this minimum. This counts reported identities, not independent physical stations.""",
         "hlp_min_stations_success_rx": """An RX Performance map segment is displayed only when it contains at least this many qualifying TX stations. A station qualifies after meeting the confirmed-opportunity threshold above, whether its outcomes are Heard by Target or Heard by others only.""",
         "hlp_min_stations_success_tx": """A TX Performance map segment is displayed only when it contains at least this many qualifying RX stations. A station qualifies after meeting the confirmed-opportunity threshold above, whether its outcomes are Target heard or Other signals heard only.""",
-        "hlp_benchmark_offset_db": "Added to the reference-side SNR before \u0394 SNR is calculated. Applies to Benchmark maps only. Buddy/local benchmarks use the reference side; Hardware A/B uses the Reference identity or Reference schedule. Enter decimal values with a point. If a calibration run shows target-reference = +1.6 dB, enter +1.6 dB.",
+        "hlp_benchmark_offset_db": """Added to the Reference-side SNR before ΔSNR is calculated. Applies to Benchmark maps only. A fixed Reference uses its selected identity; Reference Neighbourhood uses the contributing reference population. Enter decimal values with a point. If a calibration run shows Target minus Reference = +1.6 dB, enter +1.6 dB.""",
         "err_benchmark_offset_db": "Enter a value from -99.9 to 99.9 using a decimal point, for example 1.2 or -1.2.",
-        "hlp_callsign_entry": "Use the exact identifier uploaded to WSPR. Standard callsign forms are recommended; WSPRadar also accepts letter-only archive reporting identifiers such as KFS, slash forms such as DL1MKS/P, and one terminal alphanumeric hyphen suffix such as DL1MKS-1. Each spelling is a distinct identity.",
+        "hlp_callsign_entry": """Use the exact identifier uploaded to WSPR. Letter-only reporting identifiers and slash forms such as CALL/P or a terminal suffix such as CALL-1 are accepted. CALL, CALL/P and CALL-1 are abstract examples; enter your actual identity as stored in the database. Each spelling is a distinct identity.""",
         "lbl_band": "Operating Band",
         "lbl_benchmark_offset_db": "Reference-side SNR correction (dB)",
         "lbl_config_file": "Select WSPRadar .config file",
@@ -488,7 +473,6 @@ T = {
         "lbl_analysis_selector": "RX or TX Analysis",
         "opt_analysis_rx": "RX Analysis",
         "opt_analysis_tx": "TX Analysis",
-        "msg_select_analysis_direction_hardware": "Select RX or TX Analysis before configuring the direction-specific Hardware A/B parameters.",
         "lbl_comp_mode": "Benchmark design",
         "lbl_question": "Question",
         "txt_question_intro": """The **Target** is the station or controlled signal path being evaluated - likely your station. Choose whether to assess its RX or TX Performance, or Benchmark it against a Reference:""",
@@ -504,11 +488,8 @@ T = {
         "lbl_ref_radius_km": "Neighborhood Radius (km)",
         "lbl_target_callsign": "Target callsign",
         "lbl_reference_callsign": "Reference callsign",
-        "lbl_target_qth": "Target QTH",
-        "lbl_target_grid4": "Target Locator",
-        "lbl_reference_grid4": "Reference Locator",
-        "ph_reference_callsign": "e.g. DL1MKS/P or DL1MKS-1",
-        "ph_reference_qth": "e.g. JN37",
+        "ph_reference_callsign": "e.g. CALL/P",
+
         "txt_target": "Target",
         "txt_reference": "Reference",
         "lbl_solar": "Solar state at Target QTH",
@@ -517,12 +498,10 @@ T = {
         "lbl_time_window": "UTC measurement window",
         "txt_benchmark_offset_note": "Ref SNR Corr: {offset:+.1f} dB",
         "opt_comp_none": "Performance — no Reference",
-        "opt_comp_radius": "Benchmark — local neighborhood benchmark",
-        "opt_comp_buddy": "Benchmark — Known Reference Station",
-        "opt_comp_self": "Benchmark — Hardware A/B",
-        "opt_benchmark_hardware_ab": "Hardware A/B",
-        "opt_benchmark_reference_station": "Known Reference Station",
-        "opt_benchmark_local_neighborhood": "Local Neighborhood",
+        "opt_comp_radius": "Benchmark — Reference Neighbourhood",
+        "opt_comp_buddy": "Benchmark — Reference Setup/Station",
+        "opt_benchmark_reference_station": "Reference Setup/Station",
+        "opt_benchmark_local_neighborhood": "Reference Neighbourhood",
         "opt_question_rx_performance": "RX Performance",
         "opt_question_tx_performance": "TX Performance",
         "opt_question_rx_benchmark": "RX Benchmark",
@@ -536,18 +515,18 @@ T = {
         "err_local_benchmark": """Local Median Neighborhood is the supported local method. Use Reset Config to restore valid inputs.""",
         "err_reference_callsign_same": "Target and Reference callsigns must be different.",
         "err_reference_callsign_required": "Please configure a Reference Callsign.",
-        "err_reference_qth_required": "Please configure a Reference Locator.",
+        "err_reference_qth_required": "Resolve the Reference location before starting the analysis.",
         "err_callsign_format": "Enter a plausible callsign/reporting identifier: 3-15 ASCII characters; use '/' only between non-empty alphanumeric segments and at most one terminal '-' before a non-empty alphanumeric suffix. The portion before any hyphen must contain at least one letter; a digit is not required.",
         "err_qth_format": "Enter a valid 4- or 6-character Maidenhead locator (e.g. JN37 or JN37AA).",
         "err_time_invalid": "Enter valid UTC start and end dates and times.",
         "err_time_before_minimum": "The UTC start must be on or after 2008-01-01 00:00 UTC.",
-        "err_time_order": "The UTC end must be after the start after 15-minute quantization.",
+        "err_time_order": "The UTC end must be after the start.",
         "err_time_duration": "The UTC measurement window must not exceed 31 days.",
-        "err_time_future": "The UTC end must not be after the current 15-minute UTC boundary.",
+        "err_time_future": "The UTC end must not be after the current UTC minute.",
         "err_url_invalid": "This WSPRadar analysis URL is invalid and was not applied.",
         "err_url_unsupported_version": "This WSPRadar analysis URL uses an unsupported version and was not applied.",
         "err_reference_callsign_format": "Enter a plausible Reference Callsign: 3-15 ASCII characters; use '/' only between non-empty alphanumeric segments and at most one terminal '-' before a non-empty alphanumeric suffix. The portion before any hyphen must contain at least one letter; a digit is not required.",
-        "err_reference_grid4_format": "Enter the Reference Maidenhead locator using exactly four characters (e.g. JN37).",
+        "err_reference_grid4_format": "The resolved Reference location must be a four-character Maidenhead grid. Run location discovery again.",
         "leg_both_async": "Both (Async)",
         "leg_joint": "Both (Joint)",
         "leg_only_me": "Only {callsign}",
@@ -590,7 +569,8 @@ T = {
         "hdr_remote_station_filters": "Remote station filters",
         "hdr_analysis_scope": "Analysis scope",
         "hdr_evidence_requirements": "Evidence requirements",
-        "tt_exclude_special": """Excludes remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Local Neighborhood reference contributors, remain eligible under this filter.""","title": "WSPRadar.org",
+        "tt_exclude_special": """Excludes remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter.""",
+        "title": "WSPRadar.org",
         "lbl_filter_moving": "Exclude Moving Stations",
         "tt_filter_moving": "Filters out balloons, cars, or ships that change their locator during the selected timeframe.","txt_joint": "Joint",
         "txt_joint_decodes": "Joint Decodes",
@@ -599,7 +579,7 @@ T = {
         "txt_tx_stations": "TX Stations",
         "warn_analysis_queue_full": "High demand right now. The analysis queue is full. Please try again shortly.",
         "warn_analysis_queue_timeout": "Analysis capacity did not become available in time. Please run the analysis again.",
-        "warn_analysis_result_row_limit": "Search result exceeded the safe limit of **{max_rows} rows**, so the analysis was stopped before processing; no partial result was analyzed. Shorten the analysis period. {special_callsign_advice}**{max_peer_distance_label}**, moving-station, solar-state, and evidence filters are applied after retrieval and will not avoid this limit. For a Local Neighborhood comparison, reducing **{neighborhood_radius_label}** can reduce the database result.",
+        "warn_analysis_result_row_limit": """Search result exceeded the safe limit of **{max_rows} rows**, so the analysis was stopped before processing; no partial result was analyzed. Shorten the analysis period. {special_callsign_advice}**{max_peer_distance_label}**, moving-station, solar-state, and evidence filters are applied after retrieval and will not avoid this limit. For a Reference Neighbourhood comparison, reducing **{neighborhood_radius_label}** can reduce the database result.""",
         "warn_analysis_result_row_limit_special_callsign_advice": "Enabling **{special_callsign_label}** may also reduce the database result. ",
         "status_analysis_result_row_limit": "Analysis stopped at the safe row limit",
         "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters. Are the callsign entries, locator, band, date, and UTC time correct?",
@@ -611,7 +591,7 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "warn_performance_no_eligible_station": "The active filters and scope retained **{station_identity_count} station identities (callsign + locator)** for **{title}**, but none met the per-station evidence requirement. Highest observed: **{maximum_confirmed_opportunities_per_station} confirmed opportunities**; required: **at least {minimum_confirmed_opportunities_per_station} per station**. Empty map, Inspector, and table components are omitted. The applied configuration is shown in Review above.",
         "warn_performance_no_qualifying_segment": "**{eligible_station_count} station identities** met the per-station evidence requirement for **{title}**, but no map segment met its station requirement. Highest observed: **{maximum_stations_per_segment} qualifying stations in one segment**; required: **at least {minimum_qualifying_stations_per_map_segment} per map segment**. Station-level evidence remains available below; only segment-dependent output is omitted. The applied configuration is shown in Review above.",
         "warn_benchmark_no_qualifying_result_simultaneous": "No qualifying Benchmark result was available for **{title}** after applying the active filters, analysis scope, and evidence requirements. Required: **at least {minimum_joint_evidence_per_station} Joint observations per station** and **at least {minimum_qualifying_stations_per_map_segment} qualifying stations per map segment**. This does not by itself prove that the scope was too narrow. The applied configuration is shown in Review above.",
-        "warn_benchmark_no_qualifying_result_sequential": "No qualifying Benchmark result was available for **{title}** after applying the active filters, analysis scope, and evidence requirements. Required: **at least {minimum_joint_evidence_per_station} complete Scheduled Pairs per station** and **at least {minimum_qualifying_stations_per_map_segment} qualifying stations per map segment**. This does not by itself prove that the scope was too narrow. The applied configuration is shown in Review above.",
+
         "fig_mean_label": "Mean",
         "fig_share_percent_axis": "Share (%)",
         "fmt_temporal_title_with_bins": "{title} ({time_bin} bins)",
@@ -631,8 +611,8 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "txt_station_insights_normalized_30dbm": "Norm. @ 30 dBm. Click for details",
         "msg_drilldown_no_stations_selected": "No station selected.",
         "msg_drilldown_no_spots": "No spots available.",
-        "msg_drilldown_no_scheduled_pairs": "No scheduled pairs available.",
-        "msg_drilldown_no_joint_scheduled_pairs": "No joint scheduled pairs are available for the selected station.",
+
+
         "msg_drilldown_no_joint_spots": "No joint spots are available for the selected station.",
         "msg_drilldown_no_reference_station_details": "No reference-station details are available for the selected station.",
         "warn_analysis_cache_expired": "Cache file expired. Please run the analysis again.",
@@ -647,7 +627,7 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "map_footer_time": "Time: {value}",
         "map_footer_band": "Band: {value}",
         "map_footer_solar": "Solar: {value}",
-        "map_footer_sync_sequential_ab": "Sync: Sequential A/B",
+
         "map_footer_joint_pairs_per_station": "Joint Pairs/Station: \u2265{threshold}",
         "map_footer_joint_spots_per_station": "Joint Spots/Station: \u2265{threshold}",
         "map_footer_joint_stations_per_segment": "Joint stations/segment: \u2265{threshold}",
@@ -663,18 +643,22 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "pdf_formula_delta_snr": "Delta SNR",
         "pdf_formula_approx": "approx.",
         "pdf_page_label": "Page",
+        "ph_target_callsign": "e.g. CALL",
+        "txt_reference_location_resolved": "Reference location: {grid4}",
+        "txt_reference_location_pending": "Reference location will be resolved from the database for the selected period when you run the analysis.",
     },
     "de": {
-        'cfg_min_joint_pairs': "Minimale geplante Paare pro Station",
-        'hlp_min_joint_pairs': "Sequenzielles TX A/B erfordert mindestens X gemeinsame geplante Paare pro Station. Derselbe Zahlenwert gilt f\u00fcr einseitige Paar-Kategorien.",
-        'lbl_no_joint_pairs': "Keine gemeinsamen geplanten Paare in diesem Segment f\u00fcr ein \u0394-SNR-Histogramm vorhanden.",
-        'fig_scheduled_pair_count': "Anzahl geplanter Paare",
+        "fig_tx_abs": 'TX Performance: {callsign} — Target gehört vs. nur andere Signale gehört',
+
+
+
+
         'fig_joint_spot_count': "Anzahl Joint Spots",
         'fig_relative_joint_spot_density': "Relative Joint-Spot-Dichte (% des Panelmaximums)",
-        'fig_relative_scheduled_pair_density': "Relative Dichte geplanter Paare (% des Panelmaximums)",
+
         'lbl_time_aggregation_bin_size': "Zeitliche Aggregationsbreite auswählen",
         'lbl_report_delta_snr_outlier_candidates': "ΔSNR-Ausreißerkandidaten melden",
-        'tt_report_delta_snr_outlier_candidates': "Erkennt funkwegbezogene ΔSNR-Auslenkungen auf der nativen Auflösung von Joint Spots oder vollständigen geplanten Paaren gegenüber kandidatenbereinigten, beidseitigen lokalen Baselines. Zeitlich nahe Residuen mit gleichem Vorzeichen werden zur Beschreibung als Spot-Impuls, kurzer Ausbruch oder anhaltende Auslenkung gruppiert; jede Gruppe muss jedoch dieselben drei Qualifikationskriterien erfüllen. Evidenz ohne belastbare lokale Baseline bleibt unklassifiziert. Die Erkennung ist von der angezeigten chronologischen Aggregation unabhängig; Kandidaten sind Prüfhinweise, keine Ursachenzuordnung.",
+        'tt_report_delta_snr_outlier_candidates': "Erkennt funkwegbezogene ΔSNR-Auslenkungen auf der nativen Auflösung von Joint Spots gegenüber kandidatenbereinigten, beidseitigen lokalen Baselines. Zeitlich nahe Residuen mit gleichem Vorzeichen werden zur Beschreibung als Spot-Impuls, kurzer Ausbruch oder anhaltende Auslenkung gruppiert; jede Gruppe muss jedoch dieselben drei Qualifikationskriterien erfüllen. Evidenz ohne belastbare lokale Baseline bleibt unklassifiziert. Die Erkennung ist von der angezeigten chronologischen Aggregation unabhängig; Kandidaten sind Prüfhinweise, keine Ursachenzuordnung.",
         'lbl_delta_snr_outlier_minimum_departure_db': "Minimale absolute ΔSNR-Abweichung (dB)",
         'tt_delta_snr_outlier_minimum_departure_db': "Kleinster zulässiger absoluter Unterschied zwischen dem medianen ΔSNR eines gruppierten Kandidaten und seiner kandidatenbereinigten lokalen Baseline. Niedrigere Werte erhöhen die Empfindlichkeit; höhere Werte sind strenger.",
         'lbl_delta_snr_outlier_minimum_robust_z': "Minimaler robuster z-Wert",
@@ -707,21 +691,21 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         'fig_compare_coverage_station_folded_y_tx': "Ø RX-Stationen",
         'fig_compare_coverage_unit_y_rx': "Senderzyklen",
         'fig_compare_coverage_unit_y_tx': "Empfängerzyklen",
-        'fig_compare_coverage_unit_y_scheduled': "Geplante A/B-Paare",
+
         'fig_compare_coverage_unit_folded_y_rx': "Ø Senderzyklen",
         'fig_compare_coverage_unit_folded_y_tx': "Ø Empfängerzyklen",
-        'fig_compare_coverage_unit_folded_y_scheduled': "Ø geplante A/B-Paare",
+
         'fig_compare_joint_share_station': "Stationsgleichgewichteter Joint-Evidenzanteil",
         'fig_compare_joint_share_outcome': "Joint-Evidenzanteil auf Outcome-Ebene",
         'fig_compare_joint_share_y': "Joint-Evidenz (%)",
         'fig_compare_coverage_gate_simultaneous': """WSPR-Zyklen ohne Evidenz für den Betrieb des Targets bleiben unberücksichtigt, damit mögliche Ausfallzeiten des Targets nicht als Misserfolg zählen.\nOnly Target und Only Reference sind daher nicht symmetrisch. Der Joint-Evidenzanteil zeigt die Paarabdeckung innerhalb dieser Zyklen.""",
-        'fig_compare_coverage_gate_scheduled': "Evidenz aus geplanten Paaren · Der Joint-Evidenzanteil misst die Abdeckung vollständiger Paare",
+
         'fig_selected_compare_coverage_title_rx': "RX-Benchmark — Evidenzabdeckung des ausgewählten Funkwegs: {station} ({locator})",
         'fig_selected_compare_coverage_title_tx': "TX-Benchmark — Evidenzabdeckung des ausgewählten Funkwegs: {station} ({locator})",
         'fig_selected_compare_coverage_chronological_title': "{unit} im Zeitverlauf ({time_bin}-Bins)",
         'fig_selected_compare_coverage_utc_hour_title': "{unit}\nnach UTC-Stunde (1-h-Bins)",
         'fig_selected_compare_coverage_unit_simultaneous': "Berücksichtigte WSPR-Zyklen",
-        'fig_selected_compare_coverage_unit_scheduled': "Geplante A/B-Paare",
+
         'fig_selected_compare_coverage_unit_y_simultaneous': "WSPR-Zyklen",
         'fig_selected_compare_coverage_unit_folded_y_simultaneous': "Ø WSPR-Zyklen",
         'fig_selected_compare_joint_share': "Joint-Evidenzanteil",
@@ -794,25 +778,12 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         'fig_median_label': "Median",
         'fig_temporal_bin_median': "Lokaler Median",
         'fig_temporal_bin_iqr': "IQR je Bin (mittlere 50 %)",
-        'fig_scheduled_pair_delta': "Geplantes Paar \u0394 SNR",
+
         'tbl_col_joint_pairs': "Joint-Paare",
-        'tbl_col_pair': "Geplantes Paar (UTC)",
+
         'tbl_col_micro_a': "Target-Mikromedian",
         'tbl_col_micro_b': "Referenz-Mikromedian",
         'tbl_col_pair_delta': "Paar \u0394",
-        'lbl_tx_ab_method': "TX-A/B-Methode",
-        'opt_tx_ab_simultaneous': "Simultanes TX",
-        'opt_tx_ab_sequential': "Sequenzielles TX",
-        'lbl_tx_ab_schedule': "TX-A/B-Zeitplan",
-        'lbl_tx_ab_repeat_interval': "Wiederholintervall",
-        'lbl_tx_ab_target_start': "Target-Start",
-        'lbl_tx_ab_reference_start': "Referenz-Start",
-        'hlp_tx_ab_repeat_interval': "Tatsächliche Wiederholung jedes physischen Pfads. WSPRadar akzeptiert gerade WSPR-kompatible Intervalle, die eine UTC-Stunde teilen.",
-        'hlp_tx_ab_start': "UTC-Minutenphase dieses Pfads. Target- und Referenz-Start bleiben disjunkt.",
-        'hlp_tx_ab_swap': "Target- und Referenz-Zuordnung tauschen.",
-        'txt_tx_ab_shared_interval': "Gemeinsam für Target- und Referenzpfad",
-        'txt_tx_ab_schedule_valid': "Disjunkte Zeitpläne · {separation} min Abstand · {transmissions} Aussendungen/Stunde/Pfad",
-        'warn_tx_ab_high_duty': "Dies ist ein Zeitplan mit hoher Sendedauer. Prüfe Sender, Netzauslastung und lokale Betriebspraxis.",
         "btn_demo": "Demo laden",
         "btn_load_config": "Konfig laden",
         "btn_save_config": "Konfig speichern",
@@ -845,19 +816,17 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "share_analysis_title": "WSPRadar-Analyse: {callsign} {direction} {mode} auf {band}",
         "share_analysis_message": "Dieser Link rekonstruiert und startet die Analyse mit dem aktuellen WSPRadar-Code und den dann verf\u00fcgbaren Quelldaten erneut.",
         "share_mode_performance": "Performance",
-        "share_mode_hardware_ab": "Hardware A/B",
-        "share_mode_reference_station": "Referenzstation",
-        "share_mode_local_neighborhood": "Lokale Nachbarschaft",
+        "share_mode_reference_station": "Referenzaufbau/-station",
+        "share_mode_local_neighborhood": "Referenznachbarschaft",
         "hdr_results_compare": "{direction}-Benchmark-Ergebnisse",
         "hdr_results_success": "{direction} Performance – Ergebnisse",
-        "sub_results_compare_scheduled": "{callsign} · Target-Zeitplan vs. Referenz-Zeitplan",
+
         "sub_results_rx_success": "Target {callsign} · vom Target oder nur von anderen gehört",
         "sub_results_tx_success": "Target {callsign} · Target gehört oder nur andere Signale an aktiven RX-Stationen gehört",
         "txt_results_metadata": "{band} · {utc_window} · Target-QTH {qth}",
         "txt_results_reference_grid4": "Referenz-Locator {grid4}",
         "txt_results_shared_grid4": "Gemeinsamer Locator {grid4}",
         "txt_results_reference_benchmark": "Referenz-Benchmark {benchmark}",
-        "txt_results_tx_schedule": "TX-Zeitplan {interval} min · Target :{target_phase} · Referenz :{reference_phase} UTC",
         "txt_results_configured_snr_correction": "Konfigurierte SNR-Korrektur: {correction_db} dB auf {recipient} angewendet",
         "txt_results_snr_correction_reference_identity": "die Referenz ({callsign})",
         "txt_results_snr_correction_reference_schedule": "den Referenz-Zeitplan",
@@ -888,13 +857,13 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "txt_results_transition_rows": "↓ Prüfe die zugrunde liegenden Evidenzzeilen",
         "hdr_results_comparison_evidence": "Benchmark-Evidenz",
         "sub_results_comparison_evidence_joint": "Decode Outcomes, Stationsmediane und Δ SNR aus Joint Spots im aktiven Bereich.",
-        "sub_results_comparison_evidence_scheduled": "Decode Outcomes, Stationsmediane und Δ SNR aus geplanten Paaren im aktiven Bereich.",
+
         "fmt_results_station_delta_summary": "Stationen{count_context} · Median {median} dB · Mittelwert {mean} dB",
         "fmt_results_joint_spot_delta_summary": "Spots{count_context} · Median {median} dB · Mittelwert {mean} dB",
-        "fmt_results_scheduled_pair_delta_summary": "Geplante Paare{count_context} · Median {median} dB · Mittelwert {mean} dB",
+
         "lbl_results_stations": "Stationen",
         "lbl_results_spots": "Spots",
-        "lbl_results_scheduled_pairs": "Geplante Paare",
+
         "hdr_results_temporal_evidence": "Zeitliche Evidenz",
         "sub_results_temporal_evidence": "Absolutes ΔSNR, Abdeckung gepaarter Evidenz und UTC-Stundenmuster im aktiven Bereich.",
         "hdr_results_outlier_report": "Ausreißerbericht",
@@ -914,14 +883,14 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "fmt_outlier_candidate_timeframe": "Zeitraum {utc_range}",
         "fmt_outlier_joint_count_singular": "1 Joint Spot",
         "fmt_outlier_joint_count_plural": "{count} Joint Spots",
-        "fmt_outlier_scheduled_count_singular": "1 vollständiges geplantes Paar",
-        "fmt_outlier_scheduled_count_plural": "{count} vollständige geplante Paare",
+
+
         "fmt_outlier_path_observation_context": "{paired_count} · Spanne vom ersten bis zum letzten {first_to_last_span} · Medianabstand {median_interval} · größte Lücke {largest_gap}",
         "fmt_outlier_path_delta_context": "- **Erwartetes lokales ΔSNR:** {expected_local} dB\n- **Beobachteter ΔSNR-Median:** {observed_median} dB\n- **Größte Einzelzyklusabweichung:** {largest_departure} dB",
         "txt_outlier_paired_evidence_joint": "Joint Spots",
-        "txt_outlier_paired_evidence_scheduled": "vollständige geplante Paare",
+
         "exp_outlier_wspr_cycle_evidence": "Chronologische WSPR-Zyklusevidenz · {utc_range}",
-        "exp_outlier_scheduled_pair_evidence": "Chronologische Evidenz geplanter Paare · {utc_range}",
+
         "col_outlier_evidence_utc": "UTC",
         "col_outlier_evidence_path": "Funkweg",
         "col_outlier_evidence_direction": "Richtung",
@@ -982,7 +951,7 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "txt_export_outlier_departure_mixed": "Gemischt",
         "txt_export_outlier_departure_neutral": "Keine gerichtete Abweichung",
         "txt_export_outlier_paired_unit_joint": "Joint Spot",
-        "txt_export_outlier_paired_unit_scheduled": "Vollständiges Scheduled Pair",
+
         "txt_export_outlier_yes": "Ja",
         "txt_export_outlier_no": "Nein",
         "txt_export_outlier_boundary_start": "Start",
@@ -1035,7 +1004,7 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "fig_drilldown_native_performance_unavailable": "In diesem Zeitfenster ist kein erfolgreiches Target-SNR verfügbar. Erfolglose Gelegenheiten haben kein aufgezeichnetes Target-SNR.",
         "fig_drilldown_native_benchmark_unavailable": "In diesem Zeitfenster ist keine gepaarte Evidenz für Δ SNR verfügbar.",
         "fig_drilldown_native_joint_spot": "Einzelner Joint Spot",
-        "fig_drilldown_native_scheduled_pair": "Einzelnes vollständiges geplantes Paar",
+
         "fig_drilldown_native_successful_opportunity": "Einzelne erfolgreiche bestätigte Gelegenheit",
         "fig_drilldown_outlier_candidate": "Ausreißerkandidat",
         "fig_drilldown_outlier_focused_episode": "Fokussierte Episode",
@@ -1048,8 +1017,8 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "txt_results_drilldown_filter_note": "Mit „Tabelle filtern“ wird nur die angezeigte Tabelle verändert; das Zoom-Zeitfenster begrenzt fokussierte Abbildungen und Tabelle, niemals die abgeschlossene Analyse.",
         "unit_joint_spot_singular": "Joint Spot",
         "unit_joint_spot_plural": "Joint Spots",
-        "unit_scheduled_pair_singular": "geplantes Paar",
-        "unit_scheduled_pair_plural": "geplante Paare",
+
+
         "unit_confirmed_opportunity_singular": "bestätigte Gelegenheit",
         "unit_confirmed_opportunity_plural": "bestätigte Gelegenheiten",
         "unit_station_singular": "{count} beitragende {station_type}-Station",
@@ -1110,7 +1079,6 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "exp_metadata": "Metadaten",
         "fig_rx_abs": "RX Performance: {callsign} — Vom Target gehört vs. nur von anderen gehört",
         "fig_rx_comp": "RX-Benchmark: {callsign} (Target) vs. {comp_title}",
-        "fig_tx_abs": "TX Performance: {callsign} — Target gehört vs. nur andere Signale gehört",
         "abs_rx_counter": "Elsewhere",
         "abs_rx_counter_short": "E",
         "abs_rx_target_column": "Target (T)",
@@ -1133,9 +1101,9 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "hlp_min_stations_compare": """Ein Kartensegment wird nur angezeigt, wenn es mindestens diese Anzahl qualifizierender Stationen mit der erforderlichen gepaarten Evidenz enthält. Jede exakte Identität aus Rufzeichen + vollständig gemeldetem Locator zählt einmal; dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt. Einseitige Evidenz zählt nicht für diese Mindestanzahl. Gezählt werden gemeldete Identitäten, nicht unabhängige physische Stationen.""",
         "hlp_min_stations_success_rx": """Ein RX-Performance-Kartensegment wird nur angezeigt, wenn es mindestens diese Anzahl qualifizierender TX-Stationen enthält. Eine Station qualifiziert sich, wenn sie die oben festgelegte Schwelle bestätigter Gelegenheiten erfüllt — unabhängig davon, ob ihre Outcomes Vom Target gehört oder Nur von anderen gehört lauten.""",
         "hlp_min_stations_success_tx": """Ein TX-Performance-Kartensegment wird nur angezeigt, wenn es mindestens diese Anzahl qualifizierender RX-Stationen enthält. Eine Station qualifiziert sich, wenn sie die oben festgelegte Schwelle bestätigter Gelegenheiten erfüllt — unabhängig davon, ob ihre Outcomes Target gehört oder Nur andere Signale gehört lauten.""",
-        "hlp_benchmark_offset_db": "Wird vor der Berechnung von \u0394 SNR zum Referenzseiten-SNR addiert. Gilt nur f\u00fcr Benchmark-Karten. Buddy/lokale Benchmarks nutzen die Referenzseite; Hardware A/B nutzt die Referenzidentit\u00e4t oder den Referenz-Zeitplan. Dezimalwerte werden mit einem Punkt eingegeben. Wenn ein Kalibrierlauf Target-Referenz = +1.6 dB ergibt, verwende +1.6 dB.",
+        "hlp_benchmark_offset_db": """Wird vor der Berechnung von ΔSNR zum Referenzseiten-SNR addiert. Gilt nur für Benchmark-Karten. Eine feste Referenz verwendet ihre ausgewählte Identität; die Referenznachbarschaft verwendet die beitragende Referenzpopulation. Dezimalwerte werden mit einem Punkt eingegeben. Wenn ein Kalibrierlauf Target minus Referenz = +1.6 dB ergibt, verwende +1.6 dB.""",
         "err_benchmark_offset_db": "Gib einen Wert von -99.9 bis 99.9 mit Dezimalpunkt ein, zum Beispiel 1.2 oder -1.2.",
-        "hlp_callsign_entry": "Verwende die exakt zu WSPR hochgeladene Kennung. Standardm\u00e4\u00dfige Rufzeichenformen werden empfohlen; WSPRadar akzeptiert au\u00dferdem nur aus Buchstaben bestehende Archiv-Meldekennungen wie KFS, Schr\u00e4gstrichformen wie DL1MKS/P und ein abschlie\u00dfendes alphanumerisches Suffix mit '-' wie DL1MKS-1. Jede Schreibweise ist eine eigene Identit\u00e4t.",
+        "hlp_callsign_entry": """Verwende die exakt zu WSPR hochgeladene Kennung. Nur aus Buchstaben bestehende Meldekennungen, Schrägstrichformen wie CALL/P und ein abschließendes Suffix wie CALL-1 sind zulässig. CALL, CALL/P und CALL-1 sind abstrakte Beispiele; gib deine tatsächliche Kennung aus der Datenbank ein. Jede Schreibweise ist eine eigene Identität.""",
         "lbl_band": "Frequenzband",
         "lbl_benchmark_offset_db": "Referenzseitige SNR-Korrektur (dB)",
         "lbl_config_file": "WSPRadar .config Datei auswaehlen",
@@ -1146,7 +1114,6 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "lbl_analysis_selector": "RX- oder TX-Analyse",
         "opt_analysis_rx": "RX-Analyse",
         "opt_analysis_tx": "TX-Analyse",
-        "msg_select_analysis_direction_hardware": "Wähle RX- oder TX-Analyse, bevor du die richtungsspezifischen Hardware-A/B-Parameter konfigurierst.",
         "lbl_comp_mode": "Benchmark-Design",
         "lbl_question": "Frage",
         "txt_question_intro": """Als **Target** wird eine Station oder ein kontrollierter Signalpfad ausgewertet – wahrscheinlich deine Station. Wähle, ob du die RX- oder TX-Performance des Targets bewerten oder es gegen eine Referenz benchmarken möchtest:""",
@@ -1162,11 +1129,8 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "lbl_ref_radius_km": "Nachbarschaftsradius (km)",
         "lbl_target_callsign": "Target-Rufzeichen",
         "lbl_reference_callsign": "Referenz-Rufzeichen",
-        "lbl_target_qth": "Target-QTH",
-        "lbl_target_grid4": "Target-Locator",
-        "lbl_reference_grid4": "Referenz-Locator",
-        "ph_reference_callsign": "z. B. DL1MKS/P oder DL1MKS-1",
-        "ph_reference_qth": "z. B. JN37",
+        "ph_reference_callsign": "z. B. CALL/P",
+
         "txt_target": "Target",
         "txt_reference": "Referenz",
         "lbl_solar": "Sonnenstand am Target-QTH",
@@ -1175,12 +1139,10 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "lbl_time_window": "UTC-Messzeitraum",
         "txt_benchmark_offset_note": "Ref SNR Corr: {offset:+.1f} dB",
         "opt_comp_none": "Performance — keine Referenz",
-        "opt_comp_radius": "Benchmark — lokaler Nachbarschafts-Benchmark",
-        "opt_comp_buddy": "Benchmark — bekannte Referenzstation",
-        "opt_comp_self": "Benchmark — Hardware A/B",
-        "opt_benchmark_hardware_ab": "Hardware A/B",
-        "opt_benchmark_reference_station": "Bekannte Referenzstation",
-        "opt_benchmark_local_neighborhood": "Lokale Nachbarschaft",
+        "opt_comp_radius": "Benchmark — Referenznachbarschaft",
+        "opt_comp_buddy": "Benchmark — Referenzaufbau/-station",
+        "opt_benchmark_reference_station": "Referenzaufbau/-station",
+        "opt_benchmark_local_neighborhood": "Referenznachbarschaft",
         "opt_question_rx_performance": "RX Performance",
         "opt_question_tx_performance": "TX Performance",
         "opt_question_rx_benchmark": "RX-Benchmark",
@@ -1194,18 +1156,18 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "err_local_benchmark": """Lokaler Nachbarschafts-Median ist die unterstützte lokale Methode. Verwende Reset Konfig, um gültige Eingaben wiederherzustellen.""",
         "err_reference_callsign_same": "Target- und Referenz-Rufzeichen m\u00fcssen verschieden sein.",
         "err_reference_callsign_required": "Bitte ein Referenz-Rufzeichen konfigurieren.",
-        "err_reference_qth_required": "Bitte einen Referenz-Locator konfigurieren.",
+        "err_reference_qth_required": "Bestimme den Referenzstandort vor dem Start der Analyse.",
         "err_callsign_format": "Bitte eine plausible Rufzeichen-/Meldekennung eingeben: 3-15 ASCII-Zeichen; '/' nur zwischen nicht leeren alphanumerischen Segmenten und h\u00f6chstens ein abschlie\u00dfendes '-' vor einem nicht leeren alphanumerischen Suffix verwenden. Der Teil vor einem etwaigen Bindestrich muss mindestens einen Buchstaben enthalten; eine Ziffer ist nicht erforderlich.",
         "err_qth_format": "Bitte einen g\u00fcltigen 4- oder 6-stelligen Maidenhead-Locator eingeben (z. B. JN37 oder JN37AA).",
         "err_time_invalid": "Bitte gültige UTC-Start- und Enddaten mit Uhrzeiten eingeben.",
         "err_time_before_minimum": "Der UTC-Start muss am oder nach dem 01.01.2008 um 00:00 UTC liegen.",
-        "err_time_order": "Das UTC-Ende muss nach der 15-Minuten-Quantisierung nach dem Start liegen.",
+        "err_time_order": "Das UTC-Ende muss nach dem Start liegen.",
         "err_time_duration": "Der UTC-Messzeitraum darf höchstens 31 Tage umfassen.",
-        "err_time_future": "Das UTC-Ende darf nicht nach der aktuellen 15-Minuten-UTC-Grenze liegen.",
+        "err_time_future": "Das UTC-Ende darf nicht nach der aktuellen UTC-Minute liegen.",
         "err_url_invalid": "Diese WSPRadar-Analyse-URL ist ung\u00fcltig und wurde nicht angewendet.",
         "err_url_unsupported_version": "Diese WSPRadar-Analyse-URL verwendet eine nicht unterst\u00fctzte Version und wurde nicht angewendet.",
         "err_reference_callsign_format": "Bitte ein plausibles Referenz-Rufzeichen eingeben: 3-15 ASCII-Zeichen; '/' nur zwischen nicht leeren alphanumerischen Segmenten und h\u00f6chstens ein abschlie\u00dfendes '-' vor einem nicht leeren alphanumerischen Suffix verwenden. Der Teil vor einem etwaigen Bindestrich muss mindestens einen Buchstaben enthalten; eine Ziffer ist nicht erforderlich.",
-        "err_reference_grid4_format": "Bitte f\u00fcr die Referenz einen Maidenhead-Locator mit genau vier Zeichen eingeben (z. B. JN37).",
+        "err_reference_grid4_format": "Der bestimmte Referenzstandort muss ein Maidenhead-Großfeld mit vier Zeichen sein. Starte die Standortsuche erneut.",
         "leg_both_async": "Beide (Async)",
         "leg_joint": "Beide (Sync)",
         "leg_only_me": "Nur {callsign}",
@@ -1281,8 +1243,8 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "txt_station_insights_normalized_30dbm": "Norm. @ 30 dBm. F\u00fcr Details klicken",
         "msg_drilldown_no_stations_selected": "Keine Station ausgew\u00e4hlt.",
         "msg_drilldown_no_spots": "Keine Spots verf\u00fcgbar.",
-        "msg_drilldown_no_scheduled_pairs": "Keine geplanten Paare verf\u00fcgbar.",
-        "msg_drilldown_no_joint_scheduled_pairs": "F\u00fcr die ausgew\u00e4hlte Station sind keine gemeinsamen geplanten Paare verf\u00fcgbar.",
+
+
         "msg_drilldown_no_joint_spots": "F\u00fcr die ausgew\u00e4hlte Station sind keine Joint Spots verf\u00fcgbar.",
         "msg_drilldown_no_reference_station_details": "F\u00fcr die ausgew\u00e4hlte Station sind keine Details zur Referenzstation verf\u00fcgbar.",
         "warn_analysis_cache_expired": "Die Cache-Datei ist abgelaufen. Bitte f\u00fchre die Analyse erneut aus.",
@@ -1297,7 +1259,7 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "map_footer_time": "Zeitraum: {value}",
         "map_footer_band": "Band: {value}",
         "map_footer_solar": "Sonnenstand: {value}",
-        "map_footer_sync_sequential_ab": "Sync: Sequenzielles A/B",
+
         "map_footer_joint_pairs_per_station": "Joint-Paare/Station: \u2265{threshold}",
         "map_footer_joint_spots_per_station": "Joint Spots/Station: \u2265{threshold}",
         "map_footer_joint_stations_per_segment": "Joint-Stationen/Segment: \u2265{threshold}",
@@ -1322,7 +1284,10 @@ Bei älteren Archivmeldungen können Modusangaben fehlen oder mehrdeutig sein. W
         "warn_performance_no_eligible_station": "Die aktiven Filter und der Umfang behielten **{station_identity_count} Stationsidentitäten (Rufzeichen + Locator)** für **{title}** bei, aber keine erfüllte die Evidenzanforderung je Station. Höchster beobachteter Wert: **{maximum_confirmed_opportunities_per_station} bestätigte Gelegenheiten**; erforderlich: **mindestens {minimum_confirmed_opportunities_per_station} je Station**. Leere Karten-, Inspector- und Tabellenbestandteile werden nicht angezeigt. Die angewandte Konfiguration steht oben im Prüfbereich.",
         "warn_performance_no_qualifying_segment": "**{eligible_station_count} Stationsidentitäten** erfüllten die Evidenzanforderung je Station für **{title}**, aber kein Kartensegment erfüllte seine Stationsanforderung. Höchster beobachteter Wert: **{maximum_stations_per_segment} qualifizierte Stationen in einem Segment**; erforderlich: **mindestens {minimum_qualifying_stations_per_map_segment} je Kartensegment**. Evidenz auf Stationsebene bleibt unten verfügbar; nur segmentabhängige Ausgaben entfallen. Die angewandte Konfiguration steht oben im Prüfbereich.",
         "warn_benchmark_no_qualifying_result_simultaneous": "Für **{title}** war nach Anwendung der aktiven Filter, des Analyseumfangs und der Evidenzanforderungen kein qualifizierendes Benchmark-Ergebnis verfügbar. Erforderlich: **mindestens {minimum_joint_evidence_per_station} Joint-Beobachtungen je Station** und **mindestens {minimum_qualifying_stations_per_map_segment} qualifizierte Stationen je Kartensegment**. Dies belegt für sich allein nicht, dass der Umfang zu eng war. Die angewandte Konfiguration steht oben im Prüfbereich.",
-        "warn_benchmark_no_qualifying_result_sequential": "Für **{title}** war nach Anwendung der aktiven Filter, des Analyseumfangs und der Evidenzanforderungen kein qualifizierendes Benchmark-Ergebnis verfügbar. Erforderlich: **mindestens {minimum_joint_evidence_per_station} vollständige geplante Paare je Station** und **mindestens {minimum_qualifying_stations_per_map_segment} qualifizierte Stationen je Kartensegment**. Dies belegt für sich allein nicht, dass der Umfang zu eng war. Die angewandte Konfiguration steht oben im Prüfbereich."
+
+        "ph_target_callsign": "z. B. CALL",
+        "txt_reference_location_resolved": "Referenzstandort: {grid4}",
+        "txt_reference_location_pending": "Der Referenzstandort wird beim Start der Analyse für den gewählten Zeitraum aus der Datenbank bestimmt.",
     }
 }
 
@@ -1354,20 +1319,12 @@ RESULT_GUIDANCE = {
                 "read": """TX Benchmark shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers. <strong class="defined-term">SNR</strong> is the decoder-reported signal-to-noise ratio in decibels (dB); a less-negative value is stronger relative to noise. WSPRadar first normalizes SNR to the reported power of 30 dBm, then calculates <strong class="defined-term">Delta SNR (ΔSNR)</strong> as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. Same-cycle evidence is formed when one receiver reports both signals in the same WSPR cycle. Many receivers and repeated pairs reveal geographic and temporal consistency that a single report cannot.""",
                 "limits": """The result compares complete transmitting paths and relies on the reported power values. Attribution to antenna efficiency, output power or one component requires those other variables to be controlled independently.""",
             },
-            "context_tx_compare_scheduled": {
-                "read": """Scheduled TX Benchmark shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers under the configured switching schedule. <strong class="defined-term">SNR</strong> is normalized to the reported power of 30 dBm before <strong class="defined-term">Delta SNR (ΔSNR)</strong> is calculated as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. A <strong class="defined-term">Scheduled Pair</strong> combines the planned Target and Reference transmissions for one receiver. Repeated pairs across many receivers show whether the observed difference is consistent across geography and time.""",
-                "limits": """The two transmissions in a Scheduled Pair are time-separated. Propagation, interference, switching or schedule phase can change between them and may resemble a path difference.""",
-            },
-            "benchmark_hardware": {
-                "read": """The <strong class="defined-term">Hardware A/B benchmark</strong> compares two controlled paths operating within the same four-character Maidenhead locator — for example antennas, feedlines, radios or complete chains at the same station. Sharing the site and much of the surrounding system removes many differences that affect a station-to-station comparison. When only the intended path changes, repeated evidence from many remote stations can reveal small, directional or time-dependent differences.""",
-                "limits": """The result still describes the complete installed paths. It isolates one component or calibrated gain only if the experiment controlled every other relevant difference.""",
-            },
             "benchmark_reference": {
-                "read": """The <strong class="defined-term">Reference Station benchmark</strong> compares the complete Target station with one known <strong class="defined-term">Reference</strong> station selected by its exact callsign and an independently configured four-character Maidenhead locator. It is useful for tracking a repeatable whole-station difference across directions, distances and time.""",
-                "limits": """Both stations' sites, terrain, local noise, antennas, radios and operating practice remain part of the comparison; no single cause is isolated.""",
+                "read": """The <strong class="defined-term">Reference Setup/Station benchmark</strong> compares the complete Target path with one fixed <strong class="defined-term">Reference</strong> selected by its exact callsign and grid-4 resolved from the selected archive period. Both sides use the same-cycle pairing rules. A controlled local setup can compare antennas, feedlines, radios or complete chains while keeping the remaining system common; an independent station comparison includes its separate installation and environment. Read repeated evidence across remote stations, directions, distances and time, then use calibration or crossover to investigate whether the difference follows the component under test.""",
+                "limits": """The result describes complete installed paths. Sites, terrain, local noise, antennas, radios and operating practice can differ. Shared grid-4 does not prove co-location. Component attribution or calibrated gain requires independent control of the other relevant differences.""",
             },
             "benchmark_local_median": {
-                "read": """<strong class="defined-term">Local Median Neighborhood</strong> shows how the complete Target station compares with qualifying nearby station observations within {radius} km. For each remote station and WSPR cycle, the Reference is the median of one contribution per observed local callsign-and-locator identity. The contributors may differ between paths and cycles. Read Delta SNR together with Joint Evidence Share and Decode Outcomes, then use Drill-Down to inspect the contributing local identities. Look for within-run consistency across remote stations and time, while checking whether the Reference population changes alongside the observed difference.""",
+                "read": """<strong class="defined-term">Reference Neighbourhood (Local Median)</strong> shows how the complete Target station compares with qualifying nearby station observations within {radius} km. For each remote station and WSPR cycle, the Reference is the median of one contribution per observed local callsign-and-locator identity. The contributors may differ between paths and cycles. Read Delta SNR together with Joint Evidence Share and Decode Outcomes, then use Drill-Down to inspect the contributing local identities. Look for within-run consistency across remote stations and time, while checking whether the Reference population changes alongside the observed difference.""",
                 "limits": """The Reference represents contributing observations, not every nearby station or one calibrated standard. A cycle may have only one local contributor. Differences in complete stations, sites, noise, reported power and propagation remain part of the comparison; the result does not isolate antenna gain.""",
             },
             "map_compare_rx": {
@@ -1387,7 +1344,7 @@ RESULT_GUIDANCE = {
                 "limits": """This is conditional reach among confirmed active receivers, not unconditional coverage, actual radiated power or calibrated antenna efficiency. A displayed 100% applies only to the retained opportunities.""",
             },
             "segment": {
-                "read": """Segment Inspector lets you test whether the complete-run pattern persists, changes or concentrates within a chosen geographic subset. The distance and direction controls define the <strong class="defined-term">active scope</strong>; every figure, station table and Selected Station Evidence view below inherits that scope. <strong class="defined-term">Evidence in scope</strong> reports both the number of contributing stations and the number of Joint Spots, Scheduled Pairs or confirmed opportunities. These are complementary: station count shows breadth across radio paths, while evidence count shows repeated depth. A result supported by both is stronger than one built from many observations at only a few stations.""",
+                "read": """Segment Inspector lets you test whether the complete-run pattern persists, changes or concentrates within a chosen geographic subset. The distance and direction controls define the <strong class="defined-term">active scope</strong>; every figure, station table and Selected Station Evidence view below inherits that scope. <strong class="defined-term">Evidence in scope</strong> reports both the number of contributing stations and the number of Joint Spots or confirmed opportunities. These are complementary: station count shows breadth across radio paths, while evidence count shows repeated depth. A result supported by both is stronger than one built from many observations at only a few stations.""",
                 "limits": """Changing scope filters the completed run; it does not rerun or widen it, and it cannot restore peers excluded by the original maximum-distance setting. Counts alone do not guarantee independence or experimental control.""",
             },
             "segment_success_rx": {
@@ -1402,21 +1359,13 @@ RESULT_GUIDANCE = {
                 "read": """These three figures show the composition, station-to-station consistency and observation-level spread of the paired result. A <strong class="defined-term">Joint Spot</strong> is a consolidated same-cycle unit containing the Target–Reference evidence available for one station and cycle. <strong class="defined-term">Decode Outcomes</strong> counts Joint, Only Target, Both (Async) and Only Reference evidence with hatched Stations bars and solid Spots bars. Total and Joint counts for both levels appear above the figure. **Station Medians (Δ SNR)** gives every qualifying station one median ΔSNR and therefore one equal vote. **Joint-Spot Δ SNR** gives every Joint Spot one value, so stations with more observations carry more weight. When both distributions point in the same direction and have a similar center across many stations and spots, the result is less likely to be driven by one prolific station or a few unusual reports. The median is more resistant to isolated extremes than the mean.""",
                 "limits": """ΔSNR describes only the paired subset; read it together with Decode Outcomes. These descriptive views do not by themselves identify physical cause or prove that all observations are independent.""",
             },
-            "comparison_evidence_scheduled": {
-                "read": """These three figures show the composition, station-to-station consistency and pair-level spread of the scheduled result. A <strong class="defined-term">Scheduled Pair</strong> is the deterministic Target–Reference unit formed from the configured UTC schedule at one RX station. <strong class="defined-term">Decode Outcomes</strong> classifies RX stations by whether they provide complete Scheduled Pairs, one-sided scheduled evidence or asynchronous evidence, using hatched Stations bars and solid Scheduled-pairs bars. **Station Medians (Δ SNR)** gives every qualifying RX station one median Pair ΔSNR and therefore one equal vote. **Scheduled-Pair Δ SNR** gives every complete pair one value, so stations with more pairs carry more weight. Similar centers and signs under both weightings, supported by many stations and pairs, indicate that the result is not dominated by one receiver or a few pair events. The median is more resistant to isolated extremes than the mean.""",
-                "limits": """Pair ΔSNR excludes incomplete pairs, and the time-separated design retains changes between transmissions. These views do not by themselves identify whether hardware, propagation, interference or switching caused the difference.""",
-            },
             "temporal_evidence_joint": {
                 "read": """Temporal Evidence links ΔSNR to its support. **Δ SNR over Time** uses the selected chronological bin; **Δ SNR by UTC Hour** folds dates into 1-hour slots. The chronological panel spans the full selected UTC window; its bins begin at the selected start, the final interval may be shorter, and intervals without Joint evidence remain blank rather than becoming 0 dB. If the whole panel is blank, no Joint Spot remains in the displayed scope; **Benchmark Temporal Evidence Coverage** can still show one-sided evidence. Positive values favor Target; negative values favor Reference; 0 dB is equality. Red dashed line: median of all Joint Spots; pale markers: bin medians. A subtle IQR band bounded by fine Q1–Q3 lines shows the middle 50% of that same bin population only when at least five Joint Spots contribute. Color shows relative Joint-Spot density per panel, not |ΔSNR| or advantage; height gives labelled dB on the nonlinear axis. <strong class="defined-term">Benchmark Temporal Evidence Coverage</strong> adds Only Target, Joint and Only Reference. Upper row: each station supplies one split vote; bar height shows contributing stations, and the blue line shows their equal-weight Joint share. Lower row: comparison-unit counts; the amber line shows Joint divided by retained units. A gap between lines shows volume weighting. Folded bars average each UTC hour over represented dates. Stable same-sign medians, dense evidence and similar lines support recurrence; spikes, reversals or low Joint share deserve caution.""",
                 "limits": """Simultaneous Benchmark retains only cycles with observed Target activity. RX: Target decoded a qualifying signal; TX: Target was decoded somewhere. Reference has no equivalent gate. Target-offline cycles are excluded; missing Reference evidence may become Only Target. One-sided coverage is therefore Target-favoring and shows evidence availability, not symmetric wins and losses. The gate does not alter Joint ΔSNR because Joint Spots contain both sides. Q1–Q3 describes within-bin spread, not uncertainty or a confidence interval. UTC recurrence does not establish cause.""",
             },
-            "temporal_evidence_scheduled": {
-                "read": """Temporal Evidence links Pair ΔSNR to completed-pair support. **Δ SNR over Time** uses the selected chronological bin; **Δ SNR by UTC Hour** folds dates into 1-hour slots. The chronological panel spans the full selected UTC window; its bins begin at the selected start, the final interval may be shorter, and intervals without complete-pair evidence remain blank rather than becoming 0 dB. If the whole panel is blank, no complete Scheduled Pair remains in the displayed scope; **Benchmark Temporal Evidence Coverage** can still show one-sided evidence. Positive values favor Target; negative values favor Reference; 0 dB is equality. Red dashed line: median of complete Scheduled Pairs; pale markers: bin medians. A subtle IQR band bounded by fine Q1–Q3 lines shows the middle 50% of that same bin population only when at least five complete pairs contribute. Color shows relative Scheduled-Pair density per panel, not advantage; height gives labelled dB on the nonlinear axis. <strong class="defined-term">Benchmark Temporal Evidence Coverage</strong> adds Only Target, Joint and Only Reference. Upper row: each receiver supplies one split vote; bar height shows contributing receivers, and the blue line shows their equal-weight completed-pair share. Lower row: scheduled A/B-unit counts; the amber line shows complete pairs divided by retained units. A gap between lines shows volume weighting. Folded bars average each UTC hour over represented dates. Stable same-sign medians, dense evidence and similar lines support recurrence; spikes, reversals or low completed-pair share deserve caution.""",
-                "limits": """Scheduled Benchmark follows the configured planned Target–Reference pairs, not the simultaneous Target-Active Gate. Pair ΔSNR exists only when both scheduled sides were decoded. Only Target and Only Reference show incomplete-pair coverage; neither contains a missing-side SNR or represents a symmetric win or loss. Because the transmissions are separated in time, propagation, QRM, switching and schedule phase can enter Pair ΔSNR. Q1–Q3 describes within-bin spread, not uncertainty or a confidence interval. UTC recurrence does not establish cause.""",
-            },
             "outlier_report": {
-                "read": """Outlier Report presents path-level <strong class="defined-term">ΔSNR outlier candidates</strong> detected from native paired evidence. A <strong class="defined-term">path</strong> is one retained callsign + locator identity. In simultaneous Benchmark, a paired unit is a Joint Spot; in Scheduled Benchmark, it is a complete Scheduled Pair. WSPRadar estimates a candidate-excluded, two-sided local ΔSNR baseline for each path from short support cells, then subtracts that baseline from each native paired observation to form a <strong class="defined-term">residual</strong>. Nearby same-sign residuals on one path are grouped and evaluated as a whole: one paired unit is a <strong class="defined-term">spot impulse</strong>, several nearby units form a <strong class="defined-term">short burst</strong>, and sufficiently long supported displacement is a <strong class="defined-term">sustained excursion</strong>. These names describe the grouped evidence span only; every group must pass the same configured minimum absolute median departure, minimum absolute robust z-score and maximum pre/post baseline difference. After qualification, the reported boundaries are trimmed to the first and last paired units that individually meet both the departure and robust-score gates; weaker grouped units remain only when they lie between those strong anchors. Each card begins with the descriptive duration class and exact UTC range. Each numbered Path block names one callsign + locator and direction. Its evidence line counts the listed paired observations and derives first-to-last span, median interval and largest gap directly from their UTC times; a one-cycle impulse has no interval or gap and shows an em dash. **Expected local ΔSNR** is the candidate-excluded baseline, **Observed median ΔSNR** is the path candidate's median paired value, and **Largest single-cycle departure** is the signed residual with greatest magnitude. If one path contributes more than one candidate to a card, each candidate retains a labeled timeframe. `↓ Show in Station Insights` replaces the selection with that exact path, preloads its `Outlier Focus` over the exact supported pre-event flank, guarded candidate interval and post-event flank, and brings Station Insights into view; `↓ Show Drill-Down Details` applies the same focus and navigates directly to Drill-Down. `Show all qualifying paths in Station Insights` appears only for a multi-path card and selects its exact qualifying paths. Open **Chronological WSPR-cycle evidence** or **Chronological Scheduled-pair evidence** to audit the paired observations belonging to the qualifying path timeframes in time order. The Joint-only table shows exact UTC, path, direction, local baseline, ΔSNR and residual. In the all-path temporal plot, the `*` marks the individually qualifying native unit with the greatest absolute residual in each review event; it never selects an unsupported or nonqualifying episode peak. This plot representative is separate from **Largest single-cycle departure**, which remains the true greatest-absolute retained residual in the path candidate for the report and export. When the selected focused episode intersects the native-time Drill-Down window, the same star marks every native unit in that window that belongs to a reported candidate and individually meets both configured departure and robust-z gates. A muted band labelled **Focused episode** identifies the selected reported episode; the expected local ΔSNR, pre/post flank baselines, symmetric robust-z guides at 1, 2, 3 and the configured qualifying threshold, and absolute-departure guides belong only to that episode. Other starred candidate units may have been evaluated against different local baselines and robust spreads. Read expected versus observed ΔSNR first, then the largest departure and timing support, and finally the chronological paired observations.""",
-                "limits": """Candidates are inspection prompts, not detected physical events or evidence of a specific mechanism. Sparse or gapped paired evidence and insufficient two-sided baseline support leave observations unclassified rather than normal; duration and gap rules influence grouping and duration class. First-to-last span, median interval and largest gap describe only the listed paired observations, not transmitter scheduling or an unobserved physical-event duration. Several qualifying paths do not by themselves establish statistical independence, directional coherence or common cause. ΔSNR alone cannot determine whether Target, Reference or both changed, nor identify propagation, interference, decoding-edge behavior, hardware change or a gyroelectric mechanism. The robust-z boundaries and absolute-departure boundary in candidate focus are detector guides, not confidence intervals; crossing one guide alone is insufficient because baseline support, baseline stability, event-level departure, robust score and sign agreement remain separate requirements. The **Focused episode** band is a selection cue over retained episode evidence, padded by half one native-unit width at each end and clipped to the focus window; it is neither a confidence interval nor a measurement of physical-event duration. Native evidence means retained processed Joint Spots or complete Scheduled Pairs, not untouched provider rows.""",
+                "read": """Outlier Report presents path-level <strong class="defined-term">ΔSNR outlier candidates</strong> detected from native paired evidence. A <strong class="defined-term">path</strong> is one retained callsign + locator identity. In Benchmark, a paired unit is a same-cycle Joint Spot. WSPRadar estimates a candidate-excluded, two-sided local ΔSNR baseline for each path from short support cells, then subtracts that baseline from each native paired observation to form a <strong class="defined-term">residual</strong>. Nearby same-sign residuals on one path are grouped and evaluated as a whole: one paired unit is a <strong class="defined-term">spot impulse</strong>, several nearby units form a <strong class="defined-term">short burst</strong>, and sufficiently long supported displacement is a <strong class="defined-term">sustained excursion</strong>. These names describe the grouped evidence span only; every group must pass the same configured minimum absolute median departure, minimum absolute robust z-score and maximum pre/post baseline difference. After qualification, the reported boundaries are trimmed to the first and last paired units that individually meet both the departure and robust-score gates; weaker grouped units remain only when they lie between those strong anchors. Each card begins with the descriptive duration class and exact UTC range. Each numbered Path block names one callsign + locator and direction. Its evidence line counts the listed paired observations and derives first-to-last span, median interval and largest gap directly from their UTC times; a one-cycle impulse has no interval or gap and shows an em dash. **Expected local ΔSNR** is the candidate-excluded baseline, **Observed median ΔSNR** is the path candidate's median paired value, and **Largest single-cycle departure** is the signed residual with greatest magnitude. If one path contributes more than one candidate to a card, each candidate retains a labeled timeframe. `↓ Show in Station Insights` replaces the selection with that exact path, preloads its `Outlier Focus` over the exact supported pre-event flank, guarded candidate interval and post-event flank, and brings Station Insights into view; `↓ Show Drill-Down Details` applies the same focus and navigates directly to Drill-Down. `Show all qualifying paths in Station Insights` appears only for a multi-path card and selects its exact qualifying paths. Open **Chronological WSPR-cycle evidence** to audit the paired observations belonging to the qualifying path timeframes in time order. The Joint-only table shows exact UTC, path, direction, local baseline, ΔSNR and residual. In the all-path temporal plot, the `*` marks the individually qualifying native unit with the greatest absolute residual in each review event; it never selects an unsupported or nonqualifying episode peak. This plot representative is separate from **Largest single-cycle departure**, which remains the true greatest-absolute retained residual in the path candidate for the report and export. When the selected focused episode intersects the native-time Drill-Down window, the same star marks every native unit in that window that belongs to a reported candidate and individually meets both configured departure and robust-z gates. A muted band labelled **Focused episode** identifies the selected reported episode; the expected local ΔSNR, pre/post flank baselines, symmetric robust-z guides at 1, 2, 3 and the configured qualifying threshold, and absolute-departure guides belong only to that episode. Other starred candidate units may have been evaluated against different local baselines and robust spreads. Read expected versus observed ΔSNR first, then the largest departure and timing support, and finally the chronological paired observations.""",
+                "limits": """Candidates are inspection prompts, not detected physical events or evidence of a specific mechanism. Sparse or gapped paired evidence and insufficient two-sided baseline support leave observations unclassified rather than normal; duration and gap rules influence grouping and duration class. First-to-last span, median interval and largest gap describe only the listed paired observations, not transmitter scheduling or an unobserved physical-event duration. Several qualifying paths do not by themselves establish statistical independence, directional coherence or common cause. ΔSNR alone cannot determine whether Target, Reference or both changed, nor identify propagation, interference, decoding-edge behavior, hardware change or a gyroelectric mechanism. The robust-z boundaries and absolute-departure boundary in candidate focus are detector guides, not confidence intervals; crossing one guide alone is insufficient because baseline support, baseline stability, event-level departure, robust score and sign agreement remain separate requirements. The **Focused episode** band is a selection cue over retained episode evidence, padded by half one native-unit width at each end and clipped to the focus window; it is neither a confidence interval nor a measurement of physical-event duration. Native evidence means retained processed Joint Spots, not untouched provider rows.""",
             },
             "success_evidence_rx": {
                 "read": """Performance Evidence reads the qualifying TX-station population in three complementary ways using calculated distance from the Target QTH. <strong class="defined-term">TX Stations Heard by Target at Least Once by Distance</strong> shows whether a qualifying path opened at all during the selected UTC window. <strong class="defined-term">RX Decode Rate by TX-Station Distance</strong> shows how consistently confirmed opportunities were Heard by Target, comparing equal station weighting with pooled opportunity weighting. <strong class="defined-term">Successful Target SNR by TX-Station Distance</strong> first gives each TX station one median successful SNR and then summarizes those station medians in each exact-distance bin. The legend distinguishes `Median`, `Min-Max (2 stations)` and `IQR (3+ stations)`: the min–max line spans the two station medians directly, while the IQR describes the middle 50% when at least three station medians contribute. Read the panels left to right: path availability, repeated reliability, and signal strength when successfully decoded. Station and opportunity counts show the support behind each distance bin.""",
@@ -1442,14 +1391,6 @@ RESULT_GUIDANCE = {
                 "read": """Station Insights identifies the {peer_type} stations behind the paired result. Each table row retains one exact `callsign + locator` identity together with Joint and one-sided evidence and that station's median ΔSNR. Read <strong class="defined-term">Joint Spots</strong> as paired-evidence depth, the one-sided counts as Decode Outcome context, and the station median as that identity's typical paired difference. Comparing many supported rows shows whether the Target- or Reference-favoring direction is broad or concentrated in a few stations. Select one or more rows to inspect their paths; table filters change only display and selection.""",
                 "limits": """A callsign-plus-locator row remains an archive identity, not proof of one physical station. Without paired evidence no Target-minus-Reference ΔSNR exists, and station-to-station agreement within one run is not experimental repeatability in another run.""",
             },
-            "station_insights_compare_scheduled": {
-                "read": """Station Insights identifies the RX stations behind the scheduled result. Each table row retains one exact `callsign + locator` identity together with complete and one-sided scheduled evidence and that receiver's median Pair ΔSNR. Read <strong class="defined-term">Scheduled Pairs</strong> as paired-evidence depth, the one-sided counts as Decode Outcome context, and the station median as that identity's typical scheduled difference. Comparing many supported rows shows whether the Target- or Reference-favoring direction is broad or concentrated in a few receivers. Select one row to inspect that receiver path; table filters change only display and selection.""",
-                "limits": """An incomplete Scheduled Pair has no Pair ΔSNR. Agreement among receivers within one run is not experimental repeatability and cannot separate hardware differences from propagation, interference, switching or schedule-phase effects.""",
-            },
-            "station_insights_compare_scheduled_multi": {
-                "read": """Station Insights identifies the RX stations behind the scheduled result. Each table row retains one exact `callsign + locator` identity together with complete and one-sided scheduled evidence and that receiver's median Pair ΔSNR. Read <strong class="defined-term">Scheduled Pairs</strong> as paired-evidence depth, the one-sided counts as Decode Outcome context, and the station median as that identity's typical scheduled difference. Comparing many supported rows shows whether the Target- or Reference-favoring direction is broad or concentrated in a few receivers. Select one or more rows to inspect their receiver paths; table filters change only display and selection.""",
-                "limits": """An incomplete Scheduled Pair has no Pair ΔSNR. Agreement among receivers within one run is not experimental repeatability and cannot separate hardware differences from propagation, interference, switching or schedule-phase effects.""",
-            },
             "station_insights_success_rx": {
                 "read": """Station Insights identifies the TX stations behind the scoped RX Performance result. Each row represents one reported callsign-plus-locator identity. Read <strong class="defined-term">Heard by Target</strong>, <strong class="defined-term">Heard by others only</strong> and Decode Rate together; the two outcome counts show the numerator and counter-evidence depth behind that row's rate. <strong class="defined-term">Median SNR @ 30 dBm</strong> describes only the decodes that succeeded, and a less-negative value is stronger relative to noise. Table filters, sorting and row selection change only the displayed station view and do not recalculate the Segment Inspector figures.""",
                 "limits": """A missed signal has no recorded Target SNR, and a callsign-plus-locator row does not prove one unique physical station.""",
@@ -1466,14 +1407,6 @@ RESULT_GUIDANCE = {
                 "read": """Selected Station Evidence combines the chosen {peer_type} radio paths without changing their retained observations. **Δ SNR over Time** pools their Joint Spots in the selected chronological bins, and **Δ SNR by UTC Hour** folds the same selected paths into 1-hour slots. This combined view is <strong class="defined-term">observation-weighted</strong>: a path with more Joint Spots contributes more values. Values remain signed and not baseline-normalized; positive favors Target, negative favors Reference and 0 dB is equality. The red dashed line summarizes all selected Joint Spots, pale markers are pooled bin medians, the IQR describes the middle 50% when at least five values contribute, and color shows relative density rather than advantage. When outlier reporting is enabled, star markers reuse only the active-scope candidates belonging to these selected identities; they do not rerun the detector on the subset. Compare agreement across paths and time rather than treating a pooled cluster as station-balanced evidence.""",
                 "limits": """The combined view does not give each selected path equal weight and does not replace the segment's station-balanced result. Selected Path Evidence Coverage is intentionally available only for one selected path because its denominator is path-specific; it is not silently pooled across several paths. UTC recurrence and candidate markers do not identify physical cause.""",
             },
-            "selected_compare_scheduled": {
-                "read": """Selected Station Evidence isolates one RX station and one scheduled radio path. **Δ SNR over Time** uses the selected chronological bin; **Δ SNR by UTC Hour** folds the path into 1-hour slots. The chronological panel spans the full selected UTC window; its bins begin at the selected start, the final interval may be shorter, and intervals without complete-pair evidence remain blank rather than becoming 0 dB. If the whole panel is blank, no complete Scheduled Pair remains in the displayed scope; **Selected Path Evidence Coverage** can still show one-sided evidence. Values are signed and not baseline-normalized: positive favors Target, negative favors Reference and 0 dB is equality. The red dashed line is the median of complete Scheduled Pairs; pale markers are bin medians. A subtle IQR band bounded by fine Q1–Q3 lines shows the middle 50% of that same bin population only when at least five complete pairs contribute. Color shows relative Scheduled-Pair density per panel, not advantage; height gives labelled dB on the nonlinear axis. Gaps mean no complete pair was available. <strong class="defined-term">Selected Path Evidence Coverage</strong> adds Only Target, Joint and Only Reference. Bars count **Scheduled A/B Pairs**; the amber line shows the complete-pair share. Folded bars average per represented UTC date. A stable sign, dense evidence and high completed-pair share support a persistent path difference; reversals or long one-sided periods indicate dependence on time or conditions.""",
-                "limits": """This is one observation-weighted receiver path, not the station-balanced segment result. Scheduled Benchmark follows the configured planned Target–Reference pairs. Pair ΔSNR exists only when both sides were decoded. One-sided units show incomplete-pair coverage, contain no missing-side SNR and are not symmetric wins or losses. Time separation allows propagation, QRM, switching and schedule phase to resemble a path difference. Q1–Q3 describes within-bin spread, not uncertainty or a confidence interval. UTC recurrence does not establish cause.""",
-            },
-            "selected_compare_scheduled_multi": {
-                "read": """Selected Station Evidence combines the chosen RX paths without changing their retained Scheduled Pairs. **Δ SNR over Time** pools complete pairs in the selected chronological bins, while **Δ SNR by UTC Hour** folds the same receiver paths into 1-hour slots. This combined view is <strong class="defined-term">observation-weighted</strong>: a receiver with more complete pairs contributes more values. Pair ΔSNR remains signed and not baseline-normalized; positive favors Target, negative favors Reference and 0 dB is equality. The red dashed line summarizes all selected complete pairs, pale markers are pooled bin medians, the IQR describes the middle 50% when at least five values contribute, and color shows relative pair density. Enabled outlier stars reuse the active-scope candidates for these identities and never recalculate candidates from the subset. Look for agreement across receivers and planned pair times rather than reading the pooled distribution as station-balanced evidence.""",
-                "limits": """The combined view does not give each receiver equal weight and does not replace the segment's station-balanced result. Selected Path Evidence Coverage is available only for one selected receiver path because its denominator is path-specific. Time separation permits propagation, QRM, switching and schedule phase to resemble a path difference; candidate markers do not determine cause.""",
-            },
             "selected_success_rx": {
                 "read": """Selected Station Evidence isolates one remote TX station from the active RX Performance scope. Selecting another Station Insights row replaces the current station. The upper <strong class="defined-term">Selected Station SNR Evidence</strong> figure uses the same chronological and folded UTC-hour layout as Temporal Evidence, but shows this path’s actual normalized successful Target SNR rather than deviation from a station baseline. Chronological color shows where successful SNR observations concentrate in each selected time bin, and the line shows their bin median. The UTC-hour panel first gives every represented date one hourly median, then shows how those values recur across dates. A subtle IQR band bounded by fine Q1–Q3 lines marks the middle 50% of those same populations: raw successful observations chronologically and date-hour medians when folded. It appears only with at least five values. The lower <strong class="defined-term">Selected Station Temporal Evidence</strong> figure separates station presence from opportunity depth. When the selected TX station contributes evidence in a chronological bin, it supplies one split station vote between Heard by Target and Heard by others only. The folded station row shows its average presence per represented UTC date. The opportunity row counts every confirmed opportunity chronologically and shows average counts per represented date after UTC-hour folding. Green shares and Decode Rate lines show the same selected-path rate. Because exactly one station is selected, station-balanced and Opportunity-level Decode Rates are identical; matching lines are expected. Read SNR and Decode Rate together: strong successful decodes with a falling rate can mean weaker signals were no longer decoded.""",
                 "limits": """The SNR figure contains successful Target decodes only; missed signals have no recorded Target SNR. Q1–Q3 is descriptive middle-50% within-bin spread, not uncertainty or a confidence interval. Folded UTC-hour patterns show recurring associations, not whether propagation, local noise, interference or equipment changes caused them. SNR normalization depends on reported transmit power and the selected callsign-plus-locator identity.""",
@@ -1486,10 +1419,6 @@ RESULT_GUIDANCE = {
                 "read": """Drill-Down Data is the audit trail from the paired summaries back to the contributing observations. It shows <strong class="defined-term">processed row-level evidence</strong> after WSPRadar's matching and filters, including the Target and Reference values used for each same-cycle pair and the resulting ΔSNR. Use exact UTC times, station identities and values to reconcile a summary, inspect a step in the timeline or understand an outlier. The strength of WSPRadar remains the repeated pattern across many rows; Drill-Down makes that pattern traceable rather than replacing it with one anecdotal observation. With exactly one selected station, `Zoom window`, `Center date (UTC)` and `Center time (UTC)` define an exact centered interval. `Filter table` then changes only the displayed rows; it does not alter the focused plots or completed analysis. The focused metric plot shows one actual ΔSNR point for every retained Joint Spot at its native cycle time; it applies no temporal median, IQR, density layer, full-run median or UTC-hour folding. This is retained processed paired evidence rather than untouched provider rows. Segment and full-window Selected Station Evidence remain aggregated density views.""",
                 "limits": """These are processed analysis rows, not untouched provider responses. They cannot reconstruct a missing-side SNR, and one exceptional row should not be generalized.""",
             },
-            "drilldown_compare_scheduled": {
-                "read": """Drill-Down Data is the audit trail from the scheduled summaries back to the contributing pairs. It shows <strong class="defined-term">processed scheduled evidence</strong>: the planned UTC pair, TX role, Target and Reference micro-medians and Pair ΔSNR. Use it to verify that pairs follow the configured schedule, reconcile a station or time-bin summary and inspect unusual pairs. The broader conclusion should come from the repeated pattern across many receivers and pairs; the rows make that evidence directly traceable. With exactly one selected station, `Zoom window`, `Center date (UTC)` and `Center time (UTC)` define an exact centered interval. `Filter table` then changes only the displayed rows; it does not alter the focused plots or completed analysis. The focused metric plot shows one actual Pair ΔSNR point per retained complete Scheduled Pair at its planned Target-start coordinate; a pair is the native evidence unit here, not one WSPR cycle. It applies no temporal median, IQR, density layer, full-run median or UTC-hour folding. Segment and full-window Selected Station Evidence remain aggregated density views.""",
-                "limits": """The rows verify pair formation and calculated values, but cannot show that propagation or interference remained unchanged between the two transmissions.""",
-            },
             "drilldown_success_rx": {
                 "read": """Drill-Down Data is the audit trail from RX Performance back to the contributing WSPR cycles. It shows <strong class="defined-term">processed retained evidence</strong> after WSPRadar’s eligibility rules and filters. The <strong class="defined-term">Heard by Target</strong> and <strong class="defined-term">Heard by others only</strong> columns identify counted outcomes; every valid peer TX → Target RX decode counts as a success and confirms both endpoints, including the Target-only provenance subset. Another eligible RX reporting the same peer TX supports a Miss only in a Target-active cycle. Target-only successes are already included in totals and successful SNR. Use exact UTC time, TX-station identity and these evidence columns to reconcile the numerator and denominator with the displayed summaries. With exactly one selected station, `Zoom window`, `Center date (UTC)` and `Center time (UTC)` define an exact centered interval. `Filter table` then changes only the displayed rows; it does not alter the focused plots or completed analysis. The focused SNR plot shows the actual normalized Target SNR of each successful confirmed opportunity at its canonical cycle time; unsuccessful opportunities have no SNR point. It applies no temporal median, IQR, density layer, full-run median or UTC-hour folding, while the companion outcome view retains its chronological evidence summary. Segment and full-window Selected Station Evidence remain aggregated density views.""",
                 "limits": """The rows show how retained evidence formed the result. They cannot reveal unobserved transmissions, the SNR of a missed signal or the cause of a failed decode.""",
@@ -1499,7 +1428,7 @@ RESULT_GUIDANCE = {
                 "limits": """The rows show how retained evidence formed the result. They cannot reveal unobserved receiver activity, the SNR of a missed Target or the cause of a failed decode.""",
             },
             "drilldown_local_median": {
-                "read": """For Local Median Neighborhood, Drill-Down lists the local Reference identities that contributed to each cycle’s median. Use these rows to inspect contributor membership and SNR values, including whether membership changed alongside the observed Delta SNR. Several contributor rows can explain one Target-versus-neighborhood comparison; they are not additional independent paired observations.""",
+                "read": """For Reference Neighbourhood (Local Median), Drill-Down lists the local Reference identities that contributed to each cycle’s median. Use these rows to inspect contributor membership and SNR values, including whether membership changed alongside the observed Delta SNR. Several contributor rows can explain one Target-versus-neighborhood comparison; they are not additional independent paired observations.""",
                 "limits": """Contributor inspection supports investigation of the changing Reference. It cannot by itself determine whether an observed change was caused by the Target, the neighborhood or their respective conditions.""",
             },
             "download": {
@@ -1530,20 +1459,12 @@ RESULT_GUIDANCE = {
                 "read": """TX-Benchmark zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen abschnitt. <strong class="defined-term">SNR</strong> ist das vom Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger negativer Wert ist relativ zum Rauschen stärker. WSPRadar normiert das SNR zunächst auf die gemeldete Leistung von 30 dBm und berechnet danach <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz. Positive Werte sprechen für das Target, negative für die Referenz. Same-cycle-Evidenz entsteht, wenn eine Empfangsstation beide Signale im selben WSPR-Zyklus meldet. Viele Empfangsstationen und wiederholte Paare zeigen geografische und zeitliche Beständigkeit, die ein einzelner Report nicht liefern kann.""",
                 "limits": """Das Ergebnis vergleicht vollständige Sendepfade und stützt sich auf die gemeldeten Leistungswerte. Eine Zuordnung zu Antennenwirkungsgrad, Ausgangsleistung oder Einzelkomponente setzt voraus, dass die übrigen Variablen unabhängig kontrolliert wurden.""",
             },
-            "context_tx_compare_scheduled": {
-                "read": """Scheduled TX-Benchmark zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen unter dem konfigurierten Umschaltzeitplan abschnitt. <strong class="defined-term">SNR</strong> wird auf die gemeldete Leistung von 30 dBm normiert, bevor <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz berechnet wird. Positive Werte sprechen für das Target, negative für die Referenz. Ein <strong class="defined-term">Scheduled Pair</strong> verbindet die geplante Target- und Referenzaussendung für eine Empfangsstation. Wiederholte Paare über viele Empfangsstationen zeigen, ob der beobachtete Unterschied geografisch und zeitlich konsistent ist.""",
-                "limits": """Die beiden Aussendungen eines Scheduled Pair sind zeitlich getrennt. Ausbreitung, Störungen, Umschaltung oder Zeitplanphase können sich dazwischen ändern und wie ein Pfadunterschied wirken.""",
-            },
-            "benchmark_hardware": {
-                "read": """Der <strong class="defined-term">Hardware-A/B-Benchmark</strong> vergleicht zwei kontrollierte Pfade im selben vierstelligen Maidenhead-Locator; zum Beispiel Antennen, Speiseleitungen, Funkgeräte oder vollständige Ketten derselben Station. Der gemeinsame Standort und große Teile des umgebenden Systems beseitigen viele Unterschiede eines Stationsvergleichs. Wenn nur der beabsichtigte Pfad wechselt, kann wiederholte Evidenz vieler Gegenstationen auch kleine, richtungsabhängige oder zeitabhängige Unterschiede sichtbar machen.""",
-                "limits": """Das Ergebnis beschreibt weiterhin die vollständigen installierten Pfade. Eine einzelne Komponente oder kalibrierten Gewinn isoliert es nur, wenn der Versuch alle übrigen relevanten Unterschiede kontrolliert hat.""",
-            },
             "benchmark_reference": {
-                "read": """Der <strong class="defined-term">Referenzstations-Benchmark</strong> vergleicht die vollständige Target-Station mit einer bekannten <strong class="defined-term">Referenz</strong>, die über ihr exaktes Rufzeichen und einen unabhängig konfigurierten Referenz-Locator mit vier Zeichen festgelegt ist. Damit lässt sich ein wiederholbarer Gesamtstationsunterschied über Richtungen, Entfernungen und Zeit verfolgen.""",
-                "limits": """Standort, Gelände, lokales Rauschen, Antennen, Funkgeräte und Betriebspraxis beider Stationen bleiben Teil des Vergleichs; keine einzelne Ursache wird isoliert.""",
+                "read": """Der <strong class="defined-term">Benchmark mit Referenzaufbau/-station</strong> vergleicht den vollständigen Target-Pfad mit einer festen <strong class="defined-term">Referenz</strong>, ausgewählt durch exaktes Rufzeichen und das aus dem Archivzeitfenster aufgelöste Grid-4. Beide Seiten verwenden dieselben Paarbildungsregeln im selben Zyklus. Ein kontrollierter lokaler Aufbau kann Antennen, Speiseleitungen, Funkgeräte oder vollständige Ketten bei ansonsten gemeinsamem System vergleichen; der Vergleich mit einer unabhängigen Station umfasst deren eigene Installation und Umgebung. Lies wiederholte Evidenz über Gegenstationen, Richtungen, Entfernungen und Zeit und prüfe anschließend durch Kalibrierung oder Kreuztausch, ob der Unterschied dem untersuchten Bauteil folgt.""",
+                "limits": """Das Ergebnis beschreibt vollständige installierte Pfade. Standorte, Gelände, lokales Rauschen, Antennen, Funkgeräte und Betriebspraxis können sich unterscheiden. Ein gemeinsames Grid-4 beweist keine Ko-Lokation. Bauteilzuordnung oder kalibrierter Gewinn erfordern die unabhängige Kontrolle der übrigen relevanten Unterschiede.""",
             },
             "benchmark_local_median": {
-                "read": """<strong class="defined-term">Lokaler Nachbarschafts-Median</strong> zeigt, wie die vollständige Target-Station im Vergleich zu qualifizierenden Beobachtungen benachbarter Stationen innerhalb von {radius} km abschneidet. Für jede entfernte Station und jeden WSPR-Zyklus ist die Referenz der Median aus je einem Beitrag jeder beobachteten lokalen Identität aus Rufzeichen und Locator. Die Beitragenden können je nach Funkweg und Zyklus wechseln. Lies Delta SNR zusammen mit dem Joint-Evidenzanteil und den Decode Outcomes und prüfe anschließend im Drill-Down die beitragenden lokalen Identitäten. Achte auf Konsistenz innerhalb des Laufs über entfernte Stationen und Zeit hinweg und prüfe, ob sich die Referenzpopulation zugleich mit dem beobachteten Unterschied verändert.""",
+                "read": """<strong class="defined-term">Referenznachbarschaft (Lokaler Median)</strong> zeigt, wie die vollständige Target-Station im Vergleich zu qualifizierenden Beobachtungen benachbarter Stationen innerhalb von {radius} km abschneidet. Für jede entfernte Station und jeden WSPR-Zyklus ist die Referenz der Median aus je einem Beitrag jeder beobachteten lokalen Identität aus Rufzeichen und Locator. Die Beitragenden können je nach Funkweg und Zyklus wechseln. Lies Delta SNR zusammen mit dem Joint-Evidenzanteil und den Decode Outcomes und prüfe anschließend im Drill-Down die beitragenden lokalen Identitäten. Achte auf Konsistenz innerhalb des Laufs über entfernte Stationen und Zeit hinweg und prüfe, ob sich die Referenzpopulation zugleich mit dem beobachteten Unterschied verändert.""",
                 "limits": """Die Referenz repräsentiert die beitragenden Beobachtungen, nicht jede benachbarte Station oder einen kalibrierten Standard. Ein Zyklus kann nur einen lokalen Beitragenden haben. Unterschiede zwischen vollständigen Stationen, Standorten, Rauschbedingungen, gemeldeten Leistungen und Ausbreitungsbedingungen bleiben Teil des Vergleichs; das Ergebnis isoliert keinen Antennengewinn.""",
             },
             "map_compare_rx": {
@@ -1563,7 +1484,7 @@ RESULT_GUIDANCE = {
                 "limits": """Das ist bedingte Reichweite unter bestätigten aktiven Empfängern, keine unbedingte Abdeckung, tatsächlich abgestrahlte Leistung oder kalibrierter Antennenwirkungsgrad.""",
             },
             "segment": {
-                "read": """Mit dem Segment-Inspektor prüfst du, ob das Muster des vollständigen Laufs in einem gewählten geografischen Teilbereich bestehen bleibt, sich verändert oder konzentriert. Entfernung und Richtung definieren den <strong class="defined-term">aktiven Bereich</strong>; alle folgenden Abbildungen, Stationstabellen und Ansichten ausgewählter Stationen übernehmen ihn. <strong class="defined-term">Evidenz im aktiven Bereich</strong> nennt sowohl die Zahl beitragender Stationen als auch die Zahl der Joint Spots, Scheduled Pairs oder bestätigten Gelegenheiten. Beides ergänzt sich: Die Stationszahl zeigt Breite über verschiedene Funkwege, die Evidenzzahl wiederholte Tiefe. Ein Ergebnis mit beidem ist stärker als viele Beobachtungen von nur wenigen Stationen.""",
+                "read": """Mit dem Segment-Inspektor prüfst du, ob das Muster des vollständigen Laufs in einem gewählten geografischen Teilbereich bestehen bleibt, sich verändert oder konzentriert. Entfernung und Richtung definieren den <strong class="defined-term">aktiven Bereich</strong>; alle folgenden Abbildungen, Stationstabellen und Ansichten ausgewählter Stationen übernehmen ihn. <strong class="defined-term">Evidenz im aktiven Bereich</strong> nennt sowohl die Zahl beitragender Stationen als auch die Zahl der Joint Spots oder bestätigten Gelegenheiten. Beides ergänzt sich: Die Stationszahl zeigt Breite über verschiedene Funkwege, die Evidenzzahl wiederholte Tiefe. Ein Ergebnis mit beidem ist stärker als viele Beobachtungen von nur wenigen Stationen.""",
                 "limits": """Die Bereichsauswahl filtert den abgeschlossenen Lauf; sie startet ihn nicht neu und erweitert ihn nicht. Stationen außerhalb der ursprünglichen Maximalentfernung lassen sich nicht zurückholen. Anzahlen allein garantieren weder Unabhängigkeit noch gute Versuchskontrolle.""",
             },
             "segment_success_rx": {
@@ -1578,21 +1499,13 @@ RESULT_GUIDANCE = {
                 "read": """Diese drei Abbildungen zeigen Zusammensetzung, Stationskonsistenz und Streuung auf Beobachtungsebene des gepaarten Ergebnisses. Ein <strong class="defined-term">Joint Spot</strong> ist eine zusammengeführte Same-cycle-Einheit mit der für eine Station und einen Zyklus verfügbaren Target–Referenz-Evidenz. <strong class="defined-term">Decode Outcomes</strong> zählt Joint-, Only-Target-, Both-(Async)- und Only-Reference-Evidenz mit schraffierten Stationsbalken und ausgefüllten Spot-Balken. Gesamt- und Joint-Anzahlen beider Ebenen stehen über der Abbildung. **Station Medians (Δ SNR)** gibt jeder qualifizierenden Station genau einen medianen ΔSNR-Wert und damit eine gleich große Stimme. **Joint-Spot Δ SNR** gibt jedem Joint Spot einen Wert; Stationen mit mehr Beobachtungen erhalten dadurch mehr Gewicht. Zeigen beide Verteilungen über viele Stationen und Spots dieselbe Richtung und ein ähnliches Zentrum, wird das Ergebnis weniger wahrscheinlich von einer sehr aktiven Station oder wenigen ungewöhnlichen Reports bestimmt. Der Median reagiert weniger auf einzelne Extremwerte als der Mittelwert.""",
                 "limits": """ΔSNR beschreibt nur die gepaarte Teilmenge; lies es zusammen mit Decode Outcomes. Diese beschreibenden Ansichten bestimmen weder die physische Ursache noch beweisen sie die Unabhängigkeit aller Beobachtungen.""",
             },
-            "comparison_evidence_scheduled": {
-                "read": """Diese drei Abbildungen zeigen Zusammensetzung, Stationskonsistenz und Streuung auf Paarebene des geplanten Ergebnisses. Ein <strong class="defined-term">Scheduled Pair</strong> ist die deterministische Target–Referenz-Einheit, die aus dem konfigurierten UTC-Zeitplan an einer RX-Station gebildet wird. <strong class="defined-term">Decode Outcomes</strong> ordnet RX-Stationen danach ein, ob sie vollständige Scheduled Pairs, einseitige geplante Evidenz oder asynchrone Evidenz liefern, und verwendet schraffierte Stationsbalken sowie ausgefüllte Balken für geplante Paare. **Station Medians (Δ SNR)** gibt jeder qualifizierenden RX-Station genau einen medianen Paar-ΔSNR-Wert und damit eine gleich große Stimme. **Geplantes Paar Δ SNR** gibt jedem vollständigen Paar einen Wert; Stationen mit mehr Paaren erhalten dadurch mehr Gewicht. Ähnliche Zentren und Vorzeichen unter beiden Gewichtungen, getragen von vielen Stationen und Paaren, zeigen, dass das Ergebnis nicht von einem Empfänger oder wenigen Paarereignissen dominiert wird. Der Median reagiert weniger auf einzelne Extremwerte als der Mittelwert.""",
-                "limits": """Paar-ΔSNR schließt unvollständige Paare aus, und der zeitversetzte Aufbau behält Änderungen zwischen den Aussendungen bei. Diese Ansichten bestimmen nicht, ob Hardware, Ausbreitung, Störungen oder Umschaltung den Unterschied verursacht haben.""",
-            },
             "temporal_evidence_joint": {
                 "read": """Zeitliche Evidenz verbindet ΔSNR und Evidenzbasis. **Δ SNR im Zeitverlauf** nutzt gewählte Binbreite; **Δ SNR nach UTC-Stunde** faltet Tage in 1-h-Slots. Das chronologische Panel umfasst das vollständige ausgewählte UTC-Zeitfenster; seine Bins beginnen am ausgewählten Startzeitpunkt, das abschließende Intervall kann kürzer sein und Zeitabschnitte ohne Joint-Evidenz bleiben leer, statt zu 0 dB zu werden. Ist das gesamte Panel leer, verbleibt im dargestellten Bereich kein Joint Spot; die **Zeitliche Benchmark-Evidenzabdeckung** kann dennoch einseitige Evidenz zeigen. Positiv spricht für Target, negativ für Referenz; 0 dB bedeutet Gleichheit. Rote gestrichelte Linie: Median aller Joint Spots; helle Marker: Bin-Mediane. Ein dezentes IQR-Band, begrenzt von feinen Q1–Q3-Linien, zeigt die mittleren 50 % derselben Bin-Population nur, wenn mindestens fünf Joint Spots beitragen. Farbe: relative Joint-Spot-Dichte je Panel, nicht |ΔSNR| oder Vorteil; Höhe: dB-Wert auf nichtlinearer Achse. <strong class="defined-term">Zeitliche Benchmark-Evidenzabdeckung</strong> zeigt Only Target, Joint und Only Reference. Oben liefert jede Station eine aufgeteilte Stimme; die Balkenhöhe zeigt beitragende Stationen, die blaue Linie deren gleichgewichteten Joint-Anteil. Unten: Vergleichseinheiten; gelbe Linie: Joint-Anteil der Einheiten. Linienabstand zeigt Volumengewichtung. Gefaltete Balken mitteln je UTC-Stunde über berücksichtigte Tage. Stabiles Vorzeichen, dichte Evidenz und ähnliche Linien stützen Wiederkehr; Spitzen, Wechsel oder geringer Joint-Anteil mahnen zur Vorsicht.""",
                 "limits": """Simultaner Benchmark nutzt nur Zyklen mit beobachteter Target-Aktivität: RX: Target decodierte ein qualifizierendes Signal; TX: Target wurde irgendwo decodiert. Es gibt kein entsprechendes Referenz-Gate. Target-Offline-Zyklen entfallen; fehlende Referenz-Evidenz kann Only Target werden. Einseitige Abdeckung ist daher Target-begünstigt und zeigt Verfügbarkeit, keine symmetrischen Siege oder Niederlagen. Joint-ΔSNR bleibt unverändert, da Joint Spots beide Seiten enthalten. Q1–Q3 beschreibt die Streuung innerhalb eines Bins, nicht die Unsicherheit oder ein Konfidenzintervall. UTC-Wiederkehr belegt keine Ursache.""",
             },
-            "temporal_evidence_scheduled": {
-                "read": """Zeitliche Evidenz verbindet Pair-ΔSNR und Evidenzbasis. **Δ SNR im Zeitverlauf** nutzt gewählte Binbreite; **Δ SNR nach UTC-Stunde** faltet Tage in 1-h-Slots. Das chronologische Panel umfasst das vollständige ausgewählte UTC-Zeitfenster; seine Bins beginnen am ausgewählten Startzeitpunkt, das abschließende Intervall kann kürzer sein und Zeitabschnitte ohne Evidenz aus vollständigen Paaren bleiben leer, statt zu 0 dB zu werden. Ist das gesamte Panel leer, verbleibt im dargestellten Bereich kein vollständiges geplantes Paar; die **Zeitliche Benchmark-Evidenzabdeckung** kann dennoch einseitige Evidenz zeigen. Positive Werte sprechen für Target, negative für Referenz; 0 dB bedeutet Gleichheit. Rote gestrichelte Linie: Median vollständiger geplanter Paare; helle Marker: Bin-Mediane. Ein dezentes IQR-Band, begrenzt von feinen Q1–Q3-Linien, zeigt die mittleren 50 % derselben Bin-Population nur, wenn mindestens fünf vollständige Paare beitragen. Farbe: relative Dichte geplanter Paare je Panel, nicht Vorteil; Höhe: dB-Wert auf nichtlinearer Achse. <strong class="defined-term">Zeitliche Benchmark-Evidenzabdeckung</strong> zeigt Only Target, Joint und Only Reference. Oben liefert jede RX-Station eine aufgeteilte Stimme; die Balkenhöhe zeigt beitragende Empfänger, die blaue Linie deren gleichgewichteten Anteil vollständiger Paare. Unten: geplante A/B-Einheiten; gelbe Linie: Anteil vollständiger Paare. Linienabstand zeigt Volumengewichtung. Gefaltete Balken mitteln je UTC-Stunde über vertretene Tage. Stabiles Vorzeichen, dichte Evidenz und ähnliche Linien stützen Wiederkehr; Spitzen, Wechsel oder geringer Paaranteil mahnen zur Vorsicht.""",
-                "limits": """Scheduled Benchmark folgt den konfigurierten geplanten Target–Referenz-Paaren und nicht dem Target-Active Gate des simultanen Modus. Pair-ΔSNR entsteht nur, wenn beide geplanten Seiten decodiert wurden. Only Target und Only Reference zeigen unvollständige Paare, ohne SNR der anderen Seite; sie sind keine symmetrischen Siege oder Niederlagen. Der Zeitabstand lässt Ausbreitung, QRM, Umschaltung und Zeitplanphase in Pair-ΔSNR einfließen. Q1–Q3 beschreibt die Streuung innerhalb eines Bins, nicht die Unsicherheit oder ein Konfidenzintervall. UTC-Wiederkehr belegt keine Ursache.""",
-            },
             "outlier_report": {
-                "read": """Der Ausreißerbericht zeigt funkwegbezogene <strong class="defined-term">ΔSNR-Ausreißerkandidaten</strong>, die aus nativer gepaarter Evidenz erkannt wurden. Ein <strong class="defined-term">Funkweg</strong> ist genau eine beibehaltene Identität aus Rufzeichen + Locator. Beim simultanen Benchmark ist eine gepaarte Einheit ein Joint Spot, beim Scheduled Benchmark ein vollständiges geplantes Paar. WSPRadar schätzt für jeden Funkweg eine kandidatenbereinigte, beidseitige lokale ΔSNR-Baseline aus kurzen Stützzellen und zieht sie von jeder nativen gepaarten Beobachtung ab; so entsteht ein <strong class="defined-term">Residuum</strong>. Zeitlich nahe Residuen mit gleichem Vorzeichen werden je Funkweg gruppiert und gemeinsam bewertet: Eine gepaarte Einheit ist ein <strong class="defined-term">Spot-Impuls</strong>, mehrere nahe Einheiten bilden einen <strong class="defined-term">kurzen Ausbruch</strong>, und eine ausreichend lange gestützte Verschiebung ist eine <strong class="defined-term">anhaltende Auslenkung</strong>. Diese Bezeichnungen beschreiben nur die Zeitspanne der gruppierten Evidenz; jede Gruppe muss dieselbe konfigurierte minimale absolute Medianabweichung, denselben minimalen absoluten robusten z-Wert und denselben maximalen Baseline-Unterschied davor/danach erfüllen. Nach der Qualifikation werden die gemeldeten Grenzen auf die erste und letzte gepaarte Einheit begrenzt, die einzeln sowohl das Abweichungs- als auch das robuste z-Kriterium erfüllt; schwächere gruppierte Einheiten bleiben nur erhalten, wenn sie zwischen diesen starken Ankern liegen. Jede Karte beginnt mit der beschreibenden Dauerklasse und genauem UTC-Zeitraum. Jeder nummerierte Funkwegblock nennt genau ein Rufzeichen + Locator und seine Richtung. Seine Evidenzzeile zählt die aufgeführten gepaarten Beobachtungen und leitet die Spanne vom ersten bis zum letzten, den Medianabstand und die größte Lücke direkt aus deren UTC-Zeiten ab; ein Impuls aus einem Zyklus hat keinen Abstand oder keine Lücke und zeigt einen Gedankenstrich. **Erwartetes lokales ΔSNR** ist die kandidatenbereinigte Baseline, **Beobachteter ΔSNR-Median** ist der Median der gepaarten Kandidatenwerte dieses Funkwegs und **Größte Einzelzyklusabweichung** ist das vorzeichenbehaftete Residuum mit dem größten Betrag. Trägt ein Funkweg mehr als einen Kandidaten zu einer Karte bei, behält jeder einen beschrifteten Zeitraum. `↓ In Station Insights anzeigen` ersetzt die Auswahl durch genau diesen Funkweg, lädt dessen `Ausreißerfokus` über die exakte gestützte Flanke vor dem Ereignis, das geschützte Kandidatenintervall und die Flanke danach vor und bringt Station Insights in den sichtbaren Bereich; `↓ Drill-Down-Details anzeigen` setzt denselben Fokus und navigiert unmittelbar zum Drill-Down. `Alle qualifizierenden Funkwege in Station Insights anzeigen` erscheint nur bei einer Karte mit mehreren Funkwegen und wählt deren exakte qualifizierende Funkwege. Öffne **Chronologische WSPR-Zyklusevidenz** oder **Chronologische Evidenz geplanter Paare**, um die gepaarten Beobachtungen der qualifizierenden Funkwegzeiträume in Zeitreihenfolge zu prüfen. Die Joint-only-Tabelle zeigt genaue UTC-Zeit, Funkweg, Richtung, lokale Baseline, ΔSNR und Residuum. Im Zeitplot aller Funkwege markiert `*` je Prüfereignis die einzeln qualifizierende native Einheit mit dem betragsmäßig größten Residuum; eine ungestützte oder nicht qualifizierende Episodenspitze wird dafür nie ausgewählt. Dieser Plot-Repräsentant ist von der Berichtsgröße **Größte Einzelzyklusabweichung** getrennt; diese bleibt für Bericht und Export das tatsächliche betragsmäßig größte beibehaltene Residuum des Funkwegkandidaten. Schneidet die ausgewählte fokussierte Episode das native Drill-Down-Fenster, markiert dasselbe Sternsymbol jede native Einheit in diesem Fenster, die zu einem gemeldeten Kandidaten gehört und einzeln sowohl das konfigurierte Abweichungs- als auch das robuste-z-Kriterium erfüllt. Ein dezentes, mit **Fokussierte Episode** beschriftetes Band kennzeichnet die ausgewählte berichtete Episode; erwartetes lokales ΔSNR, Baselines der Flanken davor und danach, symmetrische robuste-z-Hilfslinien bei 1, 2, 3 und der konfigurierten Qualifikationsschwelle sowie Hilfslinien der absoluten Abweichung gehören nur zu dieser Episode. Andere markierte Kandidateneinheiten können gegen andere lokale Baselines und robuste Streuungen bewertet worden sein. Lies zuerst erwartetes und beobachtetes ΔSNR eines Funkwegs, dann seine größte Abweichung und zeitliche Stützung und zuletzt seine chronologischen gepaarten Beobachtungen.""",
-                "limits": """Kandidaten sind Prüfhinweise, keine erkannten physischen Ereignisse oder Belege für einen bestimmten Mechanismus. Geringe oder lückenhafte gepaarte Evidenz und unzureichende beidseitige Baseline-Stützung lassen Beobachtungen unklassifiziert statt normal; Dauer- und Lückenregeln beeinflussen Gruppierung und Dauerklasse. Spanne vom ersten bis zum letzten, Medianabstand und größte Lücke beschreiben nur die aufgeführten gepaarten Beobachtungen, nicht den Sendeplan oder die unbeobachtete Dauer eines physischen Ereignisses. Mehrere qualifizierende Funkwege belegen für sich weder statistische Unabhängigkeit noch Richtungskohärenz oder eine gemeinsame Ursache. ΔSNR allein kann weder bestimmen, ob sich Target, Referenz oder beide verändert haben, noch Ausbreitung, Störungen, Verhalten an der Decodiergrenze, Hardwareänderung oder einen gyroelektrischen Mechanismus als Ursache identifizieren. Die robusten-z-Grenzen und die Grenze der absoluten Abweichung im Kandidatenfokus sind Detektorhilfen und keine Konfidenzintervalle; das Überschreiten einer einzelnen Linie reicht nicht aus, weil Baseline-Stützung, Baseline-Stabilität, ereignisbezogene Abweichung, robuster z-Wert und Vorzeichenübereinstimmung getrennte Anforderungen bleiben. Das Band **Fokussierte Episode** ist ein Auswahlhinweis über der beibehaltenen Episodenevidenz, an beiden Enden um eine halbe Breite der nativen Evidenzeinheit erweitert und am Fokusfenster abgeschnitten; es ist weder ein Konfidenzintervall noch eine Messung der Dauer eines physischen Ereignisses. Native Evidenz bezeichnet beibehaltene verarbeitete Joint Spots oder vollständige geplante Paare, nicht unveränderte Provider-Zeilen.""",
+                "read": """Der Ausreißerbericht zeigt funkwegbezogene <strong class="defined-term">ΔSNR-Ausreißerkandidaten</strong>, die aus nativer gepaarter Evidenz erkannt wurden. Ein <strong class="defined-term">Funkweg</strong> ist genau eine beibehaltene Identität aus Rufzeichen + Locator. Beim Benchmark ist eine gepaarte Einheit ein Joint Spot desselben Zyklus. WSPRadar schätzt für jeden Funkweg eine kandidatenbereinigte, beidseitige lokale ΔSNR-Baseline aus kurzen Stützzellen und zieht sie von jeder nativen gepaarten Beobachtung ab; so entsteht ein <strong class="defined-term">Residuum</strong>. Zeitlich nahe Residuen mit gleichem Vorzeichen werden je Funkweg gruppiert und gemeinsam bewertet: Eine gepaarte Einheit ist ein <strong class="defined-term">Spot-Impuls</strong>, mehrere nahe Einheiten bilden einen <strong class="defined-term">kurzen Ausbruch</strong>, und eine ausreichend lange gestützte Verschiebung ist eine <strong class="defined-term">anhaltende Auslenkung</strong>. Diese Bezeichnungen beschreiben nur die Zeitspanne der gruppierten Evidenz; jede Gruppe muss dieselbe konfigurierte minimale absolute Medianabweichung, denselben minimalen absoluten robusten z-Wert und denselben maximalen Baseline-Unterschied davor/danach erfüllen. Nach der Qualifikation werden die gemeldeten Grenzen auf die erste und letzte gepaarte Einheit begrenzt, die einzeln sowohl das Abweichungs- als auch das robuste z-Kriterium erfüllt; schwächere gruppierte Einheiten bleiben nur erhalten, wenn sie zwischen diesen starken Ankern liegen. Jede Karte beginnt mit der beschreibenden Dauerklasse und genauem UTC-Zeitraum. Jeder nummerierte Funkwegblock nennt genau ein Rufzeichen + Locator und seine Richtung. Seine Evidenzzeile zählt die aufgeführten gepaarten Beobachtungen und leitet die Spanne vom ersten bis zum letzten, den Medianabstand und die größte Lücke direkt aus deren UTC-Zeiten ab; ein Impuls aus einem Zyklus hat keinen Abstand oder keine Lücke und zeigt einen Gedankenstrich. **Erwartetes lokales ΔSNR** ist die kandidatenbereinigte Baseline, **Beobachteter ΔSNR-Median** ist der Median der gepaarten Kandidatenwerte dieses Funkwegs und **Größte Einzelzyklusabweichung** ist das vorzeichenbehaftete Residuum mit dem größten Betrag. Trägt ein Funkweg mehr als einen Kandidaten zu einer Karte bei, behält jeder einen beschrifteten Zeitraum. `↓ In Station Insights anzeigen` ersetzt die Auswahl durch genau diesen Funkweg, lädt dessen `Ausreißerfokus` über die exakte gestützte Flanke vor dem Ereignis, das geschützte Kandidatenintervall und die Flanke danach vor und bringt Station Insights in den sichtbaren Bereich; `↓ Drill-Down-Details anzeigen` setzt denselben Fokus und navigiert unmittelbar zum Drill-Down. `Alle qualifizierenden Funkwege in Station Insights anzeigen` erscheint nur bei einer Karte mit mehreren Funkwegen und wählt deren exakte qualifizierende Funkwege. Öffne **Chronologische WSPR-Zyklusevidenz**, um die gepaarten Beobachtungen der qualifizierenden Funkwegzeiträume in Zeitreihenfolge zu prüfen. Die Joint-only-Tabelle zeigt genaue UTC-Zeit, Funkweg, Richtung, lokale Baseline, ΔSNR und Residuum. Im Zeitplot aller Funkwege markiert `*` je Prüfereignis die einzeln qualifizierende native Einheit mit dem betragsmäßig größten Residuum; eine ungestützte oder nicht qualifizierende Episodenspitze wird dafür nie ausgewählt. Dieser Plot-Repräsentant ist von der Berichtsgröße **Größte Einzelzyklusabweichung** getrennt; diese bleibt für Bericht und Export das tatsächliche betragsmäßig größte beibehaltene Residuum des Funkwegkandidaten. Schneidet die ausgewählte fokussierte Episode das native Drill-Down-Fenster, markiert dasselbe Sternsymbol jede native Einheit in diesem Fenster, die zu einem gemeldeten Kandidaten gehört und einzeln sowohl das konfigurierte Abweichungs- als auch das robuste-z-Kriterium erfüllt. Ein dezentes, mit **Fokussierte Episode** beschriftetes Band kennzeichnet die ausgewählte berichtete Episode; erwartetes lokales ΔSNR, Baselines der Flanken davor und danach, symmetrische robuste-z-Hilfslinien bei 1, 2, 3 und der konfigurierten Qualifikationsschwelle sowie Hilfslinien der absoluten Abweichung gehören nur zu dieser Episode. Andere markierte Kandidateneinheiten können gegen andere lokale Baselines und robuste Streuungen bewertet worden sein. Lies zuerst erwartetes und beobachtetes ΔSNR eines Funkwegs, dann seine größte Abweichung und zeitliche Stützung und zuletzt seine chronologischen gepaarten Beobachtungen.""",
+                "limits": """Kandidaten sind Prüfhinweise, keine erkannten physischen Ereignisse oder Belege für einen bestimmten Mechanismus. Geringe oder lückenhafte gepaarte Evidenz und unzureichende beidseitige Baseline-Stützung lassen Beobachtungen unklassifiziert statt normal; Dauer- und Lückenregeln beeinflussen Gruppierung und Dauerklasse. Spanne vom ersten bis zum letzten, Medianabstand und größte Lücke beschreiben nur die aufgeführten gepaarten Beobachtungen, nicht den Sendeplan oder die unbeobachtete Dauer eines physischen Ereignisses. Mehrere qualifizierende Funkwege belegen für sich weder statistische Unabhängigkeit noch Richtungskohärenz oder eine gemeinsame Ursache. ΔSNR allein kann weder bestimmen, ob sich Target, Referenz oder beide verändert haben, noch Ausbreitung, Störungen, Verhalten an der Decodiergrenze, Hardwareänderung oder einen gyroelektrischen Mechanismus als Ursache identifizieren. Die robusten-z-Grenzen und die Grenze der absoluten Abweichung im Kandidatenfokus sind Detektorhilfen und keine Konfidenzintervalle; das Überschreiten einer einzelnen Linie reicht nicht aus, weil Baseline-Stützung, Baseline-Stabilität, ereignisbezogene Abweichung, robuster z-Wert und Vorzeichenübereinstimmung getrennte Anforderungen bleiben. Das Band **Fokussierte Episode** ist ein Auswahlhinweis über der beibehaltenen Episodenevidenz, an beiden Enden um eine halbe Breite der nativen Evidenzeinheit erweitert und am Fokusfenster abgeschnitten; es ist weder ein Konfidenzintervall noch eine Messung der Dauer eines physischen Ereignisses. Native Evidenz bezeichnet beibehaltene verarbeitete Joint Spots, nicht unveränderte Provider-Zeilen.""",
             },
             "success_evidence_rx": {
                 "read": """Performance-Evidenz betrachtet die qualifizierende TX-Stationspopulation auf drei ergänzende Arten nach der berechneten Entfernung vom Target-QTH. <strong class="defined-term">Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung</strong> zeigt, ob ein qualifizierender Funkweg im gewählten UTC-Zeitraum überhaupt einmal zustande kam. <strong class="defined-term">RX Dekodierrate nach Entfernung der TX-Station</strong> zeigt, wie zuverlässig bestätigte Gelegenheiten vom Target gehört wurden, und vergleicht gleiche Stationsgewichtung mit gepoolter Gelegenheitsgewichtung. <strong class="defined-term">Erfolgreiches Target-SNR nach Entfernung der TX-Station</strong> gibt zunächst jeder TX-Station einen Median ihres erfolgreichen SNR und fasst danach diese Stationsmediane in jedem exakten Entfernungs-Bin zusammen. Die Legende unterscheidet `Median`, `Min-Max (2 Stationen)` und `IQR (3+ Stationen)`: Die Min-Max-Linie umfasst die beiden Stationsmediane direkt, während der IQR bei mindestens drei beitragenden Stationsmedianen die mittleren 50 % beschreibt. Lies die Panels von links nach rechts: Pfadverfügbarkeit, wiederholte Zuverlässigkeit und Signalstärke bei erfolgreichem Decode. Stations- und Gelegenheitszahlen zeigen die Evidenz hinter jedem Entfernungs-Bin.""",
@@ -1618,14 +1531,6 @@ RESULT_GUIDANCE = {
                 "read": """Station Insights nennt die {peer_type}-Stationen hinter dem gepaarten Ergebnis. Jede Tabellenzeile behält genau eine Identität aus `Rufzeichen + Locator` mit Joint- und einseitiger Evidenz sowie dem medianen ΔSNR dieser Station. Lies <strong class="defined-term">Joint Spots</strong> als Tiefe gepaarter Evidenz, die einseitigen Anzahlen als Kontext der Decode Outcomes und den Stationsmedian als typischen gepaarten Unterschied dieser Identität. Der Vergleich vieler gut gestützter Zeilen zeigt, ob die Target- oder Referenz-begünstigende Richtung breit getragen oder auf wenige Stationen konzentriert ist. Wähle eine oder mehrere Zeilen, um ihre Funkwege zu untersuchen; Tabellenfilter ändern nur Anzeige und Auswahl.""",
                 "limits": """Eine Rufzeichen-Locator-Zeile bleibt eine Archividentität und kein Beweis für eine einzelne physische Station. Ohne gepaarte Evidenz existiert kein Target-minus-Referenz-ΔSNR; Übereinstimmung zwischen Stationen innerhalb eines Laufs ist keine experimentelle Wiederholbarkeit in einem anderen Lauf.""",
             },
-            "station_insights_compare_scheduled": {
-                "read": """Station Insights nennt die RX-Stationen hinter dem geplanten Ergebnis. Jede Tabellenzeile behält genau eine Identität aus `Rufzeichen + Locator` mit vollständiger und einseitiger geplanter Evidenz sowie dem medianen Paar-ΔSNR dieses Empfängers. Lies <strong class="defined-term">Scheduled Pairs</strong> als Tiefe gepaarter Evidenz, die einseitigen Anzahlen als Kontext der Decode Outcomes und den Stationsmedian als typischen geplanten Unterschied dieser Identität. Der Vergleich vieler gut gestützter Zeilen zeigt, ob die Target- oder Referenz-begünstigende Richtung breit getragen oder auf wenige Empfänger konzentriert ist. Wähle eine Zeile, um diesen Empfänger-Funkweg zu untersuchen; Tabellenfilter ändern nur Anzeige und Auswahl.""",
-                "limits": """Ein unvollständiges Scheduled Pair besitzt kein Paar-ΔSNR. Übereinstimmung zwischen Empfängern innerhalb eines Laufs ist keine experimentelle Wiederholbarkeit und trennt Hardwareunterschiede nicht von Ausbreitung, QRM, Umschaltung oder Zeitplanphase.""",
-            },
-            "station_insights_compare_scheduled_multi": {
-                "read": """Station Insights nennt die RX-Stationen hinter dem geplanten Ergebnis. Jede Tabellenzeile behält genau eine Identität aus `Rufzeichen + Locator` mit vollständiger und einseitiger geplanter Evidenz sowie dem medianen Paar-ΔSNR dieses Empfängers. Lies <strong class="defined-term">Scheduled Pairs</strong> als Tiefe gepaarter Evidenz, die einseitigen Anzahlen als Kontext der Decode Outcomes und den Stationsmedian als typischen geplanten Unterschied dieser Identität. Der Vergleich vieler gut gestützter Zeilen zeigt, ob die Target- oder Referenz-begünstigende Richtung breit getragen oder auf wenige Empfänger konzentriert ist. Wähle eine oder mehrere Zeilen, um ihre Empfänger-Funkwege zu untersuchen; Tabellenfilter ändern nur Anzeige und Auswahl.""",
-                "limits": """Ein unvollständiges Scheduled Pair besitzt kein Paar-ΔSNR. Übereinstimmung zwischen Empfängern innerhalb eines Laufs ist keine experimentelle Wiederholbarkeit und trennt Hardwareunterschiede nicht von Ausbreitung, QRM, Umschaltung oder Zeitplanphase.""",
-            },
             "station_insights_success_rx": {
                 "read": """Station Insights zeigt die TX-Stationen hinter dem RX-Performance-Ergebnis im aktiven Bereich. Jede Zeile steht für eine gemeldete Kombination aus Rufzeichen und Locator. Lies <strong class="defined-term">Vom Target gehört</strong>, <strong class="defined-term">Nur von anderen gehört</strong> und Dekodierrate zusammen; die beiden Outcome-Anzahlen zeigen Zähler und Gegen-Evidenztiefe hinter der Rate dieser Zeile. <strong class="defined-term">Median-SNR @ 30 dBm</strong> beschreibt nur die gelungenen Decodes; ein weniger negativer Wert ist relativ zum Rauschen stärker. Tabellenfilter, Sortierung und Zeilenauswahl verändern nur die Stationsansicht und berechnen die Segment-Abbildungen nicht neu.""",
                 "limits": """Für ein verpasstes Signal gibt es kein Target-SNR, und eine Zeile aus Rufzeichen plus Locator belegt keine eindeutig einzelne physische Station.""",
@@ -1642,14 +1547,6 @@ RESULT_GUIDANCE = {
                 "read": """Die Evidenz der ausgewählten Stationen kombiniert die gewählten {peer_type}-Funkwege, ohne ihre beibehaltenen Beobachtungen zu verändern. **Δ SNR im Zeitverlauf** poolt ihre Joint Spots in den gewählten chronologischen Bins; **Δ SNR nach UTC-Stunde** faltet dieselben Funkwege in 1-h-Slots. Diese kombinierte Ansicht ist <strong class="defined-term">beobachtungsgewichtet</strong>: Ein Funkweg mit mehr Joint Spots liefert mehr Werte. Die Werte bleiben vorzeichenbehaftet und nicht basisliniennormalisiert; positiv spricht für Target, negativ für Referenz und 0 dB bedeutet Gleichheit. Die rote gestrichelte Linie fasst alle ausgewählten Joint Spots zusammen, helle Marker zeigen gepoolte Bin-Mediane, der IQR die mittleren 50 % bei mindestens fünf Werten, und die Farbe zeigt relative Dichte statt Vorteil. Bei aktivierter Ausreißermeldung werden nur die Kandidaten des aktiven Bereichs für diese Identitäten wiederverwendet; der Detektor läuft nicht erneut auf der Teilmenge. Prüfe die Übereinstimmung über Funkwege und Zeit, statt eine gepoolte Häufung als stationsgleichgewichtete Evidenz zu lesen.""",
                 "limits": """Die kombinierte Ansicht gewichtet die ausgewählten Funkwege nicht gleich und ersetzt das stationsgleichgewichtete Segmentergebnis nicht. Die Evidenzabdeckung des ausgewählten Funkwegs bleibt bewusst auf einen Funkweg begrenzt, weil ihr Nenner pfadspezifisch ist; mehrere Funkwege werden dafür nicht stillschweigend gepoolt. UTC-Wiederkehr und Kandidatenmarker bestimmen keine physische Ursache.""",
             },
-            "selected_compare_scheduled": {
-                "read": """Die Ansicht betrachtet eine RX-Station und einen geplanten Funkweg. **Δ SNR im Zeitverlauf** nutzt die Binbreite; **Δ SNR nach UTC-Stunde** faltet den Funkweg in 1-h-Slots. Das chronologische Panel umfasst das vollständige ausgewählte UTC-Zeitfenster; seine Bins beginnen am ausgewählten Startzeitpunkt, das abschließende Intervall kann kürzer sein und Zeitabschnitte ohne Evidenz aus vollständigen Paaren bleiben leer, statt zu 0 dB zu werden. Ist das gesamte Panel leer, verbleibt im dargestellten Bereich kein vollständiges geplantes Paar; die **Evidenzabdeckung des ausgewählten Funkwegs** kann dennoch einseitige Evidenz zeigen. Die Werte sind vorzeichenbehaftet und nicht basisliniennormalisiert: Positiv spricht für Target, negativ für Referenz; 0 dB bedeutet Gleichheit. Rote gestrichelte Linie: Median vollständiger geplanter Paare; helle Marker: Bin-Mediane. Ein dezentes IQR-Band, begrenzt von feinen Q1–Q3-Linien, zeigt die mittleren 50 % derselben Bin-Population nur, wenn mindestens fünf vollständige Paare beitragen. Farbe: relative Dichte geplanter Paare je Panel, nicht Vorteil; Höhe: dB-Wert auf nichtlinearer Achse. Lücken bedeuten, dass kein vollständiges Paar vorlag. <strong class="defined-term">Evidenzabdeckung</strong> ergänzt Only Target, Joint und Only Reference. Balken zählen **Geplante A/B-Paare**; die gelbe Linie zeigt den vollständigen Paaranteil. Gefaltete Balken mitteln je berücksichtigtem UTC-Tag. Stabiles Vorzeichen, dichte Evidenz und hoher Paaranteil stützen einen beständigen Funkwegunterschied; Umkehrungen oder lange einseitige Phasen zeigen Zeit- oder Bedingungsabhängigkeit.""",
-                "limits": """Ein beobachtungsgewichteter Empfängerpfad, nicht das stationsgleichgewichtete Segmentergebnis. Scheduled Benchmark folgt den konfigurierten Target–Referenz-Paaren. Pair-ΔSNR entsteht nur, wenn beide Seiten decodiert wurden. Einseitige Einheiten zeigen unvollständige Paare, enthalten kein SNR der fehlenden Seite und sind keine symmetrischen Siege oder Niederlagen. Der Zeitabstand lässt Ausbreitung, QRM, Umschaltung und Zeitplanphase wie einen Pfadunterschied wirken. Q1–Q3 beschreibt die Streuung innerhalb eines Bins, nicht die Unsicherheit oder ein Konfidenzintervall. UTC-Wiederkehr belegt keine Ursache.""",
-            },
-            "selected_compare_scheduled_multi": {
-                "read": """Die Evidenz der ausgewählten Stationen kombiniert die gewählten RX-Funkwege, ohne ihre beibehaltenen Scheduled Pairs zu verändern. **Δ SNR im Zeitverlauf** poolt vollständige Paare in den gewählten chronologischen Bins; **Δ SNR nach UTC-Stunde** faltet dieselben Empfängerpfade in 1-h-Slots. Diese kombinierte Ansicht ist <strong class="defined-term">beobachtungsgewichtet</strong>: Ein Empfänger mit mehr vollständigen Paaren liefert mehr Werte. Pair-ΔSNR bleibt vorzeichenbehaftet und nicht basisliniennormalisiert; positiv spricht für Target, negativ für Referenz und 0 dB bedeutet Gleichheit. Die rote gestrichelte Linie fasst alle ausgewählten vollständigen Paare zusammen, helle Marker zeigen gepoolte Bin-Mediane, der IQR die mittleren 50 % bei mindestens fünf Werten, und die Farbe zeigt relative Paardichte. Aktivierte Ausreißermarker verwenden die Kandidaten des aktiven Bereichs für diese Identitäten wieder und berechnen keine Kandidaten aus der Teilmenge neu. Prüfe Übereinstimmung über Empfänger und geplante Paarzeiten, statt die gepoolte Verteilung als stationsgleichgewichtete Evidenz zu lesen.""",
-                "limits": """Die kombinierte Ansicht gewichtet die Empfänger nicht gleich und ersetzt das stationsgleichgewichtete Segmentergebnis nicht. Die Evidenzabdeckung des ausgewählten Funkwegs bleibt auf einen Empfängerpfad begrenzt, weil ihr Nenner pfadspezifisch ist. Der Zeitabstand kann Ausbreitung, QRM, Umschaltung und Zeitplanphase wie einen Pfadunterschied erscheinen lassen; Kandidatenmarker bestimmen keine Ursache.""",
-            },
             "selected_success_rx": {
                 "read": """Die Evidenz der ausgewählten Station isoliert eine entfernte TX-Station aus dem aktiven RX-Performance-Bereich. Ein Klick auf eine andere Zeile in Station Insights ersetzt die bisherige Station. Die obere Abbildung <strong class="defined-term">SNR-Evidenz der ausgewählten Station</strong> verwendet dieselbe chronologische und nach UTC-Stunde gefaltete Darstellung wie die Zeitliche Evidenz, zeigt für diesen Funkweg aber das tatsächliche normierte erfolgreiche Target-SNR statt einer Abweichung von einer Stationsbasislinie. Chronologisch zeigt die Farbe, wo sich erfolgreiche SNR-Beobachtungen je gewähltem Zeit-Bin konzentrieren; die Linie zeigt ihren Bin-Median. Nach UTC-Stunde erhält zunächst jeder berücksichtigte Tag einen Stundenmedian, danach wird sichtbar, wie diese Werte über mehrere Tage wiederkehren. Ein dezentes IQR-Band, begrenzt von feinen Q1–Q3-Linien, markiert die mittleren 50 % derselben Populationen: chronologisch rohe erfolgreiche Beobachtungen und gefaltet Datum-Stunden-Mediane. Es erscheint erst ab fünf Werten. Die untere Abbildung <strong class="defined-term">Zeitliche Evidenz der ausgewählten Station</strong> trennt Stationspräsenz von Evidenztiefe. Trägt die ausgewählte TX-Station in einem chronologischen Bin Evidenz bei, liefert sie eine aufgeteilte Stimme zwischen Vom Target gehört und Nur von anderen gehört. Die gefaltete Stationszeile zeigt ihre durchschnittliche Präsenz je berücksichtigtem UTC-Tag. Die Gelegenheitszeile zählt chronologisch jede bestätigte Gelegenheit und zeigt nach UTC-Stunde Durchschnittswerte je berücksichtigtem Tag. Grüne Anteile und Dekodierratenlinien zeigen dieselbe Pfadrate. Da genau eine Station ausgewählt ist, sind stationsgleichgewichtete und Dekodierrate auf Gelegenheitsebene identisch; übereinstimmende Linien sind daher zu erwarten. Lies SNR und Dekodierrate zusammen: Starke erfolgreiche Decodes bei fallender Rate können bedeuten, dass schwächere Signale nicht mehr decodiert wurden.""",
                 "limits": """Die SNR-Abbildung enthält nur erfolgreiche Target-Decodes; für verpasste Signale gibt es kein aufgezeichnetes Target-SNR. Q1–Q3 beschreibt die mittleren 50 % innerhalb eines Bins als Streuung, nicht die Unsicherheit oder ein Konfidenzintervall. Gefaltete UTC-Stundenmuster zeigen wiederkehrende Zusammenhänge, nicht ob Ausbreitung, lokales Rauschen, Störungen oder Geräteänderungen sie verursacht haben. Die SNR-Normierung hängt von der gemeldeten Sendeleistung und der ausgewählten Rufzeichen-Locator-Identität ab.""",
@@ -1661,10 +1558,6 @@ RESULT_GUIDANCE = {
             "drilldown_compare_joint": {
                 "read": """Die Drill-Down-Daten sind der Prüfpfad von den gepaarten Zusammenfassungen zurück zu den beitragenden Beobachtungen. Sie zeigen <strong class="defined-term">verarbeitete Evidenz auf Zeilenebene</strong> nach Zuordnung und Filtern von WSPRadar, einschließlich der Target- und Referenzwerte jedes Same-cycle-Paars und des resultierenden ΔSNR. Nutze genaue UTC-Zeiten, Stationsidentitäten und Werte, um eine Zusammenfassung abzugleichen, einen Sprung im Zeitverlauf zu prüfen oder einen Ausreißer zu verstehen. Die Stärke von WSPRadar bleibt das wiederholte Muster über viele Zeilen; Drill-Down macht es nachvollziehbar, statt es durch eine Einzelbeobachtung zu ersetzen. Bei genau einer ausgewählten Station definieren `Zoom-Zeitfenster`, `Datum der Fenstermitte (UTC)` und `Uhrzeit der Fenstermitte (UTC)` ein exaktes zentriertes Intervall. `Tabelle filtern` verändert anschließend nur die angezeigten Zeilen, nicht die fokussierten Abbildungen oder die abgeschlossene Analyse. Die fokussierte Messwertabbildung zeigt für jeden beibehaltenen Joint Spot einen tatsächlichen ΔSNR-Punkt zu seiner nativen Zykluszeit; Zeitmedian, IQR, Dichteschicht, Median des vollständigen Laufs und Faltung nach UTC-Stunde entfallen. Dies ist beibehaltene verarbeitete gepaarte Evidenz und keine unveränderte Provider-Zeile. Segmentansicht und Evidenz der ausgewählten Station über das vollständige Fenster bleiben aggregierte Dichteansichten.""",
                 "limits": """Das sind verarbeitete Analysezeilen, keine unveränderten Provider-Antworten. Sie können ein fehlendes SNR nicht rekonstruieren, und eine Ausnahmezeile darf nicht verallgemeinert werden.""",
-            },
-            "drilldown_compare_scheduled": {
-                "read": """Die Drill-Down-Daten sind der Prüfpfad von den geplanten Zusammenfassungen zurück zu den beitragenden Paaren. Sie zeigen <strong class="defined-term">verarbeitete geplante Evidenz</strong>: das geplante UTC-Paar, die TX-Rolle, Target- und Referenz-Mikromediane sowie Paar-ΔSNR. Nutze sie, um zu bestätigen, dass die Paare dem konfigurierten Zeitplan folgen, eine Stations- oder Zeitfensterzusammenfassung abzugleichen und ungewöhnliche Paare zu prüfen. Die breitere Aussage sollte aus dem wiederholten Muster über viele Empfänger und Paare kommen; die Zeilen machen diese Evidenz direkt nachvollziehbar. Bei genau einer ausgewählten Station definieren `Zoom-Zeitfenster`, `Datum der Fenstermitte (UTC)` und `Uhrzeit der Fenstermitte (UTC)` ein exaktes zentriertes Intervall. `Tabelle filtern` verändert anschließend nur die angezeigten Zeilen, nicht die fokussierten Abbildungen oder die abgeschlossene Analyse. Die fokussierte Messwertabbildung zeigt einen tatsächlichen Paar-ΔSNR-Punkt je beibehaltenem vollständigem geplanten Paar am geplanten Target-Start; hier ist das Paar die native Evidenzeinheit und nicht ein WSPR-Zyklus. Zeitmedian, IQR, Dichteschicht, Median des vollständigen Laufs und Faltung nach UTC-Stunde entfallen. Segmentansicht und Evidenz der ausgewählten Station über das vollständige Fenster bleiben aggregierte Dichteansichten.""",
-                "limits": """Die Zeilen bestätigen Paarbildung und berechnete Werte, können aber nicht zeigen, dass Ausbreitung oder Störungen zwischen beiden Aussendungen unverändert blieben.""",
             },
             "drilldown_success_rx": {
                 "read": """Die Drill-Down-Daten sind der Prüfpfad vom RX-Performance-Ergebnis zurück zu den beitragenden WSPR-Zyklen. Sie zeigen <strong class="defined-term">verarbeitete beibehaltene Evidenz</strong> nach den Eignungsregeln und Filtern von WSPRadar. Die Spalten <strong class="defined-term">Vom Target gehört</strong> und <strong class="defined-term">Nur von anderen gehört</strong> kennzeichnen gezählte Outcomes; jeder gültige Decode Peer-TX → Target-RX zählt als Erfolg und bestätigt beide Endpunkte, einschließlich der Target-only-Herkunftsteilmenge. Ein anderer geeigneter RX, der denselben Peer-TX meldet, stützt einen Miss nur im Target-aktiven Zyklus. Target-only-Erfolge sind bereits in Gesamtsummen und erfolgreichem SNR enthalten. Nutze exakte UTC-Zeit, TX-Stationsidentität und diese Evidenzspalten, um Zähler und Nenner mit den angezeigten Zusammenfassungen abzugleichen. Bei genau einer ausgewählten Station definieren `Zoom-Zeitfenster`, `Datum der Fenstermitte (UTC)` und `Uhrzeit der Fenstermitte (UTC)` ein exaktes zentriertes Intervall. `Tabelle filtern` verändert anschließend nur die angezeigten Zeilen, nicht die fokussierten Abbildungen oder die abgeschlossene Analyse. Die fokussierte SNR-Abbildung zeigt das tatsächliche normierte Target-SNR jeder erfolgreichen bestätigten Gelegenheit zu ihrer kanonischen Zykluszeit; erfolglose Gelegenheiten besitzen keinen SNR-Punkt. Zeitmedian, IQR, Dichteschicht, Median des vollständigen Laufs und Faltung nach UTC-Stunde entfallen, während die ergänzende Outcome-Ansicht ihre chronologische Evidenzzusammenfassung beibehält. Segmentansicht und Evidenz der ausgewählten Station über das vollständige Fenster bleiben aggregierte Dichteansichten.""",
@@ -1686,22 +1579,6 @@ RESULT_GUIDANCE = {
     },
 }
 
-# Streamlit sessions created before canonical widget tokens were introduced can
-# survive a deployment rerun with the old display label still stored as state.
-# Keep these historical labels explicit so changing UI wording never changes a
-# live session's scientific comparison design.
-LEGACY_LOCALIZED_STATE_VALUES = {
-    "Hardware A/B-Test (Local Setup)": "hardware_ab",
-    "Hardware A/B-Test (Eigenes Setup)": "hardware_ab",
-    "Reference Station (Buddy Test)": "reference_station",
-    "Fremdes Rufzeichen (Buddy-Test)": "reference_station",
-    "Local Neighborhood Benchmark": "local_neighborhood",
-    "Lokaler Nachbarschafts-Benchmark": "local_neighborhood",
-    "Nearest Peers (Local Average)": "local_neighborhood",
-    "Nearest Peers (Lokaler Durchschnitt)": "local_neighborhood",
-}
-
-
 # Guided Input owns question-led presentation text only. Scientific labels that
 # are shared with Classic Input remain in ``T`` so both editors name the same
 # canonical field consistently.
@@ -1715,25 +1592,27 @@ GUIDED_INPUTS = {
         "steps": {
             "use_case": {
                 "title": "What do you want to investigate?",
-                "body_md": """Turn WSPR spots into evidence about your station. Explore where, when and how well your receiver or transmitter performs, benchmark an antenna, radio or complete signal path against a Reference, or start with one of the prepared demos above. The <strong class="defined-term">Target</strong> is the station or signal path you want to examine. <strong class="defined-term">RX</strong> means receiving; <strong class="defined-term">TX</strong> means transmitting. Choose <strong class="defined-term">Performance</strong> to evaluate the Target itself from confirmed opportunities. Choose <strong class="defined-term">Benchmark</strong> to evaluate the Target relative to a <strong class="defined-term">Reference</strong> using matched evidence. Performance describes the observed conditional behavior of the complete Target station; it is not an absolute measurement of receiver sensitivity, radiated power, antenna gain or antenna efficiency. This choice determines the remaining steps and whether the results show stand-alone Target values or relative Target-versus-Reference values.""",
+                "body_md": """**Turn WSPR spots into evidence about your station.** Use these reception reports to explore where, when and how well your receiver or transmitter performs, or compare an antenna, radio or complete signal path with a Reference.
+
+Choose <strong class="defined-term">Performance</strong> to explore your station on its own, or <strong class="defined-term">Benchmark</strong> to compare it with another setup, a known station or nearby stations. For a first look at what WSPRadar can show you, try one of the **prepared demos above**.
+
+The <strong class="defined-term">Target</strong> is your station or signal path under investigation. The <strong class="defined-term">Reference</strong> is the setup or station — or group of stations — you compare it with. <strong class="defined-term">RX</strong> means receiving; <strong class="defined-term">TX</strong> means transmitting.""",
             },
             "target_and_window": {
                 "title": "Define the Target and measurement window",
-                "body_md": """The <strong class="defined-term">Target</strong> is the station or controlled path being tested. A WSPR <strong class="defined-term">spot</strong> is a successful decode uploaded by a reporting station. Enter the exact callsign or reporting identity stored in the WSPR archive and the Target's <strong class="defined-term">QTH</strong> — its station location. Choose one band and enter absolute UTC start and end values for a period during which the identity, location and tested setup were correct and reasonably stable. The effective query boundaries are floored to 15-minute UTC intervals and remain fixed across reruns.""",
+                "body_md": """The <strong class="defined-term">Target</strong> is the station or controlled path being tested. Enter the exact callsign or reporting identity stored in the WSPR database and the Target's <strong class="defined-term">QTH</strong> — its station location. Choose one band and enter absolute UTC start and end values for a period during which the identity, location and tested setup were correct and reasonably stable.""",
             },
             "reference_design": {
                 "title": "What should be used as the Reference?",
-                "body_md": """The <strong class="defined-term">Reference</strong> is the baseline used to compare the Target. It can be another controlled path at your station, one known station at another QTH, or a local benchmark formed from nearby active stations. This choice determines what is actually being compared and how narrowly the result can be interpreted.
-
-**Benchmark terminology**
-
-- <strong class="defined-term">SNR</strong> is the signal-to-noise ratio reported by the WSPR decoder, in dB. A less-negative value represents a stronger signal relative to noise.
-- <strong class="defined-term">ΔSNR</strong> ("delta SNR") is the Target SNR minus the Reference SNR. A positive value favors the Target; a negative value favors the Reference.
-- **Joint evidence** means that comparable evidence is available for both sides: the same transmission was decoded by both RX sides, corresponding Target and Reference reports were made at the same receiving station, or a scheduled Target–Reference pair is available for sequential TX.""",
+                "body_md": """The <strong class="defined-term">Reference</strong> is the baseline used to compare your Target.""",
             },
             "offset_calibration": {
                 "title": "Is there an established Target–Reference offset?",
-                "body_md": """An <strong class="defined-term">offset</strong> is a repeatable Target–Reference difference that is already present before the effect you want to study. A Reference-side correction adjusts the Reference SNR before ΔSNR is calculated. Leave the correction at **0.0 dB** unless the offset was established and documented for the same identities or paths, band, hardware and comparison method. The correction shifts every comparison result; it cannot compensate for uncontrolled differences that vary with time, station or radio path.""",
+                "body_md": """<strong class="defined-term">SNR</strong> is the signal-to-noise ratio reported by the WSPR decoder, in decibels (dB). A higher value means a stronger signal relative to noise.
+
+<strong class="defined-term">ΔSNR</strong> ("delta SNR") is the Target SNR minus the corrected Reference SNR. A positive value favors the Target; a negative value favors the Reference.
+
+An <strong class="defined-term">offset</strong> is a repeatable Target–Reference difference that is already present before the effect you want to study. A Reference-side correction adjusts the Reference SNR before ΔSNR is calculated. Leave the correction at **0.0 dB** unless the offset was established and documented for the same identities or paths, band, hardware and comparison method. The correction shifts every comparison result; it cannot compensate for uncontrolled differences that vary with time, station or radio path.""",
             },
             "scope_and_evidence": {
                 "title": "Optional filters, analysis scope, and evidence requirements",
@@ -1748,49 +1627,35 @@ GUIDED_INPUTS = {
             "use_cases": {
                 "rx_performance": {
                     "label": "RX Performance",
-                    "description": """Choose this to evaluate your receiver without a Reference. Within Target-active cycles, WSPRadar counts a confirmed opportunity when the Target RX decodes a peer TX or another eligible RX decodes that same peer TX on the same band and cycle. Heard by Target includes every valid peer TX → Target RX decode, which confirms both endpoints. Heard by others only requires external confirmation of peer TX activity without a Target RX decode. Target-only success is a provenance subset, counted once. Activity elsewhere cannot prove that a silent Target RX was listening. RX Decode Rate is the share of confirmed opportunities with the outcome Heard by Target. The result describes the observed conditional behavior of the complete Target receiver, not an absolute receiver-sensitivity measurement.""",
+                    "description": """Explore how well your receiver hears WSPR signals. See reception patterns by direction, distance and time, including how often signals are decoded within confirmed reception opportunities. No Reference needed.""",
                 },
                 "tx_performance": {
                     "label": "TX Performance",
-                    "description": """Choose this to evaluate your transmitter without a Reference. Within Target-active cycles, WSPRadar counts a confirmed opportunity when the peer RX decodes the Target TX or that exact peer RX decodes another qualifying TX on the same band and cycle. Target heard includes every valid Target TX → peer RX decode, which confirms both endpoints. Other signals heard only requires external confirmation of that peer RX activity without a Target TX decode. Target-only success is a provenance subset, counted once. A Target TX report elsewhere cannot prove that a silent peer RX was listening. TX Decode Rate is the share of confirmed opportunities with the outcome Target heard. The result describes the observed conditional behavior of the complete Target transmitting station, not an absolute measurement of radiated power, antenna gain or antenna efficiency.""",
+                    "description": """Explore how well other stations hear your WSPR transmissions. See reception patterns by direction, distance and time, including how often your signal is decoded within confirmed reception opportunities. No Reference needed.""",
                 },
                 "rx_benchmark": {
                     "label": "RX Benchmark",
-                    "description": """Choose this when you want to compare your receiver or receive path against a Reference. In the next step, the Reference can be another controlled path, one known station, or a local neighborhood benchmark. The results show relative Target-versus-Reference values only, not a stand-alone Performance result.""",
+                    "description": """Compare your receiver or receive path with another setup, a known station or nearby stations. Use observations from the same WSPR cycles to explore differences in reception by direction, distance and time.""",
                 },
                 "tx_benchmark": {
                     "label": "TX Benchmark",
-                    "description": """Choose this when you want to compare your transmitter, TX path or complete station against a Reference. In the next step, the Reference can be another controlled path, one known station, or a local neighborhood benchmark. The results show relative Target-versus-Reference values only, not a stand-alone Performance result.""",
+                    "description": """Compare your transmitter, transmit path or complete station with another setup, a known station or nearby stations. Use observations from the same WSPR cycles to explore differences in reception by direction, distance and time.""",
                 },
             },
             "reference_design": {
-                "hardware_ab": {
-                    "label": "Controlled paths at the same station",
-                    "description": """Use this for two controlled paths at one station — for example antennas, feedlines, receivers, transmitters or complete chains. Keep every other relevant condition as stable as possible. The result describes the complete paths as installed, including any difference that was not controlled; it does not by itself isolate antenna gain or one component's performance.""",
-                },
                 "reference_station": {
-                    "label": "Known Reference Station",
-                    "description": """Use this to compare the Target with one specified station at another QTH. This is a whole-station comparison: site, terrain, local noise, antennas, equipment, operating practice and the different radio paths remain part of the result. It cannot by itself isolate one hardware component.""",
+                    "label": "Reference Setup/Station",
+                    "description": """Compare with another controlled signal path at your station or one known station at the same or another location. A controlled setup helps you investigate equipment differences; an independent station provides a comparison of complete stations and their operating conditions.""",
                 },
                 "local_neighborhood": {
-                    "label": "Local neighborhood benchmark",
-                    "description": """Local Median Neighborhood compares your complete receiving or transmitting station with a changing Reference formed from qualifying nearby WSPR observations inside the selected radius. The Reference is calculated separately for each remote station and WSPR cycle. Use it to investigate where your station’s observed performance lies above, near or below the contributing local peers when no suitable fixed Reference Station is available. It describes your station in its observed local context; it does not isolate antenna gain or establish a ranking of all nearby stations.""",
+                    "label": "Reference Neighbourhood",
+                    "description": """Compare with the local median of qualifying nearby stations within your chosen radius. This provides a local comparison when you do not have a suitable individual Reference. The contributing stations can vary across signal paths and time.""",
                 },
             },
             "local_benchmark": {
                 "local_median": {
                     "label": """Local Median Neighborhood""",
                     "description": """Compares the Target with the median of qualifying nearby station contributions for each remote station and WSPR cycle. Contributors can change between paths and cycles. The result describes complete-station performance relative to those observed peers.""",
-                },
-            },
-            "tx_ab_method": {
-                "simultaneous": {
-                    "label": "Transmit simultaneously",
-                    "description": """Target and Reference transmit in the same WSPR cycle under distinct exact callsigns. A receiver that decodes both supplies same-cycle joint evidence, minimizing the time available for propagation or noise to change. Confirm that simultaneous operation is safe, compliant and free of self-interference.""",
-                },
-                "sequential": {
-                    "label": "Alternate on a fixed schedule",
-                    "description": """The same callsign is transmitted alternately through the two physical paths at fixed UTC minute phases. WSPRadar compares the planned Target and Reference transmissions as scheduled pairs. This avoids simultaneous transmission, but propagation and noise can change between the two transmissions.""",
                 },
             },
             "offset_intent": {
@@ -1800,7 +1665,7 @@ GUIDED_INPUTS = {
                 },
                 "established_offset": {
                     "label": "Use an established correction",
-                    "description": """Apply a documented signed correction established for the same paths or identities, band, hardware and comparison method. The formula shown below explains how the sign changes the corrected ΔSNR.""",
+                    "description": """Apply a documented signed correction established for the same paths or identities, band, hardware and comparison method. Enter its value below after selecting this option. The formula above explains how the sign changes the corrected ΔSNR.""",
                 },
                 "establish_offset": {
                     "label": "Set up an offset-establishment run",
@@ -1813,10 +1678,7 @@ GUIDED_INPUTS = {
             "window_incomplete": "UTC interval incomplete",
             "use_case": "{step} · Question — {choice} ✓",
             "target_and_window": "{step} · Target — {callsign} · {qth} · {band} · {window} ✓",
-            "reference_hardware_rx": "{step} · Reference — {callsign} · controlled local RX path ✓",
-            "reference_hardware_tx_simultaneous": "{step} · Reference — {callsign} · simultaneous local TX paths ✓",
-            "reference_hardware_tx_sequential": "{step} · Reference — scheduled alternating local TX paths ✓",
-            "reference_station": "{step} · Reference — {callsign} · known station · {qth} ✓",
+            "reference_station": "{step} · Reference — {callsign} · {qth} ✓",
             "reference_local_median": "{step} · Reference — local median within {radius} km ✓",
             "offset_none": "{step} · Reference correction — 0.0 dB ✓",
             "offset_established": "{step} · Reference correction — {offset:+.1f} dB ✓",
@@ -1825,50 +1687,42 @@ GUIDED_INPUTS = {
             "review_ready": "{step} · Review — ready to run ✓",
         },
         "messages": {
+            "use_case_limits": """Results reflect the complete stations and conditions observed. They do not, by themselves, measure absolute receiver sensitivity, radiated power, antenna gain or antenna efficiency.""",
             "demo_title": "Guided demo",
             "demo_preset": """This demo loads a complete preset for a documented example. For a first run, keep the preset unchanged and use it to learn how the question, identities and analysis settings lead to the displayed result. The demo describes the listed stations and historical period; it is not evidence about your own station.""",
             "demo_walkthrough": "Walk me through the setup",
             "demo_walkthrough_help": "Review each preset choice and what it changes in the analysis.",
             "demo_skip_to_review": "Skip to review and run",
             "demo_skip_to_review_help": "Open the complete configuration summary and start the analysis immediately with the current settings.",
-            "target_callsign_help": """Enter the exact callsign or reporting identity uploaded to the WSPR archive. Letter-only archive identities such as KFS are accepted. The archive treats forms such as KFS, KFS/SE, DL1MKS, DL1MKS/P and DL1MKS-1 as different identities, so a spelling or suffix difference selects different evidence — or none.""",
+            "target_callsign_help": """Use the exact identifier uploaded to WSPR. Letter-only reporting identifiers and slash forms such as CALL/P or a terminal suffix such as CALL-1 are accepted. CALL, CALL/P and CALL-1 are abstract examples; enter your actual identity as stored in the database. Each spelling is a distinct identity.""",
             "target_qth_help": """QTH means station location. Enter the 4- or 6-character Maidenhead locator used by the Target during the selected period. WSPRadar uses it to identify and position the Target and to calculate map geometry, distance, direction and the local solar state.""",
             "band_help": """Choose the single WSPR band used for the experiment. WSPRadar does not combine evidence from different bands because propagation, antenna response, noise and station hardware can differ substantially by band.""",
             "time_help": """Choose a period in which the callsigns, locations, hardware, schedules and reported power were correct and reasonably stable. Shorter windows describe a more specific situation but may contain little evidence; longer windows add evidence while mixing more propagation states and possible station changes.""",
-            "reference_designs_title": "Reference designs",
-            "controlled_path_note": """In a controlled Hardware A/B comparison, the two paths should differ only in the item you intend to test. Keep the remaining band, timing, gain or power, software and station chain stable. The result still describes the complete installed paths and includes every difference that was not controlled.""",
-            "known_reference_note": """This compares complete stations. Differences in QTH, terrain, local noise, antennas, equipment, operating practice and radio path remain part of the result. The comparison cannot by itself isolate antenna gain or one hardware component.""",
-            "reference_callsign_help": """Enter the Reference's exact callsign or reporting identity in the WSPR archive. Letter-only archive identities such as KFS are accepted. A portable form, suffix or spelling change is a different identity and therefore selects different reports.""",
-            "reference_grid4_help": """Enter the four-character Maidenhead locator reported for the Reference during this period. It constrains the Reference to the intended station location and supplies the Reference-side map geometry.""",
-            "local_neighborhood_note": """The neighborhood is a changing pool of active stations, not one fixed Reference. The radius determines which stations can enter that pool. A larger radius usually adds evidence but weakens the assumption that the stations share comparable local conditions.""",
+            "reference_callsign_help": """Enter the Reference’s exact reporting identity. CALL/P is an abstract example; use the actual identity stored in the database. Its location is resolved from the selected band, direction and UTC period. Each spelling or suffix selects a distinct identity.""",
             "local_radius_help": """Only active Reference stations within this distance of the Target QTH may contribute. Increasing the radius usually adds candidates but makes the benchmark less local. This setting changes the Reference population and the result; it is not merely a map-zoom control.""",
             "local_existing_correction_warning": """This configuration already contains a {offset:+.1f} dB correction for the local Reference. The standard Guided neighborhood path leaves that advanced value unchanged, so it would still affect every ΔSNR. Open Classic setup to review or reset it before running.""",
-            "tx_ab_method_help": """Simultaneous TX provides same-cycle evidence and minimizes time separation, but it requires distinct archive identities and operation that is safe, compliant and free of self-interference. Sequential TX uses a deterministic UTC schedule, but it cannot remove propagation or noise changes between the paired transmissions.""",
             "correction_formula": """**Corrected ΔSNR = Target SNR − (Reference SNR + correction)**\x20\x20\nA positive ΔSNR favors the Target; a negative value favors the Reference.""",
             "correction_consequence": """{offset:+.1f} dB will be added to every Reference SNR before subtraction. A positive correction lowers the corrected ΔSNR; a negative correction raises it.""",
-            "hardware_calibration": """Here, calibration means estimating a repeatable baseline difference between the complete Target and Reference paths while both paths receive a common, known input or while the intended difference is independently known. It is not an absolute measurement of antenna gain, efficiency or receiver sensitivity.""",
-            "reference_calibration": """Here, the offset is an empirical baseline for this exact Target–Reference pair under a defined band, setup and operating design. Because geographically separated stations do not share the same site or radio path, this is not an absolute calibration and should not be transferred to another station pair or setup.""",
-            "establish_hardware_guidance": """Create a baseline in which the intended difference is absent or independently known. For RX, feed both paths from the same stable source or antenna. For TX, use an independently characterized equal-output baseline or measure both paths at the same RF reference plane. Hold the remaining setup fixed.\n\nAfter the run, choose and document one ΔSNR estimate: the median or arithmetic mean from **Station Medians**, or from **Joint Spots / Scheduled Pairs**. Enter the observed Target − Reference value with the same sign as the Reference correction in the next run — for example, enter `+1.6 dB` for a `+1.6 dB` baseline.\n\nStation level gives each station one vote and is usually the better default for WSPRadar's station-balanced result. Spot/pair level gives each observation one vote, so high-volume stations can dominate. The median is more robust to outliers and skew; the mean can be appropriate for a roughly symmetric distribution without influential extremes, but is more sensitive to them. Choose from the intended weighting and evidence distribution — not the preferred answer. If the estimates differ materially, investigate rather than cherry-picking; one constant offset may not be defensible. Finally, repeat or swap paths and verify that the corrected common-input ΔSNR is plausibly centered near `0 dB`.""",
-            "establish_reference_guidance": """Choose a stable baseline period for this exact Target–Reference pair, band and operating design, with no known station change. Keep the identities, scope and operating conditions fixed.\n\nAfter the run, choose and document one ΔSNR estimate: the median or arithmetic mean from **Station Medians**, or from **Joint Spots / Scheduled Pairs**. Enter the observed Target − Reference value with the same sign as the Reference correction in the next run — for example, enter `+1.6 dB` for a `+1.6 dB` baseline.\n\nStation level gives each station one vote and is usually the better default for WSPRadar's station-balanced result. Spot/pair level gives each observation one vote, so high-volume stations can dominate. The median is more robust to outliers and skew; the mean can be appropriate for a roughly symmetric distribution without influential extremes, but is more sensitive to them. Choose from the intended weighting and evidence distribution — not the preferred answer. If the estimates differ materially, investigate rather than cherry-picking; one constant offset may not be defensible. Check stability across stations, signal level and time, then repeat the baseline under the same operating design and verify that the corrected ΔSNR is plausibly centered near `0 dB`.""",
-            "calibration_run_notice": """Offset-establishment run: the Reference correction is fixed at 0.0 dB. Run the normal Benchmark analysis to measure the uncorrected Target − Reference baseline. WSPRadar shows the available summaries but does not select or apply an offset.""",
+            "establish_reference_guidance": """Station level gives each station one vote and is usually the better default for WSPRadar's station-balanced result. Spot level gives each observation one vote, so high-volume stations can dominate. The median is more robust to outliers and skew; the mean can be appropriate for a roughly symmetric distribution without influential extremes, but is more sensitive to them. Choose from the intended weighting and evidence distribution — not the preferred answer. If the estimates differ materially, investigate rather than cherry-picking; one constant offset may not be defensible. Check stability across stations, signal level and time, then repeat the baseline under the same operating design and verify that the corrected ΔSNR is plausibly centered near `0 dB`. For a controlled common-input baseline, repeat or swap paths and verify that the corrected common-input ΔSNR is plausibly centered near `0 dB`.""",
+            "calibration_run_notice": """Offset-establishment run: the Reference correction is fixed at 0.0 dB. Run the normal Benchmark analysis to measure the uncorrected Target − Reference baseline. WSPRadar shows the available summaries but does not select or apply an offset.
+
+After the run, choose and document one ΔSNR estimate: the median or arithmetic mean from **Station Medians**, or from **Joint Spots**. Enter the observed Target − Reference value with the same sign as the Reference correction in the next run — for example, enter `+1.6 dB` for a `+1.6 dB` baseline.""",
             "station_population_title": "Remote station filters",
-            "station_population_body": """The special-callsign filter excludes remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Local Neighborhood reference contributors, remain eligible under this filter. The moving-station filter excludes stations whose reported locator changed during the selected period. Exclusions can improve identity or location consistency, but they can also remove valid evidence. Set them from the experiment design rather than after seeing a preferred result.""",
+            "station_population_body": """The special-callsign filter excludes remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter. The moving-station filter excludes stations whose reported locator changed during the selected period. Exclusions can improve identity or location consistency, but they can also remove valid evidence. Set them from the experiment design rather than after seeing a preferred result.""",
             "analysis_scope_title": "Analysis scope",
             "analysis_scope_body": """Solar state selects observations by the Sun's elevation at the Target QTH. Maximum distance limits which peer stations remain in the analysis, map, Inspector and export. These settings change the analyzed data; maximum distance is not only a map-zoom control.""",
             "evidence_requirements_title": "Evidence requirements",
-            "compare_evidence_requirements_body": """Each station must provide the selected minimum number of joint observations or scheduled TX pairs. A map segment must also contain the selected number of qualifying stations. A station is one exact callsign + full reported locator identity. Each qualifying identity contributes one station median and counts once toward segment support; the same callsign at different locators counts separately. One-sided evidence does not qualify an identity for segment Delta SNR. These are reported identities, not a count of independent physical stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
+            "compare_evidence_requirements_body": """Each station must provide the selected minimum number of joint observations. A map segment must also contain the selected number of qualifying stations. A station is one exact callsign + full reported locator identity. Each qualifying identity contributes one station median and counts once toward segment support; the same callsign at different locators counts separately. One-sided evidence does not qualify an identity for segment Delta SNR. These are reported identities, not a count of independent physical stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
             "success_evidence_requirements_body": """Each station must provide the selected minimum number of confirmed opportunities. A map segment must also contain the selected number of qualifying stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
             "included": "excluded",
             "not_included": "included",
             "compare_evidence": """joint evidence ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
-            "scheduled_evidence": """scheduled pairs ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
+
             "success_evidence": """confirmed opportunities ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
             "review_question": "Question",
             "review_target": "Target",
             "review_target_value": "{callsign} at {qth}",
             "review_reference": "Reference",
-            "review_tx_simultaneous_value": "{callsign} · {method}",
-            "review_tx_sequential_value": "{method} · repeat interval {repeat} min · Target {target:02d} UTC · Reference {reference:02d} UTC",
             "review_band_window": "Band and UTC window",
             "review_correction": "Reference-side correction",
             "review_population": "Remote station filters",
@@ -1881,12 +1735,13 @@ GUIDED_INPUTS = {
             "open_classic": "Open Classic setup",
             "continue": "Continue",
             "configuration_changed": """Inputs changed since the last run. Run the analysis again before interpreting the results.""",
+            "reference_location_pending_short": "location pending",
         },
         "validation": {
             "use_case": "Choose one operating question before continuing.",
             "target_and_window": "Enter a valid Target identity and QTH, select a band, and complete the UTC measurement window before continuing.",
-            "reference_design": "Complete the selected Reference design, including the required identity and QTH, neighborhood settings, or TX schedule.",
-            "offset_calibration": "Choose whether to use no correction, enter an established correction, or set up an offset-establishment run.",
+            "reference_design": "Complete the selected Reference design: enter the Reference callsign or set the Reference Neighbourhood radius. The fixed Reference location is resolved automatically.",
+            "offset_calibration": "Choose whether to use no correction, enter an established correction below, or set up an offset-establishment run.",
             "scope_and_evidence": "Review the active filters, analysis scope and evidence requirements and correct any invalid value before continuing.",
             "review_and_run": "Complete the required question, Target, measurement window, Reference design when applicable, and the visible scope and evidence fields before running.",
             "flow_invalid": "Guided Input is unavailable because its workflow configuration is invalid: {error}",
@@ -1901,25 +1756,27 @@ GUIDED_INPUTS = {
         "steps": {
             "use_case": {
                 "title": "Was möchtest du untersuchen?",
-                "body_md": """WSPR-Spots liefern belastbare Evidenz über deine Station. Untersuche, wo, wann und wie gut dein Empfänger oder Sender arbeitet, vergleiche eine Antenne, einen Transceiver oder einen vollständigen Signalpfad systematisch mit einer Referenz – oder starte mit einer der oben vorbereiteten Demos. Das <strong class="defined-term">Target</strong> ist die Station oder der Signalpfad, den du untersuchen möchtest. <strong class="defined-term">RX</strong> bedeutet Empfang, <strong class="defined-term">TX</strong> bedeutet Senden. Wähle <strong class="defined-term">Performance</strong>, um das Target selbst anhand bestätigter Gelegenheiten auszuwerten. Wähle <strong class="defined-term">Benchmark</strong>, um das Target anhand zugeordneter Evidenz relativ zu einer <strong class="defined-term">Referenz</strong> auszuwerten. Performance beschreibt das beobachtete bedingte Verhalten der vollständigen Target-Station; sie ist keine absolute Messung der Empfängerempfindlichkeit, abgestrahlten Leistung, des Antennengewinns oder Antennenwirkungsgrads. Diese Auswahl bestimmt die weiteren Schritte und ob die Ergebnisse eigenständige Target-Werte oder relative Target–Referenz-Werte zeigen.""",
+                "body_md": """**WSPR-Spots liefern Evidenz über deine Station.** Nutze diese Empfangsmeldungen, um zu untersuchen, wo, wann und wie gut dein Empfänger oder Sender arbeitet, oder um eine Antenne, ein Funkgerät oder einen vollständigen Signalpfad mit einer Referenz zu vergleichen.
+
+Wähle <strong class="defined-term">Performance</strong>, um deine Station für sich zu untersuchen, oder <strong class="defined-term">Benchmark</strong>, um sie mit einem anderen Aufbau, einer bekannten Station oder benachbarten Stationen zu vergleichen. Für einen ersten Eindruck davon, was WSPRadar dir zeigen kann, probiere eine der **vorbereiteten Demos weiter oben** aus.
+
+Deine Station oder dein Signalpfad ist das <strong class="defined-term">Target</strong> deiner Untersuchung. Als <strong class="defined-term">Referenz</strong> dient für den Vergleich mit dem Target ein Aufbau, eine Station oder eine Gruppe von Stationen. <strong class="defined-term">RX</strong> bedeutet Empfang; <strong class="defined-term">TX</strong> bedeutet Senden.""",
             },
             "target_and_window": {
                 "title": "Target und Messzeitraum festlegen",
-                "body_md": """Das <strong class="defined-term">Target</strong> ist die getestete Station oder der getestete kontrollierte Pfad. Ein WSPR-<strong class="defined-term">Spot</strong> ist ein erfolgreicher Decode, den eine meldende Station hochgeladen hat. Gib die exakte im WSPR-Archiv gespeicherte Rufzeichen bzw. die im WSPR-Archiv verwendete Kennung und das <strong class="defined-term">QTH</strong> des Targets ein — also seinen Stationsstandort. Wähle ein Band und gib absolute UTC-Start- und Endwerte für einen Zeitraum ein, in dem Kennung, Standort und getesteter Aufbau korrekt und möglichst stabil waren. Die effektiven Abfragegrenzen werden auf 15-Minuten-UTC-Intervalle abgerundet und bleiben über erneute Ausführungen hinweg unverändert.""",
+                "body_md": """Das <strong class="defined-term">Target</strong> ist die getestete Station oder der getestete kontrollierte Pfad. Gib das exakte in der WSPR-Datenbank gespeicherte Rufzeichen oder die dort gespeicherte Meldekennung und das <strong class="defined-term">QTH</strong> des Targets ein — also seinen Stationsstandort. Wähle ein Band und gib absolute UTC-Start- und Endwerte für einen Zeitraum ein, in dem Kennung, Standort und getesteter Aufbau korrekt und möglichst stabil waren.""",
             },
             "reference_design": {
                 "title": "Was soll als Referenz dienen?",
-                "body_md": """Die <strong class="defined-term">Referenz</strong> ist die Vergleichsbasis für das Target. Sie kann ein weiterer kontrollierter Pfad an deiner Station, eine bekannte Station an einem anderen QTH oder ein lokaler Vergleichsmaßstab aus nahen aktiven Stationen sein. Diese Wahl legt fest, was tatsächlich verglichen wird und wie eng das Ergebnis interpretiert werden darf.
-
-**Begriffe im Benchmark**
-
-- <strong class="defined-term">SNR</strong> ist das vom WSPR-Decoder gemeldete Signal-Rausch-Verhältnis in dB. Ein weniger negativer Wert bedeutet ein stärkeres Signal im Verhältnis zum Rauschen.
-- <strong class="defined-term">ΔSNR</strong> ("Delta-SNR") ist Target-SNR minus Referenz-SNR. Ein positiver Wert spricht für das Target, ein negativer Wert für die Referenz.
-- **Joint-Evidenz** bedeutet, dass für beide Seiten vergleichbare Daten vorliegen: dieselbe Aussendung wurde von beiden RX-Seiten dekodiert, an derselben Empfangsstation liegen passende Reports für Target und Referenz vor, oder bei sequenziellem TX gibt es ein geplantes Target–Referenz-Paar.""",
+                "body_md": """Die <strong class="defined-term">Referenz</strong> ist die Vergleichsbasis für dein Target.""",
             },
             "offset_calibration": {
                 "title": "Gibt es einen ermittelten Target–Referenz-Offset?",
-                "body_md": """Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target–Referenz-Differenz, die bereits vorhanden ist, bevor der eigentliche untersuchte Effekt hinzukommt. Eine referenzseitige Korrektur verändert das Referenz-SNR, bevor ΔSNR berechnet wird. Belasse die Korrektur bei **0,0 dB**, sofern der Offset nicht für dieselben Kennungen oder Pfade, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt und dokumentiert wurde. Die Korrektur verschiebt jedes Vergleichsergebnis; sie kann keine unkontrollierten Unterschiede ausgleichen, die sich mit Zeit, Station oder Funkweg ändern.""",
+                "body_md": """<strong class="defined-term">SNR</strong> ist das vom WSPR-Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel (dB). Ein höherer Wert bedeutet ein stärkeres Signal im Verhältnis zum Rauschen.
+
+<strong class="defined-term">ΔSNR</strong> ("Delta-SNR") ist Target-SNR minus korrigiertes Referenz-SNR. Ein positiver Wert spricht für das Target, ein negativer Wert für die Referenz.
+
+Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target–Referenz-Differenz, die bereits vorhanden ist, bevor der eigentliche untersuchte Effekt hinzukommt. Eine referenzseitige Korrektur verändert das Referenz-SNR, bevor ΔSNR berechnet wird. Belasse die Korrektur bei **0,0 dB**, sofern der Offset nicht für dieselben Kennungen oder Pfade, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt und dokumentiert wurde. Die Korrektur verschiebt jedes Vergleichsergebnis; sie kann keine unkontrollierten Unterschiede ausgleichen, die sich mit Zeit, Station oder Funkweg ändern.""",
             },
             "scope_and_evidence": {
                 "title": "Optionale Filter, Analyseumfang und Evidenzanforderungen",
@@ -1934,49 +1791,35 @@ GUIDED_INPUTS = {
             "use_cases": {
                 "rx_performance": {
                     "label": "RX Performance",
-                    "description": """Wähle dies, um deinen Empfänger ohne Referenz auszuwerten. Innerhalb Target-aktiver Zyklen zählt WSPRadar eine bestätigte Gelegenheit, wenn der Target-RX einen Peer-TX decodiert oder ein anderer geeigneter RX denselben Peer-TX auf demselben Band und im selben Zyklus decodiert. Vom Target gehört umfasst jeden gültigen Decode Peer-TX → Target-RX, der beide Endpunkte bestätigt. Nur von anderen gehört erfordert externe Bestätigung der Peer-TX-Aktivität ohne Target-RX-Decode. Ein Target-only-Erfolg ist eine Herkunftsteilmenge und zählt einmal. Aktivität andernorts belegt nicht, dass ein stiller Target-RX zugehört hat. Die RX-Dekodierrate ist der Anteil bestätigter Gelegenheiten mit dem Outcome Vom Target gehört. Das Ergebnis beschreibt das beobachtete bedingte Verhalten des vollständigen Target-Empfängers und ist keine absolute Empfindlichkeitsmessung.""",
+                    "description": """Untersuche, wie gut dein Empfänger WSPR-Signale hört. Erkunde Empfangsmuster nach Richtung, Entfernung und Zeit und sieh, wie häufig Signale bei bestätigten Empfangsgelegenheiten dekodiert werden. Keine Referenz nötig.""",
                 },
                 "tx_performance": {
                     "label": "TX Performance",
-                    "description": """Wähle dies, um deinen Sender ohne Referenz auszuwerten. Innerhalb Target-aktiver Zyklen zählt WSPRadar eine bestätigte Gelegenheit, wenn der Peer-RX den Target-TX decodiert oder derselbe exakte Peer-RX einen anderen qualifizierenden TX auf demselben Band und im selben Zyklus decodiert. Target gehört umfasst jeden gültigen Decode Target-TX → Peer-RX, der beide Endpunkte bestätigt. Nur andere Signale gehört erfordert externe Bestätigung der Aktivität dieses Peer-RX ohne Target-TX-Decode. Ein Target-only-Erfolg ist eine Herkunftsteilmenge und zählt einmal. Eine Target-TX-Meldung andernorts belegt nicht, dass ein stiller Peer-RX zugehört hat. Die TX-Dekodierrate ist der Anteil bestätigter Gelegenheiten mit dem Outcome Target gehört. Das Ergebnis beschreibt das beobachtete bedingte Verhalten der vollständigen Target-Sendestation und ist keine absolute Messung der abgestrahlten Leistung, des Antennengewinns oder Antennenwirkungsgrads.""",
+                    "description": """Untersuche, wie gut andere Stationen deine WSPR-Aussendungen hören. Erkunde Empfangsmuster nach Richtung, Entfernung und Zeit und sieh, wie häufig dein Signal bei bestätigten Empfangsgelegenheiten dekodiert wird. Keine Referenz nötig.""",
                 },
                 "rx_benchmark": {
                     "label": "RX-Benchmark",
-                    "description": """Wähle dies, wenn du deinen Empfänger oder RX-Pfad mit einer Referenz vergleichen möchtest. Im nächsten Schritt kann die Referenz ein weiterer kontrollierter Pfad, eine bekannte Station oder ein lokaler Nachbarschaftsmaßstab sein. Die Ergebnisse zeigen nur relative Target–Referenz-Werte, kein eigenständiges Performance-Ergebnis.""",
+                    "description": """Vergleiche deinen Empfänger oder Empfangspfad mit einem anderen Aufbau, einer bekannten Station oder benachbarten Stationen. Untersuche anhand von Beobachtungen aus denselben WSPR-Zyklen Unterschiede im Empfang nach Richtung, Entfernung und Zeit.""",
                 },
                 "tx_benchmark": {
                     "label": "TX-Benchmark",
-                    "description": """Wähle dies, wenn du deinen Sender, TX-Pfad oder deine vollständige Station mit einer Referenz vergleichen möchtest. Im nächsten Schritt kann die Referenz ein weiterer kontrollierter Pfad, eine bekannte Station oder ein lokaler Nachbarschaftsmaßstab sein. Die Ergebnisse zeigen nur relative Target–Referenz-Werte, kein eigenständiges Performance-Ergebnis.""",
+                    "description": """Vergleiche deinen Sender, Sendepfad oder deine vollständige Station mit einem anderen Aufbau, einer bekannten Station oder benachbarten Stationen. Untersuche anhand von Beobachtungen aus denselben WSPR-Zyklen Unterschiede im Empfang nach Richtung, Entfernung und Zeit.""",
                 },
             },
             "reference_design": {
-                "hardware_ab": {
-                    "label": "Kontrollierte Pfade an derselben Station",
-                    "description": """Verwende dies für zwei kontrollierte Pfade an einer Station — zum Beispiel Antennen, Speiseleitungen, Empfänger, Sender oder vollständige Ketten. Halte alle anderen relevanten Bedingungen möglichst stabil. Das Ergebnis beschreibt die vollständigen installierten Pfade einschließlich aller nicht kontrollierten Unterschiede; es isoliert nicht automatisch Antennengewinn oder die Leistung eines einzelnen Bauteils.""",
-                },
                 "reference_station": {
-                    "label": "Bekannte Referenzstation",
-                    "description": """Verwende dies, um das Target mit einer bestimmten Station an einem anderen QTH zu vergleichen. Dabei werden vollständige Stationen verglichen: Standort, Gelände, lokales Rauschen, Antennen, Geräte, Betriebspraxis und die unterschiedlichen Funkwege bleiben Teil des Ergebnisses. Eine einzelne Hardwarekomponente lässt sich damit nicht isolieren.""",
+                    "label": "Referenzaufbau/-station",
+                    "description": """Vergleiche mit einem weiteren kontrollierten Signalpfad an deiner Station oder einer bekannten Station am selben oder einem anderen Standort. Ein kontrollierter Aufbau hilft dir, Unterschiede in der Ausrüstung zu untersuchen; eine unabhängige Station ermöglicht einen Vergleich vollständiger Stationen und ihrer Betriebsbedingungen.""",
                 },
                 "local_neighborhood": {
-                    "label": "Lokaler Nachbarschafts-Benchmark",
-                    "description": """Lokaler Nachbarschafts-Median vergleicht deine vollständige Empfangs- oder Sendestation mit einer wechselnden Referenz aus qualifizierenden WSPR-Beobachtungen benachbarter Stationen innerhalb des gewählten Radius. Die Referenz wird für jede entfernte Station und jeden WSPR-Zyklus getrennt berechnet. Untersuche damit, wo das beobachtete Verhalten deiner Station über, nahe oder unter dem der beitragenden lokalen Peers liegt, wenn keine geeignete feste Referenzstation verfügbar ist. Das Ergebnis beschreibt deine Station in ihrem beobachteten lokalen Umfeld; es isoliert weder Antennengewinn noch erstellt es eine Rangliste aller benachbarten Stationen.""",
+                    "label": "Referenznachbarschaft",
+                    "description": """Vergleiche mit dem lokalen Median qualifizierender benachbarter Stationen innerhalb deines gewählten Radius. Dies ermöglicht einen lokalen Vergleich, wenn dir keine geeignete einzelne Referenz zur Verfügung steht. Die beitragenden Stationen können je nach Signalpfad und Zeitpunkt variieren.""",
                 },
             },
             "local_benchmark": {
                 "local_median": {
                     "label": """Lokaler Nachbarschafts-Median""",
                     "description": """Vergleicht das Target für jede entfernte Station und jeden WSPR-Zyklus mit dem Median der qualifizierenden Beiträge benachbarter Stationen. Die Beitragenden können je nach Funkweg und Zyklus wechseln. Das Ergebnis beschreibt das Verhalten der vollständigen Station im Vergleich zu diesen beobachteten Peers.""",
-                },
-            },
-            "tx_ab_method": {
-                "simultaneous": {
-                    "label": "Gleichzeitig senden",
-                    "description": """Target und Referenz senden im selben WSPR-Zyklus unter zwei unterschiedlichen exakten Rufzeichen. Eine Empfangsstation, die beide dekodiert, liefert Joint-Evidenz aus demselben Zyklus und verkürzt damit die Zeit, in der sich Ausbreitung oder Rauschen ändern können. Stelle sicher, dass der gleichzeitige Betrieb sicher, zulässig und frei von Eigenstörungen ist.""",
-                },
-                "sequential": {
-                    "label": "Nach festem Zeitplan abwechseln",
-                    "description": """Dasselbe Rufzeichen wird zu festen UTC-Minutenphasen abwechselnd über die beiden physischen Pfade gesendet. WSPRadar vergleicht die geplanten Target- und Referenzaussendungen als Zeitplanpaare. Dadurch wird gleichzeitiges Senden vermieden, aber Ausbreitung und Rauschen können sich zwischen den beiden Aussendungen ändern.""",
                 },
             },
             "offset_intent": {
@@ -1986,7 +1829,7 @@ GUIDED_INPUTS = {
                 },
                 "established_offset": {
                     "label": "Ermittelte Korrektur verwenden",
-                    "description": """Wende eine dokumentierte Korrektur mit Vorzeichen an, die für dieselben Pfade oder Kennungen, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt wurde. Die unten gezeigte Formel erklärt, wie das Vorzeichen das korrigierte ΔSNR verändert.""",
+                    "description": """Wende eine dokumentierte Korrektur mit Vorzeichen an, die für dieselben Pfade oder Kennungen, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt wurde. Trage den Wert unten ein, nachdem du diese Option ausgewählt hast. Die oben gezeigte Formel erklärt, wie das Vorzeichen das korrigierte ΔSNR verändert.""",
                 },
                 "establish_offset": {
                     "label": "Offset-Ermittlungslauf einrichten",
@@ -1999,10 +1842,7 @@ GUIDED_INPUTS = {
             "window_incomplete": "UTC-Zeitraum unvollständig",
             "use_case": "{step} · Frage — {choice} ✓",
             "target_and_window": "{step} · Target — {callsign} · {qth} · {band} · {window} ✓",
-            "reference_hardware_rx": "{step} · Referenz — {callsign} · kontrollierter lokaler RX-Pfad ✓",
-            "reference_hardware_tx_simultaneous": "{step} · Referenz — {callsign} · gleichzeitige lokale TX-Pfade ✓",
-            "reference_hardware_tx_sequential": "{step} · Referenz — geplante abwechselnde lokale TX-Pfade ✓",
-            "reference_station": "{step} · Referenz — {callsign} · bekannte Station · {qth} ✓",
+            "reference_station": "{step} · Referenz — {callsign} · {qth} ✓",
             "reference_local_median": "{step} · Referenz — lokaler Median innerhalb {radius} km ✓",
             "offset_none": "{step} · Referenzkorrektur — 0,0 dB ✓",
             "offset_established": "{step} · Referenzkorrektur — {offset:+.1f} dB ✓",
@@ -2011,50 +1851,42 @@ GUIDED_INPUTS = {
             "review_ready": "{step} · Prüfung — startbereit ✓",
         },
         "messages": {
+            "use_case_limits": """Die Ergebnisse spiegeln die vollständigen Stationen und die beobachteten Bedingungen wider. Sie allein liefern keine absolute Messung der Empfängerempfindlichkeit, der abgestrahlten Leistung, des Antennengewinns oder des Antennenwirkungsgrads.""",
             "demo_title": "Geführte Demo",
             "demo_preset": """Diese Demo lädt eine vollständige Voreinstellung für ein dokumentiertes Beispiel. Belasse die Werte beim ersten Lauf unverändert und nutze das Beispiel, um zu sehen, wie Fragestellung, Kennungen und Analyseparameter zum angezeigten Ergebnis führen. Die Demo beschreibt die aufgeführten Stationen und den historischen Zeitraum; sie ist keine Aussage über deine eigene Station.""",
             "demo_walkthrough": "Einstellungen Schritt für Schritt durchgehen",
             "demo_walkthrough_help": "Prüfe jede Voreinstellung und erfahre, was sie in der Analyse verändert.",
             "demo_skip_to_review": "Direkt zu Prüfen und starten",
             "demo_skip_to_review_help": "Öffne die vollständige Konfigurationsübersicht und starte die Analyse sofort mit den aktuellen Einstellungen.",
-            "target_callsign_help": """Gib genau das Rufzeichen oder die Meldekennung ein, die in das WSPR-Archiv hochgeladen wurde. Nur aus Buchstaben bestehende Archividentitäten wie KFS sind zulässig. Das Archiv behandelt Formen wie KFS, KFS/SE, DL1MKS, DL1MKS/P und DL1MKS-1 als unterschiedliche Identitäten. Eine abweichende Schreibweise oder ein anderes Suffix wählt daher andere Evidenz — oder gar keine.""",
+            "target_callsign_help": """Verwende die exakt zu WSPR hochgeladene Kennung. Nur aus Buchstaben bestehende Meldekennungen, Schrägstrichformen wie CALL/P und ein abschließendes Suffix wie CALL-1 sind zulässig. CALL, CALL/P und CALL-1 sind abstrakte Beispiele; gib deine tatsächliche Kennung aus der Datenbank ein. Jede Schreibweise ist eine eigene Identität.""",
             "target_qth_help": """QTH bedeutet Stationsstandort. Gib den vier- oder sechsstelligen Maidenhead-Locator ein, den das Target im ausgewählten Zeitraum verwendet hat. WSPRadar nutzt ihn zur Identifikation und Positionierung des Targets sowie für Kartengeometrie, Entfernung, Richtung und lokalen Sonnenstand.""",
             "band_help": """Wähle das einzelne WSPR-Band des Versuchs. WSPRadar führt Evidenz verschiedener Bänder nicht zusammen, weil sich Ausbreitung, Antennenverhalten, Rauschen und Stationshardware je nach Band deutlich unterscheiden können.""",
             "time_help": """Wähle einen Zeitraum, in dem Rufzeichen, Standorte, Hardware, Zeitpläne und gemeldete Leistung korrekt und möglichst stabil waren. Kürzere Zeiträume beschreiben eine konkretere Situation, können aber wenig Evidenz enthalten. Längere Zeiträume liefern mehr Evidenz, mischen jedoch mehr Ausbreitungszustände und mögliche Stationsänderungen.""",
-            "reference_designs_title": "Referenzdesigns",
-            "controlled_path_note": """Bei einem kontrollierten Hardware-A/B-Vergleich sollten sich die beiden Pfade nur in dem Teil unterscheiden, den du untersuchen möchtest. Halte Band, Zeitablauf, Verstärkung oder Leistung, Software und die übrige Stationskette stabil. Das Ergebnis beschreibt trotzdem die vollständigen installierten Pfade und enthält jeden Unterschied, der nicht kontrolliert wurde.""",
-            "known_reference_note": """Hier vergleichst du vollständige Stationen. Unterschiede in QTH, Gelände, lokalem Rauschen, Antennen, Geräten, Betriebspraxis und Funkweg bleiben Teil des Ergebnisses. Antennengewinn oder eine einzelne Hardwarekomponente lassen sich daraus allein nicht isolieren.""",
-            "reference_callsign_help": """Gib das exakte Rufzeichen bzw. die im WSPR-Archiv verwendete Kennung der Referenz ein. Nur aus Buchstaben bestehende Archividentitäten wie KFS sind zulässig. Eine Portable-Form, ein Suffix oder eine andere Schreibweise ist eine andere Identität und wählt deshalb andere Reports.""",
-            "reference_grid4_help": """Gib den Maidenhead-Locator mit vier Zeichen ein, den die Referenz in diesem Zeitraum gemeldet hat. Er begrenzt die Referenz auf den beabsichtigten Stationsstandort und liefert die referenzseitige Kartengeometrie.""",
-            "local_neighborhood_note": """Die Nachbarschaft ist ein wechselnder Pool aktiver Stationen und keine feste Referenz. Der Radius bestimmt, welche Stationen in diesen Pool gelangen können. Ein größerer Radius liefert meist mehr Evidenz, schwächt aber die Annahme vergleichbarer lokaler Bedingungen.""",
+            "reference_callsign_help": """Gib die exakte Meldekennung der Referenz ein. CALL/P ist ein abstraktes Beispiel; verwende die tatsächlich in der Datenbank gespeicherte Kennung. Ihr Standort wird aus dem gewählten Band, der Analyserichtung und dem UTC-Zeitraum bestimmt. Jede Schreibweise und jedes Suffix wählt eine eigene Identität.""",
             "local_radius_help": """Nur aktive Referenzstationen innerhalb dieser Entfernung vom Target-QTH dürfen beitragen. Ein größerer Radius liefert meist mehr Kandidaten, macht den Vergleich aber weniger lokal. Diese Einstellung verändert die Referenzpopulation und das Ergebnis; sie ist nicht nur eine Karten-Zoomstufe.""",
             "local_existing_correction_warning": """Diese Konfiguration enthält bereits eine Korrektur von {offset:+.1f} dB für die lokale Referenz. Der normale geführte Nachbarschaftspfad verändert diesen erweiterten Wert nicht; er würde deshalb weiterhin jedes ΔSNR beeinflussen. Öffne vor dem Start die Klassische Eingabe, um ihn zu prüfen oder zurückzusetzen.""",
-            "tx_ab_method_help": """Gleichzeitiges TX liefert Evidenz aus demselben Zyklus und minimiert den Zeitversatz, erfordert aber getrennte Archividentitäten sowie einen sicheren, zulässigen und eigenstörungsfreien Betrieb. Sequenzielles TX nutzt einen festen UTC-Zeitplan, kann Änderungen von Ausbreitung oder Rauschen zwischen den gepaarten Aussendungen jedoch nicht beseitigen.""",
             "correction_formula": """**Korrigiertes ΔSNR = Target-SNR − (Referenz-SNR + Korrektur)**\x20\x20\nEin positives ΔSNR spricht für das Target, ein negativer Wert für die Referenz.""",
             "correction_consequence": """Vor der Subtraktion werden zu jedem Referenz-SNR {offset:+.1f} dB addiert. Eine positive Korrektur senkt das korrigierte ΔSNR; eine negative Korrektur erhöht es.""",
-            "hardware_calibration": """Kalibrierung bedeutet hier, eine wiederholbare Basisdifferenz zwischen den vollständigen Target- und Referenzpfaden zu bestimmen, während beide Pfade ein gemeinsames bekanntes Eingangssignal erhalten oder der beabsichtigte Unterschied unabhängig bekannt ist. Das ist keine absolute Messung von Antennengewinn, Wirkungsgrad oder Empfängerempfindlichkeit.""",
-            "reference_calibration": """Der Offset ist hier eine empirische Basislinie für genau dieses Target–Referenz-Paar unter einem festgelegten Band, Aufbau und Betriebsdesign. Räumlich getrennte Stationen teilen weder Standort noch Funkweg; daher ist dies keine absolute Kalibrierung und darf nicht auf ein anderes Stationspaar oder einen anderen Aufbau übertragen werden.""",
-            "establish_hardware_guidance": """Erzeuge eine Basislinie, bei der der beabsichtigte Unterschied fehlt oder unabhängig bekannt ist. Für RX speist du beide Pfade aus derselben stabilen Quelle oder Antenne. Für TX verwendest du eine unabhängig charakterisierte Basis mit gleicher Ausgangsleistung oder misst beide Pfade an derselben HF-Referenzebene. Halte den übrigen Aufbau konstant.\n\nWähle und dokumentiere nach dem Lauf genau einen ΔSNR-Schätzwert: Median oder arithmetisches Mittel aus **Stationsmediane** oder aus **Joint-Spots / geplante Paare**. Trage den beobachteten Wert Target − Referenz mit demselben Vorzeichen im nächsten Lauf als Referenzkorrektur ein — beispielsweise `+1,6 dB` bei einer Basislinie von `+1,6 dB`.\n\nAuf Stationsebene erhält jede Station eine Stimme; dies ist meist der bessere Standard für das stationsbalancierte WSPRadar-Ergebnis. Auf Spot-/Paarebene erhält jede Beobachtung eine Stimme, sodass Stationen mit vielen Reports dominieren können. Der Median ist robuster gegenüber Ausreißern und Schiefe. Das arithmetische Mittel kann bei einer annähernd symmetrischen Verteilung ohne einflussreiche Extremwerte sinnvoll sein, reagiert aber empfindlicher darauf. Wähle nach der beabsichtigten Gewichtung und Evidenzverteilung — nicht nach dem bevorzugten Ergebnis. Weichen die Schätzwerte deutlich voneinander ab, untersuche die Ursache, statt einen passenden Wert herauszugreifen; möglicherweise ist ein konstanter Offset nicht vertretbar. Wiederhole anschließend den Lauf oder vertausche die Pfade und prüfe, ob das korrigierte ΔSNR bei gemeinsamem Eingang plausibel um `0 dB` zentriert ist.""",
-            "establish_reference_guidance": """Wähle für genau dieses Target–Referenz-Paar, Band und Betriebsdesign einen stabilen Basiszeitraum ohne bekannte Stationsänderung. Halte Kennungen, Umfang und Betriebsbedingungen konstant.\n\nWähle und dokumentiere nach dem Lauf genau einen ΔSNR-Schätzwert: Median oder arithmetisches Mittel aus **Stationsmediane** oder aus **Joint-Spots / geplante Paare**. Trage den beobachteten Wert Target − Referenz mit demselben Vorzeichen im nächsten Lauf als Referenzkorrektur ein — beispielsweise `+1,6 dB` bei einer Basislinie von `+1,6 dB`.\n\nAuf Stationsebene erhält jede Station eine Stimme; dies ist meist der bessere Standard für das stationsbalancierte WSPRadar-Ergebnis. Auf Spot-/Paarebene erhält jede Beobachtung eine Stimme, sodass Stationen mit vielen Reports dominieren können. Der Median ist robuster gegenüber Ausreißern und Schiefe. Das arithmetische Mittel kann bei einer annähernd symmetrischen Verteilung ohne einflussreiche Extremwerte sinnvoll sein, reagiert aber empfindlicher darauf. Wähle nach der beabsichtigten Gewichtung und Evidenzverteilung — nicht nach dem bevorzugten Ergebnis. Weichen die Schätzwerte deutlich voneinander ab, untersuche die Ursache, statt einen passenden Wert herauszugreifen; möglicherweise ist ein konstanter Offset nicht vertretbar. Prüfe die Stabilität über Stationen, Signalpegel und Zeit, wiederhole die Basislinie anschließend unter demselben Betriebsdesign und bestätige, dass das korrigierte ΔSNR plausibel um `0 dB` zentriert ist.""",
-            "calibration_run_notice": """Offset-Ermittlungslauf: Die Referenzkorrektur ist auf 0,0 dB festgelegt. Führe die normale Benchmark-Analyse aus, um die unkorrigierte Basislinie Target − Referenz zu bestimmen. WSPRadar zeigt die verfügbaren Zusammenfassungen, wählt aber keinen Offset aus und wendet keinen an.""",
+            "establish_reference_guidance": """Auf Stationsebene erhält jede Station eine Stimme; dies ist meist der bessere Standard für das stationsbalancierte WSPRadar-Ergebnis. Auf Spotebene erhält jede Beobachtung eine Stimme, sodass Stationen mit vielen Reports dominieren können. Der Median ist robuster gegenüber Ausreißern und Schiefe. Das arithmetische Mittel kann bei einer annähernd symmetrischen Verteilung ohne einflussreiche Extremwerte sinnvoll sein, reagiert aber empfindlicher darauf. Wähle nach der beabsichtigten Gewichtung und Evidenzverteilung — nicht nach dem bevorzugten Ergebnis. Weichen die Schätzwerte deutlich voneinander ab, untersuche die Ursache, statt einen passenden Wert herauszugreifen; möglicherweise ist ein konstanter Offset nicht vertretbar. Prüfe die Stabilität über Stationen, Signalpegel und Zeit, wiederhole die Basislinie anschließend unter demselben Betriebsdesign und bestätige, dass das korrigierte ΔSNR plausibel um `0 dB` zentriert ist. Bei einer kontrollierten Basislinie mit gemeinsamem Eingang wiederholst du den Lauf oder vertauschst die Pfade und prüfst, ob das korrigierte ΔSNR bei gemeinsamem Eingang plausibel um `0 dB` zentriert ist.""",
+            "calibration_run_notice": """Offset-Ermittlungslauf: Die Referenzkorrektur ist auf 0,0 dB festgelegt. Führe die normale Benchmark-Analyse aus, um die unkorrigierte Basislinie Target − Referenz zu bestimmen. WSPRadar zeigt die verfügbaren Zusammenfassungen, wählt aber keinen Offset aus und wendet keinen an.
+
+Wähle und dokumentiere nach dem Lauf genau einen ΔSNR-Schätzwert: Median oder arithmetisches Mittel aus **Stationsmediane** oder aus **Joint-Spots**. Trage den beobachteten Wert Target − Referenz mit demselben Vorzeichen im nächsten Lauf als Referenzkorrektur ein — beispielsweise `+1.6 dB` bei einer Basislinie von `+1.6 dB`.""",
             "station_population_title": "Remote Stationsfilter",
             "station_population_body": """Der Spezial-Rufzeichenfilter schließt entfernte Peer-Rufzeichen aus, die mit Q, 0 oder 1 beginnen: sendende Peers in RX-Analysen und empfangende Peers in TX-Analysen. Target- und Referenzstationen einschließlich der Stationen, die zur Referenz der lokalen Nachbarschaft beitragen, bleiben von diesem Filter unberührt. Der Filter für bewegliche Stationen schließt Stationen aus, deren gemeldeter Locator sich im ausgewählten Zeitraum geändert hat. Solche Ausschlüsse können die Konsistenz von Identität und Standort verbessern, entfernen aber möglicherweise auch gültige Evidenz. Lege sie aus dem Versuchsdesign fest und nicht erst nach einem bevorzugten Ergebnis.""",
             "analysis_scope_title": "Analyseumfang",
             "analysis_scope_body": """Der Sonnenzustand wählt Beobachtungen anhand des Sonnenstands am Target-QTH aus. Die Maximalentfernung begrenzt, welche Gegenstationen in Analyse, Karte, Inspector und Export verbleiben. Diese Einstellungen verändern die analysierten Daten; die Maximalentfernung ist nicht nur eine Karten-Zoomstufe.""",
             "evidence_requirements_title": "Evidenzanforderungen",
-            "compare_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl an Joint-Beobachtungen oder geplanten TX-Paaren liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Eine Station ist eine exakte Identität aus Rufzeichen + vollständig gemeldetem Locator. Jede qualifizierende Identität trägt einen Stationsmedian bei und zählt einmal zur Segmentunterstützung; dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt. Einseitige Evidenz qualifiziert eine Identität nicht für das Delta SNR eines Segments. Dies sind gemeldete Identitäten, keine Anzahl unabhängiger physischer Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
+            "compare_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl an Joint-Beobachtungen liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Eine Station ist eine exakte Identität aus Rufzeichen + vollständig gemeldetem Locator. Jede qualifizierende Identität trägt einen Stationsmedian bei und zählt einmal zur Segmentunterstützung; dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt. Einseitige Evidenz qualifiziert eine Identität nicht für das Delta SNR eines Segments. Dies sind gemeldete Identitäten, keine Anzahl unabhängiger physischer Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
             "success_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl bestätigter Gelegenheiten liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
             "included": "ausgeschlossen",
             "not_included": "einbezogen",
             "compare_evidence": """Joint-Evidenz ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",
-            "scheduled_evidence": """geplante Paare ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",
+
             "success_evidence": """bestätigte Gelegenheiten ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",
             "review_question": "Fragestellung",
             "review_target": "Target",
             "review_target_value": "{callsign} bei {qth}",
             "review_reference": "Referenz",
-            "review_tx_simultaneous_value": "{callsign} · {method}",
-            "review_tx_sequential_value": "{method} · Wiederholintervall {repeat} min · Target {target:02d} UTC · Referenz {reference:02d} UTC",
             "review_band_window": "Band und UTC-Zeitraum",
             "review_correction": "Referenzseitige Korrektur",
             "review_population": "Remote Stationsfilter",
@@ -2067,12 +1899,13 @@ GUIDED_INPUTS = {
             "open_classic": "Klassische Eingabe öffnen",
             "continue": "Weiter",
             "configuration_changed": """Die Eingaben wurden seit dem letzten Lauf geändert. Starte die Analyse erneut, bevor du die Ergebnisse interpretierst.""",
+            "reference_location_pending_short": "Standort noch offen",
         },
         "validation": {
             "use_case": "Wähle eine Fragestellung, bevor du fortfährst.",
             "target_and_window": "Gib eine gültige Target-Kennung und ein gültiges QTH ein, wähle ein Band und vervollständige den UTC-Messzeitraum.",
-            "reference_design": "Vervollständige das gewählte Referenzdesign einschließlich der erforderlichen Kennung und des QTH, der Nachbarschaftseinstellungen oder des TX-Zeitplans.",
-            "offset_calibration": "Wähle, ob keine Korrektur verwendet, eine ermittelte Korrektur eingegeben oder ein Offset-Ermittlungslauf eingerichtet werden soll.",
+            "reference_design": "Vervollständige das gewählte Referenzdesign: Gib das Referenz-Rufzeichen ein oder lege den Radius der Referenznachbarschaft fest. Der Standort der festen Referenz wird automatisch bestimmt.",
+            "offset_calibration": "Wähle, ob keine Korrektur verwendet, unten eine ermittelte Korrektur eingegeben oder ein Offset-Ermittlungslauf eingerichtet werden soll.",
             "scope_and_evidence": "Prüfe die aktiven Filter, den Analyseumfang und die Evidenzanforderungen und korrigiere vor dem Fortfahren jeden ungültigen Wert.",
             "review_and_run": "Vervollständige vor dem Start die erforderliche Fragestellung, das Target, den Messzeitraum, gegebenenfalls das Referenzdesign sowie die sichtbaren Umfangs- und Evidenzfelder.",
             "flow_invalid": "Die Geführte Eingabe ist nicht verfügbar, weil ihre Ablaufkonfiguration ungültig ist: {error}",
@@ -2081,7 +1914,7 @@ GUIDED_INPUTS = {
 }
 
 def absolute_terms(t, mode):
-    """Return canonical compatibility terms and localized Performance labels."""
+    """Return canonical calculation terms and localized Performance labels."""
     mode_key = "tx" if str(mode).upper().startswith("TX") else "rx"
     default_counter = "Other Signals" if mode_key == "tx" else "Elsewhere"
     default_short = "OS" if mode_key == "tx" else "E"

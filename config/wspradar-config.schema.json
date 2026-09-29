@@ -214,80 +214,6 @@
         {
           "if": {
             "properties": {
-              "core_parameters": {
-                "properties": {
-                  "analysis_direction": {
-                    "const": "rx"
-                  }
-                },
-                "required": [
-                  "analysis_direction"
-                ]
-              },
-              "comparison_parameters": {
-                "properties": {
-                  "mode": {
-                    "const": "hardware_ab"
-                  }
-                },
-                "required": [
-                  "mode"
-                ]
-              }
-            },
-            "required": [
-              "core_parameters",
-              "comparison_parameters"
-            ]
-          },
-          "then": {
-            "properties": {
-              "comparison_parameters": {
-                "$ref": "#/$defs/hardwareAbRxComparison"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "core_parameters": {
-                "properties": {
-                  "analysis_direction": {
-                    "const": "tx"
-                  }
-                },
-                "required": [
-                  "analysis_direction"
-                ]
-              },
-              "comparison_parameters": {
-                "properties": {
-                  "mode": {
-                    "const": "hardware_ab"
-                  }
-                },
-                "required": [
-                  "mode"
-                ]
-              }
-            },
-            "required": [
-              "core_parameters",
-              "comparison_parameters"
-            ]
-          },
-          "then": {
-            "properties": {
-              "comparison_parameters": {
-                "$ref": "#/$defs/hardwareAbTxComparison"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
               "comparison_parameters": {
                 "properties": {
                   "mode": {
@@ -461,7 +387,7 @@
       ]
     },
     "timeSelection": {
-      "description": "The exact half-open UTC analysis interval after 15-minute quantization.",
+      "description": "The exact half-open UTC analysis interval at minute precision.",
       "type": "object",
       "required": [
         "start_utc",
@@ -497,12 +423,6 @@
         },
         {
           "$ref": "#/$defs/localNeighborhoodComparison"
-        },
-        {
-          "$ref": "#/$defs/hardwareAbRxComparison"
-        },
-        {
-          "$ref": "#/$defs/hardwareAbTxComparison"
         }
       ]
     },
@@ -531,13 +451,14 @@
       "properties": {
         "mode": {
           "const": "reference_station",
-          "description": "Compare the Target with one named Reference callsign and exact four-character Reference grid."
+          "description": "Compare the Target with one fixed Reference callsign and its resolved four-character archive grid."
         },
         "reference_callsign": {
           "$ref": "#/$defs/callsign"
         },
         "reference_qth": {
-          "$ref": "#/$defs/grid4"
+          "$ref": "#/$defs/grid4",
+          "description": "Resolved Reference grid-4. Empty means pending archive location discovery, never a callsign-only population."
         },
         "snr_correction_mode": {
           "$ref": "#/$defs/snrCorrectionMode"
@@ -607,732 +528,6 @@
           "$ref": "#/$defs/snrCorrectionValueConsistency"
         }
       ]
-    },
-    "hardwareAbRxComparison": {
-      "type": "object",
-      "description": "RX hardware A/B comparison. Both paths use the grid-4 derived from core Target QTH; analysis direction rx selects this branch.",
-      "required": [
-        "mode",
-        "reference_callsign",
-        "snr_correction_mode",
-        "snr_correction_db"
-      ],
-      "properties": {
-        "mode": {
-          "const": "hardware_ab",
-          "description": "Compare controlled RX hardware paths identified as Target and Reference."
-        },
-        "reference_callsign": {
-          "$ref": "#/$defs/callsign"
-        },
-        "snr_correction_mode": {
-          "$ref": "#/$defs/snrCorrectionMode"
-        },
-        "snr_correction_db": {
-          "$ref": "#/$defs/snrCorrectionDb"
-        }
-      },
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "$ref": "#/$defs/snrCorrectionValueConsistency"
-        }
-      ]
-    },
-    "hardwareAbTxComparison": {
-      "description": "TX hardware A/B comparison using simultaneous Target/Reference identities or a sequential periodic schedule.",
-      "oneOf": [
-        {
-          "$ref": "#/$defs/hardwareAbTxSimultaneousComparison"
-        },
-        {
-          "$ref": "#/$defs/hardwareAbTxSequentialComparison"
-        }
-      ]
-    },
-    "hardwareAbTxSimultaneousComparison": {
-      "type": "object",
-      "description": "Simultaneous TX hardware A/B comparison using distinct Target and Reference callsigns, the grid-4 derived from core Target QTH, and synchronized WSPR cycles.",
-      "required": [
-        "mode",
-        "tx_ab_method",
-        "reference_callsign",
-        "snr_correction_mode",
-        "snr_correction_db"
-      ],
-      "properties": {
-        "mode": {
-          "const": "hardware_ab",
-          "description": "Compare controlled TX hardware paths."
-        },
-        "tx_ab_method": {
-          "const": "simultaneous",
-          "description": "Compare distinct Target and Reference transmitters in the same WSPR cycles."
-        },
-        "reference_callsign": {
-          "$ref": "#/$defs/callsign"
-        },
-        "snr_correction_mode": {
-          "$ref": "#/$defs/snrCorrectionMode"
-        },
-        "snr_correction_db": {
-          "$ref": "#/$defs/snrCorrectionDb"
-        }
-      },
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "$ref": "#/$defs/snrCorrectionValueConsistency"
-        }
-      ]
-    },
-    "hardwareAbTxSequentialComparison": {
-      "type": "object",
-      "description": "Sequential TX hardware A/B comparison using two disjoint periodic UTC start phases within one shared repeat interval.",
-      "required": [
-        "mode",
-        "tx_ab_method",
-        "repeat_interval_minutes",
-        "target_start_minute",
-        "reference_start_minute",
-        "snr_correction_mode",
-        "snr_correction_db"
-      ],
-      "properties": {
-        "mode": {
-          "const": "hardware_ab",
-          "description": "Compare sequential TX hardware setups identified by their deterministic schedules."
-        },
-        "tx_ab_method": {
-          "const": "sequential",
-          "description": "Compare one shared Target identity through its deterministic Target and Reference schedules."
-        },
-        "repeat_interval_minutes": {
-          "$ref": "#/$defs/txAbRepeatIntervalMinutes"
-        },
-        "target_start_minute": {
-          "$ref": "#/$defs/txAbStartMinute"
-        },
-        "reference_start_minute": {
-          "$ref": "#/$defs/txAbStartMinute"
-        },
-        "snr_correction_mode": {
-          "$ref": "#/$defs/snrCorrectionMode"
-        },
-        "snr_correction_db": {
-          "$ref": "#/$defs/snrCorrectionDb"
-        }
-      },
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "$ref": "#/$defs/txAbPeriodicPhaseRange"
-        },
-        {
-          "$ref": "#/$defs/txAbDistinctStarts"
-        },
-        {
-          "$ref": "#/$defs/snrCorrectionValueConsistency"
-        }
-      ]
-    },
-    "txAbRepeatIntervalMinutes": {
-      "type": "integer",
-      "enum": [
-        4,
-        6,
-        10,
-        12,
-        20,
-        30,
-        60
-      ],
-      "description": "Shared recurrence interval for each physical TX path, in minutes. Supported values divide one UTC hour exactly.",
-      "default": 10,
-      "examples": [
-        10,
-        20
-      ]
-    },
-    "txAbStartMinute": {
-      "type": "integer",
-      "enum": [
-        0,
-        2,
-        4,
-        6,
-        8,
-        10,
-        12,
-        14,
-        16,
-        18,
-        20,
-        22,
-        24,
-        26,
-        28,
-        30,
-        32,
-        34,
-        36,
-        38,
-        40,
-        42,
-        44,
-        46,
-        48,
-        50,
-        52,
-        54,
-        56,
-        58
-      ],
-      "description": "Even UTC start phase in minutes. The phase must be smaller than the selected repeat interval.",
-      "examples": [
-        0,
-        2
-      ]
-    },
-    "txAbPeriodicPhaseRange": {
-      "description": "Restrict both periodic start phases to the selected shared repeat interval.",
-      "oneOf": [
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 4
-            },
-            "target_start_minute": {
-              "enum": [
-                0,
-                2
-              ]
-            },
-            "reference_start_minute": {
-              "enum": [
-                0,
-                2
-              ]
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        },
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 6
-            },
-            "target_start_minute": {
-              "enum": [
-                0,
-                2,
-                4
-              ]
-            },
-            "reference_start_minute": {
-              "enum": [
-                0,
-                2,
-                4
-              ]
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        },
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 10
-            },
-            "target_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8
-              ]
-            },
-            "reference_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8
-              ]
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        },
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 12
-            },
-            "target_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8,
-                10
-              ]
-            },
-            "reference_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8,
-                10
-              ]
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        },
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 20
-            },
-            "target_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
-                14,
-                16,
-                18
-              ]
-            },
-            "reference_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
-                14,
-                16,
-                18
-              ]
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        },
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 30
-            },
-            "target_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
-                14,
-                16,
-                18,
-                20,
-                22,
-                24,
-                26,
-                28
-              ]
-            },
-            "reference_start_minute": {
-              "enum": [
-                0,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
-                14,
-                16,
-                18,
-                20,
-                22,
-                24,
-                26,
-                28
-              ]
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        },
-        {
-          "properties": {
-            "repeat_interval_minutes": {
-              "const": 60
-            },
-            "target_start_minute": {
-              "$ref": "#/$defs/txAbStartMinute"
-            },
-            "reference_start_minute": {
-              "$ref": "#/$defs/txAbStartMinute"
-            }
-          },
-          "required": [
-            "repeat_interval_minutes",
-            "target_start_minute",
-            "reference_start_minute"
-          ]
-        }
-      ]
-    },
-    "txAbDistinctStarts": {
-      "description": "Target and Reference phases must identify different transmission slots.",
-      "not": {
-        "anyOf": [
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 0
-              },
-              "reference_start_minute": {
-                "const": 0
-              }
-            },
-            "required": [
-              "target_start_minute",
-              "reference_start_minute"
-            ]
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 2
-              },
-              "reference_start_minute": {
-                "const": 2
-              }
-            },
-            "required": [
-              "target_start_minute",
-              "reference_start_minute"
-            ]
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 4
-              },
-              "reference_start_minute": {
-                "const": 4
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 6
-              },
-              "reference_start_minute": {
-                "const": 6
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 8
-              },
-              "reference_start_minute": {
-                "const": 8
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 10
-              },
-              "reference_start_minute": {
-                "const": 10
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 12
-              },
-              "reference_start_minute": {
-                "const": 12
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 14
-              },
-              "reference_start_minute": {
-                "const": 14
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 16
-              },
-              "reference_start_minute": {
-                "const": 16
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 18
-              },
-              "reference_start_minute": {
-                "const": 18
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 20
-              },
-              "reference_start_minute": {
-                "const": 20
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 22
-              },
-              "reference_start_minute": {
-                "const": 22
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 24
-              },
-              "reference_start_minute": {
-                "const": 24
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 26
-              },
-              "reference_start_minute": {
-                "const": 26
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 28
-              },
-              "reference_start_minute": {
-                "const": 28
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 30
-              },
-              "reference_start_minute": {
-                "const": 30
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 32
-              },
-              "reference_start_minute": {
-                "const": 32
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 34
-              },
-              "reference_start_minute": {
-                "const": 34
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 36
-              },
-              "reference_start_minute": {
-                "const": 36
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 38
-              },
-              "reference_start_minute": {
-                "const": 38
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 40
-              },
-              "reference_start_minute": {
-                "const": 40
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 42
-              },
-              "reference_start_minute": {
-                "const": 42
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 44
-              },
-              "reference_start_minute": {
-                "const": 44
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 46
-              },
-              "reference_start_minute": {
-                "const": 46
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 48
-              },
-              "reference_start_minute": {
-                "const": 48
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 50
-              },
-              "reference_start_minute": {
-                "const": 50
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 52
-              },
-              "reference_start_minute": {
-                "const": 52
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 54
-              },
-              "reference_start_minute": {
-                "const": 54
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 56
-              },
-              "reference_start_minute": {
-                "const": 56
-              }
-            }
-          },
-          {
-            "properties": {
-              "target_start_minute": {
-                "const": 58
-              },
-              "reference_start_minute": {
-                "const": 58
-              }
-            }
-          }
-        ]
-      }
     },
     "snrCorrectionMode": {
       "type": "string",
@@ -1411,7 +606,7 @@
     },
     "advancedParametersWithComparison": {
       "type": "object",
-      "description": "Advanced controls active for hardware A/B, reference-station, and local-neighborhood comparisons.",
+      "description": "Advanced controls active for fixed-Reference and Reference Neighbourhood comparisons.",
       "required": [
         "solar_state",
         "max_peer_distance_km",
@@ -1439,7 +634,7 @@
         },
         "report_delta_snr_outlier_candidates": {
           "type": "boolean",
-          "description": "Whether Benchmark result presentation lazily reports Delta-SNR episode candidates detected from native Joint Spots or complete Scheduled Pairs using candidate-excluded 10-minute baseline-support cells and one shared set of qualification gates. This presentation-only option does not change provider requests or canonical Benchmark results.",
+          "description": "Whether Benchmark result presentation lazily reports Delta-SNR episode candidates detected from native Joint Spots using candidate-excluded 10-minute baseline-support cells and one shared set of qualification gates. This presentation-only option does not change provider requests or canonical Benchmark results.",
           "default": false
         },
         "delta_snr_outlier_minimum_departure_db": {
@@ -1544,7 +739,7 @@
     },
     "excludeSpecialCallsigns": {
       "type": "boolean",
-      "description": "Whether to exclude remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Local Neighborhood reference contributors, remain eligible under this filter. This required saved value has no schema-level default; the interactive UI uses result-specific defaults."
+      "description": "Whether to exclude remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter. This required saved value has no schema-level default; the interactive UI uses result-specific defaults."
     },
     "excludeMovingStations": {
       "type": "boolean",
@@ -1675,9 +870,7 @@
       "type": "string",
       "enum": [
         "2m",
-        "5m",
         "10m",
-        "15m",
         "30m",
         "1h",
         "2h",
@@ -1686,7 +879,7 @@
         "12h",
         "24h"
       ],
-      "description": "Explicit time-bin width for station-evidence plots. When no choice exists in fresh UI state, WSPRadar derives the default from the selected run duration before saving. The 5m and 15m values remain accepted for saved-config compatibility but are not offered by the normal adaptive controls.",
+      "description": "Explicit time-bin width for station-evidence plots. When no choice exists in fresh UI state, WSPRadar derives the default from the selected run duration before saving.",
       "examples": [
         "2m",
         "10m",
@@ -1700,9 +893,7 @@
       "enum": [
         "auto",
         "2m",
-        "5m",
         "10m",
-        "15m",
         "30m",
         "1h",
         "2h",
@@ -1711,7 +902,7 @@
         "12h",
         "24h"
       ],
-      "description": "Time-bin width for a segment temporal plot. auto retains automatic selection; 5m and 15m remain accepted for saved-config compatibility but are not offered by the normal adaptive controls.",
+      "description": "Time-bin width for a segment temporal plot. auto retains automatic selection.",
       "default": "auto",
       "examples": [
         "auto",

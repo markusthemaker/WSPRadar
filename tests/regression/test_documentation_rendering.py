@@ -29,6 +29,17 @@ def test_manual_explains_historical_decode_boundary_and_remaining_uncertainty(ma
     assert "`decode_filter_mode`" in historical_section
 
 
+def test_manuals_describe_only_the_current_configuration_and_url_contract():
+    """Retired input migration is separate from scientific archive fallback."""
+    assert "Only the current saved-configuration schema and public-URL contract are accepted" in DOC_EN
+    assert "earlier input formats are rejected without migration" in DOC_EN
+    assert "ausschließlich das aktuelle Schema gespeicherter Konfigurationen" in DOC_DE
+    assert "frühere Eingabeformate werden ohne Migration abgelehnt" in DOC_DE
+    for manual in (DOC_EN, DOC_DE):
+        assert "`5m`" not in manual
+        assert "`legacy_no_code`" in manual
+
+
 class _FakeStreamlit:
     def __init__(self, session_state=None):
         self.session_state = session_state if session_state is not None else {}
@@ -344,11 +355,8 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
 
     for section in (english_controls, english_outlier, english_formal):
         assert "Joint Spot" in section
-        assert "complete Scheduled Pair" in section
     for section in (german_controls, german_outlier, german_formal):
         assert "Joint Spot" in section
-        assert "vollständige" in section
-        assert "Paar" in section
     assert "optional expert diagnostic tool" in english_outlier
     assert "not a routine step intended for every operator" in english_outlier
     assert "[Section 7.11](#sec-7-11)" in english_outlier
@@ -625,16 +633,16 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
         "How broadly and consistently does my receiver decode signals across confirmed opportunities?",
         "Where, when and how consistently is my transmitter decoded by receivers shown to be active?",
         "Did two local receive paths differ while observing the same remote transmissions?",
-        "Did two local transmit paths differ under simultaneous or tightly scheduled operation?",
+        "Did two local transmit paths differ in the same WSPR cycles?",
         "How does my complete station compare with one known station?",
         "How does my complete station compare with the observed nearby WSPR peers?",
     ):
         assert operating_question in DOC_EN
     for benchmark_family, benchmark_variant in (
-        ("RX Benchmark", "Hardware A/B"),
-        ("TX Benchmark", "Hardware A/B"),
-        ("RX/TX Benchmark", "Reference Station / Buddy Test"),
-        ("RX/TX Benchmark", "Local Median Neighborhood"),
+        ("RX Benchmark", "Reference Setup/Station"),
+        ("TX Benchmark", "Reference Setup/Station"),
+        ("RX/TX Benchmark", "Reference Setup/Station"),
+        ("RX/TX Benchmark", "Reference Neighbourhood (Local Median)"),
     ):
         assert (
             f'<span class="analysis-family">{benchmark_family}</span><br>'
@@ -820,77 +828,67 @@ def test_english_section_two_conclusions_use_scoped_callout_markup():
     )
     conclusion_opening = '<blockquote class="evidence-conclusion">'
 
-    assert section_two.count(conclusion_opening) == 9
+    assert section_two.count(conclusion_opening) == 8
     assert conclusion_opening not in before_section_two
     assert conclusion_opening not in section_three_and_later
 
 
 def test_english_playbooks_define_performance_opportunities_and_tx_ab_timing():
-    """Retain operator-facing eligibility and scheduled-pair safeguards."""
+    """Retain operator-facing eligibility and same-cycle safeguards."""
     rx_performance = DOC_EN.split('<a id="sec-3-rx-performance"></a>', 1)[1].split(
         '<a id="sec-3-tx-performance"></a>', 1
     )[0]
     tx_performance = DOC_EN.split('<a id="sec-3-tx-performance"></a>', 1)[1].split(
         '<a id="sec-3-rx-benchmark"></a>', 1
     )[0]
-    sequential_tx = DOC_EN.split(
-        '<a id="sec-3-tx-benchmark-sequential"></a>', 1
-    )[1].split('<a id="sec-3-tx-benchmark-buddy"></a>', 1)[0]
-
     assert "confirmed RX opportunity" in rx_performance
     assert "whether or not another RX also reports the peer TX" in rx_performance
     assert "both the transmitting peer TX and the receiving Target RX" in rx_performance
     assert "confirmed TX opportunity" in tx_performance
     assert "whether or not the peer RX also reports another transmitter" in tx_performance
     assert "not that this particular silent peer RX was listening" in tx_performance
-    assert "deterministic schedule" in sequential_tx
-    assert "one-to-one Scheduled A/B Pairs automatically" in sequential_tx
-    assert "actual recurrence" in DOC_EN
-    assert "UTC phase" in DOC_EN
-    assert "[Sections 7.1](#sec-7-1) and [7.7](#sec-7-7)" in DOC_EN
-    assert "#### C.3 Ultimate3S schedule example" in DOC_EN
-    assert "`Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`" in DOC_EN
-    assert "do not encode path identity through false dBm values" in DOC_EN
-    assert '<a id="sec-sequential-tx-setup-5"></a>' in DOC_EN
-    assert '<a id="sec-b-5"></a>' in DOC_EN
+    assert "same two-minute UTC archive slot" in DOC_EN
+    assert "exact remote callsign plus full reported locator" in DOC_EN
+    assert "Only Joint evidence supplies Delta SNR" in DOC_EN
+    assert "does not require identical RF frequencies" in DOC_EN
+    assert '<a id="sec-3-tx-benchmark-sequential"></a>' not in DOC_EN
 
 
-def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity():
-    """Keep simultaneous/sequential designs and exact identity safeguards aligned."""
-    expected_anchors = (
-        '<a id="sec-2-4-simultaneous"></a>',
-        '<a id="sec-2-4-sequential"></a>',
-        '<a id="sec-a-4"></a>',
-        '<a id="sec-simultaneous-tx-setup"></a>',
-        '<a id="sec-sequential-tx-setup"></a>',
-        '<a id="sec-reference-snr-calibration"></a>',
-    )
-    for manual in (DOC_EN, DOC_DE):
-        for anchor in expected_anchors:
-            assert anchor in manual
+def test_bilingual_benchmark_uses_two_reference_choices_and_same_cycle_evidence():
+    """Keep one fixed-Reference contract and preserve neighbourhood interpretation."""
+    for manual, fixed, local, controlled, independent, no_reports, source_error in (
+        (DOC_EN, "Reference Setup/Station", "Reference Neighbourhood",
+         "The intended difference is the component or path under test",
+         "distinct complete receiving stations", "no qualifying reports", "source error"),
+        (DOC_DE, "Referenzaufbau/-station", "Referenznachbarschaft",
+         "Der beabsichtigte Unterschied ist das untersuchte Bauteil oder der untersuchte Pfad",
+         "eigenständige vollständige Empfangsstationen", "ohne passende Meldungen", "Datenquellenfehler"),
+    ):
+        for phrase in (fixed, local, no_reports, source_error):
+            assert phrase in manual
+        fixed_reference_guidance = manual.split("##### 2.3.1", 1)[1].split("##### 2.3.2", 1)[0]
+        assert controlled in fixed_reference_guidance
+        assert independent in fixed_reference_guidance
+        assert '<a id="sec-simultaneous-tx-setup"></a>' in manual
+        assert '<a id="sec-reference-snr-calibration"></a>' in manual
+        assert '<a id="sec-sequential-tx-setup"></a>' not in manual
+        assert "Scheduled Pair" not in manual
         assert "100 Hz" in manual
-        assert "1450 Hz" not in manual
-        assert "1550 Hz" not in manual
+        assert "Both (Async)" in manual
         assert "Setup A" not in manual
         assert "Setup B" not in manual
-
-    assert "##### 2.4.1 Hardware A/B: simultaneous transmit paths" in DOC_EN
-    assert "##### 2.4.2 Hardware A/B: sequential transmit paths" in DOC_EN
-    assert "##### 2.4.1 Hardware A/B: simultane Sendepfade" in DOC_DE
-    assert "##### 2.4.2 Hardware A/B: sequenzielle Sendepfade" in DOC_DE
-    assert "different valid exact callsigns" in DOC_EN
-    assert "shared grid-4" in DOC_EN
-    german_simultaneous_playbook = DOC_DE.split(
-        '<a id="sec-3-tx-benchmark-simultaneous"></a>', 1
-    )[1].split('<a id="sec-3-tx-benchmark-sequential"></a>', 1)[0]
-    assert "exakten Rufzeichen" in german_simultaneous_playbook
-    assert "Grid-4" in german_simultaneous_playbook
-    assert "deterministic scheduled eligibility" in DOC_EN
-    assert "deterministische Zeitplanzulässigkeit" in DOC_DE
+    assert "##### 2.4.1 Reference Setup/Station" in DOC_EN
+    assert "##### 2.4.1 Referenzaufbau/-station" in DOC_DE
+    assert "Both arrangements use the same pairing algorithm." in DOC_EN
+    assert "Beide Anordnungen verwenden denselben Paarbildungsalgorithmus." in DOC_DE
+    assert "multiple candidates require your choice" in DOC_EN
+    assert "bei mehreren Kandidaten ist deine Auswahl erforderlich" in DOC_DE
+    assert "not proof of one physical site" in DOC_EN
+    assert "beweist keinen einzelnen physischen Standort" in DOC_DE
 
 
 def test_bilingual_manuals_define_practical_simultaneous_tx_setup_and_legacy_links():
-    """Pin the accepted A/B/C/D ownership, operating limits, and compatibility."""
+    """Pin retained simultaneous operating limits and practical supplements."""
     english_a4 = DOC_EN.split('<a id="sec-a-4"></a>', 1)[1].split(
         '<a id="sec-simultaneous-tx-setup"></a>', 1
     )[0]
@@ -915,10 +913,10 @@ def test_bilingual_manuals_define_practical_simultaneous_tx_setup_and_legacy_lin
 
     english_simultaneous = DOC_EN.split(
         '<a id="sec-simultaneous-tx-setup"></a>', 1
-    )[1].split('<a id="sec-sequential-tx-setup"></a>', 1)[0]
+    )[1].split('<a id="sec-reference-snr-calibration"></a>', 1)[0]
     german_simultaneous = DOC_DE.split(
         '<a id="sec-simultaneous-tx-setup"></a>', 1
-    )[1].split('<a id="sec-sequential-tx-setup"></a>', 1)[0]
+    )[1].split('<a id="sec-reference-snr-calibration"></a>', 1)[0]
 
     for simultaneous in (english_simultaneous, german_simultaneous):
         assert "100 Hz" in simultaneous
@@ -1210,50 +1208,21 @@ def test_bilingual_manuals_define_practical_simultaneous_tx_setup_and_legacy_lin
     assert "Joint-Meldungen im selben Zyklus" in german_zachtek
 
     for manual in (DOC_EN, DOC_DE):
-        simultaneous_anchor_position = manual.index(
-            '<a id="sec-simultaneous-tx-setup"></a>'
-        )
-        sequential_anchor_position = manual.index(
-            '<a id="sec-sequential-tx-setup"></a>'
-        )
-        calibration_anchor_position = manual.index(
+        assert manual.index('<a id="sec-simultaneous-tx-setup"></a>') < manual.index(
             '<a id="sec-reference-snr-calibration"></a>'
         )
-        assert (
-            simultaneous_anchor_position
-            < sequential_anchor_position
-            < calibration_anchor_position
-        )
-        sequential_compatibility_position = manual.index('<a id="sec-b"></a>')
-        calibration_compatibility_position = manual.index('<a id="sec-c"></a>')
-        assert (
-            sequential_compatibility_position < sequential_anchor_position
-            and sequential_anchor_position - sequential_compatibility_position < 200
-        )
-        assert (
-            calibration_compatibility_position < calibration_anchor_position
-            and calibration_anchor_position - calibration_compatibility_position < 200
-        )
-        for section_number in range(1, 6):
-            canonical_position = manual.index(
-                f'<a id="sec-sequential-tx-setup-{section_number}"></a>'
-            )
-            compatibility_position = manual.index(
-                f'<a id="sec-b-{section_number}"></a>'
-            )
-            assert compatibility_position < canonical_position
-            assert canonical_position - compatibility_position < 200
+        assert '<a id="sec-sequential-tx-setup"></a>' not in manual
 
 
 def test_bilingual_manuals_define_supported_exact_archive_identities():
     """Document letter-only and suffix forms as distinct exact archive tokens."""
     exact_identity_examples = (
-        "`CALLSIGN`",
-        "`CALLSIGN/1`",
-        "`CALLSIGN/2`",
-        "`CALLSIGN/P`",
-        "`CALLSIGN/QRP`",
-        "`CALLSIGN-1`",
+        "`CALL`",
+        "`CALL/1`",
+        "`CALL/2`",
+        "`CALL/P`",
+        "`CALL/QRP`",
+        "`CALL-1`",
     )
     for manual in (DOC_EN, DOC_DE):
         for identity in exact_identity_examples:
@@ -1490,7 +1459,7 @@ def test_bilingual_manuals_define_benchmark_evidence_science_and_limits():
         "Joint Evidence Share measures pairability",
         "It is not a Target win rate",
         "directional and asymmetric",
-        "a one-sided pair still has no Pair Delta",
+        "One-sided evidence still has no Delta SNR",
     )
     german_contract = (
         r"$$N_{i,b}=T_{i,b}+J_{i,b}+R_{i,b}$$",
@@ -1501,7 +1470,7 @@ def test_bilingual_manuals_define_benchmark_evidence_science_and_limits():
         "Joint-Evidenzanteil misst die Paarbarkeit",
         "keine Gewinnquote des Targets",
         "gerichtet und asymmetrisch",
-        "einseitiges Paar besitzt jedoch kein Paar-Delta",
+        "Einseitige Evidenz besitzt weiterhin kein Delta SNR",
     )
 
     for required_text in english_contract:
@@ -1529,7 +1498,6 @@ def test_bilingual_manuals_require_map_values_to_be_read_with_support():
             (
                 "callsign + full reported locator",
                 "Each identity must separately meet",
-                "minimum complete Scheduled-Pair count",
                 "exactly the identities counted",
                 "only one-sided evidence do not contribute",
                 "same callsign at different full locators counts separately",
@@ -1543,7 +1511,7 @@ def test_bilingual_manuals_require_map_values_to_be_read_with_support():
             (
                 "Rufzeichen + vollständig gemeldeter Locator",
                 "Jede Identität muss für sich",
-                "an vollständigen geplanten Paaren erfüllen",
+                "die konfigurierte Mindestzahl an Joint-Evidenz",
                 "Genau die Identitäten",
                 "ausschließlich einseitiger Evidenz tragen nicht",
                 "unterschiedlichen vollständigen Locatorn zählt getrennt",
@@ -1575,12 +1543,12 @@ def test_bilingual_manuals_explain_station_and_observation_benchmark_weighting()
     assert "two complementary compositions: station breadth and observation volume" in DOC_EN
     assert "Station Medians give each remote transmitter one Delta-SNR value" in DOC_EN
     assert "Joint-Spot distribution shows every paired observation" in DOC_EN
-    assert "station-level Decode Outcomes with the observation- or pair-level composition" in DOC_EN
+    assert "station-level Decode Outcomes with the observation-level composition" in DOC_EN
 
     assert "zwei ergänzende Zusammensetzungen: die Breite über Stationen und das Beobachtungsvolumen" in DOC_DE
     assert "Stationsmediane geben jedem entfernten Sender genau einen Delta-SNR-Wert" in DOC_DE
     assert "Verteilung der Joint Spots zeigt jede gepaarte Beobachtung" in DOC_DE
-    assert "stationsbezogenen Decode Outcomes mit der Zusammensetzung auf Beobachtungs- beziehungsweise Paarebene" in DOC_DE
+    assert "stationsbezogenen Decode Outcomes mit der Zusammensetzung auf Beobachtungsebene" in DOC_DE
 
 
 def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_policy():
@@ -1689,7 +1657,6 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
         "`Selected window: {start} to {end} UTC`",
         "changes only the displayed table and never the focused plots or completed analysis",
         "one actual Delta SNR dot per retained Joint Spot",
-        "one actual Pair Delta SNR dot per retained complete Scheduled Pair",
         "actual normalized Target SNR of each successful confirmed opportunity",
         "not untouched provider rows",
         "No bin median, IQR, density background, colorbar, full-run median",
@@ -1719,7 +1686,6 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
         "`Ausgewähltes Zeitfenster: {start} bis {end} UTC`",
         "verändert anschließend nur die angezeigte Tabelle und niemals die fokussierten Abbildungen oder die abgeschlossene Analyse",
         "einen tatsächlichen Delta-SNR-Punkt je beibehaltenem Joint Spot",
-        "einen tatsächlichen Paar-Delta-SNR-Punkt je beibehaltenem vollständigem geplanten Paar",
         "tatsächliche normierte Target-SNR jeder erfolgreichen bestätigten Gelegenheit",
         "keine unveränderten Provider-Zeilen",
         "Binmedian, IQR, Dichtehintergrund, Farbskala, Median des vollständigen Laufs",
@@ -1825,16 +1791,16 @@ def test_bilingual_manuals_define_saved_inspector_selection_contracts():
 
 
 def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():
-    """Describe fixed quantized boundaries without the retired rolling mode."""
-    assert "fixed 24-hour window ending at the current 15-minute UTC boundary" in DOC_EN
+    """Describe fixed minute-precision boundaries without the retired rolling mode."""
+    assert "fixed 24-hour window ending at the current UTC minute" in DOC_EN
     assert "**Start Date/Time (UTC)** and **End Date/Time (UTC)**" in DOC_EN
     assert "Dates begin in 2008; one run is limited to 31 elapsed days" in DOC_EN
-    assert "rounded down to effective 15-minute boundaries" in DOC_EN
+    assert "Entered times use minute precision and are preserved without rounding to 15-minute boundaries" in DOC_EN
 
-    assert "festes 24-Stunden-Fenster bis zur aktuellen 15-Minuten-UTC-Grenze" in DOC_DE
+    assert "festes 24-Stunden-Fenster bis zur aktuellen UTC-Minute" in DOC_DE
     assert "**Startdatum/-zeit (UTC)** und **Enddatum/-zeit (UTC)**" in DOC_DE
     assert "Datumswerte beginnen im Jahr 2008" in DOC_DE
-    assert "auf wirksame 15-Minuten-Grenzen abgerundet" in DOC_DE
+    assert "Eingegebene Zeiten bleiben mit Minutengenauigkeit erhalten, ohne Rundung auf 15-Minuten-Grenzen" in DOC_DE
     for retired_phrase in (
         "Last X Hours",
         "Last-X",
@@ -1866,7 +1832,7 @@ def test_bilingual_manuals_document_result_specific_population_defaults():
                 "remote peer callsigns beginning with Q, 0",
                 "transmitters in RX analyses and receivers in TX analyses",
                 "Target and Reference stations",
-                "Local Neighborhood reference contributors",
+                "Reference Neighbourhood reference contributors",
                 "remain eligible under this filter",
             ),
             "The prefix rule does not establish whether a station carries telemetry.",
@@ -1915,9 +1881,8 @@ def test_bilingual_manuals_document_classic_question_first_workflow():
     ):
         assert question in DOC_EN
     for benchmark_design in (
-        "`Hardware A/B`",
-        "`Known Reference Station`",
-        "`Local Neighborhood`",
+        "`Reference Setup/Station`",
+        "`Reference Neighbourhood`",
     ):
         assert benchmark_design in DOC_EN
     assert "first panel, **`Question`**" in DOC_EN
@@ -1932,9 +1897,8 @@ def test_bilingual_manuals_document_classic_question_first_workflow():
     ):
         assert question in DOC_DE
     for benchmark_design in (
-        "`Hardware A/B`",
-        "`Bekannte Referenzstation`",
-        "`Lokale Nachbarschaft`",
+        "`Referenzaufbau/-station`",
+        "`Referenznachbarschaft`",
     ):
         assert benchmark_design in DOC_DE
     assert "Im ersten Bereich **`Frage`**" in DOC_DE
@@ -2034,10 +1998,20 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
         in stylesheet
     )
     assert "border-spacing: 0 0.45rem !important" in stylesheet
-    assert ".analysis-choice-single" in stylesheet
-    assert ".analysis-family" in stylesheet
-    assert ".analysis-variant" in stylesheet
-    assert "white-space: nowrap !important" in stylesheet
+    # A wide viewport can still have narrow weighted table columns. All
+    # overview labels must wrap inside their own cells without a media query.
+    for label_class in ("analysis-choice-single", "analysis-family", "analysis-variant"):
+        selector = (
+            '.st-key-documentation_body '
+            'table[data-documentation-column-layout="section-0-1"] '
+            f'.{label_class}'
+        )
+        label_rule = re.search(re.escape(selector) + r"\s*\{([^{}]*)\}", stylesheet)
+        assert label_rule is not None
+        assert label_rule.start() < stylesheet.index("@media (max-width: 800px)")
+        assert "white-space: normal !important" in label_rule.group(1)
+        assert "overflow-wrap: anywhere !important" in label_rule.group(1)
+        assert "white-space: nowrap" not in label_rule.group(1)
     assert "tbody td:nth-child(2)" in stylesheet
     assert "tbody td:nth-child(3)" in stylesheet
     assert "@media (max-width: 800px)" in stylesheet
@@ -2132,10 +2106,7 @@ def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
         "sec-outlier-6",
         "sec-outlier-7",
         "sec-a",
-        "sec-b",
-        "sec-c",
         "sec-simultaneous-tx-setup",
-        "sec-sequential-tx-setup",
         "sec-reference-snr-calibration",
         "sec-d",
         "sec-ref",

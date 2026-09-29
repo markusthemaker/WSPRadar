@@ -34,7 +34,6 @@ STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (5, 4, 3)
 SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (9, 2)
 
 
-
 def prioritize_focused_station_identities(
     station_table,
     station_column,
@@ -234,7 +233,6 @@ def render_performance_station_insights(
             ),
             analysis_id=analysis_id,
             is_compare=False,
-            is_sequential=False,
             analysis_context=analysis_context,
         )
 
@@ -368,7 +366,6 @@ def render_benchmark_station_insights(
     analysis_id = context.analysis_id
     run_id = context.run_id
     t = context.translations
-    is_sequential = context.is_sequential
     analysis_context = context.analysis_context
     presentation_context = context.presentation_context
     timing_collector = context.timing_collector
@@ -439,7 +436,6 @@ def render_benchmark_station_insights(
             ),
             analysis_id=analysis_id,
             is_compare=True,
-            is_sequential=is_sequential,
             analysis_context=analysis_context,
             allows_multiple_station_selection=(
                 is_outlier_reporting_enabled
@@ -529,7 +525,6 @@ def render_benchmark_station_insights(
         render_reference_correction_notice(
             t,
             is_compare=True,
-            is_sequential=is_sequential,
             analysis_context=analysis_context,
         )
 

@@ -316,7 +316,6 @@ def _build_regression_report(
             "analysis_id": block.get("analysis_id"),
             "title": block.get("title"),
             "result_mode": block.get("result_mode", folder),
-            "is_sequential": block.get("is_sequential"),
             "performance_method_version": block.get(
                 "performance_method_version"
             ),
@@ -395,7 +394,6 @@ def _write_regression_report_markdown(path: Path, report: dict[str, Any]) -> Non
             f"## {block.get('folder')} - {block.get('title')}",
             "",
             f"- Result mode: {block.get('result_mode')}",
-            f"- Sequential: {block.get('is_sequential')}",
             f"- Segment: {block.get('selected_distance')} / {block.get('selected_direction')}",
             f"- Include Unpaired Evidence: {block.get('show_non_joint')}",
             f"- Evidence bin: {block.get('evidence_time_bin')}",
@@ -445,7 +443,6 @@ def _build_manifest(
             "folder": folder,
             "analysis_cache_file": block.get("analysis_cache_file"),
             "result_mode": block.get("result_mode", folder),
-            "is_sequential": block.get("is_sequential"),
             "performance_method_version": block.get(
                 "performance_method_version"
             ),

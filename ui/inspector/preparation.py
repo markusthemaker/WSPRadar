@@ -82,7 +82,7 @@ from ui.inspector.presentation import (
     selected_success_context_line,
 )
 
-INSPECTOR_CACHE_VERSION = 50
+INSPECTOR_CACHE_VERSION = 51
 INSPECTOR_CACHE_NAMESPACE_LIMITS = {
     "options": INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
     "segment": INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
@@ -359,8 +359,6 @@ def build_benchmark_drilldown_zoom_recipes(
     station_df,
     selected_identity_df,
     thresholded_station_rows,
-    is_sequential,
-    analysis_context,
     focus_window,
     focus_time_bin,
     full_delta_recipe,
@@ -382,17 +380,7 @@ def build_benchmark_drilldown_zoom_recipes(
     comparison_units = _build_compare_unit_rows(
         station_df,
         identity_meta,
-        is_sequential,
         paired_identity_df=identity_meta,
-        tx_ab_repeat_interval_minutes=(
-            analysis_context.tx_ab_repeat_interval_minutes
-        ),
-        tx_ab_target_start_minute=(
-            analysis_context.tx_ab_target_start_minute
-        ),
-        tx_ab_reference_start_minute=(
-            analysis_context.tx_ab_reference_start_minute
-        ),
     )
     comparison_units = _retain_thresholded_compare_outcomes(
         comparison_units,
@@ -467,9 +455,7 @@ def build_benchmark_drilldown_zoom_recipes(
                 )
 
         native_evidence_unit_minutes = (
-            analysis_context.tx_ab_repeat_interval_minutes
-            if is_sequential
-            else 2.0
+            2.0
         )
         outlier_overlay = build_drilldown_zoom_outlier_overlay_recipe(
             representative_utc=outlier_context.representative_utc,
@@ -530,11 +516,8 @@ def build_benchmark_drilldown_zoom_recipes(
             "fig_drilldown_native_benchmark_unavailable"
         ],
         evidence_unit_label=translations[
-            "fig_drilldown_native_scheduled_pair"
-            if is_sequential
-            else "fig_drilldown_native_joint_spot"
+            "fig_drilldown_native_joint_spot"
         ],
-        is_sequential=is_sequential,
         reference_snr_correction_notice=full_delta_recipe.get(
             "reference_snr_correction_notice",
             "",
@@ -896,7 +879,6 @@ class InspectorPreparation:
         presentation_context = context.presentation_context
         analysis_start_t = context.analysis_start_t
         analysis_end_t = context.analysis_end_t
-        is_sequential = context.is_sequential
         timing_collector = self.timing_collector
         selected_ranges = scope.selected_ranges
         selected_directions = scope.selected_directions
@@ -909,7 +891,7 @@ class InspectorPreparation:
             float(analysis_context.reference_snr_correction_db), 1,
         )
         reference_snr_correction_notice = configured_snr_correction_notice(
-            analysis_context, t, is_compare=True, is_sequential=is_sequential,
+            analysis_context, t, is_compare=True,
         )
         preferred_segment_time_bin = retained_time_bin
         (
@@ -935,10 +917,6 @@ class InspectorPreparation:
             applied_reference_snr_correction_db,
             tuple(selected_ranges),
             tuple(selected_directions),
-            bool(is_sequential),
-            int(analysis_context.tx_ab_repeat_interval_minutes),
-            int(analysis_context.tx_ab_target_start_minute),
-            int(analysis_context.tx_ab_reference_start_minute),
             str(analysis_start_t),
             str(analysis_end_t),
             retained_segment_time_bin_cache_token,
@@ -954,7 +932,6 @@ class InspectorPreparation:
             compare_view_model = build_compare_inspector_view_model(
                 df_seg,
                 analysis_id=analysis_id,
-                is_sequential=is_sequential,
                 analysis_context=analysis_context,
                 presentation_context=presentation_context,
             )
@@ -981,7 +958,6 @@ class InspectorPreparation:
                 (segment_comparison_units, segment_evidence_df,
                  outlier_model, outlier_report_view_model) = self._prepare_segment_comparison_units(
                     scope_rows, evidence_meta_df, parquet_path=parquet_path,
-                    is_sequential=is_sequential, analysis_context=analysis_context,
                     analysis_start_t=analysis_start_t, analysis_end_t=analysis_end_t,
                     outlier_detection_policy=outlier_detection_policy,
                 )
@@ -997,9 +973,7 @@ class InspectorPreparation:
                     max_dist_km=float("inf"),
                 )
                 joint_lbl = (
-                    t["tbl_col_joint_pairs"]
-                    if is_sequential
-                    else t["txt_joint"]
+                    t["txt_joint"]
                 )
                 async_lbl = t["leg_both_async"]
                 segment_panel_station_counts = [
@@ -1023,9 +997,7 @@ class InspectorPreparation:
                 segment_panel_series_labels = [
                     t["lbl_results_stations"],
                     (
-                        t["lbl_results_scheduled_pairs"]
-                        if is_sequential
-                        else t["lbl_results_spots"]
+                        t["lbl_results_spots"]
                     ),
                 ]
                 segment_station_total_count = sum(segment_panel_station_counts)
@@ -1036,7 +1008,6 @@ class InspectorPreparation:
                 segment_figure_recipe = _segment_figure_export_recipe(
                     title=title,
                     selected_segment=selected_seg,
-                    is_sequential=is_sequential,
                     reference_snr_correction_notice=(
                         reference_snr_correction_notice
                     ),
@@ -1056,9 +1027,7 @@ class InspectorPreparation:
                     panel_spot_counts=segment_panel_spot_counts,
                     panel_series_labels=segment_panel_series_labels,
                     paired_evidence_title=(
-                        t["fig_scheduled_pair_delta"]
-                        if is_sequential
-                        else t["fig_joint_spot_delta"]
+                        t["fig_joint_spot_delta"]
                     ),
                 )
                 station_summary = compare_metric_distribution_summary(
@@ -1069,9 +1038,7 @@ class InspectorPreparation:
                     joint_label=joint_lbl,
                 )
                 observation_summary_key = (
-                    "fmt_results_scheduled_pair_delta_summary"
-                    if is_sequential
-                    else "fmt_results_joint_spot_delta_summary"
+                    "fmt_results_joint_spot_delta_summary"
                 )
                 spot_summary = compare_metric_distribution_summary(
                     segment_raw_values,
@@ -1111,7 +1078,6 @@ class InspectorPreparation:
                         compare_coverage_figure_labels(
                             t,
                             analysis_id,
-                            is_sequential=is_sequential,
                             target_only_label=t[
                                 "leg_only_me"
                             ].format(
@@ -1140,20 +1106,12 @@ class InspectorPreparation:
                         figure_labels=compare_figure_labels,
                     )
                     del segment_comparison_units
-                    if is_sequential:
-                        temporal_count_label = t[
-                            "fig_scheduled_pair_count"
-                        ]
-                        temporal_density_label = t[
-                            "fig_relative_scheduled_pair_density"
-                        ]
-                    else:
-                        temporal_count_label = t[
-                            "fig_joint_spot_count"
-                        ]
-                        temporal_density_label = t[
-                            "fig_relative_joint_spot_density"
-                        ]
+                    temporal_count_label = t[
+                        "fig_joint_spot_count"
+                    ]
+                    temporal_density_label = t[
+                        "fig_relative_joint_spot_density"
+                    ]
                     with _timed_span(
                         timing_collector,
                         "segment temporal profiles build",
@@ -1224,9 +1182,7 @@ class InspectorPreparation:
                     analysis_start_utc=analysis_start_t,
                     analysis_end_utc=analysis_end_t,
                     paired_unit_cadence_minutes=(
-                        analysis_context.tx_ab_repeat_interval_minutes
-                        if is_sequential
-                        else 2.0
+                        2.0
                     ),
                     detection_policy=outlier_detection_policy,
                 )
@@ -1262,9 +1218,8 @@ class InspectorPreparation:
 
 
     def prepare_selected_benchmark_evidence(
-        self, station_df, selected_identity_df, is_sequential,
-        tx_ab_repeat_interval_minutes, tx_ab_target_start_minute,
-        tx_ab_reference_start_minute, *, t, analysis_id, cache_key,
+        self, station_df, selected_identity_df,
+         *, t, analysis_id, cache_key,
         analysis_context, preferred_time_bin, thresholded_station_rows=None,
         analysis_start_t=None, analysis_end_t=None, target_only_label=None,
         reference_only_label=None, outlier_model=None,
@@ -1287,7 +1242,6 @@ class InspectorPreparation:
             analysis_context,
             t,
             is_compare=True,
-            is_sequential=is_sequential,
         )
         (
             adaptive_time_agg_options,
@@ -1313,25 +1267,17 @@ class InspectorPreparation:
         )
         if not selected_cache_hit:
             comparison_units, evidence_df = self._prepare_selected_comparison_units(
-                station_df, identity_meta, is_sequential=is_sequential,
-                tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-                tx_ab_target_start_minute=tx_ab_target_start_minute,
-                tx_ab_reference_start_minute=tx_ab_reference_start_minute,
+                station_df, identity_meta,
                 thresholded_station_rows=thresholded_station_rows,
             )
 
-            if is_sequential:
-                count_label = t["fig_scheduled_pair_count"]
-                density_label = t["fig_relative_scheduled_pair_density"]
-            else:
-                count_label = t["fig_joint_spot_count"]
-                density_label = t["fig_relative_joint_spot_density"]
+            count_label = t["fig_joint_spot_count"]
+            density_label = t["fig_relative_joint_spot_density"]
             evidence_count = len(evidence_df)
             evidence_title = selected_evidence_figure_title(
                 identity_labels,
                 evidence_count,
                 analysis_id=analysis_id,
-                is_sequential=is_sequential,
                 translations=t,
                 allow_multiple=(outlier_model is not None),
             )
@@ -1347,7 +1293,6 @@ class InspectorPreparation:
                 evidence_df,
                 evidence_title,
                 time_agg_default,
-                is_sequential,
                 analysis_start_t=analysis_start_t,
                 analysis_end_t=analysis_end_t,
                 reference_snr_correction_db=(
@@ -1409,7 +1354,6 @@ class InspectorPreparation:
                     figure_labels=compare_coverage_figure_labels(
                         t,
                         analysis_id,
-                        is_sequential=is_sequential,
                         target_only_label=target_only_label,
                         joint_label=t["txt_joint"],
                         reference_only_label=reference_only_label,
@@ -1642,7 +1586,6 @@ class InspectorPreparation:
         }
 
 
-
     def _prepare_performance_rows(self, scope_rows, *, parquet_path, analysis_id, analysis_start_t, analysis_end_t):
         """Read projected rows and resolve UTC bounds without localized recipes."""
         df_seg = scope_rows
@@ -1701,8 +1644,8 @@ class InspectorPreparation:
         return rows, analysis_start_t, analysis_end_t
 
     def _prepare_segment_comparison_units(
-        self, scope_rows, evidence_meta_df, *, parquet_path, is_sequential,
-        analysis_context, analysis_start_t, analysis_end_t, outlier_detection_policy,
+        self, scope_rows, evidence_meta_df, *, parquet_path,
+        analysis_start_t, analysis_end_t, outlier_detection_policy,
     ):
         """Prepare canonical paired units and detector evidence before localization."""
         df_seg = scope_rows
@@ -1718,16 +1661,6 @@ class InspectorPreparation:
                 df_seg,
                 evidence_meta_df,
                 parquet_path,
-                is_sequential,
-                tx_ab_repeat_interval_minutes=(
-                    analysis_context.tx_ab_repeat_interval_minutes
-                ),
-                tx_ab_target_start_minute=(
-                    analysis_context.tx_ab_target_start_minute
-                ),
-                tx_ab_reference_start_minute=(
-                    analysis_context.tx_ab_reference_start_minute
-                ),
             )
             segment_evidence_df = _compare_joint_evidence_points(
                 segment_comparison_units,
@@ -1747,9 +1680,7 @@ class InspectorPreparation:
                             outlier_station_direction_lookup(df_seg)
                         ),
                         paired_unit_cadence_minutes=(
-                            analysis_context.tx_ab_repeat_interval_minutes
-                            if is_sequential
-                            else 2.0
+                            2.0
                         ),
                         detection_policy=outlier_detection_policy,
                     )
@@ -1763,9 +1694,8 @@ class InspectorPreparation:
                 outlier_model, outlier_report_view_model)
 
     def _prepare_selected_comparison_units(
-        self, station_df, identity_meta, *, is_sequential,
-        tx_ab_repeat_interval_minutes, tx_ab_target_start_minute,
-        tx_ab_reference_start_minute, thresholded_station_rows,
+        self, station_df, identity_meta, *,
+         thresholded_station_rows,
     ):
         """Prepare thresholded native paired evidence without localized recipes."""
         timing_collector = self.timing_collector
@@ -1776,11 +1706,7 @@ class InspectorPreparation:
             comparison_units = _build_compare_unit_rows(
                 station_df,
                 identity_meta,
-                is_sequential,
                 paired_identity_df=identity_meta,
-                tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-                tx_ab_target_start_minute=tx_ab_target_start_minute,
-                tx_ab_reference_start_minute=tx_ab_reference_start_minute,
             )
             comparison_units = _retain_thresholded_compare_outcomes(
                 comparison_units,
@@ -1822,17 +1748,16 @@ class InspectorPreparation:
             True, pd.DataFrame(), analysis_start_utc=context.analysis_start_t,
             analysis_end_utc=context.analysis_end_t,
             paired_unit_cadence_minutes=(
-                context.analysis_context.tx_ab_repeat_interval_minutes
-                if context.is_sequential else 2.0
+                2.0
             ),
             detection_policy=detection_policy,
         )
         report = build_delta_snr_outlier_report_view_model(model, pd.DataFrame())
         return model, report
 
-    def prepare_outlier_exports(self, model, report, *, is_sequential):
+    def prepare_outlier_exports(self, model, report):
         tables = build_delta_snr_outlier_export_tables(
-            model, report, is_sequential=is_sequential,
+            model, report,
         )
         metadata = build_delta_snr_outlier_export_metadata(model, tables)
         return tables, metadata
@@ -1881,15 +1806,10 @@ class InspectorPreparation:
             "km_col": distance_column,
             "az_col": azimuth_column,
             "analysis_id": context.analysis_id,
-            "is_sequential": bool(context.is_sequential) if context.is_compare else False,
             "show_non_joint": bool(context.is_compare),
             "is_local_median": is_local_median,
             "col_u_name": target_name,
             "ref_header": reference_header,
-            "tx_ab_repeat_interval_minutes": context.analysis_context.tx_ab_repeat_interval_minutes,
-            "tx_ab_target_start_minute": context.analysis_context.tx_ab_target_start_minute,
-            "tx_ab_reference_start_minute": context.analysis_context.tx_ab_reference_start_minute,
-            "target_callsign": context.analysis_context.callsign,
             "lang": language,
         }
 
@@ -1910,11 +1830,7 @@ class InspectorPreparation:
             context.parquet_path, selected_meta_export_df,
             export_station_column, station_view.locator_column,
             station_view.distance_column, station_view.azimuth_column,
-            context.analysis_id, False, False, False,
+            context.analysis_id, False, False,
             analysis_context.callsign.upper(), "", context.translations,
             station_rows_df=selected_station_rows_export,
-            tx_ab_repeat_interval_minutes=analysis_context.tx_ab_repeat_interval_minutes,
-            tx_ab_target_start_minute=analysis_context.tx_ab_target_start_minute,
-            tx_ab_reference_start_minute=analysis_context.tx_ab_reference_start_minute,
-            target_callsign=analysis_context.callsign,
         )

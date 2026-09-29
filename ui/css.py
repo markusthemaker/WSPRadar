@@ -178,6 +178,9 @@ def apply_custom_css():
             scroll-margin-top: 5rem;
             visibility: hidden;
         }
+        [data-testid="stExpander"]:has([data-page-navigation-token]) summary {
+            scroll-margin-top: 5rem;
+        }
         
         div.stButton > button[kind="primary"],
         div.stDownloadButton > button[kind="primary"],
@@ -936,7 +939,8 @@ def apply_custom_css():
             font-family: 'Space Mono', monospace !important;
             font-size: 0.9rem !important;
             font-weight: 700 !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
         }
         .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-choice {
             display: block !important;
@@ -954,7 +958,8 @@ def apply_custom_css():
             letter-spacing: 0.045em !important;
             line-height: 1.2 !important;
             text-transform: uppercase !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
         }
         .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-variant {
             display: block !important;
@@ -964,7 +969,8 @@ def apply_custom_css():
             font-size: 0.95rem !important;
             font-weight: 700 !important;
             line-height: 1.25 !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
         }
         @media (max-width: 800px) {
             .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td {

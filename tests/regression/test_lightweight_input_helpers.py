@@ -108,10 +108,10 @@ def test_grid4_helper_rejects_other_precision_ranges_and_unicode(grid4):
     assert not input_validation.is_valid_grid4(grid4)
 
 
-def test_time_quantization_floors_minutes_and_preserves_timezone():
-    """Idle-shell quantization keeps the original timezone-aware timestamp."""
+def test_minute_normalization_preserves_entered_minute_and_timezone():
+    """Discard only seconds from the original timezone-aware timestamp."""
     timestamp = datetime(2026, 7, 12, 14, 29, 59, 123456, tzinfo=timezone.utc)
 
-    quantized = time_utils.quantize_time(timestamp)
+    normalized = time_utils.floor_to_minute(timestamp)
 
-    assert quantized == datetime(2026, 7, 12, 14, 15, tzinfo=timezone.utc)
+    assert normalized == datetime(2026, 7, 12, 14, 29, tzinfo=timezone.utc)

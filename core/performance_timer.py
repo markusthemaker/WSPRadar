@@ -126,9 +126,6 @@ def process_peak_rss_bytes() -> int | None:
     return rss * 1024
 
 
-def _process_rss_bytes() -> int | None:
-    """Compatibility wrapper for existing profiler call sites."""
-    return process_rss_bytes()
 
 
 def _format_bytes(value: int | None) -> str:
@@ -244,7 +241,7 @@ class PerformanceTimer:
             MemorySample(
                 label=label,
                 dataframe_bytes=dataframe_bytes,
-                process_rss_bytes=_process_rss_bytes() if include_rss else None,
+                process_rss_bytes=process_rss_bytes() if include_rss else None,
                 rows=rows,
                 columns=columns,
                 detail=detail,

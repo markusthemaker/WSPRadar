@@ -24,10 +24,12 @@
         "tests/regression/test_success_evidence_rework.py",
         "tests/regression/test_success_input_terminology.py",
         "tests/regression/test_test_workspace.py",
-        "tests/regression/test_tx_ab_schedule.py",
         "tests/regression/test_url_browser_components.py",
         "tests/regression/test_temporal_bar_collections.py",
-        "tests/regression/test_performance_temporal_keys.py"
+        "tests/regression/test_performance_temporal_keys.py",
+        "tests/regression/test_reference_location.py",
+        "tests/regression/test_reference_location_ui.py",
+        "tests/regression/test_input_validation_state.py"
       ]
     },
     {
@@ -49,8 +51,7 @@
         "tests/regression/test_lightweight_input_helpers.py",
         "tests/regression/test_page_navigation.py",
         "tests/regression/test_provider_dispatch.py",
-        "tests/regression/test_public_entrypoint.py",
-        "tests/regression/test_timed_ab_relay_switch.py"
+        "tests/regression/test_public_entrypoint.py"
       ]
     },
     {
@@ -67,7 +68,6 @@
         "tests/regression/test_export_admission.py",
         "tests/regression/test_map_figure_lifecycle.py",
         "tests/regression/test_run_controller_data_source.py",
-        "tests/regression/test_tx_ab_inspector_pairing.py",
         "tests/regression/test_url_state.py"
       ]
     },

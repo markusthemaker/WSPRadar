@@ -60,7 +60,6 @@ if st.toggle("Show Drill-Down", key="show_drilldown"):
         scope_token,
         T["en"],
         True,
-        False,
         AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION),
         "en",
         analysis_start_utc=pd.Timestamp("2026-01-01T00:00:00Z"),

@@ -145,7 +145,6 @@ def register_benchmark_inspector_outputs(context, scope, selection, station_view
         delta_snr_outlier_export_tables, delta_snr_outlier_export_metadata = preparation.prepare_outlier_exports(
             prepared_segment.bundle.get("outlier_model"),
             prepared_segment.bundle.get("outlier_report_view_model"),
-            is_sequential=context.is_sequential,
         )
     register_inspector_export(
         InspectorExportPayload(

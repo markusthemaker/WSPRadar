@@ -2,7 +2,7 @@
 Benchmark-mode aggregation helpers for WSPRadar.
 
 This module keeps the A/B comparison science separate from map rendering:
-joint observations, non-joint evidence, sequential scheduled pairing, and segment
+joint observations, non-joint evidence, and segment
 medians are calculated here; plot_engine only draws the resulting tables.
 """
 
@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 
 from core.snr_utils import round_snr_like_columns
-from core.tx_ab_schedule import assign_tx_ab_pair_columns
 
 
 # Reported peer identity is exact callsign plus full locator, not a unique
@@ -52,150 +51,6 @@ def _compare_spatial_aggregation_columns(df: pd.DataFrame) -> dict[str, str]:
     if "best_ref_dist" in df.columns:
         spatial_agg["best_ref_dist"] = "first"
     return spatial_agg
-
-
-def _aggregate_periodic_sequential_compare(
-    df: pd.DataFrame,
-    *,
-    min_joint_pairs: int,
-    repeat_interval_minutes: int,
-    target_start_minute: int,
-    reference_start_minute: int,
-    group_keys: list[str],
-    spatial_agg: dict[str, str],
-) -> pd.DataFrame:
-    """Aggregate owned decoded rows by deterministic scheduled Target/Reference pair."""
-    work = df
-    if "tx_ab_pair_id" not in work.columns:
-        work = assign_tx_ab_pair_columns(
-            work,
-            repeat_interval_minutes=repeat_interval_minutes,
-            target_start_minute_utc=target_start_minute,
-            reference_start_minute_utc=reference_start_minute,
-        )
-
-    pair_keys = ["tx_ab_pair_id"] + group_keys
-    spatial_agg_named = {key: (key, value) for key, value in spatial_agg.items()}
-    pair_spatial = (
-        work.groupby(pair_keys, dropna=False)
-        .agg(**spatial_agg_named)
-        .reset_index()
-    )
-    target_pairs = (
-        work[work["is_me"] == 1]
-        .groupby(pair_keys, dropna=False)
-        .agg(
-            target_decode_count=("stat_val", "size"),
-            target_micro_median=("stat_val", "median"),
-        )
-        .reset_index()
-    )
-    reference_pairs = (
-        work[work["is_me"] == 0]
-        .groupby(pair_keys, dropna=False)
-        .agg(
-            reference_decode_count=("stat_val", "size"),
-            reference_micro_median=("stat_val", "median"),
-        )
-        .reset_index()
-    )
-    pairs = pd.merge(target_pairs, reference_pairs, on=pair_keys, how="outer")
-    pairs = pairs.merge(pair_spatial, on=pair_keys, how="left")
-    pairs["target_decode_count"] = pairs["target_decode_count"].fillna(0)
-    pairs["reference_decode_count"] = pairs["reference_decode_count"].fillna(0)
-    pairs["is_joint"] = (
-        (pairs["target_decode_count"] > 0)
-        & (pairs["reference_decode_count"] > 0)
-    )
-    pairs["target_only_pair"] = (
-        (pairs["target_decode_count"] > 0)
-        & (pairs["reference_decode_count"] == 0)
-    ).astype("int64")
-    pairs["reference_only_pair"] = (
-        (pairs["target_decode_count"] == 0)
-        & (pairs["reference_decode_count"] > 0)
-    ).astype("int64")
-    pairs["pair_delta"] = (
-        pairs["target_micro_median"] - pairs["reference_micro_median"]
-    )
-    pairs = round_snr_like_columns(
-        pairs,
-        columns=["pair_delta"],
-        owns_input=True,
-    )
-
-    joint_pairs = pairs[pairs["is_joint"]]
-    non_joint_pairs = pairs[~pairs["is_joint"]]
-    spatial_agg_first = {key: (key, "first") for key in spatial_agg.keys()}
-    aggregate_joint = (
-        joint_pairs.groupby(group_keys, dropna=False)
-        .agg(
-            joint_pairs_count=("tx_ab_pair_id", "size"),
-            target_decode_count=("target_decode_count", "sum"),
-            reference_decode_count=("reference_decode_count", "sum"),
-            stat_val=("pair_delta", "median"),
-            **spatial_agg_first,
-        )
-        .reset_index()
-    )
-    aggregate_non_joint = (
-        non_joint_pairs.groupby(group_keys, dropna=False)
-        .agg(
-            count_only_u=("target_only_pair", "sum"),
-            count_only_r=("reference_only_pair", "sum"),
-            **spatial_agg_first,
-        )
-        .reset_index()
-    )
-    aggregate = pd.merge(
-        aggregate_joint,
-        aggregate_non_joint,
-        on=group_keys,
-        how="outer",
-        suffixes=("", "_non_joint"),
-    )
-    for key in spatial_agg.keys():
-        duplicate_key = f"{key}_non_joint"
-        if duplicate_key in aggregate.columns:
-            aggregate[key] = aggregate[key].fillna(aggregate[duplicate_key])
-            aggregate = aggregate.drop(columns=[duplicate_key])
-
-    aggregate = aggregate.fillna(
-        {
-            "joint_pairs_count": 0,
-            "target_decode_count": 0,
-            "reference_decode_count": 0,
-            "count_only_u": 0,
-            "count_only_r": 0,
-        }
-    )
-    has_joint_evidence = aggregate["joint_pairs_count"] >= min_joint_pairs
-    has_target_only_evidence = aggregate["count_only_u"] >= min_joint_pairs
-    has_reference_only_evidence = aggregate["count_only_r"] >= min_joint_pairs
-
-    aggregate["stat_val"] = np.where(
-        has_joint_evidence,
-        aggregate["stat_val"],
-        np.nan,
-    )
-    # ``spot_count`` remains the shared downstream evidence-count field. For
-    # periodic TX A/B it deliberately counts joint scheduled pairs, not raw rows.
-    aggregate["spot_count"] = np.where(
-        has_joint_evidence,
-        aggregate["joint_pairs_count"],
-        0,
-    )
-    aggregate["count_only_u"] = np.where(
-        has_target_only_evidence,
-        aggregate["count_only_u"],
-        0,
-    )
-    aggregate["count_only_r"] = np.where(
-        has_reference_only_evidence,
-        aggregate["count_only_r"],
-        0,
-    )
-    return aggregate
 
 
 def _aggregate_simultaneous_compare(
@@ -244,12 +99,8 @@ def _aggregate_simultaneous_compare(
 def aggregate_compare_map_data(
     df: pd.DataFrame,
     *,
-    is_sequential: bool,
     min_spots: int,
     base_min_stations: int,
-    tx_ab_repeat_interval_minutes: int = 10,
-    tx_ab_target_start_minute: int = 0,
-    tx_ab_reference_start_minute: int = 2,
     owns_input: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -274,23 +125,12 @@ def aggregate_compare_map_data(
     base_min_stations = int(base_min_stations)
     spatial_agg = _compare_spatial_aggregation_columns(work)
 
-    if is_sequential:
-        df_agg = _aggregate_periodic_sequential_compare(
-            work,
-            min_joint_pairs=min_spots,
-            repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-            target_start_minute=tx_ab_target_start_minute,
-            reference_start_minute=tx_ab_reference_start_minute,
-            group_keys=COMPARE_GROUP_KEYS,
-            spatial_agg=spatial_agg,
-        )
-    else:
-        df_agg = _aggregate_simultaneous_compare(
-            work,
-            min_joint_spots=min_spots,
-            group_keys=COMPARE_GROUP_KEYS,
-            spatial_agg=spatial_agg,
-        )
+    df_agg = _aggregate_simultaneous_compare(
+        work,
+        min_joint_spots=min_spots,
+        group_keys=COMPARE_GROUP_KEYS,
+        spatial_agg=spatial_agg,
+    )
 
     df_plot = df_agg[
         (df_agg["spot_count"] > 0)

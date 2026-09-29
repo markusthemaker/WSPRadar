@@ -18,7 +18,7 @@ from core.map_models import MapData
 from core.result_diagnostics import ResultDiagnostic
 
 
-MAP_DATA_ARTIFACT_SCHEMA_VERSION = 1
+MAP_DATA_ARTIFACT_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -49,7 +49,6 @@ _COMPARE_STATION_COLUMNS = frozenset({
     "count_only_u",
     "count_only_r",
 })
-_SEQUENTIAL_COMPARE_STATION_COLUMNS = frozenset({"joint_pairs_count"})
 _OPPORTUNITY_STATION_COLUMNS = frozenset({
     "opportunities",
     "hits",
@@ -81,7 +80,6 @@ def _validate_map_data_frames(
     segment_rows: pd.DataFrame,
     *,
     is_compare: bool,
-    is_sequential: bool,
     analysis_kind: str,
 ) -> None:
     """Reject aggregate tables that cannot satisfy map and Inspector consumers."""
@@ -101,8 +99,6 @@ def _validate_map_data_frames(
         required_station_columns.update(_OPPORTUNITY_STATION_COLUMNS)
     else:
         required_station_columns.update(_COMPARE_STATION_COLUMNS)
-        if is_sequential:
-            required_station_columns.update(_SEQUENTIAL_COMPARE_STATION_COLUMNS)
     missing_station_columns = _missing_columns(
         station_rows,
         required_station_columns,
@@ -139,7 +135,6 @@ def write_map_data_artifacts(
         map_data.station_rows,
         map_data.segment_rows,
         is_compare=map_data.is_compare,
-        is_sequential=map_data.is_sequential,
         analysis_kind=map_data.analysis_kind,
     )
     station_rows_path = Path(paths.station_rows_path)
@@ -168,7 +163,6 @@ def read_map_data_artifacts(
     *,
     analysis_id: str,
     is_compare: bool,
-    is_sequential: bool,
     analysis_kind: str,
     diagnostic: ResultDiagnostic | None = None,
     artifact_reader: Callable = read_parquet_artifact,
@@ -180,7 +174,6 @@ def read_map_data_artifacts(
         station_rows,
         segment_rows,
         is_compare=is_compare,
-        is_sequential=is_sequential,
         analysis_kind=analysis_kind,
     )
     return MapData(
@@ -188,7 +181,6 @@ def read_map_data_artifacts(
         segment_rows=segment_rows,
         analysis_id=str(analysis_id),
         is_compare=bool(is_compare),
-        is_sequential=bool(is_sequential),
         analysis_kind=str(analysis_kind),
         diagnostic=diagnostic,
     )

@@ -3,13 +3,38 @@ import math
 import pandas as pd
 import pytest
 
-from core.analysis_context import AnalysisContext, COMPARISON_HARDWARE_AB
+from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
 from core.compare_engine import aggregate_compare_map_data, compare_footer_counts
 from core.map_data import build_map_data_result
 from core.presentation_context import PresentationContext
 from core.result_diagnostics import BENCHMARK_NO_QUALIFYING_RESULT
 from i18n import T
 from ui.inspector.view_models import build_compare_inspector_view_model
+from ui.inspector.evidence_data import _build_compare_unit_rows
+
+
+def test_m7aeo_different_reported_grids_cannot_create_false_joint_evidence():
+    """Keep IO82 and RK76 distinct even with one callsign and one WSPR cycle."""
+    identities = pd.DataFrame({
+        "peer_sign": ["M7AEO", "M7AEO"],
+        "peer_grid": ["IO82", "RK76"],
+    })
+    observations = identities.assign(
+        time_slot=12345,
+        has_u=[1, 0],
+        has_r=[0, 1],
+        snr_u_norm=[-10.0, float("nan")],
+        snr_r_norm=[float("nan"), -12.0],
+    )
+
+    units = _build_compare_unit_rows(observations, identities)
+
+    assert len(units) == 2
+    assert units.set_index("peer_grid")["outcome"].to_dict() == {
+        "IO82": "target_only",
+        "RK76": "reference_only",
+    }
+    assert units["metric"].isna().all()
 
 
 def _base_row(peer_sign="K1AAA", peer_grid="FN31aa"):
@@ -31,7 +56,7 @@ def _base_row(peer_sign="K1AAA", peer_grid="FN31aa"):
 
 def _identity_evidence_rows(
     *,
-    is_sequential,
+
     peer_sign="K1AAA",
     peer_grid="JO31AA",
     paired_deltas_db=(),
@@ -50,31 +75,17 @@ def _identity_evidence_rows(
         pair_start_utc = pd.Timestamp("2026-05-27T12:00:00Z") + pd.Timedelta(
             minutes=10 * observation_index
         )
-        if is_sequential:
-            for role, snr_db, offset_minutes in (
-                (1, target_snr_db, 0),
-                (0, reference_snr_db, 2),
-            ):
-                if snr_db is not None:
-                    evidence_rows.append({
-                        **peer_fields,
-                        "time": pair_start_utc + pd.Timedelta(minutes=offset_minutes),
-                        "is_me": role,
-                        "stat_val": snr_db,
-                    })
-        else:
-            evidence_rows.append({
-                **peer_fields,
-                "time": pair_start_utc,
-                "has_u": int(target_snr_db is not None),
-                "has_r": int(reference_snr_db is not None),
-                "snr_u_norm": target_snr_db,
-                "snr_r_norm": reference_snr_db,
-            })
+        evidence_rows.append({
+            **peer_fields,
+            "time": pair_start_utc,
+            "has_u": int(target_snr_db is not None),
+            "has_r": int(reference_snr_db is not None),
+            "snr_u_norm": target_snr_db,
+            "snr_r_norm": reference_snr_db,
+        })
     return evidence_rows
 
 
-@pytest.mark.parametrize("is_sequential", [False, True])
 @pytest.mark.parametrize("first_identity_depth", [1, 5])
 @pytest.mark.parametrize(
     ("second_callsign", "second_locator"),
@@ -82,16 +93,16 @@ def _identity_evidence_rows(
     ids=["same-callsign-different-full-locator", "different-callsign-same-locator"],
 )
 def test_compare_segment_support_counts_the_station_medians_it_weights(
-    is_sequential, first_identity_depth, second_callsign, second_locator
+     first_identity_depth, second_callsign, second_locator
 ):
     """Count each exact callsign/locator once, independent of evidence depth."""
     observations = pd.DataFrame(
         _identity_evidence_rows(
-            is_sequential=is_sequential,
+
             paired_deltas_db=[2.0] * first_identity_depth,
         )
         + _identity_evidence_rows(
-            is_sequential=is_sequential,
+
             peer_sign=second_callsign,
             peer_grid=second_locator,
             paired_deltas_db=[4.0],
@@ -100,7 +111,7 @@ def test_compare_segment_support_counts_the_station_medians_it_weights(
 
     station_rows, segments = aggregate_compare_map_data(
         observations,
-        is_sequential=is_sequential,
+
         min_spots=1,
         base_min_stations=2,
     )
@@ -122,7 +133,7 @@ def test_compare_segment_support_counts_the_station_medians_it_weights(
 
     stricter_station_rows, stricter_segments = aggregate_compare_map_data(
         observations,
-        is_sequential=is_sequential,
+
         min_spots=1,
         base_min_stations=3,
     )
@@ -131,25 +142,24 @@ def test_compare_segment_support_counts_the_station_medians_it_weights(
     pd.testing.assert_frame_equal(stricter_station_rows, station_rows)
 
 
-@pytest.mark.parametrize("is_sequential", [False, True])
 def test_compare_station_evidence_floor_cannot_pool_locators_of_one_callsign(
-    is_sequential,
+
 ):
     """Two below-floor identities cannot jointly qualify through their callsign."""
     observations = pd.DataFrame(
         _identity_evidence_rows(
-            is_sequential=is_sequential,
+
             paired_deltas_db=[2.0],
             target_only_count=2,
         )
         + _identity_evidence_rows(
-            is_sequential=is_sequential,
+
             peer_grid="JO31AB",
             paired_deltas_db=[4.0],
             reference_only_count=2,
         )
         + _identity_evidence_rows(
-            is_sequential=is_sequential,
+
             peer_sign="K2BBB",
             paired_deltas_db=[6.0, 6.0],
         )
@@ -157,7 +167,7 @@ def test_compare_station_evidence_floor_cannot_pool_locators_of_one_callsign(
 
     station_rows, segments = aggregate_compare_map_data(
         observations,
-        is_sequential=is_sequential,
+
         min_spots=2,
         base_min_stations=1,
     )
@@ -178,26 +188,25 @@ def test_compare_station_evidence_floor_cannot_pool_locators_of_one_callsign(
 
     _, stricter_segments = aggregate_compare_map_data(
         observations,
-        is_sequential=is_sequential,
+
         min_spots=2,
         base_min_stations=2,
     )
     assert stricter_segments.empty
 
 
-@pytest.mark.parametrize("is_sequential", [False, True])
-def test_compare_one_sided_identities_do_not_support_paired_segments(is_sequential):
+def test_compare_one_sided_identities_do_not_support_paired_segments():
     """Retain directional outcomes without increasing paired segment support."""
     observations = pd.DataFrame(
-        _identity_evidence_rows(is_sequential=is_sequential, paired_deltas_db=[2.0])
+        _identity_evidence_rows( paired_deltas_db=[2.0])
         + _identity_evidence_rows(
-            is_sequential=is_sequential, peer_grid="JO31AB", target_only_count=1
+             peer_grid="JO31AB", target_only_count=1
         )
         + _identity_evidence_rows(
-            is_sequential=is_sequential, peer_grid="JO31AC", reference_only_count=1
+             peer_grid="JO31AC", reference_only_count=1
         )
         + _identity_evidence_rows(
-            is_sequential=is_sequential,
+
             peer_grid="JO31AD",
             target_only_count=1,
             reference_only_count=1,
@@ -206,7 +215,7 @@ def test_compare_one_sided_identities_do_not_support_paired_segments(is_sequenti
 
     station_rows, segments = aggregate_compare_map_data(
         observations,
-        is_sequential=is_sequential,
+
         min_spots=1,
         base_min_stations=1,
     )
@@ -224,23 +233,22 @@ def test_compare_one_sided_identities_do_not_support_paired_segments(is_sequenti
 
     _, stricter_segments = aggregate_compare_map_data(
         observations,
-        is_sequential=is_sequential,
+
         min_spots=1,
         base_min_stations=2,
     )
     assert stricter_segments.empty
 
 
-@pytest.mark.parametrize("is_sequential", [False, True])
 @pytest.mark.parametrize("language", ["en", "de"])
 def test_compare_map_and_inspector_retain_same_callsign_at_two_full_locators(
-    is_sequential, language
+     language
 ):
     """Recover the qualified map and preserve both identities in the Inspector."""
     observations = pd.DataFrame(
-        _identity_evidence_rows(is_sequential=is_sequential, paired_deltas_db=[2.0])
+        _identity_evidence_rows( paired_deltas_db=[2.0])
         + _identity_evidence_rows(
-            is_sequential=is_sequential, peer_grid="JO31AB", paired_deltas_db=[4.0]
+             peer_grid="JO31AB", paired_deltas_db=[4.0]
         )
     )
     observations["peer_lat"] = observations["peer_grid"].map(
@@ -248,17 +256,17 @@ def test_compare_map_and_inspector_retain_same_callsign_at_two_full_locators(
     )
     observations["peer_lon"] = 6.0 + 1.0 / 24.0
     map_arguments = {
-        "analysis_id": "TX_COMP" if is_sequential else "RX_COMP",
+        "analysis_id": "RX_COMP",
         "is_compare": True,
-        "is_sequential": is_sequential,
+
         "analysis_kind": "comparison",
         "center_latitude": 48.0,
         "center_longitude": 11.0,
         "min_spots": 1,
         "min_opportunities": 5,
-        "tx_ab_repeat_interval_minutes": 10,
-        "tx_ab_target_start_minute": 0,
-        "tx_ab_reference_start_minute": 2,
+
+
+
     }
 
     build_result = build_map_data_result(
@@ -274,11 +282,11 @@ def test_compare_map_and_inspector_retain_same_callsign_at_two_full_locators(
     inspector = build_compare_inspector_view_model(
         map_data.station_rows,
         analysis_id=map_arguments["analysis_id"],
-        is_sequential=is_sequential,
+
         analysis_context=AnalysisContext(
             callsign="DL1MKS",
             reference_callsign="DL2ABC",
-            comparison_mode=COMPARISON_HARDWARE_AB,
+            comparison_mode=COMPARISON_REFERENCE_STATION,
         ),
         presentation_context=PresentationContext(
             solar_label="", language=language, labels=T[language]
@@ -310,7 +318,7 @@ def test_simultaneous_compare_aggregation_preserves_joint_and_non_joint_counts()
 
     df_plot, segs = aggregate_compare_map_data(
         pd.DataFrame(rows),
-        is_sequential=False,
+
         min_spots=1,
         base_min_stations=1,
     )
@@ -355,7 +363,7 @@ def test_simultaneous_compare_aggregation_respects_input_ownership():
 
     copied_station_rows, copied_segments = aggregate_compare_map_data(
         source,
-        is_sequential=False,
+
         min_spots=1,
         base_min_stations=1,
     )
@@ -365,7 +373,7 @@ def test_simultaneous_compare_aggregation_respects_input_ownership():
     owned_source = original.copy(deep=True)
     owned_station_rows, owned_segments = aggregate_compare_map_data(
         owned_source,
-        is_sequential=False,
+
         min_spots=1,
         base_min_stations=1,
         owns_input=True,
@@ -414,85 +422,3 @@ def test_compare_footer_counts_preserve_async_spot_bucket_for_joint_stations():
     assert counts["spot_only_r"] == 1
     assert counts["tot_stats"] == 2
     assert counts["tot_spots"] == 4
-
-
-def test_four_minute_demo_schedule_counts_each_planned_pair():
-    """Keep demo 09 on scheduled-pair rather than fixed-bin aggregation."""
-    rows = [
-        {**_base_row(), "time": "2026-05-27 12:00:00+00:00", "is_me": 1, "stat_val": -10.0},
-        {**_base_row(), "time": "2026-05-27 12:02:00+00:00", "is_me": 0, "stat_val": -12.0},
-        {**_base_row(), "time": "2026-05-27 12:04:00+00:00", "is_me": 1, "stat_val": -8.0},
-        {**_base_row(), "time": "2026-05-27 12:06:00+00:00", "is_me": 0, "stat_val": -11.0},
-    ]
-
-    df_plot, segs = aggregate_compare_map_data(
-        pd.DataFrame(rows),
-        is_sequential=True,
-        min_spots=1,
-        base_min_stations=1,
-        tx_ab_repeat_interval_minutes=4,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-
-    station = df_plot.iloc[0]
-    assert int(station["joint_pairs_count"]) == 2
-    assert int(station["spot_count"]) == 2
-    assert int(station["count_only_u"]) == 0
-    assert int(station["count_only_r"]) == 0
-    assert math.isclose(float(station["stat_val"]), 2.5, abs_tol=0.001)
-    assert math.isclose(float(segs.iloc[0]["val"]), 2.5, abs_tol=0.001)
-
-
-def test_periodic_sequential_compare_uses_micro_medians_and_counts_pairs():
-    rows = [
-        {
-            **_base_row(),
-            "time": "2026-05-27 12:00:00+00:00",
-            "is_me": 1,
-            "stat_val": -10.0,
-        },
-        {
-            **_base_row(),
-            "time": "2026-05-27 12:00:20+00:00",
-            "is_me": 1,
-            "stat_val": -8.0,
-        },
-        {
-            **_base_row(),
-            "time": "2026-05-27 12:02:00+00:00",
-            "is_me": 0,
-            "stat_val": -12.0,
-        },
-        {
-            **_base_row(),
-            "time": "2026-05-27 12:10:00+00:00",
-            "is_me": 1,
-            "stat_val": -6.0,
-        },
-        {
-            **_base_row(),
-            "time": "2026-05-27 12:22:00+00:00",
-            "is_me": 0,
-            "stat_val": -15.0,
-        },
-    ]
-
-    station_rows, segments = aggregate_compare_map_data(
-        pd.DataFrame(rows),
-        is_sequential=True,
-        min_spots=1,
-        base_min_stations=1,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-
-    station = station_rows.iloc[0]
-    assert int(station["joint_pairs_count"]) == 1
-    assert int(station["spot_count"]) == 1
-    assert int(station["count_only_u"]) == 1
-    assert int(station["count_only_r"]) == 1
-    assert int(station["target_decode_count"]) == 2
-    assert math.isclose(float(station["stat_val"]), 3.0, abs_tol=0.001)
-    assert math.isclose(float(segments.iloc[0]["val"]), 3.0, abs_tol=0.001)

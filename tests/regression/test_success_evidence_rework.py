@@ -1685,16 +1685,16 @@ def test_success_temporal_recipe_precomputes_only_adaptive_profiles(
     assert recipe["time_bin"] == expected_default
 
 
-def test_success_temporal_recipe_retains_legacy_bin_only_when_explicit():
-    """Precompute a legacy profile only to preserve an explicit saved choice."""
+def test_success_temporal_recipe_retains_supported_off_tier_bin_only_when_explicit():
+    """Precompute a supported off-tier profile to preserve an explicit choice."""
     recipe = _temporal_recipe_for_test(
         start_t="2026-07-10T00:00:00Z",
         end_t="2026-07-18T00:00:00Z",
-        retained_time_bin="15m",
+        retained_time_bin="10m",
     )
 
     assert recipe["time_bin_options"] == [
-        "15m",
+        "10m",
         "1h",
         "2h",
         "3h",

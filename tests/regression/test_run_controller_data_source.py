@@ -207,7 +207,7 @@ def _analysis(analysis_id, title):
         "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
         "decode_filter_mode": DECODE_FILTER_STRICT,
         "is_compare": is_compare,
-        "is_sequential": False,
+
         "analysis_kind": "comparison" if is_compare else "opportunity",
         "result_family": "benchmark" if is_compare else "performance",
         "response_format": "csv" if is_compare else "parquet",
@@ -1447,7 +1447,7 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
         }),
         analysis_id="RX_COMP",
         is_compare=True,
-        is_sequential=False,
+
         analysis_kind="comparison",
     )
     run_controller.write_map_data_artifacts(
@@ -2150,7 +2150,7 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         segment_rows=segment_rows,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
     prepared_bundle = PreparedProviderBundle(
@@ -2284,7 +2284,7 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         "snapshot published",
     ]
     assert map_read_calls == [(evidence_path, list(run_controller.map_preparation_columns(
-        analysis_kind="opportunity", is_compare=False, is_sequential=False,
+        analysis_kind="opportunity", is_compare=False,
     )))]
     assert len(rendered_map_blocks) == 1
     assert rendered_map_blocks[0]["map_data_paths"] == map_paths
@@ -2454,7 +2454,6 @@ def test_malformed_numeric_csv_restarts_complete_bundle_on_wd2(
         _analysis("TX_COMP", "TX Compare"),
     ]
     for analysis in analyses:
-        analysis["is_sequential"] = True
         analysis.pop("legacy_query")
         analysis.pop("legacy_decode_filter_mode")
 
@@ -2488,8 +2487,8 @@ def test_malformed_numeric_csv_restarts_complete_bundle_on_wd2(
             statistic = "-8.4"
 
         payload = (
-            "time,peer_sign,peer_grid,peer_lat,peer_lon,snr,power,stat_val,is_me\n"
-            f"2026-09-01 00:00:00,{peer_sign},FN31,41.5,-72.5,-12,23,{statistic},1\n"
+            "time_slot,peer_sign,peer_grid,peer_lat,peer_lon,snr_u_norm,snr_r_norm,has_u,has_r,best_ref_sign,best_ref_dist\n"
+            f"14901840,{peer_sign},FN31,41.5,-72.5,{statistic},-15.0,1,1,K9REF,0\n"
         ).encode("utf-8")
         return nullcontext(SimpleNamespace(
             status_code=200,
@@ -2502,7 +2501,7 @@ def test_malformed_numeric_csv_restarts_complete_bundle_on_wd2(
         peer_sign = frame.loc[0, "peer_sign"]
         if peer_sign == "K1AAA" and analysis["id"] == "TX_COMP":
             pytest.fail("Malformed primary rows reached scientific filtering")
-        filtered_rows.append((peer_sign, analysis["id"], frame.loc[0, "stat_val"]))
+        filtered_rows.append((peer_sign, analysis["id"], frame.loc[0, "snr_u_norm"]))
         if peer_sign == "K1AAA":
             return frame, None
         # Complete the replacement bundle through the real no-data path while

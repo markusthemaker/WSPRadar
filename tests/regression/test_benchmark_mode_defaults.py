@@ -12,7 +12,7 @@ from config.delta_snr_outlier import (
     DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
 )
 from core.analysis_context import COMPARISON_NONE
-from i18n import GUIDED_INPUTS, LEGACY_LOCALIZED_STATE_VALUES, T
+from i18n import GUIDED_INPUTS, T
 from ui import callbacks, state_manager
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.classic_input_state import is_classic_input_ready
@@ -20,8 +20,6 @@ from ui.components import config_fields, config_panel
 from ui.components.config_panel import (
     _benchmark_mode_options,
     _comparison_column_widths,
-    _tx_ab_threshold_label_and_help,
-    _tx_ab_schedule_preview,
 )
 from ui.config_io import MODE_KEYS, _default_config
 
@@ -48,7 +46,6 @@ class _NullContext:
 def test_classic_benchmark_design_excludes_canonical_performance_mode():
     canonical_modes = [
         "none",
-        "hardware_ab",
         "reference_station",
         "local_neighborhood",
     ]
@@ -63,17 +60,15 @@ def test_classic_benchmark_design_excludes_canonical_performance_mode():
         (
             "en",
             (
-                "Hardware A/B",
-                "Known Reference Station",
-                "Local Neighborhood",
+                "Reference Setup/Station",
+                "Reference Neighbourhood",
             ),
         ),
         (
             "de",
             (
-                "Hardware A/B",
-                "Bekannte Referenzstation",
-                "Lokale Nachbarschaft",
+                "Referenzaufbau/-station",
+                "Referenznachbarschaft",
             ),
         ),
     ],
@@ -83,7 +78,7 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
     language,
     expected_labels,
 ):
-    """Offer only the three localized designs after Benchmark is selected."""
+    """Offer only the two localized designs after Benchmark is selected."""
     benchmark_selector = Mock()
     session_state = _SessionState(
         {
@@ -108,7 +103,6 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
 
     positional_args, keyword_args = benchmark_selector.call_args
     canonical_modes = [
-        "hardware_ab",
         "reference_station",
         "local_neighborhood",
     ]
@@ -274,13 +268,11 @@ def test_classic_headings_and_target_labels_are_task_oriented(
                 "lbl_end_t": "End Time (UTC)",
                 "lbl_benchmark_offset_db": "Reference-side SNR correction (dB)",
                 "lbl_reference_callsign": "Reference callsign",
-                "lbl_reference_grid4": "Reference Locator",
                 "lbl_solar": "Solar state at Target QTH",
                 "lbl_max_dist": "Maximum peer distance from Target (km)",
                 "lbl_min_spots": "Minimum joint evidence per station",
                 "lbl_min_opportunities": "Minimum confirmed opportunities per station",
                 "lbl_min_stations": "Minimum qualifying stations per map segment",
-                "cfg_min_joint_pairs": "Minimum scheduled pairs per station",
             },
         ),
         (
@@ -293,13 +285,11 @@ def test_classic_headings_and_target_labels_are_task_oriented(
                 "lbl_end_t": "Endzeit (UTC)",
                 "lbl_benchmark_offset_db": "Referenzseitige SNR-Korrektur (dB)",
                 "lbl_reference_callsign": "Referenz-Rufzeichen",
-                "lbl_reference_grid4": "Referenz-Locator",
                 "lbl_solar": "Sonnenstand am Target-QTH",
                 "lbl_max_dist": "Maximale Peer-Entfernung vom Target (km)",
                 "lbl_min_spots": "Minimale Joint-Evidenz pro Station",
                 "lbl_min_opportunities": "Minimale bestätigte Gelegenheiten pro Station",
                 "lbl_min_stations": "Minimale qualifizierte Stationen pro Kartensegment",
-                "cfg_min_joint_pairs": "Minimale geplante Paare pro Station",
             },
         ),
     ],
@@ -608,7 +598,7 @@ def test_classic_readiness_validates_detector_policy_only_when_enabled():
     state = {
         "classic_question": "rx_benchmark",
         "val_analysis_direction": "rx",
-        "val_comp_mode": "hardware_ab",
+        "val_comp_mode": "reference_station",
         "val_report_delta_snr_outlier_candidates": False,
         "val_delta_snr_outlier_minimum_departure_db": 0.0,
     }
@@ -696,15 +686,6 @@ def test_classic_advanced_outlier_reporting_is_benchmark_only(
         outlier_field.assert_called_once_with(T["en"])
 
 
-@pytest.mark.parametrize("language", ["en", "de"])
-def test_tx_ab_threshold_wording_describes_scheduled_pairs(language):
-    """Do not describe scheduled pairs as joint spots."""
-    labels = T[language]
-
-    assert _tx_ab_threshold_label_and_help(labels) == (
-        labels["cfg_min_joint_pairs"],
-        labels["hlp_min_joint_pairs"],
-    )
 
 
 @pytest.mark.parametrize(
@@ -727,7 +708,6 @@ def test_shared_evidence_fields_render_only_the_active_result_threshold(
         {
             "val_comp_mode": comparison_mode,
             "val_analysis_direction": "rx",
-            "val_tx_ab_method": "simultaneous",
             "val_min_spots": 1,
             "val_min_opportunities": 5,
             "val_min_stations": 1,
@@ -755,9 +735,9 @@ def test_shared_evidence_fields_render_only_the_active_result_threshold(
 @pytest.mark.parametrize(
     ("analysis_direction", "comparison_mode", "tx_ab_method"),
     [
-        ("rx", "hardware_ab", "simultaneous"),
-        ("tx", "hardware_ab", "simultaneous"),
-        ("tx", "hardware_ab", "sequential"),
+        ("rx", "reference_station", "simultaneous"),
+        ("tx", "reference_station", "simultaneous"),
+        ("tx", "reference_station", "sequential"),
         ("rx", "reference_station", "simultaneous"),
         ("tx", "reference_station", "simultaneous"),
         ("rx", "local_neighborhood", "simultaneous"),
@@ -778,7 +758,6 @@ def test_benchmark_segment_threshold_help_uses_reported_peer_identity(
         {
             "val_comp_mode": comparison_mode,
             "val_analysis_direction": analysis_direction,
-            "val_tx_ab_method": tx_ab_method,
             "val_min_spots": 1,
             "val_min_opportunities": 5,
             "val_min_stations": 2,
@@ -843,7 +822,7 @@ def test_guided_scope_fields_use_two_equal_columns(monkeypatch):
     monkeypatch.setattr(
         config_panel,
         "st",
-        SimpleNamespace(columns=columns, selectbox=selectbox),
+        SimpleNamespace(session_state=_SessionState(), columns=columns, selectbox=selectbox),
     )
 
     config_fields.render_scope_fields(
@@ -866,7 +845,6 @@ def test_guided_evidence_fields_use_two_equal_columns(monkeypatch):
         {
             "val_comp_mode": "reference_station",
             "val_analysis_direction": "rx",
-            "val_tx_ab_method": "simultaneous",
             "val_min_spots": 1,
             "val_min_opportunities": 5,
             "val_min_stations": 1,
@@ -902,18 +880,16 @@ def test_callsign_entry_guidance_recommends_standard_forms_in_both_languages(
     """Explain letter-only and suffix forms without treating aliases as equivalent."""
     labels = T[language]
 
-    assert "KFS" in labels["hlp_callsign_entry"]
-    assert "DL1MKS/P" in labels["hlp_callsign_entry"]
-    assert "DL1MKS-1" in labels["hlp_callsign_entry"]
-    assert "standard" in labels["hlp_callsign_entry"].lower()
+    assert "CALL" in labels["hlp_callsign_entry"]
+    assert "CALL/P" in labels["hlp_callsign_entry"]
+    assert "CALL-1" in labels["hlp_callsign_entry"]
     assert "distinct" in labels["hlp_callsign_entry"].lower() or "eigene" in labels[
         "hlp_callsign_entry"
     ].lower()
-    assert "DL1MKS/P" in labels["ph_reference_callsign"]
-    assert "DL1MKS-1" in labels["ph_reference_callsign"]
+    assert "CALL/P" in labels["ph_reference_callsign"]
     guided_messages = GUIDED_INPUTS[language]["messages"]
-    assert "KFS" in guided_messages["target_callsign_help"]
-    assert "KFS" in guided_messages["reference_callsign_help"]
+    assert "CALL" in guided_messages["target_callsign_help"]
+    assert "CALL/P" in guided_messages["reference_callsign_help"]
     if language == "en":
         required_letter_text = "at least one letter"
         no_digit_text = "a digit is not required"
@@ -963,95 +939,17 @@ def test_analysis_selector_uses_full_width_segments_without_visible_heading(
     assert keyword_args["format_func"]("tx") == expected_tx_label
 
 
-@pytest.mark.parametrize("language", ["en", "de"])
-def test_tx_ab_method_selector_uses_canonical_required_segments(
-    monkeypatch,
-    language,
-):
-    """Keep method state language-independent while localizing both choices."""
-    segmented_control = Mock(return_value=None)
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(
-            session_state=SimpleNamespace(),
-            segmented_control=segmented_control,
-        ),
-    )
-
-    labels = T[language]
-    config_panel._render_tx_ab_method_selector(labels)
-
-    positional_args, keyword_args = segmented_control.call_args
-    assert positional_args == (
-        labels["lbl_tx_ab_method"],
-        ("simultaneous", "sequential"),
-    )
-    assert keyword_args["selection_mode"] == "single"
-    assert keyword_args["required"] is True
-    assert keyword_args["key"] == "val_tx_ab_method"
-    assert keyword_args["format_func"]("simultaneous") == labels[
-        "opt_tx_ab_simultaneous"
-    ]
-    assert keyword_args["format_func"]("sequential") == labels[
-        "opt_tx_ab_sequential"
-    ]
 
 
-@pytest.mark.parametrize("language", ["en", "de"])
-def test_guided_tx_ab_method_selector_uses_captioned_radio_rows(
-    monkeypatch,
-    language,
-):
-    """Make the complete Guided method explanation part of its selection."""
-    radio = Mock()
-    segmented_control = Mock()
-    callback = Mock()
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(
-            session_state=SimpleNamespace(),
-            radio=radio,
-            segmented_control=segmented_control,
-        ),
-    )
-
-    method_content = GUIDED_INPUTS[language]["options"]["tx_ab_method"]
-    config_panel._render_tx_ab_method_selector(
-        T[language],
-        on_change=callback,
-        on_change_args=("reference_design",),
-        method_content=method_content,
-        help_text="method help",
-    )
-
-    segmented_control.assert_not_called()
-    positional_args, keyword_args = radio.call_args
-    methods = ("simultaneous", "sequential")
-    assert positional_args == (T[language]["lbl_tx_ab_method"], methods)
-    assert keyword_args["key"] == "val_tx_ab_method"
-    assert keyword_args["captions"] == tuple(
-        method_content[method]["description"] for method in methods
-    )
-    assert keyword_args["width"] == "stretch"
-    assert keyword_args["help"] == "method help"
-    assert keyword_args["on_change"] is callback
-    assert keyword_args["args"] == ("reference_design",)
-    assert [
-        keyword_args["format_func"](method)
-        for method in methods
-    ] == [method_content[method]["label"] for method in methods]
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
 @pytest.mark.parametrize("direction", ["rx", "tx"])
 @pytest.mark.parametrize("method", ["local_median", "local_best"])
-@pytest.mark.parametrize("should_show_explanation", [False, True])
 def test_local_benchmark_shows_fixed_method_without_mutating_state(
-    monkeypatch, language, direction, method, should_show_explanation,
+    monkeypatch, language, direction, method,
 ):
-    """Use Classic help or Guided copy, preserve radius and reject stale input."""
+    """Keep method help in a tooltip, preserve radius and reject stale input."""
     session_state = _SessionState({
         "val_comp_mode": "local_neighborhood",
         "val_analysis_direction": direction,
@@ -1063,20 +961,14 @@ def test_local_benchmark_shows_fixed_method_without_mutating_state(
         radio=Mock(), slider=Mock(), markdown=Mock(), caption=Mock(), error=Mock(),
     )
     monkeypatch.setattr(config_panel, "st", surface)
-    config_fields.render_reference_design_fields(
-        T[language],
-        should_show_local_benchmark_explanation=should_show_explanation,
-    )
+    config_fields.render_reference_design_fields(T[language])
     surface.radio.assert_not_called()
     explanation = T[language]["txt_local_median_explanation"]
     surface.markdown.assert_called_once_with(
         f"**{T[language]['opt_local_median']}**",
-        help=None if should_show_explanation else explanation,
+        help=explanation,
     )
-    if should_show_explanation:
-        surface.caption.assert_called_once_with(explanation)
-    else:
-        surface.caption.assert_not_called()
+    surface.caption.assert_not_called()
     assert surface.slider.call_args.kwargs["key"] == "val_ref_radius_km"
     assert session_state["val_local_benchmark"] == method
     assert session_state["val_ref_radius_km"] == 150
@@ -1086,69 +978,23 @@ def test_local_benchmark_shows_fixed_method_without_mutating_state(
         surface.error.assert_called_once_with(T[language]["err_local_benchmark"])
 
 
-def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
-    monkeypatch,
-):
-    """Show one shared Hardware grid-4 without owning independent QTH state."""
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("reference_qth", ["", "JO62"])
+def test_reference_identity_has_one_callsign_without_location_caption(monkeypatch, language, reference_qth):
     text_input = Mock()
-    error = Mock()
-    columns = Mock(
-        side_effect=[
-            (_NullContext(), _NullContext()),
-            (_NullContext(), _NullContext()),
-        ]
-    )
-    session_state = _SessionState(
-        {
-            "val_callsign": "dl1mks",
-            "val_qth": "jn37aa",
-            "val_ref_callsign": "dl1mks-1",
-            "val_ref_qth": "jo62",
-        }
-    )
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(
-            session_state=session_state,
-            columns=columns,
-            error=error,
-        ),
-    )
+    state = _SessionState({"val_callsign": "CALL", "val_qth": "JN37AA", "val_ref_callsign": "CALL/P", "val_ref_qth": reference_qth})
+    surface = SimpleNamespace(session_state=state, error=Mock(), caption=Mock(), selectbox=Mock(), markdown=Mock())
+    monkeypatch.setattr(config_panel, "st", surface)
     monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
+    config_panel._render_reference_identity(T[language])
+    assert text_input.call_count == 1
+    assert text_input.call_args.kwargs["key"] == "val_ref_callsign"
+    assert text_input.call_args.kwargs["placeholder"] == T[language]["ph_reference_callsign"]
+    surface.selectbox.assert_not_called()
+    surface.caption.assert_not_called()
+    assert state.val_ref_qth == reference_qth
+    surface.error.assert_not_called()
 
-    config_panel._render_reference_identity(
-        T["en"],
-        derives_hardware_grid4=True,
-    )
-
-    assert [call.args[0] for call in text_input.call_args_list] == [
-        "Target callsign",
-        "Reference callsign",
-        "Target Locator",
-        "Reference Locator",
-    ]
-    assert text_input.call_args_list[0].kwargs == {
-        "value": "DL1MKS",
-        "disabled": True,
-    }
-    assert text_input.call_args_list[1].kwargs["key"] == "val_ref_callsign"
-    assert text_input.call_args_list[1].kwargs["help"] == T["en"][
-        "hlp_callsign_entry"
-    ]
-    assert text_input.call_args_list[1].kwargs["placeholder"] == T["en"][
-        "ph_reference_callsign"
-    ]
-    assert text_input.call_args_list[2].kwargs == {
-        "value": "JN37",
-        "disabled": True,
-    }
-    assert text_input.call_args_list[3].kwargs == {
-        "value": "JN37",
-        "disabled": True,
-    }
-    assert session_state.val_ref_qth == "jo62"
-    error.assert_not_called()
 
 
 def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
@@ -1193,9 +1039,14 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
     error.assert_not_called()
 
 
-def test_shared_date_widgets_suggest_and_constrain_the_end_date(monkeypatch):
-    """Use the smart Start callback and start-relative 31-day End bounds."""
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+def test_shared_date_widgets_suggest_and_constrain_the_end_date(
+    monkeypatch, language, input_view,
+):
+    """Keep date fields at row start with their help, callbacks and date bounds."""
     date_input = Mock()
+    markdown = Mock()
     session_state = _SessionState(
         {
             "val_analysis_direction": "rx",
@@ -1215,7 +1066,7 @@ def test_shared_date_widgets_suggest_and_constrain_the_end_date(monkeypatch):
             session_state=session_state,
             columns=Mock(return_value=(_NullContext(), _NullContext())),
             error=Mock(),
-            markdown=Mock(),
+            markdown=markdown,
             selectbox=Mock(),
             date_input=date_input,
             time_input=Mock(),
@@ -1223,9 +1074,21 @@ def test_shared_date_widgets_suggest_and_constrain_the_end_date(monkeypatch):
     )
     monkeypatch.setattr(config_panel, "text_input_no_autocomplete", Mock())
 
-    config_fields.render_target_and_window_fields(T["en"])
+    time_help = (
+        GUIDED_INPUTS[language]["messages"]["time_help"]
+        if input_view == "guided"
+        else None
+    )
+    config_fields.render_target_and_window_fields(
+        T[language], help_overrides={"time": time_help},
+    )
 
     start_date_call, end_date_call = date_input.call_args_list
+    markdown.assert_not_called()
+    assert start_date_call.args == (T[language]["lbl_start_d"],)
+    assert end_date_call.args == (T[language]["lbl_end_d"],)
+    assert start_date_call.kwargs["help"] == time_help
+    assert end_date_call.kwargs["help"] == time_help
     assert start_date_call.kwargs["on_change"] is callbacks.handle_start_date_change
     assert end_date_call.kwargs["on_change"] is callbacks.handle_time_window_change
     assert end_date_call.kwargs["min_value"] == date(2026, 7, 1)
@@ -1271,90 +1134,16 @@ def test_shared_time_fields_report_an_excessive_window_during_entry(
     error.assert_called_once_with(T[language]["err_time_duration"])
 
 
-def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
-    """Keep Buddy QTH independent while retaining the shared identity layout."""
-    text_input = Mock()
-    error = Mock()
-    columns = Mock(
-        side_effect=[
-            (_NullContext(), _NullContext()),
-            (_NullContext(), _NullContext()),
-        ]
-    )
-    session_state = _SessionState(
-        {
-            "val_callsign": "DL1MKS",
-            "val_qth": "JN37AA",
-            "val_ref_callsign": "DL2XYZ",
-            "val_ref_qth": "JO62",
-        }
-    )
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(
-            session_state=session_state,
-            columns=columns,
-            error=error,
-        ),
-    )
-    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
-
-    config_panel._render_reference_identity(
-        T["en"],
-        derives_hardware_grid4=False,
-    )
-
-    assert text_input.call_args_list[2].kwargs == {
-        "value": "JN37AA",
-        "disabled": True,
-    }
-    reference_qth_parameters = text_input.call_args_list[3].kwargs
-    assert reference_qth_parameters["key"] == "val_ref_qth"
-    assert reference_qth_parameters["max_chars"] == 4
-    assert "disabled" not in reference_qth_parameters
-    assert session_state.val_ref_qth == "JO62"
-    error.assert_not_called()
 
 
-def test_reference_station_identity_reports_invalid_reference_fields(monkeypatch):
-    """Give field-specific feedback before malformed identities reach a run."""
-    text_input = Mock()
-    error = Mock()
-    columns = Mock(
-        side_effect=[
-            (_NullContext(), _NullContext()),
-            (_NullContext(), _NullContext()),
-        ]
-    )
-    session_state = _SessionState(
-        {
-            "val_callsign": "DL1MKS",
-            "val_qth": "JN37AA",
-            "val_ref_callsign": "123",
-            "val_ref_qth": "JO62AA",
-        }
-    )
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(
-            session_state=session_state,
-            columns=columns,
-            error=error,
-        ),
-    )
-    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
+def test_reference_station_identity_reports_invalid_reference_callsign(monkeypatch):
+    state = _SessionState({"val_callsign": "CALL", "val_ref_callsign": "123", "val_ref_qth": ""})
+    surface = SimpleNamespace(session_state=state, error=Mock(), caption=Mock(), selectbox=Mock(), markdown=Mock())
+    monkeypatch.setattr(config_panel, "st", surface)
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", Mock())
+    config_panel._render_reference_identity(T["en"])
+    surface.error.assert_called_once_with(T["en"]["err_reference_callsign_format"])
 
-    config_panel._render_reference_identity(
-        T["en"],
-        derives_hardware_grid4=False,
-    )
-
-    assert [call.args[0] for call in error.call_args_list] == [
-        T["en"]["err_reference_callsign_format"],
-        T["en"]["err_reference_grid4_format"],
-    ]
 
 
 @pytest.mark.parametrize("identity", ["DL1\u00df", "D\u01311ABC", "J\u212a37"])
@@ -1383,7 +1172,9 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
         SimpleNamespace(session_state=session_state),
     )
 
+    before_init = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     state_manager.init_session_state()
+    after_init = datetime.now(timezone.utc).replace(second=0, microsecond=0)
 
     assert session_state.input_view == "guided"
     assert session_state.val_analysis_direction is None
@@ -1392,7 +1183,6 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_ref_qth == ""
     assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_exclude_special_callsigns is True
     assert session_state.val_filter_moving is True
     assert session_state.val_results_show_zero_target is False
@@ -1420,7 +1210,8 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
         tzinfo=timezone.utc,
     )
     assert default_end_utc - default_start_utc == timedelta(hours=24)
-    assert default_end_utc.minute in {0, 15, 30, 45}
+    assert before_init <= default_end_utc <= after_init
+    assert default_end_utc.second == default_end_utc.microsecond == 0
     assert _default_config()["benchmark_mode"] == COMPARISON_NONE
     assert _default_config()["segment_evidence_time_bin_absolute"] == "auto"
     assert _default_config()["snr_correction_mode"] == "no_offset"
@@ -1429,10 +1220,6 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     analysis_context = build_analysis_context_from_session_state({})
     assert analysis_context.comparison_mode == COMPARISON_NONE
     assert analysis_context.band == DEFAULT_BAND
-    assert analysis_context.tx_ab_repeat_interval_minutes == 10
-    assert analysis_context.tx_ab_target_start_minute == 0
-    assert analysis_context.tx_ab_reference_start_minute == 2
-    assert analysis_context.tx_ab_method == "simultaneous"
     assert analysis_context.reference_qth == ""
     assert analysis_context.max_peer_distance_km == 22000
     assert analysis_context.exclude_special_callsigns is True
@@ -1443,7 +1230,7 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     "initial_state",
     [
         {
-            "val_comp_mode": "hardware_ab",
+            "val_comp_mode": "reference_station",
             "val_snr_correction_mode": "no_offset",
             "val_benchmark_offset_db": 1.2,
         },
@@ -1476,7 +1263,7 @@ def test_correction_workflow_mode_does_not_change_analysis_context():
     """Keep operator provenance out of the scientific analysis context."""
     base_state = {
         "val_analysis_direction": "rx",
-        "val_comp_mode": "hardware_ab",
+        "val_comp_mode": "reference_station",
         "val_snr_correction_mode": "no_offset",
         "val_benchmark_offset_db": 0.0,
     }
@@ -1494,7 +1281,7 @@ def test_outlier_reporting_toggle_does_not_change_analysis_context():
     """Keep the optional report outside scientific and provider identities."""
     base_state = {
         "val_analysis_direction": "rx",
-        "val_comp_mode": "hardware_ab",
+        "val_comp_mode": "reference_station",
         "val_report_delta_snr_outlier_candidates": False,
     }
     reporting_state = {
@@ -1510,32 +1297,13 @@ def test_outlier_reporting_toggle_does_not_change_analysis_context():
     ) == build_analysis_context_from_session_state(reporting_state)
 
 
-@pytest.mark.parametrize(
-    ("legacy_label", "expected_mode"),
-    tuple(LEGACY_LOCALIZED_STATE_VALUES.items()),
-)
-def test_legacy_localized_benchmark_labels_migrate_without_changing_science(
-    monkeypatch,
-    legacy_label,
-    expected_mode,
-):
-    """Preserve live pre-canonical sessions across label and state migrations."""
-    session_state = _SessionState({"val_comp_mode": legacy_label})
-    monkeypatch.setattr(
-        state_manager,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-
+@pytest.mark.parametrize("old_label", ["Reference Station (Buddy Test)", "Fremdes Rufzeichen (Buddy-Test)", "Local Neighborhood Benchmark"])
+def test_old_localized_state_labels_are_not_converted_to_a_scientific_design(monkeypatch, old_label):
+    state = _SessionState({"val_comp_mode": old_label})
+    monkeypatch.setattr(state_manager, "st", SimpleNamespace(session_state=state))
     state_manager.init_session_state()
+    assert state.val_comp_mode == "none"
 
-    assert session_state.val_comp_mode == expected_mode
-    assert (
-        build_analysis_context_from_session_state(
-            {"val_comp_mode": legacy_label}
-        ).comparison_mode
-        == expected_mode
-    )
 
 
 def test_reset_config_returns_to_success_only(monkeypatch):
@@ -1551,13 +1319,14 @@ def test_reset_config_returns_to_success_only(monkeypatch):
         SimpleNamespace(session_state=session_state),
     )
 
+    before_reset = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     callbacks.set_reset_config()
+    after_reset = datetime.now(timezone.utc).replace(second=0, microsecond=0)
 
     assert session_state.val_comp_mode == "none"
     assert session_state.val_band == DEFAULT_BAND
     assert session_state.val_analysis_direction is None
     assert session_state.val_ref_qth == ""
-    assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_exclude_special_callsigns is True
     assert session_state.val_filter_moving is True
     assert session_state.val_results_show_non_joint is None
@@ -1581,7 +1350,8 @@ def test_reset_config_returns_to_success_only(monkeypatch):
         tzinfo=timezone.utc,
     )
     assert reset_end_utc - reset_start_utc == timedelta(hours=24)
-    assert reset_end_utc.minute in {0, 15, 30, 45}
+    assert before_reset <= reset_end_utc <= after_reset
+    assert reset_end_utc.second == reset_end_utc.microsecond == 0
 
 
 def test_compare_session_starts_with_both_population_exclusions_off(monkeypatch):
@@ -1627,7 +1397,7 @@ def test_mode_defaults_follow_untouched_fields_and_preserve_manual_edits(
     assert session_state.val_exclude_special_callsigns is False
     assert session_state.val_filter_moving is False
 
-    session_state.val_comp_mode = "hardware_ab"
+    session_state.val_comp_mode = "reference_station"
     callbacks.handle_comp_mode_change()
     assert session_state.val_exclude_special_callsigns is False
     assert session_state.val_filter_moving is False
@@ -1638,65 +1408,17 @@ def test_mode_defaults_follow_untouched_fields_and_preserve_manual_edits(
     assert session_state.val_filter_moving is True
 
 
-def test_hardware_direction_change_applies_untouched_performance_defaults(
-    monkeypatch,
-):
-    """Treat the implicit Hardware-to-Performance fallback as a mode transition."""
-    session_state = _SessionState({"val_comp_mode": "hardware_ab"})
-    monkeypatch.setattr(
-        state_manager,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-    state_manager.init_session_state()
-    monkeypatch.setattr(
-        callbacks,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
-
-    callbacks.handle_analysis_direction_change()
-
-    assert session_state.val_comp_mode == "none"
-    assert session_state.val_exclude_special_callsigns is True
-    assert session_state.val_filter_moving is True
 
 
-@pytest.mark.parametrize(
-    ("analysis_direction", "expected_self_test_mode"),
-    [("rx", "rx"), ("tx", "tx")],
-)
-def test_analysis_context_derives_hardware_direction_from_analysis_direction(
-    analysis_direction,
-    expected_self_test_mode,
-):
-    """Do not retain a second RX/TX discriminator for Hardware A/B."""
-    analysis_context = build_analysis_context_from_session_state(
-        {
-            "val_analysis_direction": analysis_direction,
-            "run_mode": analysis_direction.upper(),
-        }
-    )
-
-    assert analysis_context.run_mode == analysis_direction.upper()
-    assert analysis_context.self_test_mode == expected_self_test_mode
+@pytest.mark.parametrize("analysis_direction", ["rx", "tx"])
+def test_analysis_context_has_one_direction_discriminator(analysis_direction):
+    context = build_analysis_context_from_session_state({"val_analysis_direction": analysis_direction, "run_mode": analysis_direction.upper()})
+    assert context.run_mode == analysis_direction.upper()
+    assert not hasattr(context, "self_test_mode")
+    assert not hasattr(context, "tx_ab_method")
 
 
-def test_analysis_context_derives_hardware_reference_grid4_from_target_qth():
-    """Do not carry the inactive Buddy QTH into a Hardware request."""
-    analysis_context = build_analysis_context_from_session_state(
-        {
-            "lang": "en",
-            "val_analysis_direction": "tx",
-            "val_comp_mode": "hardware_ab",
-            "val_qth": "jn37aa",
-            "val_ref_qth": "JO62",
-        }
-    )
 
-    assert analysis_context.qth == "JN37AA"
-    assert analysis_context.reference_qth == "JN37"
 
 
 def test_analysis_context_preserves_reference_station_grid4():
@@ -1714,70 +1436,19 @@ def test_analysis_context_preserves_reference_station_grid4():
     assert analysis_context.reference_qth == "JO62"
 
 
-def test_direction_change_resets_active_hardware_design(monkeypatch):
-    """Prevent direction-specific Hardware A/B fields from being reinterpreted."""
-    session_state = _SessionState(
-        {
-            "lang": "en",
-            "val_analysis_direction": "tx",
-            "val_comp_mode": "hardware_ab",
-            "val_benchmark_offset_db": 1.5,
-            "val_ref_callsign": "DL1MKS/P",
-            "val_ref_qth": "JN37",
-            "val_tx_ab_method": "sequential",
-            "val_tx_ab_repeat_interval_minutes": 4,
-            "val_tx_ab_target_start_minute": 2,
-            "val_tx_ab_reference_start_minute": 0,
-        }
-    )
-    monkeypatch.setattr(
-        callbacks,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+def test_direction_change_clears_reference_resolution_and_correction(monkeypatch):
+    state = _SessionState({"val_comp_mode": "reference_station", "val_ref_callsign": "CALL/P", "val_ref_qth": "JN37", "val_benchmark_offset_db": 1.5, "_reference_location_resolution": {"status": "resolved"}})
+    monkeypatch.setattr(callbacks, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
-
     callbacks.handle_analysis_direction_change()
-
-    assert session_state.val_comp_mode == "none"
-    assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_ref_callsign == "DL1MKS/P"
-    assert session_state.val_ref_qth == "JN37"
-    assert session_state.val_tx_ab_method == "simultaneous"
-    assert session_state.val_tx_ab_repeat_interval_minutes == 10
-    assert session_state.val_tx_ab_target_start_minute == 0
-    assert session_state.val_tx_ab_reference_start_minute == 2
+    assert state.val_comp_mode == "reference_station"
+    assert state.val_ref_callsign == "CALL/P"
+    assert state.val_ref_qth == ""
+    assert "_reference_location_resolution" not in state
+    assert state.val_benchmark_offset_db == 0.0
 
 
-def test_classic_direction_change_clears_retained_guided_hardware(monkeypatch):
-    """Prevent a hidden RX Hardware branch from reappearing as TX Hardware."""
-    session_state = _SessionState(
-        {
-            "val_comp_mode": "none",
-            "guided_reference_design": None,
-            "guided_last_benchmark_mode": "hardware_ab",
-            "val_snr_correction_mode": "established_offset",
-            "val_benchmark_offset_db": 1.2,
-            "val_tx_ab_method": "simultaneous",
-            "val_tx_ab_repeat_interval_minutes": 10,
-            "val_tx_ab_target_start_minute": 0,
-            "val_tx_ab_reference_start_minute": 2,
-        }
-    )
-    monkeypatch.setattr(
-        callbacks,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
 
-    callbacks.handle_analysis_direction_change()
-
-    assert session_state.val_comp_mode == "none"
-    assert session_state.guided_reference_design is None
-    assert session_state.guided_last_benchmark_mode is None
-    assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_snr_correction_mode == "no_offset"
 
 
 @pytest.mark.parametrize("comparison_mode", ["reference_station", "local_neighborhood"])
@@ -1809,46 +1480,18 @@ def test_classic_direction_change_clears_direction_specific_correction(
     assert session_state.val_snr_correction_mode == "no_offset"
 
 
-def test_schedule_callbacks_keep_starts_disjoint(monkeypatch):
-    session_state = _SessionState(
-        {
-            "val_tx_ab_repeat_interval_minutes": 10,
-            "val_tx_ab_target_start_minute": 8,
-            "val_tx_ab_reference_start_minute": 8,
-        }
-    )
-    monkeypatch.setattr(
-        callbacks,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
-
-    callbacks.handle_tx_ab_target_start_change()
-
-    assert session_state.val_tx_ab_target_start_minute == 8
-    assert session_state.val_tx_ab_reference_start_minute == 0
 
 
-def test_schedule_preview_and_comparison_widths_match_the_tx_ab_ui():
-    target, reference, separation = _tx_ab_schedule_preview(10, 0, 2)
-
-    assert target == (0, 10, 20, 30, 40, 50)
-    assert reference == (2, 12, 22, 32, 42, 52)
-    assert separation == 2
+def test_comparison_designs_use_equal_columns():
     for comparison_mode in _benchmark_mode_options(T["en"]):
         for analysis_direction in (None, "rx", "tx"):
-            assert _comparison_column_widths(
-                T["en"],
-                comparison_mode,
-                analysis_direction,
-            ) == [0.5, 0.5]
+            assert _comparison_column_widths(T["en"], comparison_mode, analysis_direction) == [0.5, 0.5]
+
 
 
 @pytest.mark.parametrize(
     "benchmark_mode",
     [
-        "hardware_ab",
         "reference_station",
         "local_neighborhood",
     ],
@@ -1858,6 +1501,9 @@ def test_each_benchmark_design_starts_with_zero_snr_correction(monkeypatch, benc
         {
             "val_comp_mode": benchmark_mode,
             "val_benchmark_offset_db": -99.9,
+            "val_ref_callsign": "CALL/P",
+            "val_ref_qth": "IO90",
+            "_reference_location_resolution": {"status": "resolved"},
         }
     )
     monkeypatch.setattr(
@@ -1870,6 +1516,9 @@ def test_each_benchmark_design_starts_with_zero_snr_correction(monkeypatch, benc
     callbacks.handle_comp_mode_change()
 
     assert session_state.val_benchmark_offset_db == 0.0
+    assert session_state.val_ref_callsign == "CALL/P"
+    assert session_state.val_ref_qth == ""
+    assert "_reference_location_resolution" not in session_state
 
 
 def test_classic_context_edit_clears_established_reference_correction(monkeypatch):
@@ -1902,7 +1551,7 @@ def test_classic_nonzero_correction_edit_sets_established_mode(monkeypatch):
     callback = Mock()
     session_state = _SessionState(
         {
-            "val_comp_mode": "hardware_ab",
+            "val_comp_mode": "reference_station",
             "val_snr_correction_mode": "no_offset",
             "val_benchmark_offset_db": 1.24,
         }
@@ -1966,7 +1615,7 @@ def test_reference_correction_text_accepts_decimal_points_and_blank_zero(
     callback = Mock()
     session_state = _SessionState(
         {
-            "val_comp_mode": "hardware_ab",
+            "val_comp_mode": "reference_station",
             "val_snr_correction_mode": "no_offset",
             "val_benchmark_offset_db": 0.0,
             config_panel._REFERENCE_CORRECTION_TEXT_KEY: correction_text,
@@ -1997,7 +1646,7 @@ def test_reference_correction_text_rejects_non_point_or_out_of_range_values(
     callback = Mock()
     session_state = _SessionState(
         {
-            "val_comp_mode": "hardware_ab",
+            "val_comp_mode": "reference_station",
             "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": 1.2,
             config_panel._REFERENCE_CORRECTION_TEXT_KEY: correction_text,
@@ -2021,7 +1670,7 @@ def test_classic_zero_correction_preserves_explicit_established_mode(monkeypatch
     """Do not infer that an explicitly established 0.0 dB means no offset."""
     session_state = _SessionState(
         {
-            "val_comp_mode": "hardware_ab",
+            "val_comp_mode": "reference_station",
             "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": 0.0,
         }
@@ -2037,26 +1686,6 @@ def test_classic_zero_correction_preserves_explicit_established_mode(monkeypatch
     assert session_state.val_snr_correction_mode == "established_offset"
 
 
-def test_hardware_design_does_not_overwrite_retained_buddy_qth(monkeypatch):
-    """Hardware derives its grid from Target without changing Buddy state."""
-    session_state = _SessionState(
-        {
-            "lang": "en",
-            "val_comp_mode": "hardware_ab",
-            "val_benchmark_offset_db": -1.0,
-            "val_qth": "jn37aa",
-            "val_ref_qth": "JO62",
-        }
-    )
-    monkeypatch.setattr(
-        callbacks,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
-
-    callbacks.handle_comp_mode_change()
-    assert session_state.val_ref_qth == "JO62"
 
 
 def test_removed_all_band_session_state_returns_to_exact_default(monkeypatch):

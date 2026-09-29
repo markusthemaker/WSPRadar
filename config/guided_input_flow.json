@@ -78,7 +78,6 @@
           "when": {
             "field": "benchmark_mode",
             "in": [
-              "hardware_ab",
               "reference_station"
             ]
           },

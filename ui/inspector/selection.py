@@ -143,7 +143,7 @@ def validate_evidence_time_bin(
     is_segment: bool = False,
     allow_uninitialized: bool = False,
 ) -> str | None:
-    """Validate canonical and retained legacy bins without choosing a default."""
+    """Validate the configured evidence bins without choosing a default."""
     if value is None and allow_uninitialized:
         return None
     choices = SEGMENT_EVIDENCE_TIME_BINS if is_segment else STATION_EVIDENCE_TIME_BINS

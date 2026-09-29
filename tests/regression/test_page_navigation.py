@@ -109,6 +109,95 @@ def test_application_navigation_request_is_allowlisted_unique_and_one_shot():
         )
 
 
+def test_invalid_field_focus_survives_one_shot_navigation_and_rejects_markup(monkeypatch):
+    session_state = {}
+    page_navigation.request_page_navigation(
+        session_state, page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        should_scroll=True, focus_field="val_callsign",
+    )
+    request = page_navigation.consume_page_navigation_request(session_state)
+    component = Mock()
+    monkeypatch.setattr(page_navigation, "_PAGE_NAVIGATION_CONTROLLER", component)
+    page_navigation.render_page_navigation_controller(request)
+    assert component.call_args.kwargs["data"]["focusFieldKey"] == "val_callsign"
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+    with pytest.raises(ValueError):
+        page_navigation.request_page_navigation(
+            session_state, page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+            should_scroll=True, focus_field='<input onfocus="alert(1)">',
+        )
+
+
+def test_guided_panel_navigation_preserves_validated_key_and_coarse_anchor(monkeypatch):
+    """Carry the precise Guided target without changing its stable URL region."""
+    session_state = {}
+    page_navigation.request_page_navigation(
+        session_state,
+        page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        should_scroll=True,
+        panel_key="guided_step_reference_design",
+    )
+    request = page_navigation.consume_page_navigation_request(session_state)
+    assert request["anchor_id"] == page_navigation.PARAMETER_SETTINGS_ANCHOR_ID
+    assert request["should_scroll"] is True
+    assert request["panel_key"] == "guided_step_reference_design"
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+
+    component = Mock()
+    monkeypatch.setattr(page_navigation, "_PAGE_NAVIGATION_CONTROLLER", component)
+    page_navigation.render_page_navigation_controller(request)
+    data = component.call_args.kwargs["data"]
+    assert data["requestAnchorId"] == page_navigation.PARAMETER_SETTINGS_ANCHOR_ID
+    assert data["panelKey"] == "guided_step_reference_design"
+    assert data["shouldScrollRequest"] is True
+    assert data["requestToken"] == request["request_token"]
+
+
+@pytest.mark.parametrize("panel_key", ["", "<details>", 'panel" onclick="alert(1)', "x" * 161, 1])
+def test_guided_panel_navigation_rejects_invalid_keys_and_drops_tampered_keys(panel_key):
+    """Do not expose unchecked HTML or selector fragments to the browser."""
+    session_state = {}
+    with pytest.raises(ValueError):
+        page_navigation.request_page_navigation(
+            session_state,
+            page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+            should_scroll=True,
+            panel_key=panel_key,
+        )
+    assert page_navigation.PAGE_NAVIGATION_REQUEST_KEY not in session_state
+
+    session_state[page_navigation.PAGE_NAVIGATION_REQUEST_KEY] = {
+        "anchor_id": page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        "request_token": "panel-request",
+        "should_scroll": True,
+        "panel_key": panel_key,
+    }
+    request = page_navigation.consume_page_navigation_request(session_state)
+    assert "panel_key" not in request
+
+
+def test_guided_panel_marker_identifies_only_the_requested_panel_render():
+    """Bind the rendered panel body to its current one-shot navigation request."""
+    session_state = {}
+    panel_key = "guided_step_reference_design"
+    assert page_navigation.page_navigation_marker_html(session_state, panel_key) == ""
+    page_navigation.request_page_navigation(
+        session_state,
+        page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        should_scroll=True,
+        panel_key=panel_key,
+    )
+    token = session_state[page_navigation.PAGE_NAVIGATION_REQUEST_KEY]["request_token"]
+    marker = page_navigation.page_navigation_marker_html(session_state, panel_key)
+    assert f'data-page-navigation-token="{token}"' in marker
+    assert f'data-page-navigation-panel="{panel_key}"' in marker
+    assert page_navigation.page_navigation_marker_html(
+        session_state, "guided_step_offset_calibration",
+    ) == ""
+    page_navigation.consume_page_navigation_request(session_state)
+    assert page_navigation.page_navigation_marker_html(session_state, panel_key) == ""
+
+
 def test_page_anchor_renderer_accepts_only_the_stable_runtime_ids(monkeypatch):
     """Render inert explicit IDs without accepting arbitrary HTML fragments."""
     html = Mock()
@@ -162,6 +251,8 @@ def test_page_navigation_controller_passes_stable_anchor_and_request_contract(
                 "requestToken": "request-1",
                 "shouldScrollRequest": False,
                 "analysisSubmissionToken": None,
+                "focusFieldKey": None,
+                "panelKey": None,
                 "analysisStatusAnchorId": page_navigation.RESULTS_INSPECTION_ANCHOR_ID,
                 "analysisMapAnchorId": page_navigation.MAP_RESULTS_ANCHOR_ID,
             },
@@ -202,7 +293,7 @@ def test_page_scroll_tracking_replaces_stale_manual_fragments_by_region():
 
 
 def test_explicit_application_navigation_cancels_manual_restore_and_is_optional():
-    """Replace stale locations before rerun while letting Continue remain still."""
+    """Replace stale manual locations and retain optional coarse navigation."""
     javascript = page_navigation._PAGE_NAVIGATION_CONTROLLER_JS
 
     assert "clearPendingDocumentationNavigation();" in javascript
@@ -275,8 +366,10 @@ def test_runtime_anchors_bound_the_top_settings_and_results_regions():
         and isinstance(node.func, ast.Name)
         and node.func.id == "request_page_navigation"
     ]
-    assert len(navigation_calls) == 1
-    navigation_call = navigation_calls[0]
+    assert len(navigation_calls) == 2
+    navigation_call = next(call for call in navigation_calls if call.args[1].id == "RESULTS_INSPECTION_ANCHOR_ID")
+    invalid_input_call = next(call for call in navigation_calls if call.args[1].id == "PARAMETER_SETTINGS_ANCHOR_ID")
+    assert any(keyword.arg == "focus_field" for keyword in invalid_input_call.keywords)
     assert isinstance(navigation_call.args[1], ast.Name)
     assert navigation_call.args[1].id == "RESULTS_INSPECTION_ANCHOR_ID"
     assert any(
@@ -285,10 +378,23 @@ def test_runtime_anchors_bound_the_top_settings_and_results_regions():
         and keyword.value.value is True
         for keyword in navigation_call.keywords
     )
-    assert (
-        "PARAMETER_SETTINGS_ANCHOR_ID,\n        should_scroll=False"
-        in renderer_source
+    continue_function = next(
+        node for node in ast.walk(ast.parse(renderer_source))
+        if isinstance(node, ast.FunctionDef) and node.name == "_continue_to"
     )
+    continue_navigation = next(
+        node for node in ast.walk(continue_function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "request_page_navigation"
+    )
+    assert continue_navigation.args[1].id == "PARAMETER_SETTINGS_ANCHOR_ID"
+    keywords = {keyword.arg: keyword.value for keyword in continue_navigation.keywords}
+    assert isinstance(keywords["should_scroll"], ast.Constant)
+    assert keywords["should_scroll"].value is True
+    assert isinstance(keywords["panel_key"], ast.JoinedStr)
+    assert ast.literal_eval(keywords["panel_key"].values[0]) == "guided_step_"
+    assert keywords["panel_key"].values[1].value.id == continue_function.args.args[0].arg
     assert (
         "PARAMETER_SETTINGS_ANCHOR_ID,\n        should_scroll=True"
         in renderer_source
@@ -407,6 +513,7 @@ const precedingAnchors = [];
 const containers = new Map();
 const precedingContainers = [];
 const markers = [];
+const panelMarkers = [];
 const observers = [];
 const frames = new Map();
 const scrolls = [];
@@ -423,6 +530,7 @@ class Element extends Events {
     closest(selector) {
         for (let element = this; element; element = element.parentElement) {
             if (selector === '[data-stale="true"]' && element.getAttribute('data-stale') === 'true') return element;
+            if (selector === '[data-testid="stExpander"]' && element.getAttribute('data-testid') === 'stExpander') return element;
             if (selector.startsWith('.st-key-') && element.className === selector.slice(1)) return element;
         }
         return null;
@@ -439,6 +547,7 @@ document.querySelectorAll = selector => {
         return [...precedingAnchors, ...anchors.values()].filter(element => element.getAttribute('data-analysis-submission-token') !== null);
     }
     if (selector === '[data-wspradar-map-ready-token]') return markers;
+    if (selector === '[data-page-navigation-token]') return panelMarkers;
     throw new Error('Unsupported selector: ' + selector);
 };
 document.getElementsByClassName = name => [
@@ -472,6 +581,10 @@ function flush() {
         for (const callback of current) callback();
     }
 }
+function flushFrame() {
+    const current = Array.from(frames.values()); frames.clear();
+    for (const callback of current) callback();
+}
 function mutate(attributeName = null) {
     for (const observer of observers) {
         if (observer.active && (!attributeName || (
@@ -479,13 +592,14 @@ function mutate(attributeName = null) {
         ))) observer.callback();
     }
 }
-function mount(token = 'run-1') {
+function mount(token = 'run-1', request = {}) {
     return context.mount({ data: {
         anchorIds: ['wspradar-page-top', 'wspradar-parameter-settings', statusId, mapId,
                     'wspradar-station-insights', 'wspradar-drilldown'],
         analysisSubmissionToken: token,
         analysisStatusAnchorId: statusId,
         analysisMapAnchorId: mapId,
+        ...request,
     }});
 }
 function addMap(token, ready = true) {
@@ -650,6 +764,185 @@ process.stdout.write('ok');
 """
 
 
+_GUIDED_PANEL_NAVIGATION_BROWSER_HARNESS = (
+    _ANALYSIS_NAVIGATION_BROWSER_HARNESS.split(
+        "anchors.set(statusId, new Element(statusId));", 1,
+    )[0]
+    + r"""
+const parameterId = 'wspradar-parameter-settings';
+const panelKey = 'guided_step_reference_design';
+const requestToken = 'continue-1';
+const animations = [];
+document.getAnimations = () => animations;
+anchors.set(parameterId, new Element(parameterId));
+function mountPanel(token = requestToken) {
+    return mount(null, {
+        requestAnchorId: parameterId,
+        requestToken: token,
+        shouldScrollRequest: true,
+        panelKey,
+    });
+}
+function addPanel({token = requestToken, key = panelKey, open = true, stale = false} = {}) {
+    const panel = new Element('panel-' + panelMarkers.length, {'data-testid': 'stExpander'});
+    const details = new Element('details-' + panelMarkers.length);
+    details.tagName = 'DETAILS';
+    details.open = open;
+    details.parentElement = panel;
+    const header = new Element('header-' + panelMarkers.length);
+    header.parentElement = details;
+    const marker = new Element('panel-marker-' + panelMarkers.length, {
+        'data-page-navigation-token': token,
+        'data-page-navigation-panel': key,
+    });
+    marker.parentElement = details;
+    panel.querySelector = selector => selector === 'details' ? details : null;
+    details.querySelector = selector => selector === 'summary' ? header : null;
+    const wrapper = new Element('panel-wrapper-' + panelMarkers.length, {
+        'data-stale': stale ? 'true' : 'false',
+    });
+    panel.parentElement = wrapper;
+    panelMarkers.push(marker);
+    mutate();
+    return {panel, details, header, marker, wrapper};
+}
+let cleanup = mountPanel();
+flush();
+assert.deepEqual(scrolls, []);
+assert.equal(window.location.hash, '#' + parameterId);
+const scenario = input.scenario;
+if (scenario === 'delayed_marker_and_open') {
+    addPanel({token: 'previous-continue'}); flush();
+    assert.deepEqual(scrolls, []);
+    const current = addPanel({open: false}); flush();
+    assert.deepEqual(scrolls, []);
+    assert.equal(current.details.open, false);
+    current.details.open = true;
+    mutate('open'); flushFrame();
+    assert.deepEqual(scrolls, []);
+    flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'preceding_wrong_panel_token_and_stale') {
+    addPanel({key: 'guided_step_target_and_window'});
+    addPanel({token: 'previous-continue'});
+    addPanel({stale: true});
+    const current = addPanel(); flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'current_panel_becomes_nonstale') {
+    const current = addPanel({stale: true}); flush();
+    assert.deepEqual(scrolls, []);
+    current.wrapper.attributes['data-stale'] = 'false';
+    mutate('data-stale'); flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'moving_header_waits_for_stable_frames') {
+    const current = addPanel();
+    flushFrame();
+    for (const top of [380, 250, 130]) {
+        current.header.top = top;
+        flushFrame();
+        assert.deepEqual(scrolls, []);
+    }
+    flushFrame();
+    assert.deepEqual(scrolls, []);
+    flushFrame();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'same_token_remount_does_not_repeat') {
+    const current = addPanel(); flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+    mutate(); window.emit('resize'); flush();
+    cleanup(); cleanup = mountPanel(); flush();
+    mutate(); flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'pending_request_resumes_after_remount') {
+    const current = addPanel(); flushFrame();
+    assert.deepEqual(scrolls, []);
+    cleanup(); cleanup = mountPanel(); flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+    cleanup(); cleanup = mountPanel(); flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'accordion_animation_delays_stable_header') {
+    const current = addPanel();
+    const opening = {playState: 'running', effect: {target: current.details}};
+    animations.push(opening);
+    for (let frame = 0; frame < 5; frame++) {
+        flushFrame();
+        assert.deepEqual(scrolls, []);
+    }
+    opening.playState = 'finished';
+    animations.push({playState: 'running', effect: {target: main}});
+    flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'status_spinner_does_not_delay_panel_landing') {
+    const current = addPanel();
+    const status = addPanel({token: 'unrelated-status'});
+    const spinner = new Element('status-spinner');
+    spinner.tagName = 'SPAN';
+    spinner.parentElement = status.details;
+    animations.push({playState: 'running', effect: {target: spinner}});
+    flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'new_request_waits_for_its_own_marker') {
+    const first = addPanel(); flush();
+    cleanup(); cleanup = mountPanel('continue-2'); flush();
+    assert.deepEqual(scrolledElements, [first.header]);
+    const second = addPanel({token: 'continue-2'}); flush();
+    assert.deepEqual(scrolledElements, [first.header, second.header]);
+} else if (scenario === 'user_navigation_cancels_pending_landing' || scenario === 'navigation_key_cancels_pending_landing') {
+    addPanel();
+    if (scenario === 'navigation_key_cancels_pending_landing') {
+        document.emit('keydown', {key: 'PageDown'});
+    } else {
+        document.emit('wheel');
+    }
+    flush(); mutate(); flush();
+    assert.deepEqual(scrolls, []);
+    cleanup(); cleanup = mountPanel(); flush();
+    assert.deepEqual(scrolls, []);
+} else if (scenario === 'editable_key_does_not_cancel_landing') {
+    const current = addPanel();
+    document.emit('keydown', {key: 'ArrowDown', target: {closest: () => ({})}});
+    flush();
+    assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'cleanup_cancels_pending_landing') {
+    addPanel();
+    cleanup();
+    flush(); mutate(); flush();
+    assert.deepEqual(scrolls, []);
+} else {
+    throw new Error('Unknown Guided panel scenario: ' + scenario);
+}
+assert.equal(scrolls.includes(parameterId), false);
+cleanup();
+assert.equal(document.listenerCount(), 0);
+assert.equal(window.listenerCount(), 0);
+assert.equal(main.listenerCount(), 0);
+assert.equal(frames.size, 0);
+assert.equal(observers.filter(observer => observer.active).length, 0);
+process.stdout.write('ok');
+"""
+)
+
+
+@pytest.mark.parametrize("scenario", [
+    "delayed_marker_and_open",
+    "preceding_wrong_panel_token_and_stale",
+    "current_panel_becomes_nonstale",
+    "moving_header_waits_for_stable_frames",
+    "same_token_remount_does_not_repeat",
+    "pending_request_resumes_after_remount",
+    "accordion_animation_delays_stable_header",
+    "status_spinner_does_not_delay_panel_landing",
+    "new_request_waits_for_its_own_marker",
+    "user_navigation_cancels_pending_landing",
+    "navigation_key_cancels_pending_landing",
+    "editable_key_does_not_cancel_landing",
+    "cleanup_cancels_pending_landing",
+])
+def test_guided_panel_navigation_browser_waits_for_current_stable_header(scenario):
+    """Exercise Continue against delayed, stale, moving and rerendered panels."""
+    _run_navigation_browser_harness(_GUIDED_PANEL_NAVIGATION_BROWSER_HARNESS, scenario)
+
+
 @pytest.mark.parametrize("scenario", [
     "delayed_image", "cancel_wheel", "cancel_touchmove", "cancel_key",
     "cancel_anchor", "cancel_history", "cancel_hash", "cancel_scrollbar", "cancel_pending_frame",
@@ -660,11 +953,16 @@ process.stdout.write('ok');
 ])
 def test_analysis_navigation_browser_milestones(scenario):
     """Execute the browser controller against delayed DOM and user-event cases."""
+    _run_navigation_browser_harness(_ANALYSIS_NAVIGATION_BROWSER_HARNESS, scenario)
+
+
+def _run_navigation_browser_harness(harness, scenario):
+    """Run one scenario with the actual browser controller and shared DOM model."""
     node = shutil.which("node")
     if node is None:
         pytest.skip("Node.js is required for the browser-controller event harness")
     result = subprocess.run(
-        [node, "-e", _ANALYSIS_NAVIGATION_BROWSER_HARNESS],
+        [node, "-e", harness],
         input=json.dumps({
             "javascript": page_navigation._PAGE_NAVIGATION_CONTROLLER_JS,
             "scenario": scenario,

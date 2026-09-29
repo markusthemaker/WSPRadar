@@ -20,7 +20,6 @@ from ui.inspector.outlier_export import (
     DeltaSnrOutlierExportTables,
     OUTLIER_EVENT_PATH_COLUMNS,
     OUTLIER_EVENT_PATHS_TABLE_FILENAME,
-    OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR,
     OUTLIER_EXPORT_JOINT_SPOT,
     OUTLIER_PAIRED_EVIDENCE_COLUMNS,
     OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
@@ -213,7 +212,7 @@ def _comparison_units(*candidate_value_pairs):
     return pd.DataFrame(rows)
 
 
-def _export_tables(model, comparison_units, *, is_sequential):
+def _export_tables(model, comparison_units):
     """Build the report view model once, then project both export tables."""
     report_view_model = build_delta_snr_outlier_report_view_model(
         model,
@@ -222,7 +221,7 @@ def _export_tables(model, comparison_units, *, is_sequential):
     return build_delta_snr_outlier_export_tables(
         model,
         report_view_model,
-        is_sequential=is_sequential,
+
     )
 
 
@@ -292,7 +291,7 @@ def test_tables_are_readable_joinable_and_keep_only_path_class_in_evidence():
             (burst, (8.0, 6.0, 9.0)),
             (sustained, (9.0, 6.0, 8.0)),
         ),
-        is_sequential=True,
+
     )
 
     assert tuple(tables.event_paths.columns) == OUTLIER_EVENT_PATH_COLUMNS
@@ -316,7 +315,7 @@ def test_tables_are_readable_joinable_and_keep_only_path_class_in_evidence():
         "directionally_coherent"
     ]
     assert tables.event_paths["paired_unit_type"].unique().tolist() == [
-        OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR
+        OUTLIER_EXPORT_JOINT_SPOT
     ]
     assert "combined_event_class" not in tables.paired_evidence.columns
     assert tables.paired_evidence["path"].unique().tolist() == [
@@ -360,7 +359,7 @@ def test_cycle_scores_strong_gates_and_inclusive_boundaries_are_exact():
     tables = _export_tables(
         _model(entry),
         comparison_units,
-        is_sequential=False,
+
     )
 
     summary = tables.event_paths.iloc[0]
@@ -401,10 +400,9 @@ def test_cycle_scores_strong_gates_and_inclusive_boundaries_are_exact():
 
 
 @pytest.mark.parametrize("departure_sign", [1.0, -1.0])
-@pytest.mark.parametrize("is_sequential", [False, True])
 def test_tolerant_departure_export_matches_native_qualifying_units_without_rounding(
     departure_sign,
-    is_sequential,
+
 ):
     """Keep raw dB values while exporting the detector's inclusive 0.01 dB gate."""
     anchor_utc = pd.Timestamp("2021-05-09T12:00:00Z")
@@ -463,7 +461,7 @@ def test_tolerant_departure_export_matches_native_qualifying_units_without_round
     assert qualifying_recipe["qualifying_unit_count"] == 4
     assert model.cache_token[0] == "native-residual-episode-v8"
 
-    tables = _export_tables(model, comparison_units, is_sequential=is_sequential)
+    tables = _export_tables(model, comparison_units)
     evidence = tables.paired_evidence
     assert evidence["meets_strong_anchor_gates"].tolist() == [
         True, True, False, True, True
@@ -485,8 +483,7 @@ def test_tolerant_departure_export_matches_native_qualifying_units_without_round
         departure_sign * 5.995
     )
     assert evidence["paired_unit_type"].unique().tolist() == [
-        OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR
-        if is_sequential else OUTLIER_EXPORT_JOINT_SPOT
+        OUTLIER_EXPORT_JOINT_SPOT
     ]
     assert tuple(tables.event_paths.columns) == OUTLIER_EVENT_PATH_COLUMNS
     assert tuple(evidence.columns) == OUTLIER_PAIRED_EVIDENCE_COLUMNS
@@ -528,7 +525,7 @@ def test_departure_tolerance_does_not_relax_export_robust_z_gate(departure_sign)
     tables = _export_tables(
         model,
         _comparison_units((candidate, delta_snr_values)),
-        is_sequential=False,
+
     )
 
     evidence = tables.paired_evidence
@@ -555,7 +552,7 @@ def test_impulse_is_one_joint_spot_with_start_and_end_boundary():
     tables = _export_tables(
         _model(_report_entry(candidate)),
         _comparison_units((candidate, (10.0,))),
-        is_sequential=False,
+
     )
 
     assert tables.event_paths.iloc[0]["median_evidence_interval_minutes"] is None
@@ -586,7 +583,7 @@ def test_event_ids_follow_chronology_not_supplied_tuple_order():
     tables = _export_tables(
         _model(late_entry, early_entry),
         _comparison_units((early, (10.0,)), (late, (10.0,))),
-        is_sequential=False,
+
     )
 
     assert tables.event_paths[["event_id", "callsign"]].values.tolist() == [
@@ -616,7 +613,7 @@ def test_repeated_same_path_intervals_receive_stable_occurrence_ids():
     tables = _export_tables(
         _model(entry),
         _comparison_units((first, (8.0, 9.0)), (second, (9.0, 8.0))),
-        is_sequential=False,
+
     )
 
     assert tables.event_paths["qualifying_path_count"].tolist() == [1, 1]
@@ -657,7 +654,7 @@ def test_empty_detector_model_keeps_both_csv_schemas():
     tables = _export_tables(
         model,
         pd.DataFrame(),
-        is_sequential=False,
+
     )
 
     assert tables.event_paths.empty
@@ -681,7 +678,7 @@ def test_missing_candidate_evidence_fails_instead_of_exporting_partial_trace():
         _export_tables(
             _model(_report_entry(candidate)),
             _comparison_units((candidate, (8.0,))).iloc[:1],
-            is_sequential=False,
+
         )
 
 
@@ -725,7 +722,7 @@ def test_candidate_metadata_reports_schema_filenames_and_all_counts():
             (second, (9.0, 8.0)),
             (third, (10.0,)),
         ),
-        is_sequential=False,
+
     )
 
     metadata = build_delta_snr_outlier_export_metadata(model, tables)
@@ -818,7 +815,7 @@ def test_metadata_rejects_path_event_and_paired_evidence_count_mismatches():
     tables = _export_tables(
         model,
         _comparison_units((candidate, (8.0, 9.0))),
-        is_sequential=False,
+
     )
 
     missing_path_event = DeltaSnrOutlierExportTables(

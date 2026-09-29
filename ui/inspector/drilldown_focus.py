@@ -12,7 +12,6 @@ import pandas as pd
 
 from core.input_validation import is_valid_callsign, is_valid_locator
 from core.opportunity_engine import opportunity_utc_from_time_slot
-from core.tx_ab_schedule import assign_tx_ab_pair_columns
 
 
 DRILLDOWN_ZOOM_WINDOW_OPTIONS = ("off", "1h", "3h", "6h", "12h", "24h")
@@ -352,36 +351,12 @@ def parse_drilldown_outlier_candidate_context(
     """Parse one untrusted queued candidate mapping without clipping provenance."""
     if not isinstance(record, Mapping):
         raise ValueError("Queued Drill-Down outlier context must be a mapping.")
-    schema_version = record.get(
-        "schema_version",
-        DRILLDOWN_OUTLIER_CONTEXT_SCHEMA_VERSION,
-    )
+    schema_version = record.get("schema_version")
     if (
         isinstance(schema_version, bool)
         or schema_version != DRILLDOWN_OUTLIER_CONTEXT_SCHEMA_VERSION
     ):
         raise ValueError("Queued Drill-Down outlier context schema is unsupported.")
-    if "local_baseline_db" in record and "station_baseline_db" in record:
-        local_baseline_db = _as_finite_float(
-            record["local_baseline_db"],
-            field_name="Outlier context local_baseline_db",
-        )
-        station_baseline_db = _as_finite_float(
-            record["station_baseline_db"],
-            field_name="Outlier context station_baseline_db",
-        )
-        if local_baseline_db != station_baseline_db:
-            raise ValueError(
-                "Queued Drill-Down outlier context has conflicting local baselines."
-            )
-    elif "local_baseline_db" in record:
-        local_baseline_db = record["local_baseline_db"]
-    elif "station_baseline_db" in record:
-        local_baseline_db = record["station_baseline_db"]
-    else:
-        raise ValueError(
-            "Queued Drill-Down outlier context lacks local_baseline_db."
-        )
     try:
         return DrilldownOutlierCandidateContext(
             analysis_id=record["analysis_id"],
@@ -430,7 +405,7 @@ def parse_drilldown_outlier_candidate_context(
                 record,
                 "post_flank_end_utc_ns",
             ),
-            local_baseline_db=local_baseline_db,
+            local_baseline_db=record["local_baseline_db"],
             pre_baseline_db=record["pre_baseline_db"],
             post_baseline_db=record["post_baseline_db"],
             robust_spread_db=record["robust_spread_db"],
@@ -603,31 +578,6 @@ def resolve_centered_zoom_window(
     )
 
 
-def resolve_manual_zoom_window(
-    analysis_start_utc: Any,
-    analysis_end_utc: Any,
-    option: str,
-    requested_start_utc: Any,
-) -> DrilldownFocusWindow | None:
-    """Compatibility wrapper for the unpublished start-based focus API."""
-    normalized_option = str(option)
-    if normalized_option == "off":
-        return None
-    if normalized_option not in DRILLDOWN_ZOOM_DURATION_HOURS:
-        raise ValueError(f"Unknown Drill-Down zoom option: {normalized_option!r}")
-    requested_start = _as_utc_timestamp(
-        requested_start_utc,
-        field_name="Requested zoom start",
-    )
-    duration = pd.Timedelta(
-        hours=DRILLDOWN_ZOOM_DURATION_HOURS[normalized_option]
-    )
-    return resolve_centered_zoom_window(
-        analysis_start_utc,
-        analysis_end_utc,
-        normalized_option,
-        requested_start + duration / 2,
-    )
 
 
 def resolve_outlier_focus_window(
@@ -672,11 +622,6 @@ def resolve_outlier_focus_window(
 
 def _row_focus_timestamps(
     station_rows: pd.DataFrame,
-    *,
-    is_sequential: bool,
-    tx_ab_repeat_interval_minutes: int,
-    tx_ab_target_start_minute: int,
-    tx_ab_reference_start_minute: int,
 ) -> tuple[pd.DataFrame, pd.Series]:
     """Return canonical rows and their non-splitting focus coordinate."""
     if station_rows is None:
@@ -684,17 +629,6 @@ def _row_focus_timestamps(
     rows = station_rows.copy()
     if rows.empty:
         return rows, pd.Series(index=rows.index, dtype="datetime64[ns, UTC]")
-    if is_sequential:
-        if "tx_ab_pair_id" not in rows.columns:
-            rows = assign_tx_ab_pair_columns(
-                rows,
-                repeat_interval_minutes=int(tx_ab_repeat_interval_minutes),
-                target_start_minute_utc=int(tx_ab_target_start_minute),
-                reference_start_minute_utc=int(tx_ab_reference_start_minute),
-            )
-        pair_ids = pd.to_numeric(rows.get("tx_ab_pair_id"), errors="coerce")
-        timestamps = pd.to_datetime(pair_ids, unit="m", errors="coerce", utc=True)
-        return rows, pd.Series(timestamps, index=rows.index)
     if "time_slot" not in rows.columns:
         raise ValueError("Cycle-based Drill-Down rows require time_slot.")
     timestamps = opportunity_utc_from_time_slot(rows["time_slot"])
@@ -704,23 +638,14 @@ def _row_focus_timestamps(
 def filter_station_rows_to_focus_window(
     station_rows: pd.DataFrame,
     focus_window: DrilldownFocusWindow | None,
-    *,
-    is_sequential: bool,
-    tx_ab_repeat_interval_minutes: int = 10,
-    tx_ab_target_start_minute: int = 0,
-    tx_ab_reference_start_minute: int = 2,
 ) -> pd.DataFrame:
-    """Filter canonical rows to ``[start, end)`` without splitting A/B pairs."""
+    """Filter canonical cycle rows to ``[start, end)``."""
     if station_rows is None:
         return pd.DataFrame()
     if focus_window is None:
         return station_rows
     rows, timestamps = _row_focus_timestamps(
         station_rows,
-        is_sequential=is_sequential,
-        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
     )
     retained = timestamps.notna() & timestamps.ge(
         focus_window.start_utc
@@ -731,8 +656,3 @@ def filter_station_rows_to_focus_window(
 def datetime_input_step() -> timedelta:
     """Return the canonical cycle-sized step for a UTC focus-time input."""
     return timedelta(minutes=2)
-
-
-def datetime_slider_step() -> timedelta:
-    """Compatibility wrapper for the unpublished start-slider UI."""
-    return datetime_input_step()

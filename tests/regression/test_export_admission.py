@@ -236,7 +236,7 @@ def test_invalid_required_evidence_never_publishes_download(monkeypatch, tmp_pat
     block = {
         "analysis_id": "RX_ABS", "database_source": "wspr_live",
         "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
-        "is_compare": False, "is_sequential": False,
+        "is_compare": False,
         "analysis_kind": "opportunity",
         "map_context": {"parquet_path": str(parquet_path)},
         "all_drilldown_context": {

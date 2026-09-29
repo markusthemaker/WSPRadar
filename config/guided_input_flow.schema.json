@@ -55,7 +55,6 @@
         "band",
         "benchmark_mode",
         "local_benchmark",
-        "tx_ab_method",
         "snr_correction_mode"
       ]
     },

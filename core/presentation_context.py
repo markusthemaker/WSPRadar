@@ -19,9 +19,9 @@ class PresentationContext:
         return str(self.labels.get(key, default))
 
     def absolute_terms(self, mode: str) -> dict[str, str]:
-        """Return canonical compatibility terms and localized Performance labels.
+        """Return canonical scientific terms and localized Performance labels.
 
-        Canonical counter names and formulas remain available for compatibility
+        Canonical counter names and formulas remain available for tabular
         exports and scientific documentation. The explicit opportunity/station
         outcome names are the direction-aware vocabulary used by interactive
         and figure presentation layers.

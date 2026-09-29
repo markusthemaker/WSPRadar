@@ -9,7 +9,6 @@ import pandas as pd
 
 from config import COMPASS
 from core.analysis_context import (
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     LOCAL_BENCHMARK_MEDIAN,
 )
@@ -159,30 +158,19 @@ def compare_scope_availability(scope_rows: pd.DataFrame) -> tuple[bool, bool]:
     return has_joint_rows, has_non_joint_rows
 
 
-def _compare_labels(analysis_context, labels, *, is_sequential):
-    """Return Target/Reference labels for fixed, local, and scheduled Benchmark."""
+def _compare_labels(analysis_context, labels):
+    """Return Target/Reference labels for fixed and local Benchmark."""
     target_call = analysis_context.callsign.upper()
-    if (
-        analysis_context.comparison_mode == COMPARISON_HARDWARE_AB
-        and is_sequential
-    ):
-        target_name = labels["txt_target"]
-        reference_header = labels["txt_reference"]
-        target_only_label = labels["leg_only_me"].format(callsign=target_name)
+    target_only_label = labels["leg_only_me"].format(callsign=target_call)
+    target_name = target_call
+    if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+        reference_only_label = labels["leg_only_ref_radius"]
+        reference_header = "Best Ref"
+    else:
+        reference_header = analysis_context.reference_callsign.upper()
         reference_only_label = labels["leg_only_ref"].format(
             ref_callsign=reference_header
         )
-    else:
-        target_only_label = labels["leg_only_me"].format(callsign=target_call)
-        target_name = target_call
-        if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
-            reference_only_label = labels["leg_only_ref_radius"]
-            reference_header = "Best Ref"
-        else:
-            reference_header = analysis_context.reference_callsign.upper()
-            reference_only_label = labels["leg_only_ref"].format(
-                ref_callsign=reference_header
-            )
     return target_name, reference_header, target_only_label, reference_only_label
 
 
@@ -190,7 +178,6 @@ def build_compare_inspector_view_model(
     scope_rows: pd.DataFrame,
     *,
     analysis_id: str,
-    is_sequential: bool,
     analysis_context,
     presentation_context,
 ) -> CompareInspectorViewModel:
@@ -202,7 +189,6 @@ def build_compare_inspector_view_model(
         _compare_labels(
             analysis_context,
             labels,
-            is_sequential=is_sequential,
         )
     )
     is_local_median = (
@@ -222,22 +208,14 @@ def build_compare_inspector_view_model(
         if analysis_id.startswith("TX")
         else labels["txt_tx_stations"]
     )
-    if is_sequential:
-        scope_summary = (
-            f"Both (Async): {len(scope_rows[(scope_rows['count_only_u'] > 0) & (scope_rows['count_only_r'] > 0)])}"
-            f"  |  {target_only_label}: {int(scope_rows['count_only_u'].sum())}"
-            f"  |  {reference_only_label}: {int(scope_rows['count_only_r'].sum())}"
-            f"  |  {labels['txt_remote']} {remote_label}: {len(scope_rows)}"
-        )
-    else:
-        joint_rows = scope_rows[scope_rows["spot_count"] > 0]
-        scope_summary = (
-            f"{labels['txt_joint_decodes']}: {int(scope_rows['spot_count'].sum())}"
-            f"  |  {target_only_label}: {int(scope_rows['count_only_u'].sum())}"
-            f"  |  {reference_only_label}: {int(scope_rows['count_only_r'].sum())}"
-            f"  |  {labels['txt_joint']} {remote_label}: {len(joint_rows)}"
-            f"  |  {labels['txt_remote']} {remote_label}: {len(scope_rows)}"
-        )
+    joint_rows = scope_rows[scope_rows["spot_count"] > 0]
+    scope_summary = (
+        f"{labels['txt_joint_decodes']}: {int(scope_rows['spot_count'].sum())}"
+        f"  |  {target_only_label}: {int(scope_rows['count_only_u'].sum())}"
+        f"  |  {reference_only_label}: {int(scope_rows['count_only_r'].sum())}"
+        f"  |  {labels['txt_joint']} {remote_label}: {len(joint_rows)}"
+        f"  |  {labels['txt_remote']} {remote_label}: {len(scope_rows)}"
+    )
 
     station_column = labels["tbl_col_rx"] if analysis_id.startswith("TX") else labels["tbl_col_tx"]
     station_type = station_column
@@ -245,30 +223,17 @@ def build_compare_inspector_view_model(
     distance_column = labels["tbl_col_km"]
     azimuth_column = labels["tbl_col_az"]
 
-    if is_sequential:
-        joint_column = labels["tbl_col_joint_pairs"]
-        source_columns = [
-            "peer_sign",
-            "peer_grid",
-            "calc_dist",
-            "calc_azimuth",
-            "joint_pairs_count",
-            "count_only_u",
-            "count_only_r",
-            "stat_val",
-        ]
-    else:
-        joint_column = labels["tbl_col_joint"]
-        source_columns = [
-            "peer_sign",
-            "peer_grid",
-            "calc_dist",
-            "calc_azimuth",
-            "spot_count",
-            "count_only_u",
-            "count_only_r",
-            "stat_val",
-        ]
+    joint_column = labels["tbl_col_joint"]
+    source_columns = [
+        "peer_sign",
+        "peer_grid",
+        "calc_dist",
+        "calc_azimuth",
+        "spot_count",
+        "count_only_u",
+        "count_only_r",
+        "stat_val",
+    ]
     station_table = scope_rows[source_columns].copy()
     station_table.columns = [
         station_column,

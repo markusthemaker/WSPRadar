@@ -11,7 +11,6 @@ from streamlit.testing.v1 import AppTest
 
 from core.analysis_context import (
     AnalysisContext,
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
@@ -96,7 +95,7 @@ def _build_guidance(
     language="en",
     analysis_id="RX_COMP",
     is_compare=True,
-    is_sequential=False,
+
     analysis_context=None,
     selected_station_count=None,
     allows_multiple_station_selection=False,
@@ -108,7 +107,7 @@ def _build_guidance(
         translations=T[language],
         analysis_id=analysis_id,
         is_compare=is_compare,
-        is_sequential=is_sequential,
+
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
         allows_multiple_station_selection=(
@@ -267,9 +266,7 @@ def test_retired_compare_view_localization_and_guidance_are_absent():
     "section_key",
     (
         "temporal_evidence_joint",
-        "temporal_evidence_scheduled",
         "selected_compare_joint",
-        "selected_compare_scheduled",
     ),
 )
 def test_compare_temporal_and_selected_guidance_uses_full_readability_budget(
@@ -290,17 +287,7 @@ def test_compare_temporal_and_selected_guidance_uses_full_readability_budget(
     ("section_key", "english_missing_unit", "german_missing_unit"),
     (
         ("temporal_evidence_joint", "no Joint Spot remains", "kein Joint Spot"),
-        (
-            "temporal_evidence_scheduled",
-            "no complete Scheduled Pair remains",
-            "kein vollständiges geplantes Paar",
-        ),
         ("selected_compare_joint", "no Joint Spot remains", "kein Joint Spot"),
-        (
-            "selected_compare_scheduled",
-            "no complete Scheduled Pair remains",
-            "kein vollständiges geplantes Paar",
-        ),
     ),
 )
 def test_compare_temporal_guidance_explains_full_window_and_blank_intervals(
@@ -335,25 +322,17 @@ def test_compare_temporal_guidance_explains_full_window_and_blank_intervals(
 
 
 def test_selected_compare_guidance_names_the_rendered_coverage_units():
-    """Keep selected-path help aligned with simultaneous and scheduled plots."""
+    """Keep selected-path help aligned with same-cycle RX and TX plots."""
     expected_copy = {
         "en": {
             "selected_compare_joint": (
                 "Retained WSPR Cycles",
                 "per represented UTC date",
             ),
-            "selected_compare_scheduled": (
-                "Scheduled A/B Pairs",
-                "per represented UTC date",
-            ),
         },
         "de": {
             "selected_compare_joint": (
                 "Berücksichtigte WSPR-Zyklen",
-                "je berücksichtigtem UTC-Tag",
-            ),
-            "selected_compare_scheduled": (
-                "Geplante A/B-Paare",
                 "je berücksichtigtem UTC-Tag",
             ),
         },
@@ -448,66 +427,6 @@ def test_joint_temporal_guidance_explains_the_figures_and_target_favored_gate():
         assert expected in german_selected_text
 
 
-@pytest.mark.parametrize(
-    ("language", "over_time", "by_hour", "retired_over_time"),
-    (
-        (
-            "en",
-            "Δ SNR over Time",
-            "Δ SNR by UTC Hour",
-            "Pair Δ SNR over Time",
-        ),
-        (
-            "de",
-            "Δ SNR im Zeitverlauf",
-            "Δ SNR nach UTC-Stunde",
-            "Paar-ΔSNR im Zeitverlauf",
-        ),
-    ),
-)
-def test_scheduled_temporal_guidance_matches_rendered_titles_and_pair_limits(
-    language,
-    over_time,
-    by_hour,
-    retired_over_time,
-):
-    """Explain scheduled evidence without inventing different panel titles."""
-    sections = RESULT_GUIDANCE[language]["sections"]
-    for section_key in (
-        "temporal_evidence_scheduled",
-        "selected_compare_scheduled",
-    ):
-        combined = " ".join(sections[section_key].values())
-        assert over_time in combined
-        assert by_hour in combined
-        assert retired_over_time not in combined
-
-    combined = " ".join(
-        sections[section_key][field]
-        for section_key in (
-            "temporal_evidence_scheduled",
-            "selected_compare_scheduled",
-        )
-        for field in ("read", "limits")
-    )
-    if language == "en":
-        for expected in (
-            "configured planned Target–Reference pairs",
-            "not the simultaneous Target-Active Gate",
-            "Pair ΔSNR exists only when both scheduled sides were decoded",
-            "missing-side SNR",
-            "transmissions are separated in time",
-        ):
-            assert expected in combined
-    else:
-        for expected in (
-            "konfigurierten geplanten Target–Referenz-Paaren",
-            "nicht dem Target-Active Gate des simultanen Modus",
-            "Pair-ΔSNR entsteht nur, wenn beide geplanten Seiten decodiert wurden",
-            "SNR der fehlenden Seite",
-            "Der Zeitabstand lässt",
-        ):
-            assert expected in combined
 
 
 def test_directional_success_temporal_guidance_stays_near_readability_target():
@@ -530,18 +449,8 @@ def test_directional_success_temporal_guidance_stays_near_readability_target():
         ),
         (
             "en",
-            "temporal_evidence_scheduled",
-            ("same bin population", "complete pairs"),
-        ),
-        (
-            "en",
             "selected_compare_joint",
             ("same bin population", "Joint Spots"),
-        ),
-        (
-            "en",
-            "selected_compare_scheduled",
-            ("same bin population", "complete pairs"),
         ),
         (
             "en",
@@ -582,18 +491,8 @@ def test_directional_success_temporal_guidance_stays_near_readability_target():
         ),
         (
             "de",
-            "temporal_evidence_scheduled",
-            ("derselben Bin-Population", "vollständige Paare"),
-        ),
-        (
-            "de",
             "selected_compare_joint",
             ("derselben Bin-Population", "Joint Spots"),
-        ),
-        (
-            "de",
-            "selected_compare_scheduled",
-            ("derselben Bin-Population", "vollständige Paare"),
         ),
         (
             "de",
@@ -837,41 +736,29 @@ def test_compare_selected_guidance_routes_single_and_combined_station_copy():
     assert not _format_fields(combined_guidance)
 
 
-@pytest.mark.parametrize(
-    ("is_sequential", "single_phrase", "multi_phrase"),
-    (
-        (False, "Select one row to inspect one path", "Select one or more rows"),
-        (
-            True,
-            "Select one row to inspect that receiver path",
-            "Select one or more rows",
-        ),
-    ),
-)
+@pytest.mark.parametrize(('single_phrase', 'multi_phrase'), [('Select one row to inspect one path', 'Select one or more rows')])
 def test_compare_station_insights_guidance_gates_multi_selection_copy(
-    is_sequential,
+
     single_phrase,
     multi_phrase,
 ):
     """Preserve singleton guidance off and expose multi-row guidance only on."""
     analysis_context = AnalysisContext(
         comparison_mode=(
-            COMPARISON_HARDWARE_AB
-            if is_sequential
-            else COMPARISON_REFERENCE_STATION
+            COMPARISON_REFERENCE_STATION
         )
     )
-    analysis_id = "TX_COMP" if is_sequential else "RX_COMP"
+    analysis_id = "RX_COMP"
     single_guidance = _build_guidance(
         RESULT_GUIDANCE_STATION_INSIGHTS,
         analysis_id=analysis_id,
-        is_sequential=is_sequential,
+
         analysis_context=analysis_context,
     )
     multi_guidance = _build_guidance(
         RESULT_GUIDANCE_STATION_INSIGHTS,
         analysis_id=analysis_id,
-        is_sequential=is_sequential,
+
         analysis_context=analysis_context,
         allows_multiple_station_selection=True,
     )
@@ -1057,7 +944,7 @@ def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guid
             assert superseded_key not in T[language]
 
     english_sections = RESULT_GUIDANCE["en"]["sections"]
-    for section_key in ("drilldown_compare_joint", "drilldown_compare_scheduled"):
+    for section_key in ("drilldown_compare_joint",):
         read = english_sections[section_key]["read"]
         assert "exact centered interval" in read
         assert "`Filter table` then changes only the displayed rows" in read
@@ -1065,9 +952,6 @@ def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guid
         assert "Segment and full-window Selected Station Evidence remain aggregated density views" in read
     assert "one actual ΔSNR point for every retained Joint Spot" in english_sections[
         "drilldown_compare_joint"
-    ]["read"]
-    assert "one actual Pair ΔSNR point per retained complete Scheduled Pair" in english_sections[
-        "drilldown_compare_scheduled"
     ]["read"]
     for section_key in ("drilldown_success_rx", "drilldown_success_tx"):
         read = english_sections[section_key]["read"]
@@ -1090,7 +974,7 @@ def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guid
     assert "neither a confidence interval nor a measurement of physical-event duration" in english_outlier["limits"]
 
     german_sections = RESULT_GUIDANCE["de"]["sections"]
-    for section_key in ("drilldown_compare_joint", "drilldown_compare_scheduled"):
+    for section_key in ("drilldown_compare_joint",):
         read = german_sections[section_key]["read"]
         assert "exaktes zentriertes Intervall" in read
         assert "`Tabelle filtern` verändert anschließend nur die angezeigten Zeilen" in read
@@ -1490,10 +1374,6 @@ def test_result_guidance_uses_practical_station_language():
             "`callsign + locator`",
             "`Rufzeichen + Locator`",
         ),
-        "station_insights_compare_scheduled": (
-            "`callsign + locator`",
-            "`Rufzeichen + Locator`",
-        ),
         "station_insights_success_rx": (
             "callsign plus locator",
             "Rufzeichen und Locator",
@@ -1513,57 +1393,12 @@ def test_result_guidance_uses_practical_station_language():
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
-@pytest.mark.parametrize(
-    (
-        "analysis_id",
-        "is_compare",
-        "is_sequential",
-        "analysis_context",
-        "section_ids",
-    ),
-    (
-        (
-            "RX_COMP",
-            True,
-            False,
-            AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION),
-            COMPARE_SECTIONS,
-        ),
-        (
-            "TX_COMP",
-            True,
-            False,
-            AnalysisContext(comparison_mode=COMPARISON_HARDWARE_AB),
-            COMPARE_SECTIONS,
-        ),
-        (
-            "TX_COMP",
-            True,
-            True,
-            AnalysisContext(comparison_mode=COMPARISON_HARDWARE_AB),
-            COMPARE_SECTIONS,
-        ),
-        (
-            "RX_ABS",
-            False,
-            False,
-            AnalysisContext(comparison_mode=COMPARISON_NONE),
-            SUCCESS_SECTIONS,
-        ),
-        (
-            "TX_ABS",
-            False,
-            False,
-            AnalysisContext(comparison_mode=COMPARISON_NONE),
-            SUCCESS_SECTIONS,
-        ),
-    ),
-)
+@pytest.mark.parametrize(('analysis_id', 'is_compare', 'analysis_context', 'section_ids'), [('RX_COMP', True, AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION), COMPARE_SECTIONS), ('TX_COMP', True, AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION), COMPARE_SECTIONS), ('RX_ABS', False, AnalysisContext(comparison_mode=COMPARISON_NONE), SUCCESS_SECTIONS), ('TX_ABS', False, AnalysisContext(comparison_mode=COMPARISON_NONE), SUCCESS_SECTIONS)])
 def test_every_valid_result_family_resolves_all_of_its_sections(
     language,
     analysis_id,
     is_compare,
-    is_sequential,
+
     analysis_context,
     section_ids,
 ):
@@ -1574,7 +1409,7 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
             language=language,
             analysis_id=analysis_id,
             is_compare=is_compare,
-            is_sequential=is_sequential,
+
             analysis_context=analysis_context,
             selected_station_count=(
                 1
@@ -1597,17 +1432,16 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
     ),
     (
         (
-            COMPARISON_HARDWARE_AB,
+            COMPARISON_REFERENCE_STATION,
             LOCAL_BENCHMARK_MEDIAN,
-            "two controlled paths operating within the same four-character Maidenhead locator",
-            "exact callsign",
+            "A controlled local setup can compare antennas, feedlines, radios or complete chains",
+            "independently configured",
         ),
         (
             COMPARISON_REFERENCE_STATION,
             LOCAL_BENCHMARK_MEDIAN,
-            "selected by its exact callsign and an independently configured "
-            "four-character Maidenhead locator",
-            "same four-character Maidenhead locator",
+            "selected by its exact callsign and grid-4 resolved from the selected archive period",
+            "independently configured",
         ),
         (
             COMPARISON_LOCAL_NEIGHBORHOOD,
@@ -1670,16 +1504,16 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
         ),
         selected_station_count=1,
     )
-    scheduled_compare = _build_guidance(
+    tx_compare = _build_guidance(
         RESULT_GUIDANCE_COMPARISON_EVIDENCE,
         analysis_id="TX_COMP",
-        is_sequential=True,
+
         analysis_context=AnalysisContext(
-            comparison_mode=COMPARISON_HARDWARE_AB
+            comparison_mode=COMPARISON_REFERENCE_STATION
         ),
     )
     joint_compare_plain = _plain_guidance(joint_compare)
-    scheduled_compare_plain = _plain_guidance(scheduled_compare)
+    tx_compare_plain = _plain_guidance(tx_compare)
 
     assert "qualifying TX station" in rx_success
     assert "Heard by Target" in rx_success
@@ -1709,11 +1543,11 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
     assert "solid Spots" in joint_compare_plain
     assert "Total and Joint counts for both levels appear" in joint_compare_plain
     assert (
-        "A Scheduled Pair is the deterministic Target–Reference unit"
-        in scheduled_compare_plain
+        "A Joint Spot is a consolidated same-cycle unit"
+        in tx_compare_plain
     )
-    assert "solid Scheduled-pairs bars" in scheduled_compare_plain
-    assert "time-separated design retains changes" in scheduled_compare_plain
+    assert "solid Spots" in tx_compare_plain
+    assert "Scheduled Pair" not in tx_compare_plain
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -2023,7 +1857,6 @@ def test_success_guidance_names_the_rendered_figures_exactly(language):
     (
         "language",
         "joint_title",
-        "scheduled_title",
         "selected_chronological_title",
         "selected_folded_title",
     ),
@@ -2031,14 +1864,12 @@ def test_success_guidance_names_the_rendered_figures_exactly(language):
         (
             "en",
             "Joint-Spot Δ SNR",
-            "Scheduled-Pair Δ SNR",
             "Δ SNR over Time",
             "Δ SNR by UTC Hour",
         ),
         (
             "de",
             "Joint-Spot Δ SNR",
-            "Geplantes Paar Δ SNR",
             "Δ SNR im Zeitverlauf",
             "Δ SNR nach UTC-Stunde",
         ),
@@ -2047,7 +1878,6 @@ def test_success_guidance_names_the_rendered_figures_exactly(language):
 def test_compare_guidance_names_the_rendered_figures_exactly(
     language,
     joint_title,
-    scheduled_title,
     selected_chronological_title,
     selected_folded_title,
 ):
@@ -2059,13 +1889,13 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
     )
-    scheduled_figures = _build_guidance(
+    tx_figures = _build_guidance(
         RESULT_GUIDANCE_COMPARISON_EVIDENCE,
         language=language,
         analysis_id="TX_COMP",
-        is_sequential=True,
+
         analysis_context=AnalysisContext(
-            comparison_mode=COMPARISON_HARDWARE_AB
+            comparison_mode=COMPARISON_REFERENCE_STATION
         ),
     )
     selected_figures = _build_guidance(
@@ -2079,8 +1909,8 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
 
     assert "Station Medians (Δ SNR)" in joint_figures
     assert joint_title in joint_figures
-    assert "Station Medians (Δ SNR)" in scheduled_figures
-    assert scheduled_title in scheduled_figures
+    assert "Station Medians (Δ SNR)" in tx_figures
+    assert joint_title in tx_figures
     assert selected_chronological_title in selected_figures
     assert selected_folded_title in selected_figures
     retired_selected_title = (
@@ -2091,58 +1921,12 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
     assert retired_selected_title not in selected_figures
 
 
-@pytest.mark.parametrize(
-    ("section_id", "analysis_id", "is_compare", "is_sequential", "match"),
-    (
-        (
-            RESULT_GUIDANCE_COMPARISON_EVIDENCE,
-            "RX_ABS",
-            False,
-            False,
-            "unavailable for Performance",
-        ),
-        (
-            RESULT_GUIDANCE_SUCCESS_EVIDENCE,
-            "RX_COMP",
-            True,
-            False,
-            "unavailable for Benchmark",
-        ),
-        (
-            RESULT_GUIDANCE_CONTEXT,
-            "RX_COMP",
-            True,
-            True,
-            "valid only for TX Hardware A/B Benchmark",
-        ),
-        (
-            RESULT_GUIDANCE_CONTEXT,
-            "TX_ABS",
-            False,
-            True,
-            "valid only for TX Hardware A/B Benchmark",
-        ),
-        (
-            RESULT_GUIDANCE_CONTEXT,
-            "TX_COMP",
-            True,
-            True,
-            "valid only for TX Hardware A/B Benchmark",
-        ),
-        (
-            RESULT_GUIDANCE_MAP,
-            "not-an-analysis",
-            False,
-            False,
-            "requires an RX or TX analysis ID",
-        ),
-    ),
-)
+@pytest.mark.parametrize(('section_id', 'analysis_id', 'is_compare', 'match'), [(RESULT_GUIDANCE_COMPARISON_EVIDENCE, 'RX_ABS', False, 'unavailable for Performance'), (RESULT_GUIDANCE_SUCCESS_EVIDENCE, 'RX_COMP', True, 'unavailable for Benchmark'), (RESULT_GUIDANCE_MAP, 'not-an-analysis', False, 'requires an RX or TX analysis ID')])
 def test_invalid_mode_and_section_combinations_are_rejected(
     section_id,
     analysis_id,
     is_compare,
-    is_sequential,
+
     match,
 ):
     """Reject result-help combinations absent from the actual analysis flow."""
@@ -2151,7 +1935,7 @@ def test_invalid_mode_and_section_combinations_are_rejected(
             section_id,
             analysis_id=analysis_id,
             is_compare=is_compare,
-            is_sequential=is_sequential,
+
             analysis_context=AnalysisContext(
                 comparison_mode=COMPARISON_REFERENCE_STATION
             ),

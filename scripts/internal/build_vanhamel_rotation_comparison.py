@@ -54,7 +54,7 @@ BIN_HIGHLIGHT_COLORS = {1: "#aa610c", 8: "#7953a2", 15: "#087d70"}
 def _production_recipe(run):
     labels = T["en"]
     return _selected_evidence_export_recipe(
-        run.points, "Selected Station Evidence: M7AEO (IO82)", "12h", False,
+        run.points, "Selected Station Evidence: M7AEO (IO82)", "12h",
         reference_snr_correction_db=run.context.reference_snr_correction_db,
         analysis_start_t=run.configuration["start_utc"],
         analysis_end_t=run.configuration["end_utc"],

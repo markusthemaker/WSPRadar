@@ -123,7 +123,7 @@ def build_prepared_export(work_directory: Path):
     paths["spots"].parent.mkdir(parents=True, exist_ok=True)
     run.processed.to_parquet(paths["spots"], index=False)
     map_data = MapData(run.stations, run.segment_rows, run.analysis.id,
-        run.analysis.is_compare, run.analysis.is_sequential, run.analysis.analysis_kind)
+        run.analysis.is_compare,  run.analysis.analysis_kind)
     map_paths = MapDataArtifactPaths(paths["map_stations"], paths["map_segments"])
     write_map_data_artifacts(map_data, map_paths)
     for artifact_path in paths.values():
@@ -138,7 +138,7 @@ def build_prepared_export(work_directory: Path):
         str(paths["spots"]), selected_stations,
         inspector.station_column, inspector.locator_column,
         inspector.distance_column, inspector.azimuth_column,
-        run.analysis.id, False, True, False,
+        run.analysis.id,  True, False,
         inspector.target_name, inspector.reference_header, T["en"],
     )
     assert warning is None and not drilldown.empty
@@ -146,7 +146,7 @@ def build_prepared_export(work_directory: Path):
     footer = compare_footer_counts(run.stations, max_dist_km=run.context.max_peer_distance_km)
     segment_recipe = _segment_figure_export_recipe(
         title=run.analysis.title, selected_segment="Full Range | All Directions",
-        is_sequential=False, station_values=run.stations.stat_val.dropna(),
+         station_values=run.stations.stat_val.dropna(),
         spot_values=run.points.metric,
         panel_labels=[inspector.target_only_label, labels["txt_joint"], labels["leg_both_async"], inspector.reference_only_label],
         panel_y_label=labels["fig_share_percent_axis"],
@@ -165,14 +165,14 @@ def build_prepared_export(work_directory: Path):
         **temporal_labels(run),
     )
     selected_recipe = _selected_evidence_export_recipe(
-        selected_points, "VE6PDQ (DO34IR)", "3h", False,
+        selected_points, "VE6PDQ (DO34IR)", "3h",
         count_label=labels["fig_joint_spot_count"], **temporal_labels(run),
     )
     drilldown_context = {
         "station_meta_df": inspector.station_table,
         "station_col": inspector.station_column, "loc_col": inspector.locator_column,
         "km_col": inspector.distance_column, "az_col": inspector.azimuth_column,
-        "analysis_id": run.analysis.id, "is_sequential": False,
+        "analysis_id": run.analysis.id,
         "show_non_joint": True, "is_local_median": False,
         "col_u_name": inspector.target_name, "ref_header": inspector.reference_header,
         "target_callsign": run.context.callsign, "lang": "en",

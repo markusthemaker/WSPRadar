@@ -9,12 +9,8 @@ POPULATION_EXCLUSION_RESULT_TYPE_KEY = "_population_exclusion_result_type"
 POPULATION_EXCLUSION_OVERRIDES_KEY = "_population_exclusion_overrides"
 
 _RESULT_TYPES = frozenset({PERFORMANCE_RESULT_TYPE, BENCHMARK_RESULT_TYPE})
-_LEGACY_RESULT_TYPE_ALIASES = {
-    "success": PERFORMANCE_RESULT_TYPE,
-    "compare": BENCHMARK_RESULT_TYPE,
-}
 _COMPARISON_MODES = frozenset(
-    {"hardware_ab", "reference_station", "local_neighborhood"}
+    {"reference_station", "local_neighborhood"}
 )
 _STATE_KEYS = (
     "val_exclude_special_callsigns",
@@ -44,22 +40,18 @@ def result_type_from_comparison_mode(comparison_mode: object) -> str:
     raise ValueError(f"Unsupported comparison mode {comparison_mode!r}.")
 
 
-def _canonical_result_type(result_type: object) -> object:
-    """Normalize a bounded legacy session token without writing it again."""
-    return _LEGACY_RESULT_TYPE_ALIASES.get(result_type, result_type)
 
 
 def population_exclusion_defaults(result_type: str) -> dict[str, bool]:
     """Return a new canonical filter-default mapping for one result type."""
-    canonical_result_type = _canonical_result_type(result_type)
     try:
-        return dict(_DEFAULTS_BY_RESULT_TYPE[canonical_result_type])
+        return dict(_DEFAULTS_BY_RESULT_TYPE[result_type])
     except KeyError as error:
         raise ValueError(f"Unsupported result type {result_type!r}.") from error
 
 
 def _override_flags(state: Mapping) -> dict[str, bool] | None:
-    """Return valid per-field override flags, or ``None`` for legacy state."""
+    """Return valid per-field override flags, or ``None`` before initialization."""
     overrides = state.get(POPULATION_EXCLUSION_OVERRIDES_KEY)
     if not isinstance(overrides, Mapping):
         return None
@@ -72,40 +64,22 @@ def _override_flags(state: Mapping) -> dict[str, bool] | None:
 
 
 def initialize_population_exclusion_state(state: MutableMapping) -> None:
-    """Initialize new sessions while preserving canonical existing values."""
-    # Reassignment detaches values from the former direct widget keys so a
-    # hot-reloaded Streamlit session cannot delete the new canonical shadows.
-    tracked_result_type = _canonical_result_type(
-        state.get(POPULATION_EXCLUSION_RESULT_TYPE_KEY)
-    )
+    """Initialize current filter defaults and preserve explicit canonical choices."""
+    result_type = state.get(POPULATION_EXCLUSION_RESULT_TYPE_KEY)
+    if result_type not in _RESULT_TYPES:
+        result_type = result_type_from_comparison_mode(state.get("val_comp_mode"))
+    defaults = population_exclusion_defaults(result_type)
     overrides = _override_flags(state)
-    if tracked_result_type in _RESULT_TYPES and overrides is not None:
-        defaults = population_exclusion_defaults(tracked_result_type)
-        for state_key in _STATE_KEYS:
-            canonical_value = state.get(state_key)
-            state[state_key] = (
-                canonical_value
-                if isinstance(canonical_value, bool)
-                else defaults[state_key]
-            )
-        state[POPULATION_EXCLUSION_RESULT_TYPE_KEY] = tracked_result_type
-        return
+    if overrides is None:
+        overrides = {
+            key: isinstance(state.get(key), bool) for key in _STATE_KEYS
+        }
+    for key in _STATE_KEYS:
+        value = state.get(key)
+        state[key] = value if isinstance(value, bool) else defaults[key]
+    state[POPULATION_EXCLUSION_RESULT_TYPE_KEY] = result_type
+    state[POPULATION_EXCLUSION_OVERRIDES_KEY] = overrides
 
-    active_result_type = result_type_from_comparison_mode(
-        state.get("val_comp_mode")
-    )
-    defaults = population_exclusion_defaults(active_result_type)
-    migrated_overrides = {}
-    for state_key in _STATE_KEYS:
-        has_existing_value = isinstance(state.get(state_key), bool)
-        state[state_key] = (
-            state[state_key]
-            if has_existing_value
-            else defaults[state_key]
-        )
-        migrated_overrides[state_key] = has_existing_value
-    state[POPULATION_EXCLUSION_RESULT_TYPE_KEY] = active_result_type
-    state[POPULATION_EXCLUSION_OVERRIDES_KEY] = migrated_overrides
 
 
 def transition_population_exclusion_result_type(
@@ -113,7 +87,6 @@ def transition_population_exclusion_result_type(
     result_type: str,
 ) -> None:
     """Apply another result family's defaults only to untouched filter fields."""
-    result_type = _canonical_result_type(result_type)
     if result_type not in _RESULT_TYPES:
         raise ValueError(f"Unsupported result type {result_type!r}.")
 
@@ -178,7 +151,6 @@ def apply_population_exclusion_defaults(
     result_type: str,
 ) -> None:
     """Apply both defaults and clear explicit ownership for a fresh preset."""
-    result_type = _canonical_result_type(result_type)
     defaults = population_exclusion_defaults(result_type)
     state.update(defaults)
     state[POPULATION_EXCLUSION_RESULT_TYPE_KEY] = result_type
@@ -196,7 +168,6 @@ def register_explicit_population_exclusion_values(
     active_result_type = result_type or result_type_from_comparison_mode(
         state.get("val_comp_mode")
     )
-    active_result_type = _canonical_result_type(active_result_type)
     population_exclusion_defaults(active_result_type)
     if any(
         not isinstance(state.get(state_key), bool)

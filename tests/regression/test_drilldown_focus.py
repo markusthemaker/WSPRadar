@@ -178,6 +178,16 @@ def test_candidate_context_rejects_invalid_scientific_fields(
         parse_drilldown_outlier_candidate_context(record)
 
 
+@pytest.mark.parametrize("missing_field", ["schema_version", "local_baseline_db"])
+def test_candidate_context_requires_current_explicit_fields(missing_field):
+    record = _candidate_context_mapping()
+    removed = record.pop(missing_field)
+    if missing_field == "local_baseline_db":
+        record["station_baseline_db"] = removed
+    with pytest.raises(ValueError, match="schema|local_baseline_db"):
+        parse_drilldown_outlier_candidate_context(record)
+
+
 def test_candidate_context_rejects_representative_outside_event():
     record = _candidate_context_mapping()
     record["event_end_utc_ns"] = record["representative_utc_ns"]
@@ -266,55 +276,6 @@ def test_cycle_row_filter_uses_half_open_utc_window():
     filtered = filter_station_rows_to_focus_window(
         rows,
         focus,
-        is_sequential=False,
+
     )
     assert filtered["row"].tolist() == ["start", "inside"]
-
-
-def test_sequential_row_filter_retains_or_excludes_complete_pairs_by_target_start():
-    rows = pd.DataFrame(
-        {
-            "time": pd.to_datetime(
-                [
-                    "2026-01-01T00:00:00Z",
-                    "2026-01-01T00:02:00Z",
-                    "2026-01-01T00:10:00Z",
-                    "2026-01-01T00:12:00Z",
-                ],
-                utc=True,
-            ),
-            "is_me": [1, 0, 1, 0],
-            "side": ["target-1", "reference-1", "target-2", "reference-2"],
-        }
-    )
-    focus = DrilldownFocusWindow(
-        start_utc=pd.Timestamp("2026-01-01T00:10:00Z"),
-        end_utc=pd.Timestamp("2026-01-01T00:20:00Z"),
-        option="10m-test",
-        origin="test",
-    )
-    filtered = filter_station_rows_to_focus_window(
-        rows,
-        focus,
-        is_sequential=True,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-    assert filtered["side"].tolist() == ["target-2", "reference-2"]
-    assert filtered["tx_ab_pair_id"].nunique() == 1
-
-    focus_after_pair_start = DrilldownFocusWindow(
-        start_utc=pd.Timestamp("2026-01-01T00:11:00Z"),
-        end_utc=pd.Timestamp("2026-01-01T00:20:00Z"),
-        option="9m-test",
-        origin="test",
-    )
-    assert filter_station_rows_to_focus_window(
-        rows,
-        focus_after_pair_start,
-        is_sequential=True,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    ).empty

@@ -7,7 +7,7 @@ from config import MAX_DAYS_HISTORY
 from core.time_utils import (
     UtcWindowValidationError,
     normalize_utc_window,
-    quantize_time,
+    floor_to_minute,
     resolve_default_utc_window,
 )
 
@@ -137,18 +137,18 @@ def time_window_validation_message_key(
     )
 
 
-def quantize_utc_window_state(
+def normalize_utc_window_state(
     state: MutableMapping,
 ) -> tuple[datetime, datetime]:
-    """Floor both editable UTC endpoints and write the effective values back."""
-    start_utc = quantize_time(
+    """Keep entered minutes and remove only unsupported sub-minute precision."""
+    start_utc = floor_to_minute(
         _combine_utc(
             state.get("val_start_d"),
             state.get("val_start_t"),
             field="start_utc",
         )
     )
-    end_utc = quantize_time(
+    end_utc = floor_to_minute(
         _combine_utc(
             state.get("val_end_d"),
             state.get("val_end_t"),
@@ -167,7 +167,7 @@ def initialize_utc_window_state(
     """Initialize once per session, then preserve the stored absolute window."""
     if not state.get(ABSOLUTE_TIME_WINDOW_INITIALIZED_KEY):
         return set_default_utc_window_state(state, current_utc=current_utc)
-    return quantize_utc_window_state(state)
+    return normalize_utc_window_state(state)
 
 
 def utc_window_from_state(

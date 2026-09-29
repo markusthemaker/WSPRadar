@@ -6,7 +6,6 @@ from html import escape
 import re
 
 from core.analysis_context import (
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_REFERENCE_STATION,
 )
@@ -78,29 +77,6 @@ def comparison_constraint_text(analysis, analysis_context, translations):
             grid4=reference_grid4
         )
 
-    if comparison_mode == COMPARISON_HARDWARE_AB:
-        shared_grid4 = str(
-            getattr(analysis_context, "qth", "")
-        ).strip().upper()[:4]
-        if not shared_grid4:
-            return ""
-        constraint = translations["txt_results_shared_grid4"].format(
-            grid4=shared_grid4
-        )
-        if analysis.get("is_sequential"):
-            schedule = translations["txt_results_tx_schedule"].format(
-                interval=int(
-                    getattr(
-                        analysis_context,
-                        "tx_ab_repeat_interval_minutes",
-                        10,
-                    )
-                ),
-                target_phase=f"{int(getattr(analysis_context, 'tx_ab_target_start_minute', 0)):02d}",
-                reference_phase=f"{int(getattr(analysis_context, 'tx_ab_reference_start_minute', 2)):02d}",
-            )
-            return f"{constraint} · {schedule}"
-        return constraint
 
     if comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         benchmark = translations["comp_title_local_median"].format(
@@ -129,11 +105,7 @@ def build_result_context(
     title = translations[title_key].format(direction=direction)
 
     callsign = str(getattr(analysis_context, "callsign", "")).upper()
-    if is_compare and analysis.get("is_sequential"):
-        subtitle = translations["sub_results_compare_scheduled"].format(
-            callsign=callsign
-        )
-    elif is_compare:
+    if is_compare:
         figure_title = str(analysis.get("title", ""))
         _prefix, separator, title_context = figure_title.partition(": ")
         subtitle = title_context if separator else figure_title
@@ -171,7 +143,6 @@ def build_result_context(
         analysis_context,
         translations,
         is_compare=is_compare,
-        is_sequential=bool(analysis.get("is_sequential")),
     )
     return ResultContext(
         title=title,
@@ -320,12 +291,10 @@ def utility_header_html(title, subtitle=""):
     )
 
 
-def evidence_unit_label(count, *, is_compare, is_sequential, translations):
+def evidence_unit_label(count, *, is_compare,  translations):
     """Return the localized singular or plural evidence unit for one count."""
     if not is_compare:
         unit = "confirmed_opportunity"
-    elif is_sequential:
-        unit = "scheduled_pair"
     else:
         unit = "joint_spot"
     plurality = "singular" if int(count) == 1 else "plural"
@@ -352,7 +321,6 @@ def scope_evidence_text(
     *,
     analysis_id,
     is_compare,
-    is_sequential,
     translations,
 ):
     """Return localized evidence depth for the active geographic scope."""
@@ -366,7 +334,6 @@ def scope_evidence_text(
         evidence_unit=evidence_unit_label(
             evidence_count,
             is_compare=is_compare,
-            is_sequential=is_sequential,
             translations=translations,
         ),
     )
@@ -452,7 +419,6 @@ def selected_station_context(
     evidence_count,
     *,
     analysis_id,
-    is_sequential,
     translations,
     allow_multiple=False,
 ):
@@ -479,7 +445,6 @@ def selected_station_context(
     unit = evidence_unit_label(
         evidence_count,
         is_compare=True,
-        is_sequential=is_sequential,
         translations=translations,
     )
     if len(identities) == 1:

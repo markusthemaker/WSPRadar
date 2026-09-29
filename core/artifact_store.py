@@ -658,32 +658,16 @@ def retire_registered_session_artifacts(session_state: MutableMapping) -> int:
 def cleanup_artifact_namespaces(
     cache_root,
     *,
-    query_ttl_seconds: float | None = None,
+    query_ttl_seconds: float,
+    session_ttl_seconds: float,
     demo_query_ttl_seconds: float | None = None,
-    session_ttl_seconds: float | None = None,
-    ttl_seconds: float | None = None,
 ) -> dict[str, int]:
-    """Clean each TTL-managed namespace according to its own lifecycle.
+    """Clean each namespace using its current explicit lifecycle policy.
 
-    ``ttl_seconds`` is retained as an internal compatibility fallback for
-    callers that have not yet separated ordinary-query and session policies.
-    Demo queries have no age-based expiry unless a finite demo TTL is supplied
-    explicitly; the compatibility fallback never expires permanent demo data.
+    Demo queries have no age-based expiry unless a finite demo TTL is supplied.
     """
-    query_ttl_seconds = (
-        ttl_seconds if query_ttl_seconds is None else query_ttl_seconds
-    )
-    session_ttl_seconds = (
-        ttl_seconds if session_ttl_seconds is None else session_ttl_seconds
-    )
-    if None in (
-        query_ttl_seconds,
-        session_ttl_seconds,
-    ):
-        raise TypeError(
-            "query and session TTL values must both be provided"
-        )
-
+    if query_ttl_seconds is None or session_ttl_seconds is None:
+        raise TypeError("query and session TTL values must both be provided")
     removed = {
         ArtifactNamespace.QUERY.value: ARTIFACT_STORE.cleanup_namespace(
             cache_root,

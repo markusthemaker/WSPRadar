@@ -127,7 +127,7 @@ def test_performance_drilldown_numeric_filters_preserve_canonical_export_rows(
         "rall_dall",
         T[language],
         is_compare=False,
-        is_sequential=False,
+
         analysis_context=SimpleNamespace(),
         language=language,
         filter_container=widgets,
@@ -187,7 +187,7 @@ def test_performance_drilldown_filters_through_streamlit_widgets(
             "rall_dall",
             T[language],
             is_compare=False,
-            is_sequential=False,
+
             analysis_context=SimpleNamespace(),
             language=language,
             render_header=False,
@@ -649,9 +649,9 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     analysis_context = SimpleNamespace(
         min_confirmed_opportunities_per_peer=1,
         callsign="G3ZIL",
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
+
+
+
     )
     opportunity_terms = {
         "mode": "RX",
@@ -688,7 +688,7 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
         analysis_id="RX_ABS",
         title="RX Performance",
         is_compare=False,
-        is_sequential=False,
+
         parquet_path="unused-session-artifact.parquet",
         line1_str="audit",
         translations=T["en"],

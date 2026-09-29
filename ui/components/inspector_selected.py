@@ -92,7 +92,6 @@ def render_drilldown_heading(
     scope_token,
     translations,
     is_compare,
-    is_sequential,
     analysis_context,
     language,
     *,
@@ -125,7 +124,6 @@ def render_drilldown_heading(
         ),
         analysis_id=analysis_id,
         is_compare=is_compare,
-        is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
     normalization_note = translations["txt_snr_values_normalized_30dbm"]
@@ -143,7 +141,6 @@ def render_drilldown_header_and_controls(
     scope_token,
     translations,
     is_compare,
-    is_sequential,
     analysis_context,
     language,
     *,
@@ -162,7 +159,6 @@ def render_drilldown_header_and_controls(
         scope_token,
         translations,
         is_compare,
-        is_sequential,
         analysis_context,
         language,
         allow_multiple_station_selection=allow_multiple_station_selection,
@@ -344,7 +340,6 @@ def render_drilldown_dataframe(
     scope_token,
     t,
     is_compare,
-    is_sequential,
     analysis_context,
     language,
     allow_multiple_station_selection=False,
@@ -374,7 +369,6 @@ def render_drilldown_dataframe(
             scope_token,
             t,
             is_compare,
-            is_sequential,
             analysis_context,
             language,
             allow_multiple_station_selection=(
@@ -441,7 +435,6 @@ def render_drilldown_dataframe(
     render_reference_correction_notice(
         t,
         is_compare=is_compare,
-        is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
     with timed_span(timing_collector, "drilldown dataframe render"):
@@ -465,7 +458,6 @@ def render_selected_station_evidence(
     t,
     analysis_context,
     language,
-    is_sequential,
     outlier_model=None,
 ):
     """Render pooled Benchmark evidence from the coordinator's compact model."""
@@ -498,7 +490,6 @@ def render_selected_station_evidence(
                 identity_labels,
                 evidence_count,
                 analysis_id=analysis_id,
-                is_sequential=is_sequential,
                 translations=t,
                 allow_multiple=(outlier_model is not None),
             ),
@@ -516,7 +507,6 @@ def render_selected_station_evidence(
         ),
         analysis_id=analysis_id,
         is_compare=True,
-        is_sequential=is_sequential,
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
         allows_multiple_station_selection=(outlier_model is not None),
@@ -543,10 +533,7 @@ def render_selected_station_evidence(
 
     time_agg_options = list(selected_bundle["time_agg_options"])
     time_agg_default = selected_bundle["time_agg_default"]
-    agg_key = (
-        f"evidence_time_agg_{analysis_id}_{run_id}_{scope_token}_"
-        f"{is_sequential}"
-    )
+    agg_key = f"evidence_time_agg_{analysis_id}_{run_id}_{scope_token}"
     persistent_time_bin_key = inspector_selection.time_bin_persistent_state_key(True)
     inspector_selection.initialize_time_bin_widget_state(
         session_state,
@@ -711,7 +698,6 @@ def render_performance_selected_evidence(
             ),
             analysis_id=analysis_id,
             is_compare=False,
-            is_sequential=False,
             analysis_context=analysis_context,
             selected_station_count=1,
         )
@@ -816,7 +802,6 @@ def render_performance_selected_evidence(
                 scope_token,
                 t,
                 False,
-                False,
                 analysis_context,
                 presentation_context.language,
                 session_state=session_state,
@@ -828,7 +813,6 @@ def render_performance_selected_evidence(
         focused_station_rows = preparation.filter_station_rows_to_focus_window(
             selected_station_rows,
             focus_window,
-            is_sequential=False,
         )
         if focus_window is not None:
             (
@@ -899,7 +883,6 @@ def render_performance_selected_evidence(
                 scope_token,
                 t,
                 False,
-                False,
                 analysis_context,
                 presentation_context.language,
                 timing_collector=timing_collector,
@@ -942,7 +925,6 @@ def render_benchmark_selected_evidence(
     analysis_end_t = context.analysis_end_t
     parquet_path = context.parquet_path
     timing_collector = context.timing_collector
-    is_sequential = context.is_sequential
     station_col = station_view.station_column
     loc_col = station_view.locator_column
     show_non_joint = station_view.show_non_joint
@@ -972,10 +954,6 @@ def render_benchmark_selected_evidence(
             prepared_evidence = preparation.prepare_selected_benchmark_evidence(
                 station_df,
                 selected_identity_df,
-                is_sequential,
-                analysis_context.tx_ab_repeat_interval_minutes,
-                analysis_context.tx_ab_target_start_minute,
-                analysis_context.tx_ab_reference_start_minute,
                 t=t,
                 analysis_id=analysis_id,
                 cache_key=(
@@ -984,10 +962,6 @@ def render_benchmark_selected_evidence(
                     analysis_id,
                     scope_token,
                     *selected_identity_cache_key,
-                    bool(is_sequential),
-                    int(analysis_context.tx_ab_repeat_interval_minutes),
-                    int(analysis_context.tx_ab_target_start_minute),
-                    int(analysis_context.tx_ab_reference_start_minute),
                     str(analysis_start_t),
                     str(analysis_end_t),
                     presentation_context.language,
@@ -1011,7 +985,6 @@ def render_benchmark_selected_evidence(
                 t=t,
                 analysis_context=analysis_context,
                 language=presentation_context.language,
-                is_sequential=is_sequential,
                 outlier_model=outlier_model,
             )
         level_four_container.markdown(
@@ -1043,7 +1016,6 @@ def render_benchmark_selected_evidence(
                 scope_token,
                 t,
                 True,
-                is_sequential,
                 analysis_context,
                 presentation_context.language,
                 session_state=session_state,
@@ -1057,16 +1029,6 @@ def render_benchmark_selected_evidence(
             focused_station_df = preparation.filter_station_rows_to_focus_window(
                 station_df,
                 focus_window,
-                is_sequential=is_sequential,
-                tx_ab_repeat_interval_minutes=(
-                    analysis_context.tx_ab_repeat_interval_minutes
-                ),
-                tx_ab_target_start_minute=(
-                    analysis_context.tx_ab_target_start_minute
-                ),
-                tx_ab_reference_start_minute=(
-                    analysis_context.tx_ab_reference_start_minute
-                ),
             )
             drilldown_outlier_context = (
                 inspector_selection.drilldown_outlier_context_for_scope(
@@ -1087,8 +1049,6 @@ def render_benchmark_selected_evidence(
                     focused_station_df,
                     selected_identity_df,
                     selected_thresholded_rows,
-                    is_sequential,
-                    analysis_context,
                     focus_window,
                     focus_time_bin,
                     (view.selected_evidence_export or {}).get(
@@ -1128,7 +1088,6 @@ def render_benchmark_selected_evidence(
                     analysis_id,
                     scope_token,
                     selected_identity_for_zoom,
-                    bool(is_sequential),
                     int(focus_window.start_utc.value),
                     int(focus_window.end_utc.value),
                     focus_time_bin,
@@ -1183,23 +1142,12 @@ def render_benchmark_selected_evidence(
                     t['tbl_col_km'],
                     t['tbl_col_az'],
                     analysis_id,
-                    is_sequential,
                     show_non_joint,
                     is_local_median,
                     col_u_name,
                     ref_header,
                     t,
                     station_rows_df=focused_station_df,
-                    tx_ab_repeat_interval_minutes=(
-                        analysis_context.tx_ab_repeat_interval_minutes
-                    ),
-                    tx_ab_target_start_minute=(
-                        analysis_context.tx_ab_target_start_minute
-                    ),
-                    tx_ab_reference_start_minute=(
-                        analysis_context.tx_ab_reference_start_minute
-                    ),
-                    target_callsign=analysis_context.callsign,
                 )
             if info_msg:
                 st.info(info_msg, icon=":material/info:")
@@ -1212,7 +1160,6 @@ def render_benchmark_selected_evidence(
                     scope_token,
                     t,
                     True,
-                    is_sequential,
                     analysis_context,
                     presentation_context.language,
                     allow_multiple_station_selection=(

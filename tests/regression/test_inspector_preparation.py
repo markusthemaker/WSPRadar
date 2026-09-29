@@ -18,7 +18,7 @@ from ui.result_state import INSPECTOR_CACHE_STATE_KEY
 def _context(*, is_compare=False, language="en"):
     return InspectorContext(
         analysis_id="TX_COMP" if is_compare else "TX_ABS",
-        title="Evidence", is_compare=is_compare, is_sequential=False,
+        title="Evidence", is_compare=is_compare,
         parquet_path="unused.parquet", line1_str="", translations=T[language],
         max_peer_distance_km=2000,
         analysis_context=AnalysisContext(
@@ -90,17 +90,17 @@ def test_scope_cache_hit_uses_original_key_and_reuses_scope_rows(monkeypatch, is
     )
     if is_compare:
         key = (
-            50, "comparison", "TX_COMP", 0.0, (), (), False,
-            int(context.analysis_context.tx_ab_repeat_interval_minutes),
-            int(context.analysis_context.tx_ab_target_start_minute),
-            int(context.analysis_context.tx_ab_reference_start_minute),
+            preparation.INSPECTOR_CACHE_VERSION, "comparison", "TX_COMP", 0.0, (), (),
+
+
+
             str(context.analysis_start_t), str(context.analysis_end_t), bin_token,
             "en", "dark", "Evidence", scope.selected_segment,
         )
         method = coordinator.prepare_benchmark_segment
     else:
         key = (
-            50, "opportunity", preparation.ABSOLUTE_METHOD_VERSION,
+            preparation.INSPECTOR_CACHE_VERSION, "opportunity", preparation.ABSOLUTE_METHOD_VERSION,
             preparation.SUCCESS_DISTANCE_BINNING_VERSION,
             preparation.SUCCESS_SNR_BASELINE_VERSION, "TX_ABS",
             (T["en"]["opt_full_range"],), (T["en"]["opt_all_dirs"],),
@@ -168,8 +168,8 @@ def test_selected_benchmark_cold_warm_preserves_native_evidence_and_input(monkey
             ref_callsign=context.translations["txt_reference"],
         ),
     )
-    cold = coordinator.prepare_selected_benchmark_evidence(rows, identities, False, 10, 0, 2, **kwargs)
-    warm = coordinator.prepare_selected_benchmark_evidence(rows, identities, False, 10, 0, 2, **kwargs)
+    cold = coordinator.prepare_selected_benchmark_evidence(rows, identities,     **kwargs)
+    warm = coordinator.prepare_selected_benchmark_evidence(rows, identities,     **kwargs)
     assert builds == [1]
     assert warm.bundle is cold.bundle
     assert warm.cache_key == cold.cache_key
@@ -314,9 +314,9 @@ def test_benchmark_segment_and_selected_forward_context_correction_and_separate_
         corrected_rows["snr_r_norm"] += applied_correction
         corrected_before = corrected_rows.copy(deep=True)
         units, points = coordinator._prepare_selected_comparison_units(
-            corrected_rows, identities, is_sequential=False,
-            tx_ab_repeat_interval_minutes=10, tx_ab_target_start_minute=0,
-            tx_ab_reference_start_minute=2, thresholded_station_rows=None,
+            corrected_rows, identities,
+
+             thresholded_station_rows=None,
         )
         monkeypatch.setattr(
             coordinator, "_prepare_segment_comparison_units",
@@ -327,7 +327,7 @@ def test_benchmark_segment_and_selected_forward_context_correction_and_separate_
             retained_time_bin="2m",
         )
         selected = coordinator.prepare_selected_benchmark_evidence(
-            corrected_rows, identities, False, 10, 0, 2,
+            corrected_rows, identities,
             t=context.translations, analysis_id=context.analysis_id,
             cache_key=("identical-caller-key",),
             analysis_context=corrected_context.analysis_context,

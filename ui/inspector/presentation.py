@@ -155,7 +155,6 @@ def compare_coverage_figure_labels(
     translations,
     analysis_id,
     *,
-    is_sequential,
     target_only_label,
     joint_label,
     reference_only_label,
@@ -174,38 +173,24 @@ def compare_coverage_figure_labels(
         if str(analysis_id).upper().startswith("TX")
         else "rx"
     )
-    if is_sequential:
-        unit_y = translations["fig_compare_coverage_unit_y_scheduled"]
-        unit_folded_y = translations[
-            "fig_compare_coverage_unit_folded_y_scheduled"
-        ]
-        selected_title_unit = translations[
-            "fig_selected_compare_coverage_unit_scheduled"
-        ]
-        selected_unit_y = unit_y
-        selected_unit_folded_y = unit_folded_y
-        gate_note = translations[
-            "fig_compare_coverage_gate_scheduled"
-        ]
-    else:
-        unit_y = translations[
-            f"fig_compare_coverage_unit_y_{mode_suffix}"
-        ]
-        unit_folded_y = translations[
-            f"fig_compare_coverage_unit_folded_y_{mode_suffix}"
-        ]
-        selected_title_unit = translations[
-            "fig_selected_compare_coverage_unit_simultaneous"
-        ]
-        selected_unit_y = translations[
-            "fig_selected_compare_coverage_unit_y_simultaneous"
-        ]
-        selected_unit_folded_y = translations[
-            "fig_selected_compare_coverage_unit_folded_y_simultaneous"
-        ]
-        gate_note = translations[
-            "fig_compare_coverage_gate_simultaneous"
-        ]
+    unit_y = translations[
+        f"fig_compare_coverage_unit_y_{mode_suffix}"
+    ]
+    unit_folded_y = translations[
+        f"fig_compare_coverage_unit_folded_y_{mode_suffix}"
+    ]
+    selected_title_unit = translations[
+        "fig_selected_compare_coverage_unit_simultaneous"
+    ]
+    selected_unit_y = translations[
+        "fig_selected_compare_coverage_unit_y_simultaneous"
+    ]
+    selected_unit_folded_y = translations[
+        "fig_selected_compare_coverage_unit_folded_y_simultaneous"
+    ]
+    gate_note = translations[
+        "fig_compare_coverage_gate_simultaneous"
+    ]
     return {
         "utc_dates_folded": translations["fig_segment_dates_folded"],
         "folded_unavailable": translations[
@@ -402,7 +387,6 @@ def selected_evidence_figure_title(
     evidence_count,
     *,
     analysis_id,
-    is_sequential,
     translations,
     allow_multiple=False,
 ):
@@ -412,7 +396,6 @@ def selected_evidence_figure_title(
         station_identities,
         evidence_count,
         analysis_id=analysis_id,
-        is_sequential=is_sequential,
         translations=translations,
         allow_multiple=allow_multiple,
     )

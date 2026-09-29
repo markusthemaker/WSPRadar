@@ -13,15 +13,10 @@ from config import (
     MAX_DYNAMIC_RADIUS_KM,
 )
 from core.analysis_context import (
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
     LOCAL_BENCHMARK_MEDIAN,
-    SELF_TEST_RX,
-    SELF_TEST_TX,
-    TX_AB_METHOD_SEQUENTIAL,
-    TX_AB_METHOD_SIMULTANEOUS,
     solar_path_state,
 )
 from core.analysis_plan import (
@@ -49,11 +44,6 @@ from core.opportunity_engine import (
 )
 from core.query_limits import apply_analysis_result_row_limit
 from core.snr_utils import round_snr_like_columns
-from core.tx_ab_schedule import (
-    assign_tx_ab_pair_columns,
-    tx_ab_schedule_sql,
-    validate_tx_ab_schedule,
-)
 
 
 DECODE_CODE_PREDICATE = "code = 1"
@@ -124,13 +114,10 @@ def _build_station_weighted_local_median_query(
 
 def _build_tx_comparison_query(
     *,
-    is_sequential,
     target_snr_expr,
     reference_snr_expr,
     target_sql,
     reference_sql,
-    target_schedule_sql,
-    reference_schedule_sql,
     local_reference_snr_sql,
     local_reference_sign_sql,
     local_reference_dist_sql,
@@ -140,17 +127,6 @@ def _build_tx_comparison_query(
     station_weighted_reference_median=False,
 ):
     """Return the TX comparison SQL without performing any data access."""
-    if is_sequential:
-        return (
-            "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
-            f"rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me "
-            f"FROM wspr.rx WHERE {target_sql} {target_schedule_sql} AND rx_lat != 0 "
-            "UNION ALL "
-            "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
-            f"rx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
-            f"FROM wspr.rx WHERE {reference_sql} {reference_schedule_sql} AND rx_lat != 0 "
-            "FORMAT CSVWithNames"
-        )
 
     if station_weighted_reference_median:
         return _build_station_weighted_local_median_query(
@@ -191,13 +167,10 @@ def _build_tx_comparison_query(
 
 def _build_rx_comparison_query(
     *,
-    is_sequential,
     target_snr_expr,
     reference_snr_expr,
     target_sql,
     reference_sql,
-    target_schedule_sql,
-    reference_schedule_sql,
     local_reference_snr_sql,
     local_reference_sign_sql,
     local_reference_dist_sql,
@@ -207,17 +180,6 @@ def _build_rx_comparison_query(
     station_weighted_reference_median=False,
 ):
     """Return the RX comparison SQL without performing any data access."""
-    if is_sequential:
-        return (
-            "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
-            f"tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me "
-            f"FROM wspr.rx WHERE {target_sql} {target_schedule_sql} AND tx_lat != 0 "
-            "UNION ALL "
-            "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
-            f"tx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
-            f"FROM wspr.rx WHERE {reference_sql} {reference_schedule_sql} AND tx_lat != 0 "
-            "FORMAT CSVWithNames"
-        )
 
     if station_weighted_reference_median:
         return _build_station_weighted_local_median_query(
@@ -334,11 +296,7 @@ def has_target_evidence(df, analysis):
     if "has_u" in df.columns:
         has_target = pd.to_numeric(df["has_u"], errors="coerce").fillna(0)
         return bool((has_target > 0).any())
-    if "is_me" in df.columns:
-        is_target = pd.to_numeric(df["is_me"], errors="coerce").fillna(0)
-        return bool((is_target > 0).any())
-
-    return True
+    return False
 
 
 def should_retry_without_decode_filter(df, analysis):
@@ -389,11 +347,9 @@ def build_analysis_batches(
     Performance returns one opportunity batch. Any selected benchmark returns
     only its comparison batch, preventing inactive Performance queries, inspectors,
     and export artifacts while leaving comparison mathematics unchanged.
-    Reference Station requires an exact callsign and four-character grid
-    identity. Simultaneous Hardware A/B requires distinct callsigns and derives
-    both paths' shared grid-4 from Target QTH; sequential TX Hardware A/B
-    validates and applies its periodic schedule.
-    Invalid identities, bands, methods, schedules, or benchmark designs raise
+    Reference Station requires distinct exact callsigns and four-character grid
+    identities for same-cycle comparison.
+    Invalid identities, bands, methods, or benchmark designs raise
     ``AnalysisConfigError`` before query execution.
     """
     if (
@@ -454,10 +410,9 @@ def build_analysis_batches(
     target_snr_expr = "(snr - power + 30)"
     benchmark_snr_expr = f"(snr - power + 30 + {benchmark_offset_db:.1f})"
     decode_filter_sql = _decode_filter_sql(require_decode_code=True)
-    
-    is_sequential = False
+
     reference_qth_grid4 = None
-    
+
     # Determine Reference / Buddy Parameters
     if comp_mode == COMPARISON_NONE:
         ref_callsign = None
@@ -467,69 +422,21 @@ def build_analysis_batches(
         ref_callsign = _validated_reference_callsign(
             analysis_context.reference_callsign
         )
+        if ref_callsign == callsign:
+            raise AnalysisConfigError(
+                "Reference Station requires distinct Target and Reference callsigns."
+            )
         reference_qth_grid4 = _validated_reference_grid4(
             analysis_context.reference_qth
         )
-    elif comp_mode == COMPARISON_HARDWARE_AB:
-        if analysis_context.self_test_mode == SELF_TEST_TX:
-            if analysis_context.tx_ab_method not in {
-                TX_AB_METHOD_SIMULTANEOUS,
-                TX_AB_METHOD_SEQUENTIAL,
-            }:
-                raise AnalysisConfigError(
-                    f"Unknown TX Hardware A/B method '{analysis_context.tx_ab_method}'."
-                )
-            is_sequential = (
-                analysis_context.tx_ab_method == TX_AB_METHOD_SEQUENTIAL
-            )
-        elif analysis_context.self_test_mode == SELF_TEST_RX:
-            is_sequential = False
-        else:
-            raise AnalysisConfigError(
-                f"Unknown Hardware A/B direction '{analysis_context.self_test_mode}'."
-            )
-
-        if is_sequential:
-            # Sequential TX compares two scheduled paths under one transmitter
-            # identity and one configured Target grid-4.
-            ref_callsign = callsign
-            reference_qth_grid4 = target_qth_grid4
-        else:
-            ref_callsign = _validated_reference_callsign(
-                analysis_context.reference_callsign
-            )
-            reference_qth_grid4 = target_qth_grid4
-            if ref_callsign == callsign:
-                raise AnalysisConfigError(
-                    "Hardware A/B requires distinct Target and Reference callsigns."
-                )
     else:
         raise AnalysisConfigError(f"Unknown benchmark design '{comp_mode}'.")
 
-    target_schedule_sql = ""
-    reference_schedule_sql = ""
-    if is_sequential:
-        try:
-            validate_tx_ab_schedule(
-                analysis_context.tx_ab_repeat_interval_minutes,
-                analysis_context.tx_ab_target_start_minute,
-                analysis_context.tx_ab_reference_start_minute,
-            )
-        except ValueError as exc:
-            raise AnalysisConfigError(f"Invalid TX A/B schedule: {exc}") from exc
-        target_schedule_sql = "AND " + tx_ab_schedule_sql(
-            analysis_context.tx_ab_repeat_interval_minutes,
-            analysis_context.tx_ab_target_start_minute,
-        )
-        reference_schedule_sql = "AND " + tx_ab_schedule_sql(
-            analysis_context.tx_ab_repeat_interval_minutes,
-            analysis_context.tx_ab_reference_start_minute,
-        )
-        
+
     # Target identity is the exact callsign plus configured four-character grid.
     # A six-character QTH deliberately selects every reported subsquare in that grid-4.
     # Filter the remote endpoint identically in Target and Reference branches,
-    # including Local Neighborhood contributors and both scheduled TX paths.
+    # including Local Neighborhood contributors.
     tx_remote_peer_filter_sql = build_peer_callsign_exclusion_sql(
         mode="TX",
         exclude_special_callsigns=analysis_context.exclude_special_callsigns,
@@ -559,7 +466,7 @@ def build_analysis_batches(
     elif comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
         max_rad = ref_radius_km * 1000
-        
+
         # Prefilter nearby candidates without clipping the distance circle at
         # the date line or poles. Both endpoint filters share one calculation.
         neighborhood_bounds = build_neighborhood_bounding_box(
@@ -569,20 +476,18 @@ def build_analysis_batches(
         )
         bbox_tx = "AND " + neighborhood_bounds.to_sql("tx_lat", "tx_lon")
         bbox_rx = "AND " + neighborhood_bounds.to_sql("rx_lat", "rx_lon")
-        
+
         tx_peer_sql = f"tx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}{tx_remote_peer_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
-        
+
         rx_peer_sql = f"rx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}{rx_remote_peer_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
-        
+
         comp_title = label("comp_title_local_median").format(
             radius=ref_radius_km
         )
         display_callsign = callsign
     else:
         # Every fixed Reference identity is constrained by its exact callsign
-        # and grid-4. Reference Station owns an independent grid, while Hardware
-        # A/B derives its grid from Target QTH; sequential TX uses the Target
-        # identity for both scheduled paths.
+        # and independently resolved grid-4.
         tx_reference_grid_sql = (
             f" AND substring(tx_loc, 1, 4) = '{reference_qth_grid4}'"
         )
@@ -597,7 +502,7 @@ def build_analysis_batches(
             f"rx_sign = '{ref_callsign}'{rx_reference_grid_sql} "
             f"{band_filter} AND {time_filter}{decode_filter_sql}{rx_remote_peer_filter_sql}"
         )
-            
+
         display_callsign = callsign
         comp_title = label("comp_title_ref").format(callsign=ref_callsign)
 
@@ -614,17 +519,14 @@ def build_analysis_batches(
         local_ref_sign_sql = "concat(toString(countIf(is_me = 0)), ' stations')"
         local_ref_dist_sql = "quantileExactInclusiveIf(0.5)(local_dist, is_me = 0)"
         local_ref_detail_sql = f", groupArrayIf(tuple(local_sign, local_grid, local_dist, {benchmark_snr_expr}), is_me = 0) AS ref_detail_rows"
-    
+
     if analysis_context.run_mode == "TX":
         if comp_mode != COMPARISON_NONE:
             tx_comp_query = _build_tx_comparison_query(
-                is_sequential=is_sequential,
                 target_snr_expr=target_snr_expr,
                 reference_snr_expr=benchmark_snr_expr,
                 target_sql=tx_target_sql,
                 reference_sql=tx_peer_sql,
-                target_schedule_sql=target_schedule_sql,
-                reference_schedule_sql=reference_schedule_sql,
                 local_reference_snr_sql=local_ref_snr_sql,
                 local_reference_sign_sql=local_ref_sign_sql,
                 local_reference_dist_sql=local_ref_dist_sql,
@@ -641,7 +543,6 @@ def build_analysis_batches(
                 ),
                 "is_compare": True,
                 "result_family": "benchmark",
-                "is_sequential": is_sequential,
                 "is_local_median": station_weighted_reference_median,
                 "analysis_kind": "comparison",
                 "response_format": "csv",
@@ -655,7 +556,6 @@ def build_analysis_batches(
                 "title": label("fig_tx_abs").format(callsign=callsign),
                 "is_compare": False,
                 "result_family": "performance",
-                "is_sequential": False,
                 "analysis_kind": "opportunity",
                 "absolute_mode": "TX",
                 "analysis_start_utc": start_t,
@@ -677,13 +577,10 @@ def build_analysis_batches(
     elif analysis_context.run_mode == "RX":
         if comp_mode != COMPARISON_NONE:
             rx_comp_query = _build_rx_comparison_query(
-                is_sequential=is_sequential,
                 target_snr_expr=target_snr_expr,
                 reference_snr_expr=benchmark_snr_expr,
                 target_sql=rx_target_sql,
                 reference_sql=rx_peer_sql,
-                target_schedule_sql=target_schedule_sql,
-                reference_schedule_sql=reference_schedule_sql,
                 local_reference_snr_sql=local_ref_snr_sql,
                 local_reference_sign_sql=local_ref_sign_sql,
                 local_reference_dist_sql=local_ref_dist_sql,
@@ -700,7 +597,6 @@ def build_analysis_batches(
                 ),
                 "is_compare": True,
                 "result_family": "benchmark",
-                "is_sequential": is_sequential,
                 "is_local_median": station_weighted_reference_median,
                 "analysis_kind": "comparison",
                 "response_format": "csv",
@@ -714,7 +610,6 @@ def build_analysis_batches(
                 "title": label("fig_rx_abs").format(callsign=callsign),
                 "is_compare": False,
                 "result_family": "performance",
-                "is_sequential": False,
                 "analysis_kind": "opportunity",
                 "absolute_mode": "RX",
                 "analysis_start_utc": start_t,
@@ -755,7 +650,6 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
     check and global Target-active synchronization. Geographic scope is applied
     only afterward, so distant peer rows can establish those global exclusions
     but cannot enter thresholds, aggregation, staged artifacts, or exports.
-    Scheduled TX A/B pair assignment likewise precedes geographic filtering.
     The preparation layer transfers ownership of ``df``; this function may
     therefore normalize or reset the retained frame in place.
     """
@@ -807,48 +701,13 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
             df.index = pd.RangeIndex(len(df))
             return df, None
 
-    if analysis.get("is_compare") and analysis.get("is_sequential"):
-        with _timed_span(timing_collector, "TX A/B scheduled pair assignment"):
-            df = assign_tx_ab_pair_columns(
-                df,
-                repeat_interval_minutes=(
-                    analysis_context.tx_ab_repeat_interval_minutes
-                ),
-                target_start_minute_utc=(
-                    analysis_context.tx_ab_target_start_minute
-                ),
-                reference_start_minute_utc=(
-                    analysis_context.tx_ab_reference_start_minute
-                ),
-                start_time=analysis.get("analysis_start_utc"),
-                end_time=analysis.get("analysis_end_utc"),
-                exclude_boundary_pairs=True,
-            )
 
     # 1. Solar filtering
     target_state = solar_path_state(analysis_context.solar_state)
     if target_state is not None:
         with _timed_span(timing_collector, "comparison solar filter"):
-            if analysis['is_compare'] and not analysis['is_sequential']:
+            if analysis['is_compare']:
                 df['dt_time'] = pd.to_datetime(df['time_slot'] * 120, unit='s')
-            elif (
-                analysis.get('is_sequential')
-                and {
-                    'tx_ab_pair_target_time',
-                    'tx_ab_pair_reference_time',
-                }.issubset(df.columns)
-            ):
-                target_pair_time = pd.to_datetime(
-                    df['tx_ab_pair_target_time'],
-                    utc=True,
-                )
-                reference_pair_time = pd.to_datetime(
-                    df['tx_ab_pair_reference_time'],
-                    utc=True,
-                )
-                df['dt_time'] = target_pair_time + (
-                    (reference_pair_time - target_pair_time) / 2
-                )
             else:
                 df['dt_time'] = pd.to_datetime(df['time'])
 
@@ -865,12 +724,12 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
             static_peers = df.assign(g4=grid4).groupby('peer_sign', observed=True)['g4'].nunique()[lambda x: x == 1].index
             df = df[df['peer_sign'].isin(static_peers)]
 
-    
+
     # 3. Vectorized cycle synchronization (RX and TX).
     # A cycle is counted only when the Target was demonstrably active.
     # TX: the transmitter must have sent in this cycle.
     # RX: the receiver must have heard at least one station in this cycle.
-    if analysis['is_compare'] and not analysis['is_sequential'] and 'has_u' in df.columns:
+    if analysis['is_compare'] and 'has_u' in df.columns:
         with _timed_span(timing_collector, "comparison cycle synchronization"):
             active_slots = df[df['has_u'] > 0]['time_slot'].unique()
             df = df[df['time_slot'].isin(active_slots)]
@@ -888,7 +747,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
     # In RX comparison, zero spots may represent a deaf antenna, so the cycle can be evidence.
     # In TX comparison, zero spots may mean no transmission, so dropping the cycle can be fairer.
     #is_tx = analysis['id'].startswith("TX")
-    #if analysis['is_compare'] and not analysis['is_sequential'] and is_tx and 'has_u' in df.columns:
+    #if analysis['is_compare'] and is_tx and 'has_u' in df.columns:
         #active_slots = df[df['has_u'] > 0]['time_slot'].unique()
         #df = df[df['time_slot'].isin(active_slots)]
 

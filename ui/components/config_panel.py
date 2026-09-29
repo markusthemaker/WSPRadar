@@ -17,8 +17,8 @@ from config import (
     MAX_DYNAMIC_RADIUS_KM,
     MAP_SCOPE_OPTIONS,
     SNR_CORRECTION_MODES,
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
+from ui.input_validation_state import get_field_error
 from config.demo_profiles import prepare_demo_description_markdown
 from config.delta_snr_outlier import (
     DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
@@ -42,8 +42,6 @@ from ui.callbacks import (
     handle_reference_correction_context_change,
     handle_start_date_change,
     handle_time_window_change,
-    handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
-    handle_tx_ab_target_start_change, swap_tx_ab_starts,
     reset_delta_snr_outlier_detector_defaults,
 )
 from ui.analysis_question_state import ANALYSIS_QUESTION_CHOICES
@@ -228,8 +226,11 @@ def _render_identity_format_error(
     *,
     identity_kind,
     message_key=None,
+    state_key=None,
 ):
     """Show one localized point-of-entry error for a malformed identity."""
+    if state_key and _render_field_error(state_key):
+        return False
     normalized_value = str(value or "").strip()
     if not normalized_value:
         return True
@@ -249,9 +250,8 @@ def _render_identity_format_error(
     return is_valid
 
 def _benchmark_mode_options(t):
-    """Return the three visible Classic Benchmark designs in display order."""
+    """Return the two visible Classic Benchmark designs in display order."""
     return [
-        "hardware_ab",
         "reference_station",
         "local_neighborhood",
     ]
@@ -260,7 +260,6 @@ def _benchmark_mode_options(t):
 def _format_benchmark_mode(t, benchmark_mode):
     """Localize one stable benchmark-design token for display."""
     translation_keys = {
-        "hardware_ab": "opt_benchmark_hardware_ab",
         "reference_station": "opt_benchmark_reference_station",
         "local_neighborhood": "opt_benchmark_local_neighborhood",
     }
@@ -296,268 +295,27 @@ def _comparison_column_widths(t, comparison_mode, analysis_direction):
     return [0.5, 0.5]
 
 
-def _tx_ab_threshold_label_and_help(t):
-    """Return evidence-threshold wording for scheduled TX A/B pairs."""
-    return (
-        t["cfg_min_joint_pairs"],
-        t["hlp_min_joint_pairs"],
-    )
-
-
 def _render_reference_identity(
-    t,
-    *,
-    derives_hardware_grid4,
-    on_change=reset_experiment_definition,
-    on_change_args=(),
-    help_overrides=None,
+    t, *, on_change=reset_experiment_definition, on_change_args=(), help_overrides=None,
 ):
-    """Render Target/Reference identities and the mode-specific QTH contract.
-
-    Reference Station owns an editable four-character Reference grid. Hardware
-    A/B instead displays one shared grid-4 derived from Target QTH, without
-    mutating the inactive Reference Station field in session state.
-    """
+    """Render the Reference callsign without a duplicate location display."""
     help_overrides = help_overrides or {}
-    target_callsign = normalize_ascii_upper(
-        st.session_state.get("val_callsign", "")
-    )
-    target_qth = normalize_ascii_upper(st.session_state.get("val_qth", ""))
-    hardware_grid4 = target_qth[:4] if is_valid_locator(target_qth) else ""
-
-    target_callsign_column, reference_callsign_column = st.columns(
-        2,
-        gap="large",
-    )
-    with target_callsign_column:
-        text_input_no_autocomplete(
-            t["lbl_target_callsign"],
-            value=target_callsign,
-            disabled=True,
-        )
-    with reference_callsign_column:
-        text_input_no_autocomplete(
-            t["lbl_reference_callsign"],
-            key="val_ref_callsign",
-            placeholder=t["ph_reference_callsign"],
-            help=help_overrides.get(
-                "reference_callsign",
-                t["hlp_callsign_entry"],
-            ),
-            max_chars=15,
-            normalize_uppercase=True,
-            on_change=on_change,
-            args=on_change_args,
-        )
-
-    target_qth_column, reference_qth_column = st.columns(2, gap="large")
-    with target_qth_column:
-        text_input_no_autocomplete(
-            (
-                t["lbl_target_grid4"]
-                if derives_hardware_grid4
-                else t["lbl_target_qth"]
-            ),
-            value=hardware_grid4 if derives_hardware_grid4 else target_qth,
-            disabled=True,
-        )
-    with reference_qth_column:
-        if derives_hardware_grid4:
-            text_input_no_autocomplete(
-                t["lbl_reference_grid4"],
-                value=hardware_grid4,
-                disabled=True,
-            )
-        else:
-            reference_qth_help = help_overrides.get("reference_qth")
-            text_input_no_autocomplete(
-                t["lbl_reference_grid4"],
-                key="val_ref_qth",
-                placeholder=t["ph_reference_qth"],
-                max_chars=4,
-                normalize_uppercase=True,
-                on_change=on_change,
-                args=on_change_args,
-                **(
-                    {"help": reference_qth_help}
-                    if reference_qth_help
-                    else {}
-                ),
-            )
-
-    reference_callsign = normalize_ascii_upper(
-        st.session_state.get("val_ref_callsign", "")
-    )
-    is_reference_callsign_valid = _render_identity_format_error(
-        t,
-        reference_callsign,
-        identity_kind="callsign",
-        message_key="err_reference_callsign_format",
-    )
-    if not derives_hardware_grid4:
-        _render_identity_format_error(
-            t,
-            st.session_state.get("val_ref_qth", ""),
-            identity_kind="grid4",
-        )
-    if (
-        is_reference_callsign_valid
-        and reference_callsign
-        and reference_callsign == target_callsign
-    ):
-        st.error(t["err_reference_callsign_same"])
-
-
-def _render_tx_ab_method_selector(
-    t,
-    *,
-    on_change=reset_experiment_definition,
-    on_change_args=(),
-    method_content=None,
-    help_text=None,
-):
-    """Render the governing TX A/B method in its editor-specific presentation."""
-    methods = ("simultaneous", "sequential")
-    if method_content is not None:
-        st.radio(
-            t["lbl_tx_ab_method"],
-            methods,
-            key="val_tx_ab_method",
-            format_func=lambda method: method_content[method]["label"],
-            captions=tuple(
-                method_content[method]["description"] for method in methods
-            ),
-            help=help_text,
-            width="stretch",
-            on_change=on_change,
-            args=on_change_args,
-        )
-        return
-
-    st.segmented_control(
-        t["lbl_tx_ab_method"],
-        methods,
-        selection_mode="single",
-        required=True,
-        key="val_tx_ab_method",
-        format_func=lambda method: t[f"opt_tx_ab_{method}"],
-        width="stretch",
-        on_change=on_change,
+    text_input_no_autocomplete(
+        t["lbl_reference_callsign"], key="val_ref_callsign",
+        placeholder=t["ph_reference_callsign"],
+        help=help_overrides.get("reference_callsign", t["hlp_callsign_entry"]),
+        max_chars=15, normalize_uppercase=True, on_change=on_change,
         args=on_change_args,
     )
-
-
-def _tx_ab_schedule_preview(repeat_interval, target_start, reference_start):
-    """Return one-hour schedule rows and the nearest cyclic separation."""
-    target_minutes = tuple(range(int(target_start), 60, int(repeat_interval)))
-    reference_minutes = tuple(
-        range(int(reference_start), 60, int(repeat_interval))
+    reference_callsign = normalize_ascii_upper(st.session_state.get("val_ref_callsign", ""))
+    _render_identity_format_error(
+        t, reference_callsign, identity_kind="callsign",
+        message_key="err_reference_callsign_format", state_key="val_ref_callsign",
     )
-    forward_gap = (int(reference_start) - int(target_start)) % int(repeat_interval)
-    separation_minutes = min(forward_gap, int(repeat_interval) - forward_gap)
-    return target_minutes, reference_minutes, separation_minutes
+    if reference_callsign and reference_callsign == normalize_ascii_upper(st.session_state.get("val_callsign", "")) and not get_field_error(st.session_state, "val_ref_callsign"):
+        st.error(t["err_reference_callsign_same"])
+    _render_field_error("val_ref_qth")
 
-
-def _format_utc_minute(minute):
-    """Format one UTC minute phase for compact schedule controls and previews."""
-    return f"{int(minute):02d} UTC"
-
-
-def _render_tx_ab_schedule(
-    t,
-    *,
-    on_change=reset_experiment_definition,
-    on_change_args=(),
-):
-    """Render the shared repeat interval, coupled starts, and schedule preview."""
-    repeat_interval = int(
-        st.session_state.get("val_tx_ab_repeat_interval_minutes", 10)
-    )
-    target_start = int(st.session_state.get("val_tx_ab_target_start_minute", 0))
-    reference_start = int(
-        st.session_state.get("val_tx_ab_reference_start_minute", 2)
-    )
-    permitted_starts = tuple(range(0, repeat_interval, 2))
-    target_options = tuple(
-        start for start in permitted_starts if start != reference_start
-    )
-    reference_options = tuple(
-        start for start in permitted_starts if start != target_start
-    )
-
-    with st.container(border=True):
-        st.markdown(f"**{t['lbl_tx_ab_schedule']}**")
-        st.selectbox(
-            t["lbl_tx_ab_repeat_interval"],
-            TX_AB_REPEAT_INTERVAL_OPTIONS,
-            key="val_tx_ab_repeat_interval_minutes",
-            format_func=lambda minutes: f"{minutes} min",
-            help=t["hlp_tx_ab_repeat_interval"],
-            on_change=handle_tx_ab_repeat_interval_change,
-            args=(on_change, on_change_args),
-        )
-        st.caption(t["txt_tx_ab_shared_interval"])
-
-        target_column, swap_column, reference_column = st.columns(
-            [0.46, 0.08, 0.46],
-            gap="small",
-            vertical_alignment="bottom",
-        )
-        with target_column:
-            st.selectbox(
-                t["lbl_tx_ab_target_start"],
-                target_options,
-                key="val_tx_ab_target_start_minute",
-                format_func=_format_utc_minute,
-                help=t["hlp_tx_ab_start"],
-                on_change=handle_tx_ab_target_start_change,
-                args=(on_change, on_change_args),
-            )
-        with swap_column:
-            st.button(
-                "⇄",
-                key="swap_tx_ab_schedule_starts",
-                help=t["hlp_tx_ab_swap"],
-                on_click=swap_tx_ab_starts,
-                args=(on_change, on_change_args),
-                width="stretch",
-            )
-        with reference_column:
-            st.selectbox(
-                t["lbl_tx_ab_reference_start"],
-                reference_options,
-                key="val_tx_ab_reference_start_minute",
-                format_func=_format_utc_minute,
-                help=t["hlp_tx_ab_start"],
-                on_change=handle_tx_ab_reference_start_change,
-                args=(on_change, on_change_args),
-            )
-
-        target_minutes, reference_minutes, separation_minutes = (
-            _tx_ab_schedule_preview(
-                repeat_interval,
-                target_start,
-                reference_start,
-            )
-        )
-        target_preview = ", ".join(f"{minute:02d}" for minute in target_minutes)
-        reference_preview = ", ".join(
-            f"{minute:02d}" for minute in reference_minutes
-        )
-        st.markdown(
-            f"**{t['txt_target']}:** `{target_preview}`  \n"
-            f"**{t['txt_reference']}:** `{reference_preview}`"
-        )
-        transmissions_per_hour = 60 // repeat_interval
-        st.success(
-            t["txt_tx_ab_schedule_valid"].format(
-                separation=separation_minutes,
-                transmissions=transmissions_per_hour,
-            ),
-            icon=":material/check_circle:",
-        )
-        if repeat_interval in {4, 6}:
-            st.warning(t["warn_tx_ab_high_duty"], icon=":material/warning:")
 
 def _render_analysis_direction_selector(
     t,
@@ -617,6 +375,7 @@ def render_target_and_window_fields(
         text_input_no_autocomplete(
             callsign_label,
             key="val_callsign",
+            placeholder=t["ph_target_callsign"],
             help=help_overrides.get(
                 "callsign",
                 t["hlp_callsign_entry"],
@@ -629,7 +388,7 @@ def render_target_and_window_fields(
         _render_identity_format_error(
             t,
             st.session_state.get("val_callsign", ""),
-            identity_kind="callsign",
+            identity_kind="callsign", state_key="val_callsign",
         )
         text_input_no_autocomplete(
             t["lbl_qth"],
@@ -643,7 +402,7 @@ def render_target_and_window_fields(
         _render_identity_format_error(
             t,
             st.session_state.get("val_qth", ""),
-            identity_kind="qth",
+            identity_kind="qth", state_key="val_qth",
         )
         st.selectbox(
             t["lbl_band"],
@@ -653,12 +412,9 @@ def render_target_and_window_fields(
             on_change=correction_context_on_change,
             args=correction_context_on_change_args,
         )
+        _render_field_error('val_band')
 
     with core_right:
-        st.markdown(
-            f"**{t['lbl_time_window']}**",
-            help=help_overrides.get("time"),
-        )
         current_utc = datetime.now(timezone.utc)
         today_utc = current_utc.date()
         minimum_end_date, maximum_end_date = end_date_entry_bounds(
@@ -673,22 +429,26 @@ def render_target_and_window_fields(
             st.date_input(
                 t["lbl_start_d"],
                 key="val_start_d",
+                help=help_overrides.get("time"),
                 min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
                 max_value=today_utc,
                 on_change=handle_start_date_change,
                 args=(on_change, on_change_args),
                 format="DD-MM-YYYY",
             )
+            _render_field_error('val_start_d')
         with date_end:
             st.date_input(
                 t["lbl_end_d"],
                 key="val_end_d",
+                help=help_overrides.get("time"),
                 min_value=minimum_end_date,
                 max_value=maximum_end_date,
                 on_change=handle_time_window_change,
                 args=(on_change, on_change_args),
                 format="DD-MM-YYYY",
             )
+            _render_field_error('val_end_d')
 
         time_start, time_end = st.columns(
             2, gap="large", vertical_alignment="bottom"
@@ -697,18 +457,20 @@ def render_target_and_window_fields(
             st.time_input(
                 t["lbl_start_t"],
                 key="val_start_t",
-                step=timedelta(minutes=15),
+                step=timedelta(minutes=1),
                 on_change=handle_time_window_change,
                 args=(on_change, on_change_args),
             )
+            _render_field_error('val_start_t')
         with time_end:
             st.time_input(
                 t["lbl_end_t"],
                 key="val_end_t",
-                step=timedelta(minutes=15),
+                step=timedelta(minutes=1),
                 on_change=handle_time_window_change,
                 args=(on_change, on_change_args),
             )
+            _render_field_error('val_end_t')
 
         try:
             utc_window_from_state(st.session_state, current_utc=current_utc)
@@ -734,6 +496,7 @@ def render_classic_question_expander(t, *, step_number=None):
             format_func=lambda question: _format_classic_question(t, question),
             width="stretch",
         )
+        _render_field_error("classic_question")
 
 
 def render_core_expander(t, *, step_number=None):
@@ -786,6 +549,7 @@ def render_reference_correction_field(
             {},
         ),
     )
+    _render_field_error(_REFERENCE_CORRECTION_TEXT_KEY)
     if st.session_state.pop(_REFERENCE_CORRECTION_ERROR_KEY, False):
         st.error(t["err_benchmark_offset_db"])
 
@@ -796,24 +560,15 @@ def render_reference_design_fields(
     on_change=handle_reference_correction_context_change,
     on_change_args=(),
     help_overrides=None,
-    tx_ab_method_content=None,
-    should_show_local_benchmark_explanation=False,
 ):
-    """Render canonical Reference fields with optional Guided choice captions."""
+    """Render canonical Reference fields with shared contextual tooltips."""
     help_overrides = help_overrides or {}
     comp_mode = st.session_state.get("val_comp_mode")
-    analysis_direction = st.session_state.get("val_analysis_direction")
     if comp_mode == "local_neighborhood":
         st.markdown(
             f"**{t['opt_local_median']}**",
-            help=(
-                None
-                if should_show_local_benchmark_explanation
-                else t["txt_local_median_explanation"]
-            ),
+            help=t["txt_local_median_explanation"],
         )
-        if should_show_local_benchmark_explanation:
-            st.caption(t["txt_local_median_explanation"])
         if st.session_state.get("val_local_benchmark", "local_median") != "local_median":
             st.error(t["err_local_benchmark"])
         st.slider(
@@ -826,48 +581,14 @@ def render_reference_design_fields(
             on_change=on_change,
             args=on_change_args,
         )
+        _render_field_error('val_ref_radius_km')
     elif comp_mode == "reference_station":
         _render_reference_identity(
             t,
-            derives_hardware_grid4=False,
             on_change=on_change,
             on_change_args=on_change_args,
             help_overrides=help_overrides,
         )
-    elif comp_mode == "hardware_ab":
-        if analysis_direction == "rx":
-            _render_reference_identity(
-                t,
-                derives_hardware_grid4=True,
-                on_change=on_change,
-                on_change_args=on_change_args,
-                help_overrides=help_overrides,
-            )
-        elif analysis_direction == "tx":
-            _render_tx_ab_method_selector(
-                t,
-                on_change=on_change,
-                on_change_args=on_change_args,
-                method_content=tx_ab_method_content,
-                help_text=help_overrides.get("tx_ab_method"),
-            )
-            if st.session_state.get("val_tx_ab_method") == "sequential":
-                _render_tx_ab_schedule(
-                    t,
-                    on_change=on_change,
-                    on_change_args=on_change_args,
-                )
-            else:
-                _render_reference_identity(
-                    t,
-                    derives_hardware_grid4=True,
-                    on_change=on_change,
-                    on_change_args=on_change_args,
-                    help_overrides=help_overrides,
-                )
-        else:
-            st.info(t["msg_select_analysis_direction_hardware"])
-
 def render_benchmark_expander(t, *, step_number=None):
     """Render the conditional Classic Benchmark-design controls."""
     with st.expander(
@@ -897,11 +618,12 @@ def render_benchmark_expander(t, *, step_number=None):
                 ),
                 width="stretch",
             )
-            if comp_mode != "none":
-                render_reference_correction_field(t)
+            _render_field_error("val_comp_mode", widget_key=CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY)
         
         with col_comp_r:
             render_reference_design_fields(t)
+            if comp_mode != "none":
+                render_reference_correction_field(t)
 
 def render_station_population_fields(
     t,
@@ -975,6 +697,7 @@ def render_scope_fields(
             on_change=on_change,
             args=on_change_args,
         )
+        _render_field_error('val_max_peer_distance_km')
 
 
 def render_evidence_threshold_fields(
@@ -1016,14 +739,6 @@ def render_evidence_threshold_fields(
 
     min_spots_label = t["lbl_min_spots"]
     min_spots_help = t["hlp_min_spots"]
-    if (
-        result_type == "benchmark"
-        and st.session_state.get("val_comp_mode") == "hardware_ab"
-        and analysis_direction == "tx"
-        and st.session_state.get("val_tx_ab_method") == "sequential"
-    ):
-        min_spots_label, min_spots_help = _tx_ab_threshold_label_and_help(t)
-
     st.session_state.val_min_spots = min(
         max(int(st.session_state.get("val_min_spots", 1)), 1), 50
     )
@@ -1049,6 +764,7 @@ def render_evidence_threshold_fields(
                 on_change=on_change,
                 args=on_change_args,
             )
+            _render_field_error('val_min_spots')
         else:
             st.slider(
                 t["lbl_min_opportunities"],
@@ -1059,6 +775,7 @@ def render_evidence_threshold_fields(
                 on_change=on_change,
                 args=on_change_args,
             )
+            _render_field_error('val_min_opportunities')
     with threshold_containers[1]:
         st.slider(
             t["lbl_min_stations"],
@@ -1069,6 +786,7 @@ def render_evidence_threshold_fields(
             on_change=on_change,
             args=on_change_args,
         )
+        _render_field_error('val_min_stations')
 
 
 def render_delta_snr_outlier_reporting_field(
@@ -1108,6 +826,7 @@ def render_delta_snr_outlier_reporting_field(
         help=t["tt_delta_snr_outlier_minimum_departure_db"],
         **input_change_kwargs,
     )
+    _render_field_error('val_delta_snr_outlier_minimum_departure_db')
     st.number_input(
         t["lbl_delta_snr_outlier_minimum_robust_z"],
         min_value=DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
@@ -1117,6 +836,7 @@ def render_delta_snr_outlier_reporting_field(
         help=t["tt_delta_snr_outlier_minimum_robust_z"],
         **input_change_kwargs,
     )
+    _render_field_error('val_delta_snr_outlier_minimum_robust_z')
     st.number_input(
         t["lbl_delta_snr_outlier_maximum_baseline_difference_db"],
         min_value=DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
@@ -1126,6 +846,7 @@ def render_delta_snr_outlier_reporting_field(
         help=t["tt_delta_snr_outlier_maximum_baseline_difference_db"],
         **input_change_kwargs,
     )
+    _render_field_error('val_delta_snr_outlier_maximum_baseline_difference_db')
     st.button(
         t["btn_reset_delta_snr_outlier_detector_defaults"],
         key="reset_delta_snr_outlier_detector_defaults",
@@ -1151,3 +872,18 @@ def render_advanced_expander(t, *, result_type=None, step_number=None):
             render_evidence_threshold_fields(t, result_type=result_type)
             if result_type == "benchmark":
                 render_delta_snr_outlier_reporting_field(t)
+
+
+def _render_field_error(state_key, *, widget_key=None):
+    """Render accessible text and a scoped visual error for one active field."""
+    message = get_field_error(st.session_state, state_key)
+    if not message:
+        return False
+    widget_key = widget_key or state_key
+    if re.fullmatch(r"[A-Za-z0-9_]+", widget_key):
+        st.markdown(
+            f"<style>.st-key-{widget_key}{{outline:2px solid #ff4b4b;outline-offset:1px;}}</style>",
+            unsafe_allow_html=True,
+        )
+    st.error(message)
+    return True

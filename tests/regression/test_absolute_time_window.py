@@ -1,7 +1,6 @@
 """Regression contracts for the canonical absolute UTC analysis window."""
 
 from datetime import date, datetime, time, timedelta, timezone
-from pathlib import Path
 
 import pytest
 
@@ -15,14 +14,14 @@ from core.time_utils import (
 from ui.time_window import (
     end_date_entry_bounds,
     initialize_utc_window_state,
-    quantize_utc_window_state,
+    normalize_utc_window_state,
     set_default_utc_window_state,
     set_suggested_end_date_from_start_date,
     utc_window_from_state,
 )
 
 
-def test_default_window_is_one_absolute_quantized_24_hour_interval():
+def test_default_window_is_one_absolute_minute_precision_24_hour_interval():
     """Resolve the default once from the current UTC timestamp."""
     current_utc = datetime(
         2026,
@@ -36,8 +35,8 @@ def test_default_window_is_one_absolute_quantized_24_hour_interval():
 
     start_utc, end_utc = resolve_default_utc_window(current_utc=current_utc)
 
-    assert start_utc == datetime(2026, 7, 26, 12, 15, tzinfo=timezone.utc)
-    assert end_utc == datetime(2026, 7, 27, 12, 15, tzinfo=timezone.utc)
+    assert start_utc == datetime(2026, 7, 26, 12, 29, tzinfo=timezone.utc)
+    assert end_utc == datetime(2026, 7, 27, 12, 29, tzinfo=timezone.utc)
     assert end_utc - start_utc == timedelta(hours=24)
 
 
@@ -58,9 +57,9 @@ def test_session_initialization_keeps_the_original_absolute_window_on_rerun():
 
     assert rerun_window == first_window
     assert session_state["val_start_d"] == date(2026, 7, 26)
-    assert session_state["val_start_t"] == time(12, 15)
+    assert session_state["val_start_t"] == time(12, 29)
     assert session_state["val_end_d"] == date(2026, 7, 27)
-    assert session_state["val_end_t"] == time(12, 15)
+    assert session_state["val_end_t"] == time(12, 29)
 
 
 def test_reset_resolves_a_fresh_absolute_default_window():
@@ -76,13 +75,13 @@ def test_reset_resolves_a_fresh_absolute_default_window():
         current_utc=datetime(2026, 7, 27, 15, 2, tzinfo=timezone.utc),
     )
 
-    assert start_utc == datetime(2026, 7, 26, 15, 0, tzinfo=timezone.utc)
-    assert end_utc == datetime(2026, 7, 27, 15, 0, tzinfo=timezone.utc)
-    assert session_state["val_end_t"] == time(15, 0)
+    assert start_utc == datetime(2026, 7, 26, 15, 2, tzinfo=timezone.utc)
+    assert end_utc == datetime(2026, 7, 27, 15, 2, tzinfo=timezone.utc)
+    assert session_state["val_end_t"] == time(15, 2)
 
 
-def test_ui_quantization_updates_the_canonical_state_fields():
-    """Write effective query boundaries back before any serializer reads state."""
+def test_ui_normalization_preserves_minutes_in_the_canonical_state_fields():
+    """Discard only seconds before any serializer reads the minute inputs."""
     session_state = {
         "val_start_d": date(2026, 7, 26),
         "val_start_t": time(12, 29, 59),
@@ -90,12 +89,12 @@ def test_ui_quantization_updates_the_canonical_state_fields():
         "val_end_t": time(12, 44, 59),
     }
 
-    start_utc, end_utc = quantize_utc_window_state(session_state)
+    start_utc, end_utc = normalize_utc_window_state(session_state)
 
-    assert start_utc == datetime(2026, 7, 26, 12, 15, tzinfo=timezone.utc)
-    assert end_utc == datetime(2026, 7, 27, 12, 30, tzinfo=timezone.utc)
-    assert session_state["val_start_t"] == time(12, 15)
-    assert session_state["val_end_t"] == time(12, 30)
+    assert start_utc == datetime(2026, 7, 26, 12, 29, tzinfo=timezone.utc)
+    assert end_utc == datetime(2026, 7, 27, 12, 44, tzinfo=timezone.utc)
+    assert session_state["val_start_t"] == time(12, 29)
+    assert session_state["val_end_t"] == time(12, 44)
 
 
 def test_edited_start_date_suggests_an_end_date_seven_days_later():
@@ -170,7 +169,7 @@ def test_end_date_entry_bounds_retain_invalid_dates_for_correction(
     assert session_state["val_end_d"] == retained_end_date
 
 
-def test_exact_31_day_window_is_valid_but_31_days_15_minutes_is_not():
+def test_exact_31_day_window_is_valid_but_31_days_one_minute_is_not():
     """Keep elapsed time, rather than calendar dates alone, authoritative."""
     start_utc = datetime(2026, 6, 1, 0, 0, tzinfo=timezone.utc)
     exact_end_utc = datetime(2026, 7, 2, 0, 0, tzinfo=timezone.utc)
@@ -185,7 +184,7 @@ def test_exact_31_day_window_is_valid_but_31_days_15_minutes_is_not():
     with pytest.raises(UtcWindowValidationError) as validation_error:
         normalize_utc_window(
             start_utc,
-            exact_end_utc + timedelta(minutes=15),
+            exact_end_utc + timedelta(minutes=1),
             max_duration=timedelta(days=31),
             current_utc=current_utc,
         )
@@ -274,16 +273,29 @@ def test_state_validation_returns_the_effective_half_open_query_endpoints():
         session_state,
         current_utc=datetime(2026, 7, 27, 12, 45, tzinfo=timezone.utc),
     ) == (
-        datetime(2026, 7, 26, 12, 15, tzinfo=timezone.utc),
-        datetime(2026, 7, 27, 12, 30, tzinfo=timezone.utc),
+        datetime(2026, 7, 26, 12, 29, tzinfo=timezone.utc),
+        datetime(2026, 7, 27, 12, 44, tzinfo=timezone.utc),
     )
 
 
-def test_app_blocks_submission_while_entry_time_window_is_invalid():
-    """Keep the immediate field error from becoming an avoidable Run click."""
-    app_source = (
-        Path(__file__).resolve().parents[2] / "app.py"
-    ).read_text(encoding="utf-8")
+@pytest.mark.parametrize("end_minute", [51, 52, 59])
+def test_arbitrary_positive_minute_window_is_not_collapsed(end_minute):
+    """Do not collapse short windows or require whole WSPR-cycle boundaries."""
+    start_utc = datetime(2026, 7, 27, 9, 50, tzinfo=timezone.utc)
+    end_utc = start_utc.replace(minute=end_minute)
+    assert normalize_utc_window(
+        start_utc, end_utc, max_duration=timedelta(days=31),
+        current_utc=end_utc,
+    ) == (start_utc, end_utc)
 
-    assert "or time_window_validation_error is not None" in app_source
-    assert "time_window_validation_message_key(" in app_source
+
+def test_next_minute_is_future_even_inside_the_same_quarter_hour():
+    """Future validation applies before the old fifteen-minute snap boundary."""
+    current_utc = datetime(2026, 7, 27, 9, 51, 42, tzinfo=timezone.utc)
+    with pytest.raises(UtcWindowValidationError) as validation_error:
+        normalize_utc_window(
+            current_utc.replace(minute=50, second=0),
+            current_utc.replace(minute=52, second=0),
+            max_duration=timedelta(days=31), current_utc=current_utc,
+        )
+    assert validation_error.value.reason == "future"

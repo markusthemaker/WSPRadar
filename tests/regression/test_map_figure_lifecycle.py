@@ -90,7 +90,6 @@ _SUCCESS_OUTCOME_LABELS = {
 def _localized_compare_segment_recipe(recipe, language="en"):
     """Attach complete localized presentation state to a Compare recipe."""
     translations = T[language]
-    is_sequential = bool(recipe.get("is_sequential"))
     return {
         **recipe,
         "panel_y_label": translations["fig_share_percent_axis"],
@@ -100,9 +99,7 @@ def _localized_compare_segment_recipe(recipe, language="en"):
         ],
         "paired_evidence_title": translations[
             (
-                "fig_scheduled_pair_delta"
-                if is_sequential
-                else "fig_joint_spot_delta"
+                "fig_joint_spot_delta"
             )
         ],
         "metric_axis_label": translations["tbl_col_delta_snr"],
@@ -120,7 +117,7 @@ def test_compare_segment_renderer_uses_localized_recipe_labels(language):
         {
             "title": "Localized Benchmark",
             "selected_segment": "Full Range | All Directions",
-            "is_sequential": False,
+
             "station_values": np.array([], dtype=float),
             "spot_values": np.array([], dtype=float),
             "panel_station_counts": [1, 2, 0, 1],
@@ -479,7 +476,7 @@ def test_map_renderer_rejects_removed_legacy_absolute_mode():
         segment_rows=pd.DataFrame(),
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="comparison",
     )
     analysis_context = AnalysisContext(
@@ -550,7 +547,7 @@ def test_compare_map_renderer_scales_only_from_visible_segments(monkeypatch):
         segment_rows=segment_rows,
         analysis_id="RX_COMPARE",
         is_compare=True,
-        is_sequential=False,
+
         analysis_kind="comparison",
     )
     analysis_context = AnalysisContext(
@@ -782,7 +779,7 @@ def test_success_map_renderer_uses_sector_rate_and_status_only_markers(
         segment_rows=segment_rows,
         analysis_id=analysis_id,
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
     labels = T[language]
@@ -1129,7 +1126,7 @@ def _local_median_map_data(analysis_id="RX_COMPARE"):
         ),
         analysis_id=analysis_id,
         is_compare=True,
-        is_sequential=False,
+
         analysis_kind="comparison",
     )
 
@@ -1459,7 +1456,7 @@ def test_segment_and_opportunity_figures_render_concurrently_without_pyplot_stat
     segment_recipe = {
         "title": "Concurrent Segment Insight",
         "selected_segment": "Full Range | All Directions",
-        "is_sequential": False,
+
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, -1.0, 0.0, 1.0, 2.0]),
         "panel_station_counts": [1, 3, 1, 1],
@@ -1502,7 +1499,7 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
     recipe = {
         "title": "Export Segment Insight",
         "selected_segment": "Full Range | All Directions",
-        "is_sequential": False,
+
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, 0.0, 2.0]),
         "panel_station_counts": [1, 3, 1, 1],
@@ -1526,7 +1523,7 @@ def test_compare_segment_histograms_share_median_legend_and_mean_placement():
     recipe = {
         "title": "RX Benchmark",
         "selected_segment": "Full Range | All Directions",
-        "is_sequential": False,
+
         "station_values": np.array([6.0, 7.0]),
         "spot_values": np.array([6.0, 8.0]),
         "panel_station_counts": [1, 2, 0, 1],
@@ -1591,7 +1588,7 @@ def test_compare_segment_paper_export_restyles_all_foreground_boxes(monkeypatch)
         {
             "title": "RX Benchmark",
             "selected_segment": "Full Range | All Directions",
-            "is_sequential": False,
+
             "station_values": np.array([6.0, 7.0]),
             "spot_values": np.array([6.0, 8.0]),
             "panel_station_counts": [1, 2, 0, 1],
@@ -1665,7 +1662,7 @@ def test_compare_outcomes_and_station_histogram_share_station_hatching():
     recipe = {
         "title": "RX Benchmark",
         "selected_segment": "Full Range | All Directions",
-        "is_sequential": False,
+
         "station_values": np.array([-2.0, 0.0, 2.0]),
         "spot_values": np.array([-3.0, -1.0, 1.0, 3.0]),
         "panel_station_counts": [1, 2, 0, 1],
@@ -1889,7 +1886,7 @@ def test_success_segment_layout_matches_compare_panel_size_and_title_clearance()
     compare_recipe = {
         "title": "RX Benchmark",
         "selected_segment": "Full Range | All Directions",
-        "is_sequential": False,
+
         "station_values": np.array([-2.0, 0.0, 2.0]),
         "spot_values": np.array([-3.0, -1.0, 1.0, 3.0]),
         "panel_station_counts": [1, 2, 0, 1],
@@ -1953,30 +1950,6 @@ def test_success_segment_layout_matches_compare_panel_size_and_title_clearance()
         dispose_matplotlib_figure(success_figure)
 
 
-def test_sequential_segment_recipe_preserves_scheduled_pair_title():
-    """Render the scheduled-pair evidence title stored with the recipe."""
-    base_recipe = {
-        "title": "TX A/B Segment Insight",
-        "selected_segment": "Full Range | All Directions",
-        "is_sequential": True,
-        "station_values": np.array([-1.0, 0.0, 1.0]),
-        "spot_values": np.array([-2.0, 0.0, 2.0]),
-        "panel_station_counts": [1, 3, 1, 1],
-        "panel_spot_counts": [2, 6, 2, 1],
-        "panel_series_labels": ["Stations", "Scheduled pairs"],
-        "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
-        "panel_y_label": "Share (%)",
-    }
-    base_recipe = _localized_compare_segment_recipe(base_recipe)
-
-    evidence_title = "Scheduled-Pair \u0394 SNR"
-    figure = render_segment_insight_export_figure(
-        {**base_recipe, "paired_evidence_title": evidence_title}
-    )
-    try:
-        assert evidence_title in {axis.get_title() for axis in figure.axes}
-    finally:
-        dispose_matplotlib_figure(figure)
 
 
 def test_preview_renderer_returns_the_displayed_png_bytes(monkeypatch):
@@ -1985,7 +1958,6 @@ def test_preview_renderer_returns_the_displayed_png_bytes(monkeypatch):
     from ui import matplotlib_renderer
 
     displayed = []
-    monkeypatch.setenv(matplotlib_renderer.MATPLOTLIB_RENDER_MODE_ENV, "image")
     monkeypatch.setattr(matplotlib_renderer.st, "image", lambda image, **kwargs: displayed.append(image))
     figure = Figure(figsize=(2, 1), facecolor="black")
     figure.add_subplot(111).plot([0, 1], [0, 1])
@@ -2003,16 +1975,14 @@ def test_preview_renderer_returns_the_displayed_png_bytes(monkeypatch):
     assert displayed == [image_bytes]
 
 
-@pytest.mark.parametrize("render_mode", ["pyplot", "st.pyplot"])
 @pytest.mark.parametrize("bbox_inches", [None, "tight"])
 @pytest.mark.parametrize("dpi", [40, 80])
-def test_legacy_preview_preserves_bounds_and_requested_dpi_without_pyplot_kwargs(
-    monkeypatch, render_mode, bbox_inches, dpi,
+def test_preview_preserves_bounds_and_requested_dpi_without_pyplot_kwargs(
+    monkeypatch, bbox_inches, dpi,
 ):
     """Keep caller-selected cropping and DPI instead of Streamlit's tight/200 defaults."""
     from ui import matplotlib_renderer
 
-    monkeypatch.setenv(matplotlib_renderer.MATPLOTLIB_RENDER_MODE_ENV, render_mode)
     displayed = []
     monkeypatch.setattr(
         matplotlib_renderer.st, "image",
@@ -2020,13 +1990,9 @@ def test_legacy_preview_preserves_bounds_and_requested_dpi_without_pyplot_kwargs
     )
 
     def reject_pyplot(*_args, **_kwargs):
-        pytest.fail("The legacy preview must not pass savefig options through st.pyplot")
-
-    def reject_canvas_preview(*_args, **_kwargs):
-        pytest.fail("The legacy preview must retain explicit savefig serialization")
+        pytest.fail("The preview must not pass savefig options through st.pyplot")
 
     monkeypatch.setattr(matplotlib_renderer.st, "pyplot", reject_pyplot)
-    monkeypatch.setattr(matplotlib_renderer, "_draw_figure_preview_image", reject_canvas_preview)
     figure = Figure(figsize=(2, 1), dpi=72, facecolor="black")
     axis = figure.add_axes([0.2, 0.2, 0.6, 0.6])
     line, = axis.plot([0, 1], [2, 4])
@@ -2045,7 +2011,7 @@ def test_legacy_preview_preserves_bounds_and_requested_dpi_without_pyplot_kwargs
             figure, width=420, bbox_inches=bbox_inches, dpi=dpi,
         )
 
-        assert result is None  # The legacy Inspector mode remains uncached.
+        assert result == displayed[0][0]
         assert len(displayed) == 1
         image_bytes, display_options = displayed[0]
         assert display_options == {"width": 420}
@@ -2056,6 +2022,6 @@ def test_legacy_preview_preserves_bounds_and_requested_dpi_without_pyplot_kwargs
                 assert displayed_image.size == (2 * dpi, dpi)
         assert figure.dpi == 72
         np.testing.assert_array_equal(line.get_ydata(), [2, 4])
-        assert matplotlib_renderer.matplotlib_render_span_label("figure") == "savefig + st.image figure"
+        assert matplotlib_renderer.matplotlib_render_span_label("figure") == "st.image figure"
     finally:
         dispose_matplotlib_figure(figure)

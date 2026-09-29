@@ -461,7 +461,9 @@ def test_active_session_lease_prevents_ttl_cleanup(tmp_path):
     register_session_artifact(state, artifact_path)
     _make_stale(artifact_path)
 
-    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+    removed = cleanup_artifact_namespaces(
+        tmp_path, query_ttl_seconds=60.0, session_ttl_seconds=60.0,
+    )
 
     assert removed[ArtifactNamespace.SESSION_ARTIFACT.value] == 0
     assert artifact_path.read_bytes() == b"active-session"
@@ -486,7 +488,9 @@ def test_retired_session_artifact_remains_readable_until_lease_ttl(tmp_path):
 
     _make_stale(artifact_path)
     _make_stale(lease_path)
-    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+    removed = cleanup_artifact_namespaces(
+        tmp_path, query_ttl_seconds=60.0, session_ttl_seconds=60.0,
+    )
 
     assert removed[ArtifactNamespace.SESSION_ARTIFACT.value] == 2
     assert not artifact_path.exists()
@@ -510,7 +514,9 @@ def test_old_fragment_access_revives_a_retired_run_lease(tmp_path):
     _make_stale(lease_path)
 
     assert ARTIFACT_STORE.touch(artifact_path)
-    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+    removed = cleanup_artifact_namespaces(
+        tmp_path, query_ttl_seconds=60.0, session_ttl_seconds=60.0,
+    )
 
     assert removed[ArtifactNamespace.SESSION_ARTIFACT.value] == 0
     assert artifact_path.read_bytes() == b"fragment-access"
@@ -562,7 +568,9 @@ def test_cleanup_preserves_permanent_demos_but_reaps_abandoned_writes(
     removed = (
         data_engine.cleanup_old_parquets()
         if use_runtime_cleanup
-        else cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+        else cleanup_artifact_namespaces(
+            tmp_path, query_ttl_seconds=60.0, session_ttl_seconds=60.0,
+        )
     )
 
     assert removed == {"queries": 1, "demo-queries": 1, "session-artifacts": 0}
@@ -571,6 +579,14 @@ def test_cleanup_preserves_permanent_demos_but_reaps_abandoned_writes(
     assert not ordinary_path.exists()
     assert not abandoned_path.exists()
     assert recent_path.read_bytes() == b"in progress"
+
+
+@pytest.mark.parametrize("missing_policy", ["query_ttl_seconds", "session_ttl_seconds"])
+def test_namespace_cleanup_rejects_unbounded_current_lifetime(tmp_path, missing_policy):
+    policies = {"query_ttl_seconds": 60.0, "session_ttl_seconds": 60.0}
+    policies[missing_policy] = None
+    with pytest.raises(TypeError, match="query and session TTL"):
+        cleanup_artifact_namespaces(tmp_path, **policies)
 
 
 def test_namespace_cleanup_applies_independent_query_lifetimes(tmp_path):
@@ -638,7 +654,9 @@ def test_namespace_cleanup_reaps_only_orphaned_derived_temporary_outputs(
     )
     _make_stale(temporary_path, seconds=61.0)
 
-    cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+    cleanup_artifact_namespaces(
+        tmp_path, query_ttl_seconds=60.0, session_ttl_seconds=60.0,
+    )
 
     assert published_path.read_bytes() == b"published"
     assert not temporary_path.exists()

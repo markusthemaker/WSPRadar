@@ -65,33 +65,32 @@ def _settings_for_mode(
             "direction": "rx",
             "comparison": {"mode": "none"},
         },
-        "hardware_rx": {
+        "controlled_rx": {
             "direction": "rx",
             "comparison": {
-                "mode": "hardware_ab",
+                "mode": "reference_station",
                 "reference_callsign": "DL1MKS/P",
+                "reference_qth": "JN37",
                 "snr_correction_mode": "no_offset",
                 "snr_correction_db": 0.0,
             },
         },
-        "hardware_tx_simultaneous": {
+        "controlled_tx": {
             "direction": "tx",
             "comparison": {
-                "mode": "hardware_ab",
-                "tx_ab_method": "simultaneous",
+                "mode": "reference_station",
                 "reference_callsign": "DL1MKS/P",
+                "reference_qth": "JN37",
                 "snr_correction_mode": "establish_offset",
                 "snr_correction_db": 0.0,
             },
         },
-        "hardware_tx_sequential": {
+        "reference_pending": {
             "direction": "tx",
             "comparison": {
-                "mode": "hardware_ab",
-                "tx_ab_method": "sequential",
-                "repeat_interval_minutes": 10,
-                "target_start_minute": 0,
-                "reference_start_minute": 2,
+                "mode": "reference_station",
+                "reference_callsign": "CALL/P",
+                "reference_qth": "",
                 "snr_correction_mode": "no_offset",
                 "snr_correction_db": 0.0,
             },
@@ -158,19 +157,19 @@ def _settings_for_mode(
     ),
     [
         ("performance", "performance", None, "none", "rx"),
-        ("hardware_rx", "benchmark", "hardware_ab", "hardware_ab", "rx"),
+        ("controlled_rx", "benchmark", "reference_station", "reference_station", "rx"),
         (
-            "hardware_tx_simultaneous",
+            "controlled_tx",
             "benchmark",
-            "hardware_ab",
-            "hardware_ab",
+            "reference_station",
+            "reference_station",
             "tx",
         ),
         (
-            "hardware_tx_sequential",
+            "reference_pending",
             "benchmark",
-            "hardware_ab",
-            "hardware_ab",
+            "reference_station",
+            "reference_station",
             "tx",
         ),
         (
@@ -189,15 +188,22 @@ def _settings_for_mode(
         ),
     ],
 )
+@pytest.mark.parametrize("start_clock,end_clock", [("00:00", "00:00"), ("09:51", "10:21")])
 def test_each_analysis_case_round_trips_through_url_v1(
     case,
     expected_public_mode,
     expected_benchmark_design,
     expected_internal_mode,
     expected_direction,
+    start_clock,
+    end_clock,
 ):
     """Round-trip all six supported direction/design contracts canonically."""
     settings = _settings_for_mode(case)
+    settings["core_parameters"]["time_selection"] = {
+        "start_utc": f"2026-07-20T{start_clock}Z",
+        "end_utc": f"2026-07-21T{end_clock}Z",
+    }
 
     entries = url_state.build_query_from_settings(settings, include_run=True)
     query = url_state.build_query_string(entries)
@@ -209,8 +215,8 @@ def test_each_analysis_case_round_trips_through_url_v1(
     assert entry_map.get("benchmark_design") == expected_benchmark_design
     assert normalized["benchmark_mode"] == expected_internal_mode
     assert normalized["analysis_direction"] == expected_direction
-    assert normalized["start_utc"].isoformat() == "2026-07-20T00:00:00+00:00"
-    assert normalized["end_utc"].isoformat() == "2026-07-21T00:00:00+00:00"
+    assert normalized["start_utc"].isoformat() == f"2026-07-20T{start_clock}:00+00:00"
+    assert normalized["end_utc"].isoformat() == f"2026-07-21T{end_clock}:00+00:00"
     assert url_state.canonicalize_query(dict(entries)) == query
 
     session_state = _SessionState()
@@ -222,45 +228,21 @@ def test_each_analysis_case_round_trips_through_url_v1(
     assert rebuilt_entries == entries
 
 
-@pytest.mark.parametrize(
-    ("case", "legacy_design_mode"),
-    (
-        ("hardware_rx", "hardware_ab"),
-        ("reference_station", "reference_station"),
-        ("local_neighborhood", "local_neighborhood"),
-    ),
-)
-def test_legacy_design_as_mode_urls_are_read_and_canonicalized_forward(
-    case,
-    legacy_design_mode,
-):
-    """Keep old shared links readable while emitting only the new URL contract."""
-    canonical_entries = dict(
-        url_state.build_query_from_settings(
-            _settings_for_mode(case),
-            include_run=True,
-        )
-    )
-    legacy_entries = dict(canonical_entries)
-    legacy_entries["mode"] = legacy_entries.pop("benchmark_design")
+@pytest.mark.parametrize("mode", ["hardware_ab", "reference_station", "local_neighborhood"])
+def test_design_as_mode_urls_are_rejected(mode):
+    entries = dict(url_state.build_query_from_settings(_settings_for_mode("reference_station"), include_run=False))
+    entries.pop("benchmark_design")
+    entries["mode"] = mode
+    with pytest.raises(url_state.UrlStateError, match="Unsupported URL result mode"):
+        url_state.build_config_from_url(entries)
 
-    canonical_config = url_state.build_config_from_url(canonical_entries)
-    legacy_config = url_state.build_config_from_url(legacy_entries)
-    canonicalized_entries = dict(
-        parse_qsl(url_state.canonicalize_query(legacy_entries))
-    )
-
-    assert legacy_entries["mode"] == legacy_design_mode
-    assert legacy_config == canonical_config
-    assert canonicalized_entries["mode"] == "benchmark"
-    assert canonicalized_entries["benchmark_design"] == legacy_design_mode
 
 
 def test_canonical_benchmark_url_requires_a_supported_design():
     """Reject incomplete or unknown canonical Benchmark links."""
     entries = dict(
         url_state.build_query_from_settings(
-            _settings_for_mode("hardware_rx"),
+            _settings_for_mode("controlled_rx"),
             include_run=False,
         )
     )
@@ -273,11 +255,11 @@ def test_canonical_benchmark_url_requires_a_supported_design():
         url_state.build_config_from_url(entries)
 
 
-def test_legacy_design_as_mode_rejects_a_canonical_design_collision():
+def test_removed_hardware_design_is_rejected_in_public_urls():
     """Reject mixed legacy and canonical URL spellings as ambiguous input."""
     entries = dict(
         url_state.build_query_from_settings(
-            _settings_for_mode("hardware_rx"),
+            _settings_for_mode("controlled_rx"),
             include_run=False,
         )
     )
@@ -285,7 +267,7 @@ def test_legacy_design_as_mode_rejects_a_canonical_design_collision():
 
     with pytest.raises(
         url_state.UrlStateError,
-        match="cannot also supply benchmark_design",
+        match="Unsupported URL result mode",
     ):
         url_state.build_config_from_url(entries)
 
@@ -316,7 +298,7 @@ def test_url_v1_omits_every_stable_default_and_orders_required_fields():
 
 
 def test_compare_outlier_reporting_round_trips_with_explicit_new_defaults():
-    """Emit new defaults explicitly while preserving old omitted URL values."""
+    """Omit current defaults and reconstruct the current detector policy."""
     settings = _settings_for_mode("reference_station")
     settings["advanced_parameters"][
         "report_delta_snr_outlier_candidates"
@@ -326,8 +308,8 @@ def test_compare_outlier_reporting_round_trips_with_explicit_new_defaults():
     normalized = url_state.build_config_from_url(dict(entries))
 
     assert dict(entries)["report_outliers"] == "1"
-    assert dict(entries)["outlier_departure_db"] == "6"
-    assert dict(entries)["outlier_robust_z"] == "3"
+    assert "outlier_departure_db" not in dict(entries)
+    assert "outlier_robust_z" not in dict(entries)
     assert normalized["report_delta_snr_outlier_candidates"] is True
     assert normalized["delta_snr_outlier_minimum_departure_db"] == 6.0
     assert normalized["delta_snr_outlier_minimum_robust_z"] == 3.0
@@ -346,7 +328,7 @@ def test_compare_outlier_reporting_round_trips_with_explicit_new_defaults():
 
 
 def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
-    """Keep version-1 omission semantics and preserve full tuning precision."""
+    """Preserve full tuning precision for non-default detector gates."""
     settings = _settings_for_mode("reference_station")
     advanced = settings["advanced_parameters"]
     advanced["report_delta_snr_outlier_candidates"] = True
@@ -354,8 +336,8 @@ def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
     default_entries = dict(
         url_state.build_query_from_settings(settings, include_run=False)
     )
-    assert default_entries["outlier_departure_db"] == "6"
-    assert default_entries["outlier_robust_z"] == "3"
+    assert "outlier_departure_db" not in default_entries
+    assert "outlier_robust_z" not in default_entries
     assert "outlier_baseline_difference_db" not in default_entries
 
     advanced.update(
@@ -373,17 +355,15 @@ def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
     assert entries["outlier_departure_db"] == "3.25"
     assert entries["outlier_robust_z"] == "4.5"
     assert entries["outlier_baseline_difference_db"] == "2.75"
-    assert not set(entries).intersection(
-        url_state.URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS
-    )
+    assert not set(entries).intersection(url_state.URL_V1_RETIRED_PARAMETERS)
     for config_field, policy_field in (
         DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
     ):
         assert normalized[config_field] == advanced[config_field]
 
 
-def test_version_1_outlier_url_preserves_omitted_gate_meaning():
-    """Keep existing report-only version-1 links at their original 3/4/3 policy."""
+def test_omitted_outlier_url_gates_use_current_defaults():
+    """Use the authoritative 6/3/3 defaults for omitted current gates."""
     entries = dict(
         url_state.build_query_from_settings(
             _settings_for_mode("reference_station"),
@@ -394,77 +374,23 @@ def test_version_1_outlier_url_preserves_omitted_gate_meaning():
 
     normalized = url_state.build_config_from_url(entries)
 
-    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.0
-    assert normalized["delta_snr_outlier_minimum_robust_z"] == 4.0
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 6.0
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 3.0
     assert (
         normalized["delta_snr_outlier_maximum_baseline_difference_db"]
         == 3.0
     )
 
 
-@pytest.mark.parametrize(
-    ("burst_parameter", "burst_value", "expected_departure", "expected_z"),
-    (
-        ("outlier_burst_departure_db", "3.25", 3.25, 3.5),
-        ("outlier_burst_robust_z", "4.25", 3.0, 4.25),
-    ),
-)
-def test_legacy_outlier_policy_url_maps_short_burst_values_to_shared_gates(
-    burst_parameter,
-    burst_value,
-    expected_departure,
-    expected_z,
-):
-    """Read experimental duration URLs only through a supplied burst gate."""
-    entries = dict(
-        url_state.build_query_from_settings(
-            _settings_for_mode("reference_station"),
-            include_run=False,
-        )
-    )
-    entries.update(
-        {
-            "report_outliers": "1",
-            "outlier_spot_departure_db": "6",
-            "outlier_sustained_robust_z": "2.5",
-            "outlier_baseline_difference_db": "2.75",
-            burst_parameter: burst_value,
-        }
-    )
-
-    normalized = url_state.build_config_from_url(entries)
-
-    assert normalized["delta_snr_outlier_minimum_departure_db"] == (
-        expected_departure
-    )
-    assert normalized["delta_snr_outlier_minimum_robust_z"] == expected_z
-    assert (
-        normalized["delta_snr_outlier_maximum_baseline_difference_db"]
-        == 2.75
-    )
-
-
-def test_legacy_outlier_policy_url_requires_at_least_one_short_burst_gate():
-    """Reject duration URLs whose shared policy cannot be mapped unambiguously."""
-    entries = dict(
-        url_state.build_query_from_settings(
-            _settings_for_mode("reference_station"),
-            include_run=False,
-        )
-    )
-    entries.update(
-        {
-            "report_outliers": "1",
-            "outlier_spot_departure_db": "6",
-            "outlier_sustained_robust_z": "2.5",
-        }
-    )
-
-    with pytest.raises(
-        url_state.UrlStateError,
-        match="without a Short burst value",
-    ):
+@pytest.mark.parametrize("old_parameter", ["outlier_spot_departure_db", "outlier_burst_departure_db", "outlier_sustained_departure_db", "outlier_spot_robust_z", "outlier_burst_robust_z", "outlier_sustained_robust_z"])
+def test_previous_outlier_url_fields_are_rejected(old_parameter):
+    entries = dict(url_state.build_query_from_settings(_settings_for_mode("reference_station"), include_run=False))
+    entries.update({"report_outliers": "1", old_parameter: "3.25"})
+    with pytest.raises(url_state.UrlStateError, match="Retired|not applicable"):
         url_state.build_config_from_url(entries)
+
+
+
 
 
 def test_outlier_policy_url_rejects_mixed_shared_and_legacy_gates():
@@ -485,7 +411,7 @@ def test_outlier_policy_url_rejects_mixed_shared_and_legacy_gates():
 
     with pytest.raises(
         url_state.UrlStateError,
-        match="Shared and legacy duration-specific.*cannot be combined",
+        match="Retired|not applicable",
     ):
         url_state.build_config_from_url(entries)
 
@@ -506,7 +432,7 @@ def test_outlier_policy_url_parameters_require_enabled_reporting(parameter_name)
 
     with pytest.raises(
         url_state.UrlStateError,
-        match=rf"not applicable.*{parameter_name}",
+        match=rf"(not applicable|Retired).*{parameter_name}",
     ):
         url_state.build_config_from_url(entries)
 
@@ -529,7 +455,7 @@ def test_performance_url_rejects_compare_outlier_reporting():
 
 
 def test_performance_ui_defaults_are_explicit_against_url_v1_false_defaults():
-    """Preserve old omitted URLs while encoding the new interactive defaults."""
+    """Encode enabled population filters explicitly in public URLs."""
     settings = _settings_for_mode("performance")
     settings["advanced_parameters"].update(
         {
@@ -595,7 +521,7 @@ def test_nondefault_fields_use_global_deterministic_parameter_order():
 def test_standard_encoding_escapes_slash_at_comma_and_timestamps():
     """Use the standard query encoder for every identity and list separator."""
     settings = _settings_for_mode(
-        "hardware_rx",
+        "controlled_rx",
         target_callsign="dl1mks",
         target_qth="jn37",
     )
@@ -629,7 +555,7 @@ def test_standard_encoding_escapes_slash_at_comma_and_timestamps():
 
 def test_explicit_station_deselection_round_trips_as_none():
     """Distinguish explicit deselection from omitted automatic selection."""
-    settings = _settings_for_mode("hardware_rx")
+    settings = _settings_for_mode("controlled_rx")
     settings["results_view"]["benchmark"]["selected_stations"] = []
 
     entries = url_state.build_query_from_settings(settings, include_run=False)
@@ -643,7 +569,7 @@ def test_explicit_station_deselection_round_trips_as_none():
 
 def test_omitted_station_retains_automatic_selection_intent():
     """Keep an omitted station distinct from the explicit ``none`` token."""
-    settings = _settings_for_mode("hardware_rx")
+    settings = _settings_for_mode("controlled_rx")
 
     entries = url_state.build_query_from_settings(settings, include_run=False)
     normalized = url_state.build_config_from_url(
@@ -691,9 +617,9 @@ def test_performance_url_maps_only_the_active_result_branch():
     ]
 
 
-@pytest.mark.parametrize("time_bin", ("2m", "5m", "10m", "15m", "30m"))
-def test_public_url_round_trips_adaptive_and_legacy_minute_bins(time_bin):
-    """Keep new minute bins and both legacy choices stable in URL version 1."""
+@pytest.mark.parametrize("time_bin", ("2m", "10m", "30m"))
+def test_public_url_round_trips_current_minute_bins(time_bin):
+    """Keep current minute bins stable in public URLs."""
     settings = _settings_for_mode("performance")
     performance_view = settings["results_view"]["performance"]
     performance_view["segment_evidence_time_bin"] = time_bin
@@ -710,7 +636,7 @@ def test_public_url_round_trips_adaptive_and_legacy_minute_bins(time_bin):
 
 def test_benchmark_url_maps_only_the_active_result_branch():
     """Ignore inactive Performance choices and round-trip Benchmark controls."""
-    settings = _settings_for_mode("hardware_rx")
+    settings = _settings_for_mode("controlled_rx")
     settings["results_view"]["performance"].update(
         {
             "selected_ranges": [SEGMENT_RANGE_OPTIONS[5]],
@@ -752,28 +678,13 @@ def test_benchmark_url_maps_only_the_active_result_branch():
     assert normalized["show_zero_target"] is False
 
 
-@pytest.mark.parametrize("legacy_temporal_view", ("chronological", "utc_hour"))
-def test_benchmark_accepts_valid_legacy_temporal_view_as_a_noop(
-    legacy_temporal_view,
-):
-    """Load old Benchmark links without restoring or re-emitting retired state."""
-    settings = _settings_for_mode("hardware_rx")
-    canonical_entries = dict(
-        url_state.build_query_from_settings(settings, include_run=False)
-    )
-    legacy_entries = dict(canonical_entries)
-    legacy_entries["temporal_view"] = legacy_temporal_view
+@pytest.mark.parametrize("old_value", ["chronological", "utc_hour", "local_hour"])
+def test_retired_temporal_view_url_parameter_is_rejected(old_value):
+    entries = dict(url_state.build_query_from_settings(_settings_for_mode("reference_station"), include_run=False))
+    entries["temporal_view"] = old_value
+    with pytest.raises(url_state.UrlStateError, match="Retired|not applicable"):
+        url_state.build_config_from_url(entries)
 
-    normalized = url_state.build_config_from_url(
-        url_state.parse_url_query(legacy_entries)
-    )
-    canonical_normalized = url_state.build_config_from_url(
-        url_state.parse_url_query(canonical_entries)
-    )
-
-    assert "station_evidence_temporal_view_compare" not in normalized
-    assert normalized == canonical_normalized
-    assert "temporal_view" not in canonical_entries
 
 
 @pytest.mark.parametrize("direction", ["rx", "tx"])
@@ -792,21 +703,6 @@ def test_local_neighborhood_url_rejects_unsupported_method(direction, local_benc
     )
 
 
-def test_benchmark_rejects_an_unknown_legacy_temporal_view():
-    """Validate retired URL values before discarding the compatibility no-op."""
-    entries = dict(
-        url_state.build_query_from_settings(
-            _settings_for_mode("hardware_rx"),
-            include_run=False,
-        )
-    )
-    entries["temporal_view"] = "local_hour"
-
-    with pytest.raises(
-        url_state.UrlStateError,
-        match="temporal_view must be chronological or utc_hour",
-    ):
-        url_state.build_config_from_url(url_state.parse_url_query(entries))
 
 
 @pytest.mark.parametrize(
@@ -817,9 +713,9 @@ def test_benchmark_rejects_an_unknown_legacy_temporal_view():
         ("performance", "min_joint_spots", "2"),
         ("performance", "temporal_view", "utc_hour"),
         ("performance", "show_unpaired", "1"),
-        ("hardware_rx", "tx_ab_method", "simultaneous"),
-        ("hardware_rx", "show_zero", "1"),
-        ("hardware_tx_sequential", "reference", "DL2XYZ"),
+        ("controlled_rx", "tx_ab_method", "simultaneous"),
+        ("controlled_rx", "show_zero", "1"),
+        ("reference_pending", "repeat_interval_minutes", "10"),
         ("reference_station", "local_benchmark", "local_median"),
         ("local_neighborhood", "reference_qth", "JO62"),
     ],
@@ -840,7 +736,7 @@ def test_mode_inapplicable_parameters_are_rejected(
 
     with pytest.raises(
         url_state.UrlStateError,
-        match="not applicable",
+        match="not applicable|Retired",
     ):
         url_state.build_config_from_url(entries)
 
@@ -896,9 +792,9 @@ def test_missing_url_version_is_invalid():
     assert "Missing required URL parameter: v" in str(error.value)
 
 
-@pytest.mark.parametrize("retired_key", ["hours", "anchor"])
+@pytest.mark.parametrize("retired_key", ["hours", "anchor", "reference_intent"])
 def test_retired_owned_url_parameters_are_rejected(retired_key):
-    """Keep relative time and query-based anchors outside the URL-v1 contract."""
+    """Reject removed URL fields without converting or silently ignoring them."""
     with pytest.raises(url_state.UrlStateError, match="Retired"):
         url_state.parse_url_query(
             {
@@ -934,7 +830,7 @@ def test_malformed_or_multiple_selected_station_values_are_rejected(
     """Accept exactly one validated identity or the explicit ``none`` token."""
     entries = dict(
         url_state.build_query_from_settings(
-            _settings_for_mode("hardware_rx"),
+            _settings_for_mode("controlled_rx"),
             include_run=False,
         )
     )
@@ -946,7 +842,7 @@ def test_malformed_or_multiple_selected_station_values_are_rejected(
 
 def test_serializer_rejects_more_than_one_station_when_reporting_is_disabled():
     """Keep the ordinary Benchmark URL on its historical singleton contract."""
-    settings = _settings_for_mode("hardware_rx")
+    settings = _settings_for_mode("controlled_rx")
     settings["results_view"]["benchmark"]["selected_stations"] = [
         {"callsign": "K1ABC", "locator": "FN42"},
         {"callsign": "W1AAA", "locator": "FN31"},
@@ -958,7 +854,7 @@ def test_serializer_rejects_more_than_one_station_when_reporting_is_disabled():
 
 def test_enabled_outlier_url_round_trips_ordered_multi_station_selection():
     """Serialize and restore exact report-selected identities with the opt-in."""
-    settings = _settings_for_mode("hardware_rx")
+    settings = _settings_for_mode("controlled_rx")
     selected_stations = [
         {"callsign": "K1ABC", "locator": "FN42"},
         {"callsign": "W1AAA", "locator": "FN31"},
@@ -1043,7 +939,7 @@ def test_valid_run_url_applies_and_schedules_replay_exactly_once():
     """Submit one URL replay and expose one matching results-anchor request."""
     entries = dict(
         url_state.build_query_from_settings(
-            _settings_for_mode("hardware_rx"),
+            _settings_for_mode("controlled_rx"),
             include_run=True,
         )
     )
@@ -1159,7 +1055,7 @@ def test_run_output_tracks_result_validity_but_not_result_view_edits():
 
 def test_share_url_uses_canonical_origin_owned_state_run_and_result_anchor():
     """Build a clean replay URL instead of copying unrelated browser state."""
-    settings = _settings_for_mode("hardware_rx")
+    settings = _settings_for_mode("controlled_rx")
     settings["results_view"]["benchmark"]["selected_stations"] = [
         {"callsign": "K1ABC", "locator": "FN42"},
     ]
@@ -1240,8 +1136,8 @@ def test_app_hydrates_before_widgets_and_routes_replay_through_normal_submission
     )
 
 
-def test_app_gates_actions_and_url_sync_for_incomplete_classic_benchmark():
-    """Keep an unfinished Classic Benchmark local and non-runnable."""
+def test_app_keeps_run_validation_available_but_gates_save_and_url_sync():
+    """Keep invalid input local while allowing Run to identify missing fields."""
     repository_root = Path(__file__).resolve().parents[2]
     app_source = (repository_root / "app.py").read_text(encoding="utf-8")
 
@@ -1262,7 +1158,9 @@ def test_app_gates_actions_and_url_sync_for_incomplete_classic_benchmark():
     assert 'if st.session_state.input_view == "guided":' in app_source
     assert "st.session_state.config_panels_expanded = True" in app_source
     assert "def collapse_config_panels" not in app_source
-    assert "or not input_configuration_ready" in app_source
+    assert "errors = attempt_input_validation(st.session_state, t)" in app_source
+    assert "focus_field=validation_focus_key" in app_source
+    assert "or not input_configuration_ready" not in app_source
     assert "is_configuration_ready=input_configuration_ready" in app_source
     assert (
         'if st.session_state.input_view != "classic" or input_configuration_ready:'

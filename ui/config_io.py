@@ -26,28 +26,20 @@ from config.config_schema import (
     CONFIG_DOCUMENT_FORMAT,
     CONFIG_KEYS,
     CONFIG_SCHEMA_VERSION,
-    LEGACY_RESULTS_VIEW_KEY_ALIASES,
     PERFORMANCE_RESULTS_VIEW_KEY,
     SEGMENT_DIRECTION_OPTIONS,
     SEGMENT_RANGE_OPTIONS,
     SEGMENT_SELECTION_ALL,
     SNR_CORRECTION_MODES,
     temporal_evidence_time_bin_policy_for_duration,
-    TX_AB_METHODS,
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.config_codec import prepare_config_document
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
-    LEGACY_BURST_MINIMUM_DEPARTURE_DB,
-    LEGACY_BURST_MINIMUM_ROBUST_Z,
-    LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS,
-    VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
     DeltaSnrOutlierDetectionPolicy,
 )
 from config.json_utils import decode_strict_json_bytes
-from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
 from core.input_validation import (
     is_valid_callsign,
     is_valid_grid4,
@@ -85,7 +77,6 @@ from ui.time_window import (
 MAX_CONFIG_BYTES = 200_000
 MODE_KEYS = {
     "none": "opt_comp_none",
-    "hardware_ab": "opt_comp_self",
     "reference_station": "opt_comp_buddy",
     "local_neighborhood": "opt_comp_radius",
 }
@@ -98,10 +89,6 @@ SOLAR_KEYS = {
     "night": "opt_solar_night",
     "greyline": "opt_solar_grey",
 }
-
-MODE_VALUES = {value: key for key, value in MODE_KEYS.items()}
-LOCAL_BENCHMARK_VALUES = {value: key for key, value in LOCAL_BENCHMARK_KEYS.items()}
-SOLAR_VALUES = {value: key for key, value in SOLAR_KEYS.items()}
 
 
 _CONFIG_VALIDATION_LOGGER = logging.getLogger("wspradar.config")
@@ -153,7 +140,6 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "qth",
         "reference_callsign",
         "reference_qth",
-        "reference_start_minute",
         "report_delta_snr_outlier_candidates",
         "delta_snr_outlier_minimum_departure_db",
         "delta_snr_outlier_minimum_robust_z",
@@ -164,7 +150,6 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "delta_snr_outlier_burst_minimum_robust_z",
         "delta_snr_outlier_sustained_minimum_robust_z",
         "delta_snr_outlier_maximum_baseline_difference_db",
-        "repeat_interval_minutes",
         "results_view",
         "schema_version",
         "segment_evidence_time_bin",
@@ -181,10 +166,8 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "station_evidence_time_bin",
         "success",
         "benchmark",
-        "target_start_minute",
         "time_selection",
         "title",
-        "tx_ab_method",
         "version",
     }
 )
@@ -228,34 +211,9 @@ def log_config_validation_error(error, *, operation):
     )
 
 
-def _canonical_from_translated(state_value, value_map, fallback):
-    """Return a stable token, accepting display text from pre-migration sessions."""
-    canonical_values = frozenset(value_map.values())
-    if state_value in canonical_values:
-        return state_value
-    legacy_canonical_value = LEGACY_LOCALIZED_STATE_VALUES.get(state_value)
-    if legacy_canonical_value in canonical_values:
-        return legacy_canonical_value
-    for lang_dict in T.values():
-        for translation_key, canonical in value_map.items():
-            if state_value == lang_dict.get(translation_key):
-                return canonical
-    return fallback
-
-
-def canonical_from_translated(state_value, value_map, fallback):
-    """Translate a localized UI value into a stable config key."""
-    return _canonical_from_translated(state_value, value_map, fallback)
-
-
 def validate_local_benchmark_state(state_value):
     """Resolve a supported local method without replacing explicit invalid state."""
-    canonical_method = (
-        _canonical_from_translated(state_value, LOCAL_BENCHMARK_VALUES, None)
-        if isinstance(state_value, str)
-        else None
-    )
-    return _validate_local_benchmark(canonical_method)
+    return _validate_local_benchmark(state_value)
 
 
 def _validate_local_benchmark(local_benchmark):
@@ -286,10 +244,6 @@ def _default_config():
         "neighborhood_radius_km": 100,
         "snr_correction_mode": "no_offset",
         "benchmark_snr_correction_db": 0.0,
-        "tx_ab_method": "simultaneous",
-        "tx_ab_repeat_interval_minutes": 10,
-        "tx_ab_target_start_minute": 0,
-        "tx_ab_reference_start_minute": 2,
         "solar_state": "all",
         "max_peer_distance_km": 22000,
         "exclude_special_callsigns": False,
@@ -401,47 +355,6 @@ def _validate_choice(value, field, choices):
     return value
 
 
-def _validate_tx_ab_schedule_values(
-    repeat_interval_minutes,
-    target_start_minute,
-    reference_start_minute,
-):
-    """Validate one canonical periodic TX A/B schedule."""
-    repeat_interval_minutes = _validate_int(
-        repeat_interval_minutes,
-        "repeat_interval_minutes",
-        min(TX_AB_REPEAT_INTERVAL_OPTIONS),
-        max(TX_AB_REPEAT_INTERVAL_OPTIONS),
-        allowed_values=TX_AB_REPEAT_INTERVAL_OPTIONS,
-    )
-    permitted_starts = tuple(range(0, repeat_interval_minutes, 2))
-    target_start_minute = _validate_int(
-        target_start_minute,
-        "target_start_minute",
-        0,
-        repeat_interval_minutes - 1,
-        allowed_values=permitted_starts,
-    )
-    reference_start_minute = _validate_int(
-        reference_start_minute,
-        "reference_start_minute",
-        0,
-        repeat_interval_minutes - 1,
-        allowed_values=permitted_starts,
-    )
-    if target_start_minute == reference_start_minute:
-        raise ValueError(
-            "target_start_minute and reference_start_minute must be different "
-            "in TX A/B mode."
-        )
-
-    return {
-        "tx_ab_repeat_interval_minutes": repeat_interval_minutes,
-        "tx_ab_target_start_minute": target_start_minute,
-        "tx_ab_reference_start_minute": reference_start_minute,
-    }
-
-
 def _validate_callsign(value, field, allow_empty=True):
     if not isinstance(value, str):
         raise ValueError(f"{field} must be a string.")
@@ -543,11 +456,7 @@ def _settings_from_session_state(state, lang):
         temporal_evidence_time_bin_policy_for_duration(end_utc - start_utc)
     )
 
-    benchmark_mode = _canonical_from_translated(
-        state.get("val_comp_mode", "none"),
-        MODE_VALUES,
-        "none",
-    )
+    benchmark_mode = state.get("val_comp_mode", "none")
     population_defaults = population_exclusion_defaults(
         result_type_from_comparison_mode(benchmark_mode)
     )
@@ -590,55 +499,8 @@ def _settings_from_session_state(state, lang):
                 defaults["neighborhood_radius_km"],
             )
         )
-    elif benchmark_mode == "hardware_ab" and analysis_direction == "rx":
-        comparison_parameters["reference_callsign"] = normalize_ascii_upper(
-            state.get("val_ref_callsign", defaults["reference_callsign"])
-        )
-    elif benchmark_mode == "hardware_ab":
-        tx_ab_method = str(
-            state.get("val_tx_ab_method", defaults["tx_ab_method"])
-        )
-        comparison_parameters["tx_ab_method"] = tx_ab_method
-        if tx_ab_method == "simultaneous":
-            comparison_parameters.update(
-                {
-                    "reference_callsign": normalize_ascii_upper(
-                        state.get(
-                            "val_ref_callsign",
-                            defaults["reference_callsign"],
-                        )
-                    ),
-                }
-            )
-        else:
-            comparison_parameters.update(
-                {
-                    "repeat_interval_minutes": int(
-                        state.get(
-                            "val_tx_ab_repeat_interval_minutes",
-                            defaults["tx_ab_repeat_interval_minutes"],
-                        )
-                    ),
-                    "target_start_minute": int(
-                        state.get(
-                            "val_tx_ab_target_start_minute",
-                            defaults["tx_ab_target_start_minute"],
-                        )
-                    ),
-                    "reference_start_minute": int(
-                        state.get(
-                            "val_tx_ab_reference_start_minute",
-                            defaults["tx_ab_reference_start_minute"],
-                        )
-                    ),
-                }
-            )
     advanced_parameters = {
-        "solar_state": _canonical_from_translated(
-            state.get("val_solar", "all"),
-            SOLAR_VALUES,
-            "all",
-        ),
+        "solar_state": state.get("val_solar", "all"),
         "max_peer_distance_km": int(
             state.get(
                 "val_max_peer_distance_km",
@@ -1131,26 +993,6 @@ def normalize_config_settings(raw_settings):
             "snr_correction_mode",
             "snr_correction_db",
         }
-    elif benchmark_mode == "hardware_ab":
-        comparison_fields |= {"snr_correction_mode", "snr_correction_db"}
-        if normalized["analysis_direction"] == "rx":
-            comparison_fields.add("reference_callsign")
-        else:
-            comparison_fields.add("tx_ab_method")
-            tx_ab_method = _validate_choice(
-                comparison.get("tx_ab_method"),
-                "tx_ab_method",
-                TX_AB_METHODS,
-            )
-            normalized["tx_ab_method"] = tx_ab_method
-            if tx_ab_method == "simultaneous":
-                comparison_fields.add("reference_callsign")
-            else:
-                comparison_fields |= {
-                    "repeat_interval_minutes",
-                    "target_start_minute",
-                    "reference_start_minute",
-                }
     _validate_object_fields(
         comparison,
         "settings.comparison_parameters",
@@ -1213,31 +1055,6 @@ def normalize_config_settings(raw_settings):
             10,
             MAX_DYNAMIC_RADIUS_KM,
         )
-    elif benchmark_mode == "hardware_ab" and (
-        normalized["analysis_direction"] == "rx"
-        or normalized["tx_ab_method"] == "simultaneous"
-    ):
-        normalized["reference_callsign"] = _validate_callsign(
-            comparison["reference_callsign"], "reference_callsign"
-        )
-        if (
-            normalized["callsign"]
-            and normalized["reference_callsign"]
-            and normalized["callsign"] == normalized["reference_callsign"]
-        ):
-            raise ValueError(
-                "reference_callsign must be different from callsign in "
-                "Hardware A/B mode."
-            )
-    elif benchmark_mode == "hardware_ab":
-        normalized.update(
-            _validate_tx_ab_schedule_values(
-                comparison["repeat_interval_minutes"],
-                comparison["target_start_minute"],
-                comparison["reference_start_minute"],
-            )
-        )
-
     advanced_fields = {
         "solar_state",
         "max_peer_distance_km",
@@ -1442,104 +1259,9 @@ def normalize_config_settings(raw_settings):
     return normalized
 
 
-def _migrate_legacy_results_view_keys(settings):
-    """Migrate unambiguous legacy result-view branch names in-place.
-
-    Saved configuration schema version 1 was published during the pre-release
-    terminology transition.  Accept the former branch names only at this input
-    boundary; canonical validation and every writer continue to use
-    ``performance`` and ``benchmark``.  A document containing both spellings is
-    ambiguous and is rejected rather than silently choosing one value.
-    """
-
-    results_view = (
-        settings.get("results_view") if isinstance(settings, dict) else None
-    )
-    if not isinstance(results_view, dict):
-        return
-
-    for legacy_key, canonical_key in LEGACY_RESULTS_VIEW_KEY_ALIASES:
-        if legacy_key not in results_view:
-            continue
-        if canonical_key in results_view:
-            raise ValueError(
-                "settings.results_view cannot contain both "
-                f"{legacy_key!r} and {canonical_key!r}."
-            )
-        results_view[canonical_key] = results_view.pop(legacy_key)
-
-
-def _migrate_legacy_delta_snr_outlier_policy(settings):
-    """Convert unpublished duration-specific detector fields to shared gates.
-
-    Experimental version-1 writers always stored every duration-specific
-    threshold. The Short burst pair is the neutral midpoint of that former
-    policy and therefore supplies the two shared qualification gates. Missing
-    legacy burst values retain their former defaults. Mixed legacy and shared
-    fields are rejected because their intended precedence would be ambiguous.
-    """
-    advanced_parameters = settings.get("advanced_parameters")
-    if not isinstance(advanced_parameters, dict):
-        return
-    legacy_fields = set(advanced_parameters).intersection(
-        LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS
-    )
-    if not legacy_fields:
-        return
-    shared_fields = {
-        "delta_snr_outlier_minimum_departure_db",
-        "delta_snr_outlier_minimum_robust_z",
-    }
-    mixed_fields = set(advanced_parameters).intersection(shared_fields)
-    if mixed_fields:
-        raise ValueError(
-            "settings.advanced_parameters cannot mix legacy duration-specific "
-            "Delta-SNR outlier thresholds with shared detector thresholds."
-        )
-    advanced_parameters["delta_snr_outlier_minimum_departure_db"] = (
-        advanced_parameters.get(
-            "delta_snr_outlier_burst_minimum_departure_db",
-            LEGACY_BURST_MINIMUM_DEPARTURE_DB,
-        )
-    )
-    advanced_parameters["delta_snr_outlier_minimum_robust_z"] = (
-        advanced_parameters.get(
-            "delta_snr_outlier_burst_minimum_robust_z",
-            LEGACY_BURST_MINIMUM_ROBUST_Z,
-        )
-    )
-    for legacy_field in LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS:
-        advanced_parameters.pop(legacy_field, None)
-
-
-def _preserve_version_1_omitted_delta_snr_outlier_policy(settings):
-    """Restore the original meaning of omitted version-1 detector gates."""
-    advanced_parameters = settings.get("advanced_parameters")
-    if not isinstance(advanced_parameters, dict) or not advanced_parameters.get(
-        "report_delta_snr_outlier_candidates",
-        False,
-    ):
-        return
-    for config_field, policy_field in (
-        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
-    ):
-        advanced_parameters.setdefault(
-            config_field,
-            getattr(
-                VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
-                policy_field,
-            ),
-        )
-
-
 def validate_config_document(payload):
     """Validate and normalize one decoded versioned WSPRadar config document."""
     prepared_document = prepare_config_document(payload)
-    _migrate_legacy_results_view_keys(prepared_document["settings"])
-    _migrate_legacy_delta_snr_outlier_policy(prepared_document["settings"])
-    _preserve_version_1_omitted_delta_snr_outlier_policy(
-        prepared_document["settings"]
-    )
     normalized_config = normalize_config_settings(prepared_document["settings"])
     normalized_config["profile"] = deepcopy(prepared_document.get("profile"))
     normalized_config["extensions"] = deepcopy(
@@ -1564,6 +1286,9 @@ def validate_config_upload(raw_bytes):
 def apply_config_state_values(config, session_state):
     """Apply active values, loaded metadata, and canonical inactive defaults."""
     defaults = _default_config()
+    session_state.pop("_reference_location_resolution", None)
+    session_state.pop("_input_field_errors", None)
+    session_state.pop("_input_validation_attempted", None)
     session_state.update(
         {
             "val_analysis_direction": config["analysis_direction"],
@@ -1600,23 +1325,6 @@ def apply_config_state_values(config, session_state):
                 "snr_correction_mode",
                 defaults["snr_correction_mode"],
             ),
-            "val_tx_ab_method": config.get(
-                "tx_ab_method",
-                defaults["tx_ab_method"],
-            ),
-            "val_tx_ab_repeat_interval_minutes": config.get(
-                "tx_ab_repeat_interval_minutes",
-                defaults["tx_ab_repeat_interval_minutes"],
-            ),
-            "val_tx_ab_target_start_minute": config.get(
-                "tx_ab_target_start_minute",
-                defaults["tx_ab_target_start_minute"],
-            ),
-            "val_tx_ab_reference_start_minute": config.get(
-                "tx_ab_reference_start_minute",
-                defaults["tx_ab_reference_start_minute"],
-            ),
-            "val_solar": config["solar_state"],
             "val_max_peer_distance_km": config["max_peer_distance_km"],
             "val_exclude_special_callsigns": config[
                 "exclude_special_callsigns"

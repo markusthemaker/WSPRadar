@@ -9,10 +9,10 @@ from pyproj import Geod
 
 from core.analysis_context import (
     AnalysisContext,
-    COMPARISON_HARDWARE_AB,
     COMPARISON_REFERENCE_STATION,
-    SELF_TEST_TX,
-    TX_AB_METHOD_SEQUENTIAL,
+    COMPARISON_REFERENCE_STATION,
+
+
 )
 from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
 from core.geographic_scope import (
@@ -30,12 +30,12 @@ from i18n import T
 LABELS = {"warn_no_data": "No data for {title}."}
 
 
-def _comparison_analysis(*, is_sequential=False):
+def _comparison_analysis( ):
     """Return the minimal post-fetch comparison contract used by scope tests."""
     return {
         "analysis_kind": "comparison",
         "is_compare": True,
-        "is_sequential": is_sequential,
+
         "title": "geographic scope",
     }
 
@@ -198,50 +198,6 @@ def test_target_active_gate_uses_out_of_scope_peer_before_scope_filter():
     assert filtered["time_slot"].tolist() == [1]
 
 
-def test_sequential_pair_assignment_precedes_scope_filter():
-    """Retain scheduled pair columns while excluding a distant peer pair."""
-    start_time = datetime(2026, 7, 23, 0, 0, tzinfo=timezone.utc)
-    rows = pd.DataFrame(
-        {
-            "time": [
-                start_time,
-                start_time.replace(minute=2),
-                start_time,
-                start_time.replace(minute=2),
-            ],
-            "peer_sign": ["NEARBY", "NEARBY", "DISTANT", "DISTANT"],
-            "peer_grid": ["JJ00AA", "JJ00AA", "RJ00AA", "RJ00AA"],
-            "peer_lat": [0.0, 0.0, 0.0, 0.0],
-            "peer_lon": [1.0, 1.0, 90.0, 90.0],
-            "is_me": [1, 0, 1, 0],
-            "stat_val": [-10.0, -12.0, -11.0, -13.0],
-        }
-    )
-    context = _comparison_context(
-        comparison_mode=COMPARISON_HARDWARE_AB,
-        self_test_mode=SELF_TEST_TX,
-        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-
-    filtered, warning = apply_post_fetch_filters(
-        rows,
-        _comparison_analysis(is_sequential=True),
-        context,
-        0.0,
-        0.0,
-        LABELS,
-    )
-
-    assert warning is None
-    assert filtered["peer_sign"].tolist() == ["NEARBY", "NEARBY"]
-    assert filtered["tx_ab_pair_id"].nunique() == 1
-    assert {
-        "tx_ab_pair_target_time",
-        "tx_ab_pair_reference_time",
-    }.issubset(filtered.columns)
 
 
 def test_opportunity_rows_are_scoped_before_the_processed_result_is_returned():
@@ -267,7 +223,7 @@ def test_opportunity_rows_are_scoped_before_the_processed_result_is_returned():
     analysis = {
         "analysis_kind": "opportunity",
         "is_compare": False,
-        "is_sequential": False,
+
         "title": "Performance scope",
     }
 

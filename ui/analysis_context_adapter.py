@@ -3,15 +3,10 @@
 from config import DEFAULT_BAND
 from core.analysis_context import (
     AnalysisContext,
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
 )
 from core.input_validation import normalize_ascii_upper
 from ui.config_io import (
-    LOCAL_BENCHMARK_VALUES,
-    MODE_VALUES,
-    SOLAR_VALUES,
-    canonical_from_translated,
     validate_local_benchmark_state,
 )
 from ui.population_exclusion_state import (
@@ -21,22 +16,12 @@ from ui.population_exclusion_state import (
 
 
 def build_analysis_context_from_session_state(session_state):
-    """Convert localized Streamlit session values into one stable scalar context."""
-    analysis_direction = session_state.get("val_analysis_direction")
-    comparison_mode = canonical_from_translated(
-        session_state.get("val_comp_mode", "none"),
-        MODE_VALUES,
-        "none",
-    )
+    """Convert canonical Streamlit session values into one stable scalar context."""
+    comparison_mode = session_state.get("val_comp_mode", "none")
     population_defaults = population_exclusion_defaults(
         result_type_from_comparison_mode(comparison_mode)
     )
     target_qth = normalize_ascii_upper(session_state.get("val_qth", ""))
-    reference_qth = (
-        target_qth[:4]
-        if comparison_mode == COMPARISON_HARDWARE_AB
-        else normalize_ascii_upper(session_state.get("val_ref_qth", ""))
-    )
 
     return AnalysisContext(
         run_mode=session_state.get("run_mode"),
@@ -49,36 +34,15 @@ def build_analysis_context_from_session_state(session_state):
                 session_state.get("val_local_benchmark", "local_median")
             )
             if comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD
-            else canonical_from_translated(
-                session_state.get("val_local_benchmark", "local_median"),
-                LOCAL_BENCHMARK_VALUES,
-                "local_median",
-            )
+            else "local_median"
         ),
         reference_callsign=normalize_ascii_upper(
             session_state.get("val_ref_callsign", "")
         ),
-        reference_qth=reference_qth,
+        reference_qth=normalize_ascii_upper(session_state.get("val_ref_qth", "")),
         neighborhood_radius_km=int(session_state.get("val_ref_radius_km", 100)),
         reference_snr_correction_db=round(float(session_state.get("val_benchmark_offset_db", 0.0)), 1),
-        self_test_mode="tx" if analysis_direction == "tx" else "rx",
-        tx_ab_method=str(
-            session_state.get("val_tx_ab_method", "simultaneous")
-        ),
-        tx_ab_repeat_interval_minutes=int(
-            session_state.get("val_tx_ab_repeat_interval_minutes", 10)
-        ),
-        tx_ab_target_start_minute=int(
-            session_state.get("val_tx_ab_target_start_minute", 0)
-        ),
-        tx_ab_reference_start_minute=int(
-            session_state.get("val_tx_ab_reference_start_minute", 2)
-        ),
-        solar_state=canonical_from_translated(
-            session_state.get("val_solar", "all"),
-            SOLAR_VALUES,
-            "all",
-        ),
+        solar_state=session_state.get("val_solar", "all"),
         max_peer_distance_km=int(
             session_state.get("val_max_peer_distance_km", 22000)
         ),

@@ -60,7 +60,6 @@ def _success_session_state(direction):
         {
             "val_comp_mode": "none",
             "val_analysis_direction": direction,
-            "val_tx_ab_method": "simultaneous",
             "val_min_spots": 7,
             "val_min_opportunities": 11,
             "val_min_stations": 3,
@@ -69,42 +68,49 @@ def _success_session_state(direction):
 
 
 @pytest.mark.parametrize(
-    ("language", "use_case", "expected_outcomes"),
+    ("language", "use_case", "expected_scope"),
     [
         (
             "en",
             "rx_performance",
-            ("Heard by Target", "Heard by others only"),
+            ("your receiver hears WSPR signals", "confirmed reception opportunities", "direction, distance and time", "No Reference needed"),
         ),
         (
             "en",
             "tx_performance",
-            ("Target heard", "Other signals heard only"),
+            ("other stations hear your WSPR transmissions", "confirmed reception opportunities", "direction, distance and time", "No Reference needed"),
         ),
         (
             "de",
             "rx_performance",
-            ("Vom Target gehört", "Nur von anderen gehört"),
+            ("dein Empfänger WSPR-Signale hört", "bestätigten Empfangsgelegenheiten", "Richtung, Entfernung und Zeit", "Keine Referenz nötig"),
         ),
         (
             "de",
             "tx_performance",
-            ("Target gehört", "Nur andere Signale gehört"),
+            ("andere Stationen deine WSPR-Aussendungen hören", "bestätigten Empfangsgelegenheiten", "Richtung, Entfernung und Zeit", "Keine Referenz nötig"),
         ),
     ],
 )
-def test_guided_performance_descriptions_name_the_displayed_outcomes(
+def test_guided_performance_descriptions_preserve_analysis_scope(
     language,
     use_case,
-    expected_outcomes,
+    expected_scope,
 ):
-    """Keep all four Guided Performance captions aligned with result vocabulary."""
+    """Keep newcomer choices tied to confirmed opportunities and shared limits."""
     description = GUIDED_INPUTS[language]["options"]["use_cases"][use_case][
         "description"
     ]
 
-    for outcome in expected_outcomes:
-        assert outcome in description
+    for phrase in expected_scope:
+        assert phrase in description
+    limits = GUIDED_INPUTS[language]["messages"]["use_case_limits"]
+    expected_limits = {
+        "en": ("complete stations", "conditions observed", "do not, by themselves", "absolute receiver sensitivity", "radiated power", "antenna gain", "antenna efficiency"),
+        "de": ("vollständigen Stationen", "beobachteten Bedingungen", "Sie allein liefern keine absolute Messung", "Empfängerempfindlichkeit", "abgestrahlten Leistung", "Antennengewinns", "Antennenwirkungsgrads"),
+    }
+    for phrase in expected_limits[language]:
+        assert phrase in limits
     for legacy_phrase in LEGACY_ACTIVE_SUCCESS_INPUT_PHRASES:
         assert legacy_phrase not in description
 
@@ -210,7 +216,6 @@ def test_classic_benchmark_uses_separate_map_segment_help(monkeypatch, language)
         {
             "val_comp_mode": "reference_station",
             "val_analysis_direction": "rx",
-            "val_tx_ab_method": "simultaneous",
             "val_min_spots": 7,
             "val_min_opportunities": 11,
             "val_min_stations": 3,
@@ -229,32 +234,6 @@ def test_classic_benchmark_uses_separate_map_segment_help(monkeypatch, language)
     assert station_call.kwargs["help"] == T[language]["hlp_min_stations_compare"]
 
 
-@pytest.mark.parametrize("language", ["en", "de"])
-def test_sequential_tx_benchmark_preserves_scheduled_pair_help(monkeypatch, language):
-    """Retain scheduled-pair help while routing Benchmark station help."""
-    sliders = Mock()
-    session_state = _SessionState(
-        {
-            "val_comp_mode": "hardware_ab",
-            "val_analysis_direction": "tx",
-            "val_tx_ab_method": "sequential",
-            "val_min_spots": 7,
-            "val_min_opportunities": 11,
-            "val_min_stations": 3,
-        }
-    )
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(session_state=session_state, slider=sliders),
-    )
-
-    config_panel.render_evidence_threshold_fields(T[language])
-
-    scheduled_pair_call, station_call = sliders.call_args_list
-    assert scheduled_pair_call.args[0] == T[language]["cfg_min_joint_pairs"]
-    assert scheduled_pair_call.kwargs["help"] == T[language]["hlp_min_joint_pairs"]
-    assert station_call.kwargs["help"] == T[language]["hlp_min_stations_compare"]
 
 
 def test_success_opportunity_label_is_a_required_catalog_contract(monkeypatch):
@@ -402,8 +381,6 @@ def test_shared_config_panel_requires_bilingual_catalog_strings_without_fallback
         {
             "lbl_callsign_rx",
             "lbl_callsign_tx",
-            "opt_tx_ab_simultaneous",
-            "opt_tx_ab_sequential",
         }
     )
 

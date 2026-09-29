@@ -3,7 +3,7 @@
 The focused metric panels deliberately do not reuse the selected-station
 temporal-density recipe. One plotted point remains one retained scientific
 evidence unit: a successful Performance opportunity, a simultaneous Joint
-Spot, or a complete sequential Scheduled Pair. The companion outcome and
+Spot. The companion outcome and
 coverage figures keep their established aggregation and are adapted only to a
 single chronological column.
 """
@@ -304,11 +304,10 @@ def build_drilldown_zoom_benchmark_delta_snr_recipe(
     y_label,
     empty_text,
     evidence_unit_label,
-    is_sequential,
     reference_snr_correction_notice="",
     outlier_overlay=None,
 ) -> dict[str, object]:
-    """Build one native Joint-Spot or Scheduled-Pair Delta-SNR recipe."""
+    """Build one native Joint-Spot Delta-SNR recipe."""
     if evidence_df is None or evidence_df.empty:
         plot_times = pd.Series(dtype="datetime64[ns, UTC]")
         metric_db = pd.Series(dtype="float64")
@@ -335,7 +334,7 @@ def build_drilldown_zoom_benchmark_delta_snr_recipe(
         empty_text=empty_text,
         evidence_unit_label=evidence_unit_label,
         evidence_unit_kind=(
-            "complete_scheduled_pair" if is_sequential else "joint_spot"
+            "joint_spot"
         ),
         reference_snr_correction_notice=reference_snr_correction_notice,
         outlier_overlay=outlier_overlay,
@@ -1265,19 +1264,8 @@ def _expand_chronological_column(figure):
 @synchronized_matplotlib
 def render_drilldown_zoom_performance_snr_figure(recipe):
     """Render focused Performance SNR at native opportunity resolution."""
-    if isinstance(recipe, Mapping) and recipe.get("kind") == (
-        DRILLDOWN_ZOOM_PERFORMANCE_NATIVE_KIND
-    ):
-        return _render_native_metric_figure(
-            recipe, expected_kind=DRILLDOWN_ZOOM_PERFORMANCE_NATIVE_KIND
-        )
-    # Transitional compatibility for already-registered pre-v2 recipes.
-    from ui.plots.evidence_figures import (
-        render_segment_temporal_snr_export_figure,
-    )
-
-    return _expand_chronological_column(
-        render_segment_temporal_snr_export_figure(recipe)
+    return _render_native_metric_figure(
+        recipe, expected_kind=DRILLDOWN_ZOOM_PERFORMANCE_NATIVE_KIND
     )
 
 
@@ -1292,17 +1280,8 @@ def render_drilldown_zoom_performance_evidence_figure(recipe):
 @synchronized_matplotlib
 def render_drilldown_zoom_benchmark_delta_snr_figure(recipe):
     """Render focused Benchmark Delta-SNR at native paired-unit resolution."""
-    if isinstance(recipe, Mapping) and recipe.get("kind") == (
-        DRILLDOWN_ZOOM_BENCHMARK_NATIVE_KIND
-    ):
-        return _render_native_metric_figure(
-            recipe, expected_kind=DRILLDOWN_ZOOM_BENCHMARK_NATIVE_KIND
-        )
-    # Transitional compatibility for already-registered pre-v2 recipes.
-    from ui.plots.evidence_figures import render_selected_evidence_export_figure
-
-    return _expand_chronological_column(
-        render_selected_evidence_export_figure(recipe)
+    return _render_native_metric_figure(
+        recipe, expected_kind=DRILLDOWN_ZOOM_BENCHMARK_NATIVE_KIND
     )
 
 

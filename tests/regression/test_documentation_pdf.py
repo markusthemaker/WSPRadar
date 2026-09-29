@@ -381,7 +381,7 @@ def test_pdf_preserves_section_zero_analysis_hierarchy_markup():
     assert rendered.count('class="analysis-variant"') == 4
     assert (
         '<span class="analysis-family">RX/TX Benchmark</span><br>'
-        '<strong class="analysis-variant">Reference Station / Buddy Test</strong>'
+        '<strong class="analysis-variant">Reference Setup/Station</strong>'
         in rendered
     )
 
@@ -417,7 +417,7 @@ def test_pdf_preprocessing_preserves_english_section_two_conclusion_callouts():
     """Retain the scoped conclusion class for print-specific contrast styling."""
     rendered = pdf_generator._render_pdf_html(DOC_EN, T["en"])
 
-    assert rendered.count('<blockquote class="evidence-conclusion">') == 9
+    assert rendered.count('<blockquote class="evidence-conclusion">') == 8
     assert rendered.count('<p class="evidence-conclusion-label">') == 2
 
 

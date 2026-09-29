@@ -39,7 +39,7 @@ def _completed_snapshot():
                 "id": "RX_COMPARE",
                 "analysis_kind": "comparison",
                 "is_compare": True,
-                "is_sequential": False,
+
                 "absolute_method_version": None,
             },
             "outcome": COMPLETED_PREPARED_NO_DATA,
@@ -208,7 +208,7 @@ def test_missing_completion_provenance_cannot_replace_a_valid_run(field_path):
     (("map_data_schema_version",), 0),
     (("database_source",), "unknown-provider"),
     (("analyses", 0, "analysis", "is_compare"), False),
-    (("analyses", 0, "analysis", "is_sequential"), "false"),
+    (("analyses", 0, "analysis"), "false"),
     (("analyses", 0, "outcome"), "unknown-outcome"),
     (("analyses", 0, "outcome"), COMPLETED_RENDERABLE),
     (("analyses", 0, "evidence_path"), "unexpected-evidence.parquet"),

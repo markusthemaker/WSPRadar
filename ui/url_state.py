@@ -32,9 +32,6 @@ from config.config_schema import (
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
-    LEGACY_BURST_MINIMUM_DEPARTURE_DB,
-    LEGACY_BURST_MINIMUM_ROBUST_Z,
-    VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
 )
 from core.time_utils import format_utc_minute, parse_utc_minute
 from ui.analysis_submission_state import begin_analysis_submission
@@ -57,11 +54,9 @@ URL_V1_PUBLIC_MODES = (
     "benchmark",
 )
 URL_V1_BENCHMARK_DESIGNS = (
-    "hardware_ab",
     "reference_station",
     "local_neighborhood",
 )
-URL_V1_LEGACY_DESIGN_MODES = frozenset(URL_V1_BENCHMARK_DESIGNS)
 URL_V1_CONFIG_TO_MODE = {
     "none": "performance",
     **{benchmark_design: "benchmark" for benchmark_design in URL_V1_BENCHMARK_DESIGNS},
@@ -119,15 +114,6 @@ URL_V1_OUTLIER_POLICY_PARAMETERS = (
     ),
 )
 
-URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS = (
-    "outlier_spot_departure_db",
-    "outlier_burst_departure_db",
-    "outlier_sustained_departure_db",
-    "outlier_spot_robust_z",
-    "outlier_burst_robust_z",
-    "outlier_sustained_robust_z",
-)
-
 assert tuple(
     (config_field, policy_field)
     for _url_parameter, config_field, policy_field in (
@@ -150,10 +136,6 @@ URL_V1_PARAMETER_ORDER = (
     "reference_qth",
     "local_benchmark",
     "radius_km",
-    "tx_ab_method",
-    "repeat_min",
-    "target_start_min",
-    "reference_start_min",
     "snr_correction_mode",
     "snr_correction_db",
     "solar",
@@ -170,7 +152,6 @@ URL_V1_PARAMETER_ORDER = (
             URL_V1_OUTLIER_POLICY_PARAMETERS
         )
     ),
-    *URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS,
     "ranges",
     "directions",
     "segment_bin",
@@ -179,19 +160,26 @@ URL_V1_PARAMETER_ORDER = (
     "show_zero",
     "show_unpaired",
 )
-URL_V1_COMPATIBILITY_NOOP_PARAMETERS = (
-    "temporal_view",
-)
 URL_V1_RETIRED_PARAMETERS = (
+    "reference_intent",
+    'outlier_spot_departure_db',
+    'outlier_burst_departure_db',
+    'outlier_sustained_departure_db',
+    'outlier_spot_robust_z',
+    'outlier_burst_robust_z',
+    'outlier_sustained_robust_z',
+    'temporal_view',
+    "tx_ab_method",
+    "repeat_interval_minutes",
+    "target_start_minute",
+    "reference_start_minute",
     "hours",
     "anchor",
 )
 URL_V1_OWNED_QUERY_KEYS = (
     URL_V1_PARAMETER_ORDER
-    + URL_V1_COMPATIBILITY_NOOP_PARAMETERS
     + URL_V1_RETIRED_PARAMETERS
 )
-URL_V1_LEGACY_TEMPORAL_VIEWS = frozenset({"chronological", "utc_hour"})
 
 URL_HYDRATION_SIGNATURE_KEY = "_url_v1_initial_hydration_signature"
 URL_HYDRATION_ERROR_KEY = "_url_v1_initial_hydration_error"
@@ -451,13 +439,7 @@ def _parse_selected_station(
 def _resolve_public_mode(
     parameters: Mapping[str, str],
 ) -> tuple[str, str | None]:
-    """Resolve canonical and legacy URL mode spellings without ambiguity.
-
-    Canonical URLs identify the result contract through ``mode`` and identify
-    the Benchmark mechanism separately through ``benchmark_design``.  The
-    former design-as-mode spellings remain reader-only compatibility inputs so
-    existing shared links can be canonicalized and re-emitted with new names.
-    """
+    """Resolve the current explicit result mode and Benchmark design."""
 
     requested_mode = _require_parameter(parameters, "mode")
     if requested_mode == "performance":
@@ -470,13 +452,6 @@ def _resolve_public_mode(
                 f"Unsupported URL benchmark design: {benchmark_design!r}.",
             )
         return requested_mode, benchmark_design
-    if requested_mode in URL_V1_LEGACY_DESIGN_MODES:
-        if "benchmark_design" in parameters:
-            raise UrlStateError(
-                "invalid",
-                "Legacy design-as-mode URLs cannot also supply benchmark_design.",
-            )
-        return "benchmark", requested_mode
     raise UrlStateError(
         "invalid",
         f"Unsupported URL result mode: {requested_mode!r}.",
@@ -507,16 +482,14 @@ def _comparison_contract(
     )
 
     if benchmark_design == "reference_station":
-        required.update({"reference", "reference_qth"})
+        required.add("reference")
+        allowed.add("reference_qth")
         allowed.update(required)
         comparison["reference_callsign"] = _require_parameter(
             parameters,
             "reference",
         )
-        comparison["reference_qth"] = _require_parameter(
-            parameters,
-            "reference_qth",
-        )
+        comparison["reference_qth"] = parameters.get("reference_qth", "")
     elif benchmark_design == "local_neighborhood":
         required.update({"local_benchmark", "radius_km"})
         allowed.update(required)
@@ -530,59 +503,6 @@ def _comparison_contract(
             "radius_km",
             0,
         )
-    elif benchmark_design == "hardware_ab" and direction == "rx":
-        required.add("reference")
-        allowed.add("reference")
-        comparison["reference_callsign"] = _require_parameter(
-            parameters,
-            "reference",
-        )
-    elif benchmark_design == "hardware_ab":
-        required.add("tx_ab_method")
-        allowed.add("tx_ab_method")
-        tx_ab_method = _require_parameter(parameters, "tx_ab_method")
-        comparison["tx_ab_method"] = tx_ab_method
-        if tx_ab_method == "simultaneous":
-            required.add("reference")
-            allowed.add("reference")
-            comparison["reference_callsign"] = _require_parameter(
-                parameters,
-                "reference",
-            )
-        elif tx_ab_method == "sequential":
-            schedule_parameters = {
-                "repeat_min",
-                "target_start_min",
-                "reference_start_min",
-            }
-            required.update(schedule_parameters)
-            allowed.update(schedule_parameters)
-            for schedule_parameter in schedule_parameters:
-                _require_parameter(parameters, schedule_parameter)
-            comparison.update(
-                {
-                    "repeat_interval_minutes": _parse_integer(
-                        parameters,
-                        "repeat_min",
-                        0,
-                    ),
-                    "target_start_minute": _parse_integer(
-                        parameters,
-                        "target_start_min",
-                        0,
-                    ),
-                    "reference_start_minute": _parse_integer(
-                        parameters,
-                        "reference_start_min",
-                        0,
-                    ),
-                }
-            )
-        else:
-            raise UrlStateError(
-                "invalid",
-                "tx_ab_method must be simultaneous or sequential.",
-            )
     else:
         raise UrlStateError(
             "invalid",
@@ -660,7 +580,7 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
     if public_mode == "performance":
         result_allowed.add("show_zero")
     else:
-        result_allowed.update({"temporal_view", "show_unpaired"})
+        result_allowed.add("show_unpaired")
     advanced_allowed = set(_COMMON_ADVANCED_PARAMETERS)
     if public_mode != "performance":
         advanced_allowed.update({"min_joint_spots", "report_outliers"})
@@ -671,7 +591,6 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
                     URL_V1_OUTLIER_POLICY_PARAMETERS
                 )
             )
-            advanced_allowed.update(URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS)
 
     allowed_parameters = (
         _CORE_PARAMETERS
@@ -686,16 +605,6 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
             "URL parameters are not applicable to the selected analysis: "
             + ", ".join(inapplicable_parameters),
         )
-    legacy_temporal_view = parameters.get("temporal_view")
-    if (
-        legacy_temporal_view is not None
-        and legacy_temporal_view not in URL_V1_LEGACY_TEMPORAL_VIEWS
-    ):
-        raise UrlStateError(
-            "invalid",
-            "temporal_view must be chronological or utc_hour.",
-        )
-
     try:
         start_utc = parse_utc_minute(
             _require_parameter(parameters, "from"),
@@ -792,79 +701,16 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
             is_outlier_reporting_enabled
         )
         if is_outlier_reporting_enabled:
-            supplied_legacy_policy_parameters = set(parameters).intersection(
-                URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS
-            )
-            supplied_shared_policy_parameters = set(parameters).intersection(
-                {"outlier_departure_db", "outlier_robust_z"}
-            )
-            if (
-                supplied_legacy_policy_parameters
-                and supplied_shared_policy_parameters
-            ):
-                raise UrlStateError(
-                    "invalid",
-                    "Shared and legacy duration-specific outlier thresholds "
-                    "cannot be combined in one URL.",
-                )
-            if supplied_legacy_policy_parameters:
-                for legacy_parameter in supplied_legacy_policy_parameters:
-                    _parse_decimal(parameters, legacy_parameter)
-                if not supplied_legacy_policy_parameters.intersection(
-                    {
-                        "outlier_burst_departure_db",
-                        "outlier_burst_robust_z",
-                    }
-                ):
-                    raise UrlStateError(
-                        "invalid",
-                        "Legacy outlier thresholds without a Short burst value "
-                        "cannot be mapped to the shared detector policy.",
+            advanced_parameters.update(
+                {
+                    config_field: _parse_optional_decimal(
+                        parameters,
+                        url_parameter,
+                        getattr(DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY, policy_field),
                     )
-                advanced_parameters.update(
-                    {
-                        "delta_snr_outlier_minimum_departure_db": (
-                            _parse_optional_decimal(
-                                parameters,
-                                "outlier_burst_departure_db",
-                                LEGACY_BURST_MINIMUM_DEPARTURE_DB,
-                            )
-                        ),
-                        "delta_snr_outlier_minimum_robust_z": (
-                            _parse_optional_decimal(
-                                parameters,
-                                "outlier_burst_robust_z",
-                                LEGACY_BURST_MINIMUM_ROBUST_Z,
-                            )
-                        ),
-                    }
-                )
-                advanced_parameters[
-                    "delta_snr_outlier_maximum_baseline_difference_db"
-                ] = _parse_optional_decimal(
-                    parameters,
-                    "outlier_baseline_difference_db",
-                    getattr(
-                        VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
-                        "maximum_baseline_difference_db",
-                    ),
-                )
-            else:
-                advanced_parameters.update(
-                    {
-                        config_field: _parse_optional_decimal(
-                            parameters,
-                            url_parameter,
-                            getattr(
-                                VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
-                                policy_field,
-                            ),
-                        )
-                        for url_parameter, config_field, policy_field in (
-                            URL_V1_OUTLIER_POLICY_PARAMETERS
-                        )
-                    }
-                )
+                    for url_parameter, config_field, policy_field in URL_V1_OUTLIER_POLICY_PARAMETERS
+                }
+            )
 
     settings = {
         "core_parameters": {
@@ -904,20 +750,8 @@ def _require_complete_normalized_config(config: Mapping[str, Any]) -> None:
         raise UrlStateError("invalid", "qth must not be empty.")
     benchmark_mode = config.get("benchmark_mode")
     direction = config.get("analysis_direction")
-    requires_reference_callsign = (
-        benchmark_mode == "reference_station"
-        or (
-            benchmark_mode == "hardware_ab"
-            and (
-                direction == "rx"
-                or config.get("tx_ab_method") == "simultaneous"
-            )
-        )
-    )
-    if requires_reference_callsign and not config.get("reference_callsign"):
+    if benchmark_mode == "reference_station" and not config.get("reference_callsign"):
         raise UrlStateError("invalid", "reference must not be empty.")
-    if benchmark_mode == "reference_station" and not config.get("reference_qth"):
-        raise UrlStateError("invalid", "reference_qth must not be empty.")
 
 
 def _canonical_settings_from_normalized_config(
@@ -1061,35 +895,6 @@ def build_query_from_settings(
                 ),
             )
         )
-    elif benchmark_design == "hardware_ab":
-        if core["analysis_direction"] == "rx":
-            entries.append(("reference", comparison["reference_callsign"]))
-        else:
-            tx_ab_method = comparison["tx_ab_method"]
-            entries.append(("tx_ab_method", tx_ab_method))
-            if tx_ab_method == "simultaneous":
-                entries.append(("reference", comparison["reference_callsign"]))
-            else:
-                entries.extend(
-                    (
-                        (
-                            "repeat_min",
-                            _canonical_number(
-                                comparison["repeat_interval_minutes"]
-                            ),
-                        ),
-                        (
-                            "target_start_min",
-                            _canonical_number(comparison["target_start_minute"]),
-                        ),
-                        (
-                            "reference_start_min",
-                            _canonical_number(
-                                comparison["reference_start_minute"]
-                            ),
-                        ),
-                    )
-                )
     if public_mode != "performance":
         entries.extend(
             (
@@ -1130,10 +935,7 @@ def build_query_from_settings(
                 URL_V1_OUTLIER_POLICY_PARAMETERS
             ):
                 configured_value = advanced[config_field]
-                default_value = getattr(
-                    VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
-                    policy_field,
-                )
+                default_value = getattr(DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY, policy_field)
                 if configured_value != default_value:
                     entries.append(
                         (

@@ -298,6 +298,7 @@ def test_idle_browser_component_payloads_preserve_json_transport(monkeypatch):
             "requestToken": "request-1",
             "shouldScrollRequest": False,
             "analysisSubmissionToken": "analysis-1",
+            "focusFieldKey": None,
             "analysisStatusAnchorId": page_navigation.RESULTS_INSPECTION_ANCHOR_ID,
             "analysisMapAnchorId": page_navigation.MAP_RESULTS_ANCHOR_ID,
         },

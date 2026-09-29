@@ -137,14 +137,14 @@ def test_seed_defaults_preserves_initialized_intent_and_factory_reset_overwrites
     configured_stations = []
     session_state = {
         selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: configured_stations,
-        selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "15m",
+        selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "10m",
         "unrelated": "retained",
     }
 
     selection_state.seed_inspector_selection_state(session_state)
 
     assert session_state[selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] is configured_stations
-    assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "15m"
+    assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "10m"
     assert session_state[selection_state.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY] == "all"
     assert session_state[selection_state.RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY] == "auto"
 
@@ -157,7 +157,7 @@ def test_seed_defaults_preserves_initialized_intent_and_factory_reset_overwrites
 
 def test_seed_loaded_selection_applies_only_supplied_keys_without_copying_records():
     configured_stations = [{"callsign": "K1ABC", "locator": "FN42"}]
-    session_state = {selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "15m"}
+    session_state = {selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "10m"}
 
     selection_state.seed_inspector_selection_state(
         session_state,
@@ -166,7 +166,7 @@ def test_seed_loaded_selection_applies_only_supplied_keys_without_copying_record
     )
 
     assert session_state[selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] is configured_stations
-    assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "15m"
+    assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "10m"
     assert selection_state.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY not in session_state
 
 
@@ -176,7 +176,7 @@ def test_seed_unknown_field_is_rejected_before_any_state_write():
     with pytest.raises(ValueError, match="Unknown Inspector selection fields"):
         selection_state.seed_inspector_selection_state(
             session_state,
-            {selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "15m", "run_id": 2},
+            {selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "10m", "run_id": 2},
             overwrite=True,
         )
 
@@ -273,7 +273,7 @@ def test_report_opt_out_clears_focus_and_truncates_multi_without_resetting_other
         selection_state.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: False,
         selection_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {},
         selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {},
-        selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "15m",
+        selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "10m",
         "completed_run_snapshot": object(),
     }
     completed_run = session_state["completed_run_snapshot"]
@@ -283,7 +283,7 @@ def test_report_opt_out_clears_focus_and_truncates_multi_without_resetting_other
     assert session_state[selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] == configured_stations[:1]
     assert selection_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY not in session_state
     assert selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
-    assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "15m"
+    assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "10m"
     assert session_state["completed_run_snapshot"] is completed_run
 
 
@@ -397,7 +397,7 @@ def test_active_selection_record_retains_automatic_versus_empty_intent(
 ):
     session_state = {
         selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: configured_stations,
-        selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "15m",
+        selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "10m",
     }
 
     selection = selection_state.read_inspector_selection(
@@ -413,7 +413,7 @@ def test_active_selection_record_retains_automatic_versus_empty_intent(
     assert selection.selected_stations == expected_stations
     assert selection.selected_ranges is None
     assert selection.selected_directions is None
-    assert selection.station_time_bin == "15m"
+    assert selection.station_time_bin == "10m"
 
 
 def test_adapter_import_and_idle_lifecycle_helpers_do_not_load_scientific_runtime():

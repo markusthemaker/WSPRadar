@@ -72,10 +72,11 @@ def test_retry_compare_only_when_target_side_is_absent():
         pd.DataFrame({"has_u": [1], "has_r": [0]}),
         analysis,
     )
-    assert not should_retry_without_decode_filter(
+    for unknown_rows in (
         pd.DataFrame({"is_me": [1, 0]}),
-        analysis,
-    )
+        pd.DataFrame({"unrecognized": [1]}),
+    ):
+        assert should_retry_without_decode_filter(unknown_rows, analysis)
 
 
 def test_retry_opportunity_only_when_target_side_is_absent():
@@ -134,7 +135,7 @@ def test_unverified_window_never_authorizes_legacy_retry(boundaries):
 
 
 @pytest.mark.parametrize("run_mode", ["TX", "RX"])
-@pytest.mark.parametrize("comparison_mode", ["none", "reference_station", "local_neighborhood", "hardware_ab"])
+@pytest.mark.parametrize("comparison_mode", ["none", "reference_station", "local_neighborhood"])
 @pytest.mark.parametrize(
     ("start", "end", "is_allowed"),
     [
@@ -148,7 +149,7 @@ def test_every_analysis_style_plans_only_eligible_legacy_queries(run_mode, compa
     context = AnalysisContext(
         run_mode=run_mode, callsign="G3ZIL", qth="IO90HW", band="40m",
         comparison_mode=comparison_mode, reference_callsign="G4HZX", reference_qth="IO91",
-        self_test_mode=run_mode.lower(), tx_ab_method="sequential",
+
     )
     start_utc = datetime.fromisoformat(start).replace(tzinfo=timezone.utc)
     end_utc = datetime.fromisoformat(end).replace(tzinfo=timezone.utc)

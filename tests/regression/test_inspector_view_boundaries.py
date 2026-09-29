@@ -86,7 +86,6 @@ def test_cached_recipe_disposes_its_figure_when_presentation_fails(monkeypatch):
     def fail_render(_figure, **_kwargs):
         raise RuntimeError("render failed")
 
-    monkeypatch.setattr(inspector_common, "get_matplotlib_render_mode", lambda: "image")
     monkeypatch.setattr(inspector_common, "render_matplotlib_figure", fail_render)
     monkeypatch.setattr(inspector_common, "dispose_matplotlib_figure", disposed_figures.append)
 

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from core.artifact_store import read_parquet_artifact
 from core.opportunity_engine import opportunity_utc_from_time_slot
-from core.tx_ab_schedule import assign_tx_ab_pair_columns
 from i18n import absolute_terms
 
 def _unique_station_order(stations):
@@ -55,14 +54,6 @@ def _sort_drilldown_default(drill_df):
 
     sort_df = sort_df.sort_values(sort_cols, ascending=[True] * len(sort_cols), na_position="last")
     return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
-
-def _sequential_tx_drilldown_labels(col_u_name, ref_header, *, target_callsign=""):
-    """Combine the shared sequential TX callsign with each scheduled role."""
-    base_call = str(target_callsign or "").strip().upper()
-    if base_call:
-        return f"{base_call} ({col_u_name})", f"{base_call} ({ref_header})"
-    return col_u_name, ref_header
-
 
 def opportunity_drilldown_display_table(drill_df, translations, analysis_id):
     """Prepare direction-aware Success drill-down columns for visible display.
@@ -133,17 +124,12 @@ def _build_drilldown_table(
     km_col,
     az_col,
     analysis_id,
-    is_sequential,
     show_non_joint,
     is_local_median,
     col_u_name,
     ref_header,
     t,
     station_rows_df=None,
-    tx_ab_repeat_interval_minutes=10,
-    tx_ab_target_start_minute=0,
-    tx_ab_reference_start_minute=2,
-    target_callsign="",
 ):
     """Build the drill-down dataframe for selected or all current segment identities."""
     if selected_meta_df is None or selected_meta_df.empty:
@@ -221,210 +207,103 @@ def _build_drilldown_table(
             errors="coerce",
         ).round(1)
     else:
-        if is_sequential:
-            if 'tx_ab_pair_id' not in station_df.columns:
-                station_df = assign_tx_ab_pair_columns(
-                    station_df,
-                    repeat_interval_minutes=tx_ab_repeat_interval_minutes,
-                    target_start_minute_utc=tx_ab_target_start_minute,
-                    reference_start_minute_utc=tx_ab_reference_start_minute,
-                )
-            if station_df.empty:
-                return pd.DataFrame(), t["msg_drilldown_no_scheduled_pairs"]
-            station_df['dt_time'] = pd.to_datetime(
-                station_df['time'],
-                utc=True,
-            )
-            pair_keys = ['peer_sign', 'peer_grid', 'tx_ab_pair_id']
-            pair_display_column = 'scheduled_pair_str'
-            pair_display_label = t['tbl_col_pair']
-            pair_delta_label = t['tbl_col_pair_delta']
-
-            df_t = station_df[station_df['is_me'] == 1]
-            df_r = station_df[station_df['is_me'] == 0]
-            pair_t = (
-                df_t.groupby(pair_keys, dropna=False)['stat_val']
-                .median()
-                .reset_index()
-                .rename(columns={'stat_val': 'micro_med_a'})
-            )
-            pair_r = (
-                df_r.groupby(pair_keys, dropna=False)['stat_val']
-                .median()
-                .reset_index()
-                .rename(columns={'stat_val': 'micro_med_b'})
+        joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
+        if joint_df.empty:
+            return (
+                pd.DataFrame(),
+                (
+                    t["msg_drilldown_no_spots"]
+                    if show_non_joint
+                    else t["msg_drilldown_no_joint_spots"]
+                ),
             )
 
-            station_df = pd.merge(station_df, pair_t, on=pair_keys, how='left')
-            station_df = pd.merge(station_df, pair_r, on=pair_keys, how='left')
-            station_df['pair_delta'] = np.where(
-                station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna(),
-                station_df['micro_med_a'] - station_df['micro_med_b'],
-                np.nan
-            )
+        joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
+        joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
+        joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
 
-            if not show_non_joint:
-                station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
-                if station_df.empty:
-                    return (
-                        pd.DataFrame(),
-                        t["msg_drilldown_no_joint_scheduled_pairs"],
-                    )
+        col_u = f'{col_u_name} SNR (dB)'
+        col_r = f'{ref_header} SNR (dB)'
+        col_delta_lbl = t['tbl_col_delta_snr']
+        station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
 
-            station_df['micro_med_b'] = np.where(station_df['is_me'] == 1, np.nan, station_df['micro_med_b'])
-            station_df['micro_med_a'] = np.where(station_df['is_me'] == 0, np.nan, station_df['micro_med_a'])
+        if is_local_median and 'ref_detail_rows' in joint_df.columns:
+            expanded_rows = []
+            for _, row in joint_df.iterrows():
+                refs = _parse_ref_detail_rows(row.get('ref_detail_rows'))
+                has_u = row.get('has_u', 0) > 0
+                has_r = row.get('has_r', 0) > 0
+                own_snr = row.get('snr_u_norm', np.nan) if has_u else np.nan
+                cycle_ref_median = row.get('snr_r_norm', np.nan) if has_r else np.nan
+                delta_snr = round(own_snr - cycle_ref_median, 1) if pd.notna(own_snr) and pd.notna(cycle_ref_median) else np.nan
 
-            station_df = station_df.sort_values('dt_time', ascending=False)
-            target_pair_times = pd.to_datetime(
-                station_df['tx_ab_pair_target_time'],
-                utc=True,
-            )
-            reference_pair_times = pd.to_datetime(
-                station_df['tx_ab_pair_reference_time'],
-                utc=True,
-            )
-            station_df['scheduled_pair_str'] = (
-                target_pair_times.dt.strftime('%d-%b %H:%M')
-                + ' \u2194 '
-                + reference_pair_times.dt.strftime('%d-%b %H:%M')
-            )
-            station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
-            target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(
-                col_u_name,
-                ref_header,
-                target_callsign=target_callsign,
-            )
-            station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, target_tx_label, ref_tx_label)
-
-            drill_df = station_df[
-                [
-                    'Date/Time (UTC)',
-                    pair_display_column,
-                    station_col,
-                    loc_col,
-                    km_col,
-                    az_col,
-                    'tx_callsign',
-                    'power',
-                    'snr',
-                    'stat_val',
-                    'micro_med_a',
-                    'micro_med_b',
-                    'pair_delta',
-                ]
-            ].copy()
-            drill_df.columns = [
-                'Date/Time (UTC)', pair_display_label,
-                station_col, loc_col, km_col, az_col, 'TX Station',
-                'TX Power (dBm)', 'SNR (Raw)', 'Norm@30dBm',
-                t['tbl_col_micro_a'], t['tbl_col_micro_b'], pair_delta_label
-            ]
-
-            for col in [
-                'Norm@30dBm',
-                t['tbl_col_micro_a'],
-                t['tbl_col_micro_b'],
-                pair_delta_label,
-            ]:
-                drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
-        else:
-            joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
-            if joint_df.empty:
-                return (
-                    pd.DataFrame(),
-                    (
-                        t["msg_drilldown_no_spots"]
-                        if show_non_joint
-                        else t["msg_drilldown_no_joint_spots"]
-                    ),
-                )
-
-            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
-            joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
-            joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
-
-            col_u = f'{col_u_name} SNR (dB)'
-            col_r = f'{ref_header} SNR (dB)'
-            col_delta_lbl = t['tbl_col_delta_snr']
-            station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
-
-            if is_local_median and 'ref_detail_rows' in joint_df.columns:
-                expanded_rows = []
-                for _, row in joint_df.iterrows():
-                    refs = _parse_ref_detail_rows(row.get('ref_detail_rows'))
-                    has_u = row.get('has_u', 0) > 0
-                    has_r = row.get('has_r', 0) > 0
-                    own_snr = row.get('snr_u_norm', np.nan) if has_u else np.nan
-                    cycle_ref_median = row.get('snr_r_norm', np.nan) if has_r else np.nan
-                    delta_snr = round(own_snr - cycle_ref_median, 1) if pd.notna(own_snr) and pd.notna(cycle_ref_median) else np.nan
-
-                    if refs:
-                        for ref in refs:
-                            try:
-                                ref_dist_km = round(float(ref["ref_dist"]) / 1000)
-                            except (TypeError, ValueError):
-                                ref_dist_km = np.nan
-                            try:
-                                ref_snr = round(float(ref["ref_snr"]), 1)
-                            except (TypeError, ValueError):
-                                ref_snr = np.nan
-                            expanded_rows.append({
-                                'Date/Time (UTC)': row['Date/Time (UTC)'],
-                                station_type: row[station_col],
-                                loc_col: row[loc_col],
-                                km_col: row[km_col],
-                                az_col: row[az_col],
-                                t['tbl_col_ref_station']: ref["ref_sign"],
-                                loc_col + ' (Ref)': ref["ref_grid"],
-                                'Ref km': ref_dist_km,
-                                t['tbl_col_ref_snr']: ref_snr,
-                                t['tbl_col_cycle_ref_median']: round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
-                                col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
-                                col_delta_lbl: delta_snr
-                            })
-                    elif has_u:
+                if refs:
+                    for ref in refs:
+                        try:
+                            ref_dist_km = round(float(ref["ref_dist"]) / 1000)
+                        except (TypeError, ValueError):
+                            ref_dist_km = np.nan
+                        try:
+                            ref_snr = round(float(ref["ref_snr"]), 1)
+                        except (TypeError, ValueError):
+                            ref_snr = np.nan
                         expanded_rows.append({
                             'Date/Time (UTC)': row['Date/Time (UTC)'],
                             station_type: row[station_col],
                             loc_col: row[loc_col],
                             km_col: row[km_col],
                             az_col: row[az_col],
-                            t['tbl_col_ref_station']: np.nan,
-                            loc_col + ' (Ref)': np.nan,
-                            'Ref km': np.nan,
-                            t['tbl_col_ref_snr']: np.nan,
-                            t['tbl_col_cycle_ref_median']: np.nan,
+                            t['tbl_col_ref_station']: ref["ref_sign"],
+                            loc_col + ' (Ref)': ref["ref_grid"],
+                            'Ref km': ref_dist_km,
+                            t['tbl_col_ref_snr']: ref_snr,
+                            t['tbl_col_cycle_ref_median']: round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
                             col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
-                            col_delta_lbl: np.nan
+                            col_delta_lbl: delta_snr
                         })
+                elif has_u:
+                    expanded_rows.append({
+                        'Date/Time (UTC)': row['Date/Time (UTC)'],
+                        station_type: row[station_col],
+                        loc_col: row[loc_col],
+                        km_col: row[km_col],
+                        az_col: row[az_col],
+                        t['tbl_col_ref_station']: np.nan,
+                        loc_col + ' (Ref)': np.nan,
+                        'Ref km': np.nan,
+                        t['tbl_col_ref_snr']: np.nan,
+                        t['tbl_col_cycle_ref_median']: np.nan,
+                        col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
+                        col_delta_lbl: np.nan
+                    })
 
-                if expanded_rows:
-                    drill_df = pd.DataFrame(expanded_rows).sort_values('Date/Time (UTC)', ascending=False)
-                else:
-                    info_msg = t[
-                        "msg_drilldown_no_reference_station_details"
-                    ]
-            elif 'best_ref_sign' in joint_df.columns:
-                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
-                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
-                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
-                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
-                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
-                joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
-                joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
-
-                drill_df = joint_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
-                drill_df.columns = ['Date/Time (UTC)', station_type, loc_col, km_col, az_col, 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
+            if expanded_rows:
+                drill_df = pd.DataFrame(expanded_rows).sort_values('Date/Time (UTC)', ascending=False)
             else:
-                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
-                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
-                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
-                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
-                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
-                drill_df = joint_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
-                drill_df.columns = ['Date/Time (UTC)', station_type, loc_col, km_col, az_col, col_r, col_u, col_delta_lbl]
+                info_msg = t[
+                    "msg_drilldown_no_reference_station_details"
+                ]
+        elif 'best_ref_sign' in joint_df.columns:
+            joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+            joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
+            joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
+            joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+            joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+            joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
+            joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
+            joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
+
+            drill_df = joint_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
+            drill_df.columns = ['Date/Time (UTC)', station_type, loc_col, km_col, az_col, 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
+        else:
+            joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+            joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
+            joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
+            joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+            joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+            joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
+            drill_df = joint_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
+            drill_df.columns = ['Date/Time (UTC)', station_type, loc_col, km_col, az_col, col_r, col_u, col_delta_lbl]
 
     if drill_df is not None and not drill_df.empty:
         drill_df = _sort_drilldown_default(drill_df)

@@ -94,16 +94,12 @@ def _complete_state(**overrides):
         "val_end_d": date(2026, 7, 2),
         "val_start_t": time(0, 0),
         "val_end_t": time(0, 0),
-        "val_comp_mode": "hardware_ab",
-        "guided_reference_design": "hardware_ab",
+        "val_comp_mode": "reference_station",
+        "guided_reference_design": "reference_station",
         "val_ref_callsign": "DL1MKS/P",
         "val_ref_qth": "JO62",
         "val_local_benchmark": "local_median",
         "val_ref_radius_km": 100,
-        "val_tx_ab_method": "simultaneous",
-        "val_tx_ab_repeat_interval_minutes": 10,
-        "val_tx_ab_target_start_minute": 0,
-        "val_tx_ab_reference_start_minute": 2,
         "val_snr_correction_mode": "no_offset",
         "val_benchmark_offset_db": 0.0,
         "guided_scope_mode": "general",
@@ -232,12 +228,12 @@ def test_guided_english_and_german_have_recursive_parity_and_placeholders():
 
 
 def test_offset_establishment_guidance_explains_estimator_choice_and_sign():
-    """Keep calibration weighting, robustness, sign, and validation explicit."""
+    """Put estimator/sign instructions in the run box and retain guidance below."""
     expected_phrases = {
         "en": (
             "median or arithmetic mean",
             "Station Medians",
-            "Joint Spots / Scheduled Pairs",
+            "Joint Spots",
             "with the same sign",
             "not the preferred answer",
             "centered near `0 dB`",
@@ -245,7 +241,7 @@ def test_offset_establishment_guidance_explains_estimator_choice_and_sign():
         "de": (
             "Median oder arithmetisches Mittel",
             "Stationsmediane",
-            "Joint-Spots / geplante Paare",
+            "Joint-Spots",
             "mit demselben Vorzeichen",
             "nicht nach dem bevorzugten Ergebnis",
             "um `0 dB` zentriert",
@@ -257,14 +253,18 @@ def test_offset_establishment_guidance_explains_estimator_choice_and_sign():
         assert "0.0 dB" in messages["calibration_run_notice"] or (
             "0,0 dB" in messages["calibration_run_notice"]
         )
-        for guidance_key in (
-            "establish_hardware_guidance",
-            "establish_reference_guidance",
-        ):
-            guidance = messages[guidance_key]
-            assert "\n\n" in guidance
-            for phrase in phrases:
-                assert phrase in guidance
+        notice = messages["calibration_run_notice"]
+        guidance = messages["establish_reference_guidance"]
+        assert "\n\n" in notice
+        for phrase in phrases[:4]:
+            assert phrase in notice
+            assert phrase not in guidance
+        for phrase in phrases[4:]:
+            assert phrase in guidance
+        assert "reference_calibration" not in messages
+        body = GUIDED_INPUTS[language]["steps"]["offset_calibration"]["body_md"]
+        assert '<strong class="defined-term">SNR</strong>' in body
+        assert '<strong class="defined-term">ΔSNR</strong>' in body
 
 
 def test_every_flow_content_key_resolves_to_bilingual_title_and_body():
@@ -362,171 +362,22 @@ def test_condition_engine_rejects_an_unsupported_condition():
         evaluate_condition({"python": "dangerous()"}, {})
 
 
-@pytest.mark.parametrize(
-    (
-        "use_case",
-        "benchmark_mode",
-        "local_benchmark",
-        "tx_ab_method",
-        "offset_intent",
-        "expected_path",
-    ),
-    [
-        (
-            "rx_performance",
-            "none",
-            "local_median",
-            "simultaneous",
-            "no_offset",
-            ("use_case", "target_and_window", "scope_and_evidence", "review_and_run"),
-        ),
-        (
-            "tx_performance",
-            "none",
-            "local_median",
-            "simultaneous",
-            "no_offset",
-            ("use_case", "target_and_window", "scope_and_evidence", "review_and_run"),
-        ),
-        (
-            "rx_benchmark",
-            "hardware_ab",
-            "local_median",
-            "simultaneous",
-            "no_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "offset_calibration",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
-            "rx_benchmark",
-            "reference_station",
-            "local_median",
-            "simultaneous",
-            "established_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "offset_calibration",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
-            "rx_benchmark",
-            "local_neighborhood",
-            "local_median",
-            "simultaneous",
-            "no_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
-            "tx_benchmark",
-            "hardware_ab",
-            "local_median",
-            "simultaneous",
-            "establish_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "offset_calibration",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
-            "tx_benchmark",
-            "hardware_ab",
-            "local_median",
-            "sequential",
-            "no_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "offset_calibration",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
-            "tx_benchmark",
-            "reference_station",
-            "local_median",
-            "simultaneous",
-            "established_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "offset_calibration",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
-            "tx_benchmark",
-            "local_neighborhood",
-            "local_median",
-            "simultaneous",
-            "no_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-    ],
-    ids=[
-        "rx-performance",
-        "tx-performance",
-        "rx-hardware-no-offset",
-        "rx-reference-established-offset",
-        "rx-local-median",
-        "tx-hardware-simultaneous-establish-offset",
-        "tx-hardware-sequential",
-        "tx-reference",
-        "tx-local-neighborhood",
-    ],
-)
-def test_every_specified_branch_reaches_review(
-    use_case,
-    benchmark_mode,
-    local_benchmark,
-    tx_ab_method,
-    offset_intent,
-    expected_path,
-):
-    """Resolve every required Success/Compare design to the terminal review."""
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("benchmark_mode", ["none", "reference_station", "local_neighborhood"])
+@pytest.mark.parametrize("offset_intent", ["no_offset", "establish_offset", "established_offset"])
+def test_every_specified_branch_reaches_review(direction, benchmark_mode, offset_intent):
+    """Resolve all current directions and designs to the terminal review."""
     flow = load_guided_input_flow()
-    facts = {
-        "guided_use_case": use_case,
-        "analysis_direction": use_case.split("_", 1)[0],
-        "benchmark_mode": benchmark_mode,
-        "local_benchmark": local_benchmark,
-        "tx_ab_method": tx_ab_method,
-        "snr_correction_mode": offset_intent,
-    }
+    use_case = f"{direction}_{'performance' if benchmark_mode == 'none' else 'benchmark'}"
+    facts = {"guided_use_case": use_case, "analysis_direction": direction, "benchmark_mode": benchmark_mode, "local_benchmark": "local_median", "snr_correction_mode": offset_intent}
+    expected = ["use_case", "target_and_window"]
+    if benchmark_mode != "none":
+        expected.append("reference_design")
+    if benchmark_mode == "reference_station":
+        expected.append("offset_calibration")
+    expected.extend(["scope_and_evidence", "review_and_run"])
+    assert resolve_flow_path(flow, facts) == tuple(expected)
 
-    path = resolve_flow_path(flow, facts)
-
-    assert path == expected_path
-    assert path[-1] == flow["terminal_node"]
 
 
 def test_matching_next_node_rejects_overlapping_transitions():
@@ -653,7 +504,7 @@ def test_completion_rules_reject_incomplete_or_semantically_invalid_state(
 
 
 def test_completion_rules_cover_absolute_time_and_reference_subbranches():
-    """Validate absolute time, fixed Reference, local, and scheduled TX branches."""
+    """Validate absolute time, fixed Reference, local, and pending discovery branches."""
     absolute_state = _complete_state(
         val_start_d=date(2026, 7, 1),
         val_start_t=time(12, 0),
@@ -694,17 +545,8 @@ def test_completion_rules_cover_absolute_time_and_reference_subbranches():
     local_state["val_ref_radius_km"] = 255
     assert not is_guided_node_complete("reference_design", local_state)
 
-    scheduled_state = _complete_state(
-        guided_use_case="tx_benchmark",
-        val_analysis_direction="tx",
-        val_tx_ab_method="sequential",
-        val_tx_ab_repeat_interval_minutes=10,
-        val_tx_ab_target_start_minute=0,
-        val_tx_ab_reference_start_minute=2,
-    )
-    assert is_guided_node_complete("reference_design", scheduled_state)
-    scheduled_state["val_tx_ab_reference_start_minute"] = 0
-    assert not is_guided_node_complete("reference_design", scheduled_state)
+    reference_state["val_ref_qth"] = ""
+    assert is_guided_node_complete("reference_design", reference_state)
 
 
 def test_available_nodes_stop_at_the_first_incomplete_prerequisite():
@@ -772,7 +614,7 @@ def test_reconstruct_performance_and_general_defaults_from_canonical_state():
         guided_use_case=None,
         val_analysis_direction="rx",
         val_comp_mode="none",
-        guided_reference_design="hardware_ab",
+        guided_reference_design="reference_station",
         val_benchmark_offset_db=0.0,
         val_snr_correction_mode="no_offset",
         guided_scope_mode=None,
@@ -804,7 +646,7 @@ def test_reconstruct_performance_and_general_defaults_from_canonical_state():
     [
         ("rx_performance", "none", True),
         ("tx_performance", "none", True),
-        ("rx_benchmark", "hardware_ab", False),
+        ("rx_benchmark", "reference_station", False),
         ("rx_benchmark", "reference_station", False),
         ("tx_benchmark", "local_neighborhood", False),
     ],

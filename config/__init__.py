@@ -1,4 +1,4 @@
-"""Compatibility exports for WSPRadar configuration constants."""
+"""Public exports for WSPRadar configuration constants."""
 
 from .app_config import (
     ANALYSIS_ACTIVE_LEASE_TIMEOUT_SEC,
@@ -19,10 +19,8 @@ from .app_config import (
     APP_URL,
     APP_VERSION,
     CACHE_DIR,
-    CACHE_TTL_SEC,
     DEMO_QUERY_CACHE_TTL_SEC,
     DEMO_QUERY_FAILURE_CACHE_TTL_SEC,
-    DB_URL,
     LOGO_URL,
     MAX_ANALYSIS_RESULT_ROWS,
     MAX_DAYS_HISTORY,
@@ -49,7 +47,6 @@ from .config_schema import (
     CONFIG_KEYS,
     CONFIG_SCHEMA_VERSION,
     LOCALIZED_LANGUAGE_PATTERN,
-    LEGACY_TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS,
     PROFILE_ID_MAX_LENGTH,
     PROFILE_ID_PATTERN,
     PROFILE_ID_TOKEN_PATTERN,
@@ -62,8 +59,6 @@ from .config_schema import (
     STATION_EVIDENCE_TIME_BINS,
     TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS,
     TEMPORAL_EVIDENCE_TIME_BIN_PRESETS,
-    TX_AB_METHODS,
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
     temporal_evidence_time_bin_policy_for_duration,
 )
 from .demo_profiles import DEMO_PROFILES
@@ -126,7 +121,6 @@ __all__ = [
     "AZIMUTH_STEP",
     "BAND_MAP",
     "CACHE_DIR",
-    "CACHE_TTL_SEC",
     "CBAR_BBOX",
     "COLOR_BOTH_ASYNC",
     "COLOR_JOINT",
@@ -148,7 +142,6 @@ __all__ = [
     "CONFIG_SCHEMA_VERSION",
     "DEMO_QUERY_CACHE_TTL_SEC",
     "DEMO_QUERY_FAILURE_CACHE_TTL_SEC",
-    "DB_URL",
     "DEFAULT_BAND",
     "DEMO_PROFILES",
     "DIST_BINS",
@@ -164,7 +157,6 @@ __all__ = [
     "LEG_BBOX",
     "LOGO_URL",
     "LOCALIZED_LANGUAGE_PATTERN",
-    "LEGACY_TEMPORAL_EVIDENCE_TIME_BIN_OPTIONS",
     "MAP_BBOX",
     "MAP_SCOPE_OPTIONS",
     "MAX_ANALYSIS_RESULT_ROWS",
@@ -192,8 +184,6 @@ __all__ = [
     "THICK_RINGS",
     "THIN_RINGS",
     "TITLE_POS",
-    "TX_AB_METHODS",
-    "TX_AB_REPEAT_INTERVAL_OPTIONS",
     "temporal_evidence_time_bin_policy_for_duration",
     "WSPR_CSV_MAX_RESPONSE_BYTES",
     "WSPR_DATABASE_PROVIDERS",

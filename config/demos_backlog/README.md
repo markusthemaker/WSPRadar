@@ -6,10 +6,11 @@ files only in the neighboring `config/demos/` directory.
 
 | Draft | Intended example |
 | --- | --- |
-| `06_rx_local_median_neighborhood.config` | RX Local Neighborhood Benchmark. |
+| `06_rx_local_median_neighborhood.config` | RX Reference Neighbourhood Benchmark. |
 | `07_rx_calibration_ab.config` | RX calibration A/B. |
 | `08_rx_hardware_ab.config` | RX hardware A/B. |
-| `09_tx_hardware_ab.config` | Scheduled sequential TX hardware A/B. |
+
+Scheduled sequential TX comparisons are not supported.
 
 Before promoting a draft, review its scientific settings, current saved-config
 schema compatibility, historical data availability and explanatory text. Check

@@ -62,10 +62,6 @@ WSPR_DATABASE_PROVIDERS = (
     ),
 )
 
-# Compatibility alias for code and integrations that still refer to the
-# historical single-primary URL.
-DB_URL = WSPR_DATABASE_PROVIDERS[0].url
-
 CACHE_DIR = "./.wspr_cache"
 # Standard query results and session evidence remain short-lived. Validated
 # historical demo queries persist until their SQL or cache format changes.
@@ -84,9 +80,6 @@ QUERY_DATAFRAME_CACHE_MAX_BYTES = 64 * 1024 * 1024
 QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES = 16 * 1024 * 1024
 QUERY_DATAFRAME_CACHE_MAX_ENTRIES = 32
 
-# Compatibility alias for integrations that still import the former shared
-# cache TTL. Runtime cache policy uses the lifecycle-specific constants above.
-CACHE_TTL_SEC = STANDARD_QUERY_CACHE_TTL_SEC
 MAX_DAYS_HISTORY = 31
 
 # The fixed prefix policy for Exclude Special Callsigns applies only to remote

@@ -2,6 +2,14 @@
 
 This changelog summarizes major project changes by the date of the change (UTC), with the newest entry first. It is grouped by date rather than by version because early version labels were not yet stable. Record each new change under the current date when it is made, without an "Unsubmitted" heading or redating it when it is submitted to GitHub. Older entries retain the submission dates recorded under the previous policy.
 
+## 2026-09-29
+
+- **Guided inputs and precise UTC windows:** simplified the Target and Reference panels, retained one Reference explanation above plain Setup/Station and Neighbourhood choices, and used database terminology in input guidance. Start and end times now accept every UTC minute and retain those boundaries through analysis, configuration files and shared links. The fixed 24-hour default ends at the current UTC minute; same-cycle matching, positive-duration validation, the 31-day limit and future-time rejection remain in place. Updated the corresponding English/German time-window documentation and regenerated README.
+
+## 2026-09-28
+
+- **Same-cycle Reference workflow:** merged fixed controlled-setup and independent-station comparisons into **Reference Setup/Station**, alongside **Reference Neighbourhood** using the Local Median. Target QTH remains the sole manually entered analysis locator; fixed Reference locations resolve from archive evidence for the selected role, band, UTC window and provider, with explicit selection for multiple grid-4 candidates. Retired sequential TX A/B and its scheduled-pair configuration, retained exact remote callsign/full-locator identity, Joint-only Delta SNR and one-sided/asynchronous coverage, and added local corrective feedback for invalid Run inputs. Saved configurations and public URLs now accept only the current canonical contract, with retired aliases, fields, omission defaults and compatibility-only time-bin inputs removed. Reworked both manuals and regression contracts; preserved historical scientific fixtures and extracted the timed relay utility for independent use outside the WSPRadar codebase. Verification is recorded after integration, not inferred from prior runs.
+
 ## 2026-09-27
 
 - **Repository maintenance organization and browser protections:** moved 18

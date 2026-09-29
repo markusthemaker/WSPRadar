@@ -105,7 +105,7 @@ def _success_map_data(*, analysis_id="RX_ABS"):
         segment_rows=segment_rows,
         analysis_id=analysis_id,
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
 
@@ -215,7 +215,7 @@ def test_preview_and_export_theme_paths_preserve_success_science_and_categories(
         _raw_opportunity_rows_for_invariance(),
         "RX Performance",
         False,
-        False,
+
         datetime(2026, 7, 1, tzinfo=timezone.utc),
         datetime(2026, 7, 2, tzinfo=timezone.utc),
         5000,
@@ -232,7 +232,7 @@ def test_preview_and_export_theme_paths_preserve_success_science_and_categories(
         _raw_opportunity_rows_for_invariance(),
         "RX Performance",
         False,
-        False,
+
         datetime(2026, 7, 1, tzinfo=timezone.utc),
         datetime(2026, 7, 2, tzinfo=timezone.utc),
         5000,
@@ -390,7 +390,7 @@ def test_generated_success_map_renders_when_no_sector_meets_station_threshold(
         _raw_opportunity_rows_for_invariance(),
         "TX Performance",
         False,
-        False,
+
         datetime(2026, 7, 1, tzinfo=timezone.utc),
         datetime(2026, 7, 2, tzinfo=timezone.utc),
         5000,
@@ -593,7 +593,7 @@ def test_dense_success_map_uses_two_vectorized_legacy_size_status_groups(
         segment_rows=segment_rows,
         analysis_id="RX_ABS",
         is_compare=False,
-        is_sequential=False,
+
         analysis_kind="opportunity",
     )
 
@@ -943,7 +943,7 @@ def test_compare_map_retains_existing_markers_legend_footer_and_scale(
         segment_rows=segment_rows,
         analysis_id="RX_COMP",
         is_compare=True,
-        is_sequential=False,
+
         analysis_kind="comparison",
     )
     analysis_context = AnalysisContext(

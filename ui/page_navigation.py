@@ -224,6 +224,7 @@ export default function(component) {
 
     function handleHistoryNavigation() {
         cancelAnalysisNavigation();
+        cancelPanelNavigation(true);
         const anchorId = anchorIdFromHash(window.location.hash);
         if (!allowedApplicationAnchors.has(anchorId)) {
             return;
@@ -238,6 +239,74 @@ export default function(component) {
         synchronizeVisibleApplicationAnchor();
     }
 
+    let panelObserver = null;
+    let panelScrollFrame = null;
+    let panelRequestToken = null;
+    function cancelPanelNavigation(markHandled = false) {
+        if (markHandled && panelRequestToken) {
+            window[processedRequestTokenProperty] = panelRequestToken;
+        }
+        panelRequestToken = null;
+        panelObserver?.disconnect();
+        panelObserver = null;
+        if (panelScrollFrame !== null) {
+            window.cancelAnimationFrame(panelScrollFrame);
+            panelScrollFrame = null;
+        }
+    }
+
+    function scrollWhenPanelOpens(panelKey, requestToken) {
+        panelRequestToken = requestToken;
+        let previousTop = null;
+        let stableFrames = 0;
+        const advance = () => {
+            panelScrollFrame = null;
+            const marker = Array.from(document.querySelectorAll(
+                '[data-page-navigation-token]'
+            )).find(element => (
+                element.getAttribute('data-page-navigation-token') === requestToken
+                && element.getAttribute('data-page-navigation-panel') === panelKey
+                && !element.closest('[data-stale="true"]')
+            ));
+            const panel = marker?.closest('[data-testid="stExpander"]');
+            const details = panel?.querySelector('details');
+            const header = details?.querySelector('summary');
+            if (!details?.open || !header || panel.closest('[data-stale="true"]')) {
+                previousTop = null;
+                stableFrames = 0;
+                return;
+            }
+            const bounds = header.getBoundingClientRect();
+            if (bounds.height <= 0) return;
+            const accordionAnimating = (document.getAnimations?.() ?? []).some(animation => (
+                animation.playState === 'running'
+                && animation.effect?.target?.tagName === 'DETAILS'
+                && animation.effect?.target?.closest('[data-testid="stExpander"]')
+            ));
+            stableFrames = !accordionAnimating && previousTop !== null && Math.abs(bounds.top - previousTop) < 0.5
+                ? stableFrames + 1 : 0;
+            previousTop = bounds.top;
+            if (stableFrames >= 2) {
+                window[processedRequestTokenProperty] = requestToken;
+                cancelPanelNavigation();
+                header.scrollIntoView({ behavior: 'auto', block: 'start' });
+            } else {
+                panelScrollFrame = window.requestAnimationFrame(advance);
+            }
+        };
+        const schedule = () => {
+            if (panelScrollFrame === null) {
+                panelScrollFrame = window.requestAnimationFrame(advance);
+            }
+        };
+        panelObserver = new MutationObserver(schedule);
+        panelObserver.observe(document.body, {
+            childList: true, subtree: true, attributes: true,
+            attributeFilter: ['open', 'data-stale', 'style'],
+        });
+        schedule();
+    }
+
     function handleRequestedNavigation() {
         const anchorId = data?.requestAnchorId;
         const requestToken = data?.requestToken;
@@ -249,12 +318,39 @@ export default function(component) {
             return false;
         }
 
-        window[processedRequestTokenProperty] = requestToken;
+        const panelKey = data?.panelKey;
+        const panelRequest = data?.shouldScrollRequest && typeof panelKey === 'string'
+            && /^[A-Za-z0-9_-]{1,160}$/.test(panelKey);
+        if (!panelRequest) window[processedRequestTokenProperty] = requestToken;
         window[processedInitialAnchorProperty] = anchorId;
         clearPendingDocumentationNavigation();
         replaceCurrentFragment(anchorId);
-        if (data?.shouldScrollRequest) {
+        if (panelRequest) {
+            scrollWhenPanelOpens(panelKey, requestToken);
+        } else if (data?.shouldScrollRequest) {
             scrollWhenApplicationAnchorMounts(anchorId);
+        }
+        const fieldKey = data?.focusFieldKey;
+        if (typeof fieldKey === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(fieldKey)) {
+            let attempts = 0;
+            const focusField = () => {
+                const field = document.querySelector('.st-key-' + CSS.escape(fieldKey));
+                if (!field && attempts++ < 30) {
+                    window.setTimeout(focusField, 100);
+                    return;
+                }
+                if (!field) return;
+                let parent = field.parentElement;
+                while (parent) {
+                    if (parent.tagName === 'DETAILS') parent.open = true;
+                    parent = parent.parentElement;
+                }
+                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const control = field.querySelector('input,select,textarea,[role="combobox"]')
+                    ?? field.querySelector('button');
+                control?.focus({ preventScroll: true });
+            };
+            window.setTimeout(focusField, 150);
         }
         return true;
     }
@@ -412,6 +508,7 @@ export default function(component) {
             }
         }
         cancelAnalysisNavigation();
+        cancelPanelNavigation(true);
     }
 
     function handleScrollbarNavigation(event) {
@@ -430,12 +527,14 @@ export default function(component) {
             && event.clientY <= bounds.bottom
         ) {
             cancelAnalysisNavigation();
+            cancelPanelNavigation(true);
         }
     }
 
     function handleAnchorNavigation(event) {
         if (event.target?.closest('a[href]')) {
             cancelAnalysisNavigation();
+            cancelPanelNavigation(true);
         }
     }
 
@@ -492,6 +591,7 @@ export default function(component) {
 
     return () => {
         stopAnalysisNavigationObservation();
+        cancelPanelNavigation();
         document.removeEventListener('wheel', handleDeliberateNavigation);
         document.removeEventListener('touchmove', handleDeliberateNavigation);
         document.removeEventListener('keydown', handleDeliberateNavigation);
@@ -537,15 +637,25 @@ def request_page_navigation(
     anchor_id: str,
     *,
     should_scroll: bool,
+    focus_field: str | None = None,
+    panel_key: str | None = None,
 ) -> None:
     """Queue one browser location update to an allowlisted application anchor."""
     if anchor_id not in APPLICATION_ANCHOR_IDS:
         raise ValueError(f"Unknown application anchor: {anchor_id!r}")
+    if focus_field is not None:
+        _validate_navigation_attribute(focus_field, "input field")
+    if panel_key is not None:
+        _validate_navigation_attribute(panel_key, "panel key")
     session_state[PAGE_NAVIGATION_REQUEST_KEY] = {
         "anchor_id": anchor_id,
         "request_token": uuid4().hex,
         "should_scroll": bool(should_scroll),
     }
+    if focus_field is not None:
+        session_state[PAGE_NAVIGATION_REQUEST_KEY]["focus_field"] = focus_field
+    if panel_key is not None:
+        session_state[PAGE_NAVIGATION_REQUEST_KEY]["panel_key"] = panel_key
 
 
 def consume_page_navigation_request(
@@ -563,11 +673,28 @@ def consume_page_navigation_request(
         or not request_token
     ):
         return None
-    return {
+    validated_request = {
         "anchor_id": anchor_id,
         "request_token": request_token,
         "should_scroll": bool(request.get("should_scroll", False)),
     }
+    focus_field = request.get("focus_field")
+    if isinstance(focus_field, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,160}", focus_field):
+        validated_request["focus_field"] = focus_field
+    panel_key = request.get("panel_key")
+    if isinstance(panel_key, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,160}", panel_key):
+        validated_request["panel_key"] = panel_key
+    return validated_request
+
+
+def page_navigation_marker_html(session_state, panel_key: str) -> str:
+    """Mark the requested panel's fresh render without changing its layout."""
+    request = session_state.get(PAGE_NAVIGATION_REQUEST_KEY)
+    if not isinstance(request, dict) or request.get("panel_key") != panel_key:
+        return ""
+    token = escape(str(request.get("request_token", "")), quote=True)
+    panel = escape(panel_key, quote=True)
+    return f'<span data-page-navigation-token="{token}" data-page-navigation-panel="{panel}"></span>'
 
 
 def render_page_anchor(anchor_id: str) -> None:
@@ -604,6 +731,8 @@ def render_page_navigation_controller(
                 request is not None and request["should_scroll"]
             ),
             "analysisSubmissionToken": analysis_submission_token,
+            "focusFieldKey": request.get("focus_field") if request else None,
+            "panelKey": request.get("panel_key") if request else None,
             "analysisStatusAnchorId": RESULTS_INSPECTION_ANCHOR_ID,
             "analysisMapAnchorId": MAP_RESULTS_ANCHOR_ID,
         },

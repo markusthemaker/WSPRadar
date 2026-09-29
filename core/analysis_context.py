@@ -8,15 +8,9 @@ from config import DEFAULT_BAND
 COMPARISON_NONE = "none"
 COMPARISON_LOCAL_NEIGHBORHOOD = "local_neighborhood"
 COMPARISON_REFERENCE_STATION = "reference_station"
-COMPARISON_HARDWARE_AB = "hardware_ab"
 
 LOCAL_BENCHMARK_MEDIAN = "local_median"
 
-SELF_TEST_RX = "rx"
-SELF_TEST_TX = "tx"
-
-TX_AB_METHOD_SIMULTANEOUS = "simultaneous"
-TX_AB_METHOD_SEQUENTIAL = "sequential"
 
 SOLAR_ALL = "all"
 SOLAR_DAY = "day"
@@ -35,9 +29,7 @@ class AnalysisContext:
     """Stable, localized-label-free configuration used by core analysis code.
 
     Reference Station identifies each side by an exact callsign and
-    four-character Maidenhead grid. Hardware A/B derives its shared grid-4 from
-    Target QTH. Periodic sequential TX A/B fields describe one shared repeat
-    interval and two disjoint even UTC start phases. The maximum peer distance
+    four-character Maidenhead grid. The maximum peer distance
     is a half-open Target-QTH radius for mapped scientific peers; global
     moving-station validation and Target-active evidence are intentionally
     outside that radius.
@@ -53,11 +45,6 @@ class AnalysisContext:
     reference_qth: str = ""
     neighborhood_radius_km: int = 100
     reference_snr_correction_db: float = 0.0
-    self_test_mode: str = SELF_TEST_RX
-    tx_ab_method: str = TX_AB_METHOD_SIMULTANEOUS
-    tx_ab_repeat_interval_minutes: int = 10
-    tx_ab_target_start_minute: int = 0
-    tx_ab_reference_start_minute: int = 2
     solar_state: str = SOLAR_ALL
     max_peer_distance_km: int = 22000
     exclude_special_callsigns: bool = False
@@ -72,12 +59,16 @@ class AnalysisContext:
 
     @classmethod
     def from_dict(cls, values):
-        """Build a context from matching canonical scalar fields."""
+        """Build a current context, rejecting unknown scientific fields."""
         if isinstance(values, cls):
             return values
         values = dict(values or {})
         field_names = cls.__dataclass_fields__.keys()
-        return cls(**{key: values[key] for key in field_names if key in values})
+        unknown_fields = values.keys() - field_names
+        if unknown_fields:
+            names = ", ".join(sorted(str(key) for key in unknown_fields))
+            raise ValueError(f"Unknown AnalysisContext fields: {names}")
+        return cls(**values)
 
 
 def solar_path_state(solar_state):

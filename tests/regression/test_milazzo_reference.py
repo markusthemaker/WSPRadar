@@ -31,7 +31,8 @@ from core.matplotlib_runtime import dispose_agg_figure
 from core.presentation_context import PresentationContext
 from i18n import T
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
-from ui.config_io import apply_config_state_values, validate_config_document
+from ui.config_io import apply_config_state_values
+from frozen_reference_adapter import validate_frozen_reference_document, frozen_context_projection
 from ui.inspector.drilldown import _build_drilldown_table
 from ui.inspector.evidence_data import (
     _build_compare_unit_rows, _compare_joint_evidence_points,
@@ -107,7 +108,7 @@ def verified_reference_files():
 
 
 def _calculate_run(source_rows, *, max_distance_km=None, configuration_document=None):
-    configuration = validate_config_document(
+    configuration = validate_frozen_reference_document(
         _read_json("demo.config") if configuration_document is None else configuration_document
     )
     session_values = {"lang": "en"}
@@ -133,23 +134,23 @@ def _calculate_run(source_rows, *, max_distance_km=None, configuration_document=
     assert warning is None
     preparation = build_map_data_result(
         processed, analysis_id=analysis.id, is_compare=analysis.is_compare,
-        is_sequential=analysis.is_sequential, analysis_kind=analysis.analysis_kind,
+         analysis_kind=analysis.analysis_kind,
         center_latitude=latitude, center_longitude=longitude,
         min_spots=context.min_joint_spots_per_station,
         min_opportunities=context.min_confirmed_opportunities_per_peer,
         base_min_stations=context.min_joint_stations_per_map_segment,
-        tx_ab_repeat_interval_minutes=context.tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=context.tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=context.tx_ab_reference_start_minute,
+
+
+
     )
     assert preparation.diagnostic is None and preparation.map_data is not None
     stations = preparation.map_data.station_rows
     inspector = build_compare_inspector_view_model(
-        stations, analysis_id=analysis.id, is_sequential=analysis.is_sequential,
+        stations, analysis_id=analysis.id,
         analysis_context=context, presentation_context=presentation,
     )
     units = _build_compare_unit_rows(
-        processed, stations, analysis.is_sequential,
+        processed, stations,
         paired_identity_df=inspector.build_evidence_identities(),
     )
     units = _retain_thresholded_compare_outcomes(units, stations)
@@ -486,7 +487,7 @@ def test_drilldown_preserves_every_requested_native_row(reference_run, tmp_path,
         str(parquet_path), inspector.station_table,
         inspector.station_column, inspector.locator_column,
         inspector.distance_column, inspector.azimuth_column,
-        reference_run.analysis.id, False, show_non_joint, False,
+        reference_run.analysis.id,  show_non_joint, False,
         inspector.target_name, inspector.reference_header, T["en"],
     )
     assert warning is None
@@ -560,7 +561,7 @@ def human_benchmark_figure(human_benchmark_run):
     recipe = _segment_figure_export_recipe(
         title="TX Benchmark: KP4MD vs. WB6RQN",
         selected_segment="Full Range | All Directions",
-        is_sequential=run.analysis.is_sequential,
+
         station_values=run.stations.stat_val.dropna(),
         spot_values=run.points.metric,
         panel_labels=[
@@ -955,7 +956,7 @@ def test_published_direction_is_distinct_from_observed_rx_direction(rx_reference
 
 
 def _calculate_tx_query_for_supplied_rx_reports():
-    configuration = validate_config_document(_read_json("demo.config"))
+    configuration = validate_frozen_reference_document(_read_json("demo.config"))
     session_values = {"lang": "en"}
     apply_config_state_values(configuration, session_values)
     session_values["run_mode"] = "TX"

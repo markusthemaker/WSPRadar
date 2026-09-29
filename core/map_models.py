@@ -18,7 +18,6 @@ class MapData:
     segment_rows: pd.DataFrame
     analysis_id: str
     is_compare: bool
-    is_sequential: bool
     analysis_kind: str
     diagnostic: ResultDiagnostic | None = None
 

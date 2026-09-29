@@ -10,8 +10,6 @@ from numbers import Real
 DEFAULT_MINIMUM_DEPARTURE_DB = 6.0
 DEFAULT_MINIMUM_ROBUST_Z = 3.0
 DEFAULT_MAXIMUM_BASELINE_DIFFERENCE_DB = 3.0
-LEGACY_BURST_MINIMUM_DEPARTURE_DB = 3.0
-LEGACY_BURST_MINIMUM_ROBUST_Z = 3.5
 DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD = 0.1
 DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD = 100.0
 # Fixed detector-method allowance for dB acceptance comparisons only. Never
@@ -31,17 +29,6 @@ DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD = (
         "delta_snr_outlier_maximum_baseline_difference_db",
         "maximum_baseline_difference_db",
     ),
-)
-
-# Unpublished duration-specific configuration fields remain recognizable only
-# so an experimental version-1 document can be converted deterministically.
-LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS = (
-    "delta_snr_outlier_spot_minimum_departure_db",
-    "delta_snr_outlier_burst_minimum_departure_db",
-    "delta_snr_outlier_sustained_minimum_departure_db",
-    "delta_snr_outlier_spot_minimum_robust_z",
-    "delta_snr_outlier_burst_minimum_robust_z",
-    "delta_snr_outlier_sustained_minimum_robust_z",
 )
 
 
@@ -133,17 +120,6 @@ class DeltaSnrOutlierDetectionPolicy:
 
 DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY = DeltaSnrOutlierDetectionPolicy()
 
-# Version-1 saved configurations and public URLs originally omitted detector
-# values equal to this policy. Keep that omission meaning stable even when the
-# factory defaults for new analyses change.
-VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY = (
-    DeltaSnrOutlierDetectionPolicy(
-        minimum_departure_db=3.0,
-        minimum_robust_z=4.0,
-        maximum_baseline_difference_db=3.0,
-    )
-)
-
 
 __all__ = [
     "DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY",
@@ -155,10 +131,6 @@ __all__ = [
     "DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD",
     "DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD",
     "DeltaSnrOutlierDetectionPolicy",
-    "LEGACY_BURST_MINIMUM_DEPARTURE_DB",
-    "LEGACY_BURST_MINIMUM_ROBUST_Z",
-    "LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS",
     "maximum_baseline_difference_comparison_bound_db",
     "minimum_departure_comparison_bound_db",
-    "VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY",
 ]

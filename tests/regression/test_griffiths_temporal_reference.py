@@ -31,7 +31,8 @@ from core.math_utils import locator_to_latlon
 from core.presentation_context import PresentationContext
 from i18n import T
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
-from ui.config_io import apply_config_state_values, validate_config_document
+from ui.config_io import apply_config_state_values
+from frozen_reference_adapter import validate_frozen_reference_document, frozen_context_projection
 from ui.inspector.evidence_data import (
     _build_compare_unit_rows,
     _compare_joint_evidence_points,
@@ -162,7 +163,7 @@ def _prepare_reference_run(reference_directory, time_bins, *, max_peer_distance_
         network_guard.setattr(socket, "create_connection", _reject_network_access)
         network_guard.setattr(socket.socket, "connect", _reject_network_access)
         network_guard.setattr(socket.socket, "connect_ex", _reject_network_access)
-        configuration = validate_config_document(_read_reference_json("demo.config", reference_directory))
+        configuration = validate_frozen_reference_document(_read_reference_json("demo.config", reference_directory))
         if max_peer_distance_km is not None:
             configuration["max_peer_distance_km"] = max_peer_distance_km
         session_values = {"lang": "en"}
@@ -194,24 +195,24 @@ def _prepare_reference_run(reference_directory, time_bins, *, max_peer_distance_
         assert warning_message is None
         map_preparation = build_map_data_result(
             processed_rows, analysis_id=analysis.id, is_compare=analysis.is_compare,
-            is_sequential=analysis.is_sequential, analysis_kind=analysis.analysis_kind,
+             analysis_kind=analysis.analysis_kind,
             center_latitude=center_latitude, center_longitude=center_longitude,
             min_spots=context.min_joint_spots_per_station,
             min_opportunities=context.min_confirmed_opportunities_per_peer,
             base_min_stations=context.min_joint_stations_per_map_segment,
-            tx_ab_repeat_interval_minutes=context.tx_ab_repeat_interval_minutes,
-            tx_ab_target_start_minute=context.tx_ab_target_start_minute,
-            tx_ab_reference_start_minute=context.tx_ab_reference_start_minute,
+
+
+
         )
         assert map_preparation.diagnostic is None
         assert map_preparation.map_data is not None
         station_rows = map_preparation.map_data.station_rows
         inspector_model = build_compare_inspector_view_model(
-            station_rows, analysis_id=analysis.id, is_sequential=analysis.is_sequential,
+            station_rows, analysis_id=analysis.id,
             analysis_context=context, presentation_context=presentation_context,
         )
         comparison_units = _build_compare_unit_rows(
-            processed_rows, station_rows, analysis.is_sequential,
+            processed_rows, station_rows,
             paired_identity_df=inspector_model.build_evidence_identities(),
         )
         comparison_units = _retain_thresholded_compare_outcomes(comparison_units, station_rows)
@@ -253,7 +254,7 @@ def test_reference_files_are_complete_and_intact(verified_reference_manifest):
 
 def test_reference_configuration_and_processed_population(reference_run):
     expected = _read_reference_json("expected_summary.json", reference_run.reference_directory)
-    assert reference_run.context.to_dict() == _read_reference_json("analysis_context.json", reference_run.reference_directory)
+    assert reference_run.context.to_dict() == frozen_context_projection(_read_reference_json("analysis_context.json", reference_run.reference_directory))
     assert reference_run.analysis.decode_filter_mode == DECODE_FILTER_LEGACY
     assert reference_run.configuration["start_utc"] == pd.Timestamp(expected["start_utc"])
     assert reference_run.configuration["end_utc"] == pd.Timestamp(expected["end_utc_exclusive"])

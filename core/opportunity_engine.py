@@ -22,7 +22,6 @@ from core.input_validation import (
     normalize_ascii_upper,
 )
 from core.math_utils import locator_to_latlon
-from core.tx_ab_schedule import tx_ab_schedule_sql
 
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v3"
@@ -216,8 +215,6 @@ def build_absolute_opportunity_query(
     callsign: str,
     qth: str,
     exclude_special_callsigns: bool = False,
-    target_repeat_interval_minutes: int | None = None,
-    target_start_minute_utc: int | None = None,
     require_decode_code: bool = True,
 ) -> str:
     """
@@ -262,18 +259,6 @@ def build_absolute_opportunity_query(
     peer_exclusions = build_peer_callsign_exclusion_sql(
         mode=mode, exclude_special_callsigns=exclude_special_callsigns,
     )
-    schedule_filter = ""
-    has_repeat_interval = target_repeat_interval_minutes is not None
-    has_start_minute = target_start_minute_utc is not None
-    if has_repeat_interval != has_start_minute:
-        raise ValueError(
-            "Target schedule requires both repeat interval and UTC start minute."
-        )
-    if has_repeat_interval:
-        schedule_filter = "\n      AND " + tx_ab_schedule_sql(
-            target_repeat_interval_minutes,
-            target_start_minute_utc,
-        )
     active_decode_filter = "\n      AND code = 1" if require_decode_code else ""
     main_decode_filter = "\n  AND code = 1" if require_decode_code else ""
 
@@ -285,7 +270,7 @@ WITH active_cycles AS
     PREWHERE band = {band_sql}
       AND time >= '{start_sql}'
       AND time < '{end_sql}'
-    WHERE {target_condition}{active_decode_filter}{schedule_filter}
+    WHERE {target_condition}{active_decode_filter}
 )
 SELECT
     intDiv(toUnixTimestamp(time), 120) AS time_slot,

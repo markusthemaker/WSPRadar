@@ -109,7 +109,7 @@ def _benchmark_recipe(*, overlay=None):
         y_label="Delta SNR (dB)",
         empty_text="No paired evidence in this time window.",
         evidence_unit_label="Individual Joint Spot",
-        is_sequential=False,
+
         outlier_overlay=overlay,
     )
 
@@ -156,100 +156,6 @@ def test_performance_native_recipe_keeps_each_successful_cycle_value():
     assert "iqr" not in recipe
 
 
-def test_sequential_recipe_has_one_point_per_complete_scheduled_pair():
-    first_pair_id = int(START_UTC.timestamp() // 60)
-    second_pair_id = first_pair_id + 10
-    station_rows = pd.DataFrame(
-        {
-            "peer_sign": ["SEL"] * 7,
-            "peer_grid": ["SE00"] * 7,
-            "tx_ab_pair_id": [
-                first_pair_id,
-                first_pair_id,
-                first_pair_id,
-                first_pair_id,
-                second_pair_id,
-                second_pair_id,
-                second_pair_id,
-            ],
-            "is_me": [1, 1, 0, 0, 1, 0, 0],
-            "stat_val": [-10.0, -8.0, -13.0, -11.0, -7.0, -10.0, -8.0],
-        }
-    )
-    identities = station_rows[["peer_sign", "peer_grid"]].drop_duplicates()
-    comparison_units = _build_compare_unit_rows(
-        station_rows,
-        identities,
-        is_sequential=True,
-        paired_identity_df=identities,
-    )
-    evidence = _compare_joint_evidence_points(comparison_units)
-    overlay = build_drilldown_zoom_outlier_overlay_recipe(
-        representative_utc=START_UTC,
-        representative_delta_snr_db=3.0,
-        qualifying_marker_times_utc=[
-            START_UTC,
-            START_UTC + pd.Timedelta(minutes=10),
-        ],
-        qualifying_marker_delta_snr_db=[3.0, 2.0],
-        candidate_start_utc=START_UTC,
-        candidate_end_utc=(
-            START_UTC
-            + pd.Timedelta(minutes=10)
-            + pd.Timedelta(nanoseconds=1)
-        ),
-        native_evidence_unit_minutes=10.0,
-        local_baseline_db=-4.0,
-        pre_baseline_db=-4.0,
-        post_baseline_db=-4.0,
-        pre_flank_start_utc=None,
-        pre_flank_end_utc=None,
-        post_flank_start_utc=None,
-        post_flank_end_utc=None,
-        robust_spread_db=1.0,
-        robust_spread_method="mad",
-        minimum_robust_z=3.0,
-        minimum_departure_db=6.0,
-        labels=_overlay_labels(),
-    )
-
-    recipe = build_drilldown_zoom_benchmark_delta_snr_recipe(
-        evidence,
-        start_utc=START_UTC,
-        end_utc=END_UTC,
-        title="SEL (SE00) - Time Window: 00:00 to 12:00 UTC",
-        panel_title="Delta SNR over Time",
-        x_label="Planned Target start (UTC)",
-        y_label="Delta SNR (dB)",
-        empty_text="No complete Scheduled Pairs.",
-        evidence_unit_label="Individual complete Scheduled Pair",
-        is_sequential=True,
-        outlier_overlay=overlay,
-    )
-
-    assert len(station_rows) == 7
-    assert len(comparison_units) == 2
-    assert recipe["point_count"] == 2
-    assert recipe["evidence_unit_kind"] == "complete_scheduled_pair"
-    assert recipe["metric_db"].tolist() == pytest.approx([3.0, 2.0])
-    assert recipe["point_utc_ns"].tolist() == [
-        int(START_UTC.value),
-        int((START_UTC + pd.Timedelta(minutes=10)).value),
-    ]
-    assert recipe["outlier_overlay"][
-        "native_evidence_unit_width_ns"
-    ] == int(pd.Timedelta(minutes=10).value)
-    assert recipe["outlier_overlay"][
-        "focused_episode_visual_start_utc_ns"
-    ] == int((START_UTC - pd.Timedelta(minutes=5)).value)
-    assert recipe["outlier_overlay"][
-        "focused_episode_visual_end_utc_ns"
-    ] == int((START_UTC + pd.Timedelta(minutes=15)).value)
-    rendered_figure = render_drilldown_zoom_benchmark_delta_snr_figure(recipe)
-    try:
-        rendered_figure.canvas.draw()
-    finally:
-        rendered_figure.clear()
 
 
 def test_outlier_overlay_uses_exact_modified_robust_z_boundaries():
@@ -348,7 +254,7 @@ def test_impulse_focus_band_has_one_native_unit_and_clips_to_zoom_window():
         y_label="Delta SNR (dB)",
         empty_text="No paired evidence.",
         evidence_unit_label="Individual Joint Spot",
-        is_sequential=False,
+
         outlier_overlay=overlay,
     )
     figure = render_drilldown_zoom_benchmark_delta_snr_figure(recipe)
@@ -403,6 +309,15 @@ def test_renderer_requires_visible_representative_among_qualifying_markers():
         match="visible focused representative",
     ):
         render_drilldown_zoom_benchmark_delta_snr_figure(modified)
+
+
+@pytest.mark.parametrize("renderer", [
+    render_drilldown_zoom_performance_snr_figure,
+    render_drilldown_zoom_benchmark_delta_snr_figure,
+])
+def test_native_zoom_renderer_rejects_retired_density_recipes(renderer):
+    with pytest.raises(ValueError, match="native recipe kind"):
+        renderer({"schema_version": 1, "kind": "segment_temporal_snr"})
 
 
 def test_native_benchmark_renderer_draws_points_and_detector_guides_without_density():
@@ -639,7 +554,7 @@ def test_native_recipe_owns_input_arrays_and_overlay_payload():
         y_label="Delta SNR",
         empty_text="Empty",
         evidence_unit_label="Joint Spot",
-        is_sequential=False,
+
         outlier_overlay=overlay,
     )
 
@@ -888,12 +803,7 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
                 {"peer_sign": ["DG2CAD"], "peer_grid": ["JN47mv"]}
             ),
             None,
-            False,
-            SimpleNamespace(
-                tx_ab_repeat_interval_minutes=10,
-                tx_ab_target_start_minute=0,
-                tx_ab_reference_start_minute=2,
-            ),
+
             focus_window,
             "2m",
             {"reference_snr_correction_notice": ""},
@@ -944,12 +854,7 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
                 {"peer_sign": ["DG2CAD"], "peer_grid": ["JN47mv"]}
             ),
             None,
-            False,
-            SimpleNamespace(
-                tx_ab_repeat_interval_minutes=10,
-                tx_ab_target_start_minute=0,
-                tx_ab_reference_start_minute=2,
-            ),
+
             focus_window,
             "2m",
             {"reference_snr_correction_notice": ""},

@@ -7,7 +7,6 @@ from numbers import Integral
 import streamlit as st
 
 from core.analysis_context import (
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
@@ -76,8 +75,6 @@ def _comparison_benchmark_guidance_key(analysis_context):
         "comparison_mode",
         COMPARISON_NONE,
     )
-    if comparison_mode == COMPARISON_HARDWARE_AB:
-        return "benchmark_hardware"
     if comparison_mode == COMPARISON_REFERENCE_STATION:
         return "benchmark_reference"
     if comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
@@ -99,7 +96,6 @@ def _result_guidance_item_keys(
     *,
     direction,
     is_compare,
-    is_sequential,
     analysis_context,
     selected_station_count=None,
     allows_multiple_station_selection=False,
@@ -114,23 +110,12 @@ def _result_guidance_item_keys(
 
     if direction not in {"RX", "TX"}:
         raise ValueError("Result guidance requires an RX or TX analysis ID")
-    if is_sequential and (
-        not is_compare
-        or direction != "TX"
-        or getattr(analysis_context, "comparison_mode", COMPARISON_NONE)
-        != COMPARISON_HARDWARE_AB
-    ):
-        raise ValueError(
-            "Scheduled result guidance is valid only for TX Hardware A/B Benchmark"
-        )
 
     if section_id == RESULT_GUIDANCE_CONTEXT:
         if not is_compare:
             return [f"context_{direction.lower()}_success"]
         context_key = (
-            "context_tx_compare_scheduled"
-            if is_sequential
-            else f"context_{direction.lower()}_compare"
+            f"context_{direction.lower()}_compare"
         )
         return [
             context_key,
@@ -155,18 +140,14 @@ def _result_guidance_item_keys(
                 "Benchmark Evidence guidance is unavailable for Performance"
             )
         return [
-            "comparison_evidence_scheduled"
-            if is_sequential
-            else "comparison_evidence_joint"
+            "comparison_evidence_joint"
         ]
 
     if section_id == RESULT_GUIDANCE_TEMPORAL_EVIDENCE:
         if not is_compare:
             return [f"success_temporal_evidence_{direction.lower()}"]
         return [
-            "temporal_evidence_scheduled"
-            if is_sequential
-            else "temporal_evidence_joint"
+            "temporal_evidence_joint"
         ]
 
     if section_id == RESULT_GUIDANCE_OUTLIER_REPORT:
@@ -187,9 +168,7 @@ def _result_guidance_item_keys(
         if not is_compare:
             return [f"station_insights_success_{direction.lower()}"]
         station_insights_key = (
-            "station_insights_compare_scheduled"
-            if is_sequential
-            else "station_insights_compare_joint"
+            "station_insights_compare_joint"
         )
         if allows_multiple_station_selection:
             station_insights_key += "_multi"
@@ -222,9 +201,7 @@ def _result_guidance_item_keys(
             )
         return [
             (
-                "selected_compare_scheduled"
-                if is_sequential
-                else "selected_compare_joint"
+                "selected_compare_joint"
             )
             + ("_multi" if selected_station_count > 1 else "")
         ]
@@ -233,9 +210,7 @@ def _result_guidance_item_keys(
         if not is_compare:
             return [f"drilldown_success_{direction.lower()}"]
         item_keys = [
-            "drilldown_compare_scheduled"
-            if is_sequential
-            else "drilldown_compare_joint"
+            "drilldown_compare_joint"
         ]
         if (
             getattr(analysis_context, "comparison_mode", COMPARISON_NONE)
@@ -260,7 +235,6 @@ def build_result_guidance(
     translations,
     analysis_id="",
     is_compare=False,
-    is_sequential=False,
     analysis_context=None,
     selected_station_count=None,
     allows_multiple_station_selection=False,
@@ -286,7 +260,6 @@ def build_result_guidance(
         section_id,
         direction=direction,
         is_compare=bool(is_compare),
-        is_sequential=bool(is_sequential),
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
         allows_multiple_station_selection=bool(
@@ -324,7 +297,6 @@ def render_result_guidance_popover(
     key,
     analysis_id="",
     is_compare=False,
-    is_sequential=False,
     analysis_context=None,
     selected_station_count=None,
     allows_multiple_station_selection=False,
@@ -340,7 +312,6 @@ def render_result_guidance_popover(
         translations=translations,
         analysis_id=analysis_id,
         is_compare=is_compare,
-        is_sequential=is_sequential,
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
         allows_multiple_station_selection=(

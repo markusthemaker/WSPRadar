@@ -43,7 +43,6 @@ def render_segment_inspector(
     analysis_id,
     title,
     is_compare,
-    is_sequential,
     enriched_df,
     parquet_path,
     line1_str,
@@ -65,7 +64,6 @@ def render_segment_inspector(
             analysis_id,
             title,
             is_compare,
-            is_sequential,
             enriched_df,
             parquet_path,
             line1_str,
@@ -95,7 +93,6 @@ def _render_segment_inspector_body(
     analysis_id,
     title,
     is_compare,
-    is_sequential,
     enriched_df,
     parquet_path,
     line1_str,
@@ -112,7 +109,7 @@ def _render_segment_inspector_body(
     """Bind completed-run inputs once, then render the inspector page flow."""
     context = InspectorContext(
         analysis_id=analysis_id, title=title, is_compare=is_compare,
-        is_sequential=is_sequential, parquet_path=parquet_path,
+         parquet_path=parquet_path,
         line1_str=line1_str, translations=t,
         max_peer_distance_km=max_peer_distance_km,
         analysis_context=analysis_context, presentation_context=presentation_context,
@@ -244,7 +241,7 @@ def _render_prepared_outlier_report(context, scope, model, report, session_state
     render_delta_snr_outlier_report(
         model, report, t=context.translations, language=context.language,
         analysis_id=context.analysis_id, run_id=context.run_id,
-        scope_token=scope.scope_token, is_sequential=context.is_sequential,
+        scope_token=scope.scope_token,
         analysis_context=context.analysis_context, session_state=session_state,
     )
 
@@ -255,7 +252,7 @@ def _render_empty_scope(context, scope, preparation, policy, session_state):
     if policy is not None:
         model, report = preparation.prepare_empty_outlier_report(context, detection_policy=policy)
         outlier_exports = preparation.prepare_outlier_exports(
-            model, report, is_sequential=context.is_sequential,
+            model, report,
         )
         _render_prepared_outlier_report(context, scope, model, report, session_state)
     register_empty_inspector_outputs(

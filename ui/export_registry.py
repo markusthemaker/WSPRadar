@@ -2,7 +2,7 @@
 
 Borrowed payloads are validated by the export adapter before reaching this
 module. Registered content is detached from callers; projecting a field or a
-complete block always returns independent mutable content for legacy renderers.
+complete block always returns independent mutable content for current renderers.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from ui.export_content import OwnedExportContent, content_signature
 
 
 MAP_EXPORT_FIELDS = frozenset({
-    "analysis_id", "title", "mode_folder", "is_compare", "is_sequential",
+    "analysis_id", "title", "mode_folder", "is_compare",
     "analysis_kind", "performance_method_version", "decode_filter_mode",
     "database_source", "map_context",
 })

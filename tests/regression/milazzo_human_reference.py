@@ -103,7 +103,8 @@ def replay_performance(fixture_directory, work_directory,
     from core.presentation_context import PresentationContext
     from i18n import T
     from ui.analysis_context_adapter import build_analysis_context_from_session_state
-    from ui.config_io import apply_config_state_values, validate_config_document
+    from ui.config_io import apply_config_state_values
+    from frozen_reference_adapter import validate_frozen_reference_document, frozen_context_projection
     from ui.inspector.contracts import InspectorContext, InspectorScope, StationInsightsView
     from ui.inspector.preparation import InspectorPreparation
 
@@ -112,7 +113,7 @@ def replay_performance(fixture_directory, work_directory,
     work_directory.mkdir(parents=True, exist_ok=True)
     document = read_reference_json(fixture_directory, "performance.config")
     source_rows = pd.read_parquet(fixture_directory / "network_source.parquet")
-    configuration = validate_config_document(document)
+    configuration = validate_frozen_reference_document(document)
     session_values = {"lang": "en"}
     apply_config_state_values(configuration, session_values)
     session_values["run_mode"] = configuration["analysis_direction"].upper()
@@ -138,20 +139,20 @@ def replay_performance(fixture_directory, work_directory,
     processed.to_parquet(processed_path, index=False)
     map_result = build_map_data_result(
         processed, analysis_id=analysis.id, is_compare=analysis.is_compare,
-        is_sequential=analysis.is_sequential, analysis_kind=analysis.analysis_kind,
+         analysis_kind=analysis.analysis_kind,
         center_latitude=latitude, center_longitude=longitude,
         min_spots=context.min_joint_spots_per_station,
         min_opportunities=context.min_confirmed_opportunities_per_peer,
         base_min_stations=context.min_joint_stations_per_map_segment,
-        tx_ab_repeat_interval_minutes=context.tx_ab_repeat_interval_minutes,
-        tx_ab_target_start_minute=context.tx_ab_target_start_minute,
-        tx_ab_reference_start_minute=context.tx_ab_reference_start_minute,
+
+
+
     )
     assert map_result.diagnostic is None and map_result.map_data is not None
     map_data = map_result.map_data
     inspector = InspectorContext(
         analysis_id=analysis.id, title=analysis.title,
-        is_compare=analysis.is_compare, is_sequential=analysis.is_sequential,
+        is_compare=analysis.is_compare,
         parquet_path=processed_path, line1_str="", translations=T["en"],
         max_peer_distance_km=context.max_peer_distance_km,
         analysis_context=context, presentation_context=presentation,

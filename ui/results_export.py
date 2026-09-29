@@ -98,7 +98,7 @@ EXPORTABLE_RESULT_FOLDERS = frozenset(
     {BENCHMARK_EXPORT_FOLDER, PERFORMANCE_EXPORT_FOLDER}
 )
 PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION = 1
-TEMPORAL_SNR_EXPORT_RENDER_VERSION = 9
+TEMPORAL_SNR_EXPORT_RENDER_VERSION = 10
 TEMPORAL_IQR_EXPORT_LINEWIDTH = 0.4
 DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION = DRILLDOWN_FOCUS_SCHEMA_VERSION
 DRILLDOWN_ZOOM_PERFORMANCE_FIGURE_EXPORTS = (
@@ -256,7 +256,6 @@ OUTLIER_EXPORT_DEPARTURE_TRANSLATION_KEYS = {
 }
 OUTLIER_EXPORT_PAIRED_UNIT_TRANSLATION_KEYS = {
     "joint_spot": "txt_export_outlier_paired_unit_joint",
-    "complete_scheduled_pair": "txt_export_outlier_paired_unit_scheduled",
 }
 OUTLIER_EXPORT_BOUNDARY_TRANSLATION_KEYS = {
     "start": "txt_export_outlier_boundary_start",
@@ -589,7 +588,6 @@ def register_map_export_context(payload: MapExportPayload):
             else PERFORMANCE_EXPORT_FOLDER
         ),
         "is_compare": bool(analysis["is_compare"]),
-        "is_sequential": bool(analysis["is_sequential"]),
         "analysis_kind": analysis["analysis_kind"],
         "performance_method_version": analysis.get("absolute_method_version"),
         "decode_filter_mode": analysis.get("decode_filter_mode"),
@@ -600,7 +598,6 @@ def register_map_export_context(payload: MapExportPayload):
                 "schema_version": MAP_DATA_ARTIFACT_SCHEMA_VERSION,
                 "analysis_id": str(analysis["id"]),
                 "is_compare": bool(analysis["is_compare"]),
-                "is_sequential": bool(analysis["is_sequential"]),
                 "analysis_kind": str(analysis["analysis_kind"]),
                 "station_rows_path": station_rows_path,
                 "segment_rows_path": segment_rows_path,
@@ -1975,7 +1972,6 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None, *, pa
                 "show_zero_target": block.get("show_zero_target"),
                 "evidence_time_bin": block.get("evidence_time_bin"),
                 "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
-                "is_sequential": block.get("is_sequential"),
                 "performance_method_version": block.get(
                     "performance_method_version"
                 ),
@@ -2059,7 +2055,6 @@ def _map_context_export_signature(context):
             "schema_version": map_artifacts.get("schema_version"),
             "analysis_id": map_artifacts.get("analysis_id"),
             "is_compare": map_artifacts.get("is_compare"),
-            "is_sequential": map_artifacts.get("is_sequential"),
             "analysis_kind": map_artifacts.get("analysis_kind"),
             "station_artifact": _artifact_export_signature(
                 map_artifacts.get("station_rows_path")
@@ -2236,7 +2231,6 @@ def _render_map_png_for_block(block, *, translations=None):
         "schema_version": MAP_DATA_ARTIFACT_SCHEMA_VERSION,
         "analysis_id": analysis_id,
         "is_compare": bool(block.get("is_compare")),
-        "is_sequential": bool(block.get("is_sequential")),
         "analysis_kind": str(block.get("analysis_kind", "")),
     }
     if any(
@@ -2274,7 +2268,6 @@ def _render_map_png_for_block(block, *, translations=None):
             map_data_paths,
             analysis_id=expected_identity["analysis_id"],
             is_compare=expected_identity["is_compare"],
-            is_sequential=expected_identity["is_sequential"],
             analysis_kind=expected_identity["analysis_kind"],
         )
     except Exception as exc:
@@ -2484,26 +2477,12 @@ def _build_all_drilldown_for_block(block, *, translations=None):
             context["km_col"],
             context["az_col"],
             context["analysis_id"],
-            context["is_sequential"],
             context["show_non_joint"],
             context["is_local_median"],
             context["col_u_name"],
             context["ref_header"],
             t,
             station_rows_df=station_rows_df,
-            tx_ab_repeat_interval_minutes=context.get(
-                "tx_ab_repeat_interval_minutes",
-                10,
-            ),
-            tx_ab_target_start_minute=context.get(
-                "tx_ab_target_start_minute",
-                0,
-            ),
-            tx_ab_reference_start_minute=context.get(
-                "tx_ab_reference_start_minute",
-                2,
-            ),
-            target_callsign=context.get("target_callsign", ""),
         )
         return drilldown_df
     except (OSError, KeyError, TypeError, ValueError) as exc:
@@ -2778,7 +2757,6 @@ def _share_analysis_content(translations):
     comparison_mode = st.session_state.get("val_comp_mode", "none")
     mode_label_key = {
         "none": "share_mode_performance",
-        "hardware_ab": "share_mode_hardware_ab",
         "reference_station": "share_mode_reference_station",
         "local_neighborhood": "share_mode_local_neighborhood",
     }[comparison_mode]

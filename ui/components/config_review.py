@@ -24,16 +24,7 @@ def is_canonical_configuration_ready(state: Mapping[str, Any]) -> bool:
         return False
 
     comparison_mode = state.get("val_comp_mode")
-    requires_reference_callsign = bool(
-        comparison_mode == "reference_station"
-        or (
-            comparison_mode == "hardware_ab"
-            and (
-                state.get("val_analysis_direction") == "rx"
-                or state.get("val_tx_ab_method") == "simultaneous"
-            )
-        )
-    )
+    requires_reference_callsign = comparison_mode == "reference_station"
     if requires_reference_callsign:
         reference_callsign = normalize_ascii_upper(
             state.get("val_ref_callsign")
@@ -43,9 +34,8 @@ def is_canonical_configuration_ready(state: Mapping[str, Any]) -> bool:
             or reference_callsign == target_callsign
         ):
             return False
-    if comparison_mode == "reference_station" and not is_valid_grid4(
-        normalize_ascii_upper(state.get("val_ref_qth"))
-    ):
+    reference_qth = normalize_ascii_upper(state.get("val_ref_qth"))
+    if comparison_mode == "reference_station" and reference_qth and not is_valid_grid4(reference_qth):
         return False
 
     try:
@@ -79,16 +69,7 @@ def evidence_value_summary(
     """Return the active result method's localized evidence thresholds."""
     messages = guided_content["messages"]
     is_benchmark = state.get("val_comp_mode") != "none"
-    is_scheduled_tx = bool(
-        state.get("val_analysis_direction") == "tx"
-        and state.get("val_comp_mode") == "hardware_ab"
-        and state.get("val_tx_ab_method") == "sequential"
-    )
-    evidence_message_key = (
-        "scheduled_evidence"
-        if is_scheduled_tx
-        else "compare_evidence" if is_benchmark else "success_evidence"
-    )
+    evidence_message_key = "compare_evidence" if is_benchmark else "success_evidence"
     return messages[evidence_message_key].format(
         value=(
             state.get("val_min_spots", 1)
@@ -109,7 +90,7 @@ def reference_review_value(
     if benchmark_mode == "reference_station":
         return (
             f"{str(state.get('val_ref_callsign', '')).upper()} · "
-            f"{str(state.get('val_ref_qth', '')).upper()} · "
+            f"{str(state.get('val_ref_qth', '')).upper() or guided_content['messages']['reference_location_pending_short']} · "
             f"{options['reference_design'][benchmark_mode]['label']}"
         )
     if benchmark_mode == "local_neighborhood":
@@ -120,25 +101,7 @@ def reference_review_value(
             f"{options['local_benchmark'][local_method]['label']} · "
             f"{state.get('val_ref_radius_km', 100)} km"
         )
-    if (
-        state.get("val_analysis_direction") == "tx"
-        and state.get("val_tx_ab_method") == "sequential"
-    ):
-        return guided_content["messages"]["review_tx_sequential_value"].format(
-            method=options["tx_ab_method"]["sequential"]["label"],
-            repeat=state.get("val_tx_ab_repeat_interval_minutes", 10),
-            target=int(state.get("val_tx_ab_target_start_minute", 0)),
-            reference=int(state.get("val_tx_ab_reference_start_minute", 2)),
-        )
-    if state.get("val_analysis_direction") == "tx":
-        return guided_content["messages"]["review_tx_simultaneous_value"].format(
-            callsign=str(state.get("val_ref_callsign", "")).upper(),
-            method=options["tx_ab_method"]["simultaneous"]["label"],
-        )
-    return (
-        f"{str(state.get('val_ref_callsign', '')).upper()} · "
-        f"{options['reference_design']['hardware_ab']['label']}"
-    )
+    return "—"
 
 
 def render_configuration_review(

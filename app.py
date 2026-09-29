@@ -69,6 +69,8 @@ from ui.analysis_submission_state import (
     finish_analysis_submission,
     get_analysis_submission,
 )
+from ui.input_validation_state import attempt_input_validation, validation_message, validation_focus_key
+from ui.reference_location import resolve_reference_before_analysis
 from ui.run_lifecycle import fail_analysis_run, initialize_analysis_run
 from ui.state_manager import init_session_state
 from ui.time_window import (
@@ -370,7 +372,14 @@ with results_region:
 
 
     def request_main_analysis_submission():
-        """Claim the Run action while keeping its live status area in view."""
+        """Validate at the fields before creating an execution request."""
+        errors = attempt_input_validation(st.session_state, t)
+        if errors:
+            request_page_navigation(
+                st.session_state, PARAMETER_SETTINGS_ANCHOR_ID, should_scroll=True,
+                focus_field=validation_focus_key(st.session_state, next(iter(errors))),
+            )
+            return
         if st.session_state.input_view == "guided":
             st.session_state.guided_collapse_all = True
         else:
@@ -473,11 +482,7 @@ with results_region:
             key="run_analysis_button",
             type="primary",
             width="stretch",
-            disabled=(
-                analysis_direction not in {"rx", "tx"}
-                or time_window_validation_error is not None
-                or not input_configuration_ready
-            ),
+            disabled=False,
             on_click=request_main_analysis_submission,
         )
 
@@ -512,7 +517,14 @@ with results_region:
                     is_configuration_ready=input_configuration_ready,
                 )
     else:
-        run_analysis_button_slot = st.empty()
+        with configuration_region:
+            run_analysis_button_slot = st.empty()
+            render_run_analysis_button(is_busy=submission_snapshot is not None)
+
+    if st.session_state.get("_input_validation_attempted"):
+        from ui.input_validation_state import validate_input_fields
+        if validate_input_fields(st.session_state, t):
+            result_feedback_region.error(validation_message(st.session_state, "summary"))
 
     is_new_analysis_submission = bool(
         submission_request is not None
@@ -520,61 +532,18 @@ with results_region:
     )
     submission_initialization_failed = False
     if is_new_analysis_submission:
-        requires_reference_identity = (
-            comp_mode == "reference_station"
-            or (
-                comp_mode == "hardware_ab"
-                and (
-                    analysis_direction == "rx"
-                    or st.session_state.get("val_tx_ab_method") == "simultaneous"
-                )
-            )
-        )
-        if not is_valid_callsign(callsign):
-            result_feedback_region.error(t["err_callsign_format"])
+        errors = attempt_input_validation(st.session_state, t)
+        if errors:
+            result_feedback_region.error(validation_message(st.session_state, "summary"))
             fail_analysis_run(st.session_state)
             submission_initialization_failed = True
-        elif not is_valid_locator(qth_locator):
-            result_feedback_region.error(t["err_qth_format"])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-        elif time_window_validation_error is not None:
-            time_error_key = time_window_validation_message_key(
-                time_window_validation_error
-            )
-            result_feedback_region.error(t[time_error_key])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-        elif requires_reference_identity:
-            reference_callsign = normalize_ascii_upper(
-                st.session_state.get("val_ref_callsign", "")
-            )
-            reference_grid4 = normalize_ascii_upper(
-                st.session_state.get("val_ref_qth", "")
-            )
-            if not reference_callsign:
-                result_feedback_region.error(t["err_reference_callsign_required"])
-                fail_analysis_run(st.session_state)
-                submission_initialization_failed = True
-            elif not is_valid_callsign(reference_callsign):
-                result_feedback_region.error(t["err_reference_callsign_format"])
-                fail_analysis_run(st.session_state)
-                submission_initialization_failed = True
-            elif reference_callsign == callsign:
-                result_feedback_region.error(t["err_reference_callsign_same"])
-                fail_analysis_run(st.session_state)
-                submission_initialization_failed = True
-            elif comp_mode == "reference_station" and not reference_grid4:
-                result_feedback_region.error(t["err_reference_qth_required"])
-                fail_analysis_run(st.session_state)
-                submission_initialization_failed = True
-            elif (
-                comp_mode == "reference_station"
-                and not is_valid_grid4(reference_grid4)
-            ):
-                result_feedback_region.error(t["err_reference_grid4_format"])
-                fail_analysis_run(st.session_state)
-                submission_initialization_failed = True
+        elif comp_mode == "reference_station":
+            with result_feedback_region:
+                if not resolve_reference_before_analysis(
+                    st.session_state, candidate_start_t, candidate_end_t, request_lookup=True,
+                ):
+                    submission_initialization_failed = True
+                    st.session_state.run_mode = None
         if not submission_initialization_failed:
             initialize_analysis_run(
                 st.session_state,
@@ -586,6 +555,17 @@ with results_region:
             for key in list(st.session_state.keys()):
                 if key.startswith("img_buf_"):
                     del st.session_state[key]
+
+    elif (
+        comp_mode == "reference_station"
+        and candidate_start_t is not None and candidate_end_t is not None
+        and st.session_state.get("_reference_location_resolution")
+        and not is_existing_run_rerender
+    ):
+        with result_feedback_region:
+            resolve_reference_before_analysis(
+                st.session_state, candidate_start_t, candidate_end_t,
+            )
 
     result_feedback_region.markdown('<hr style="border: none; border-top: 1px solid rgba(57, 255, 20, 0.3); margin: 2rem 0;">', unsafe_allow_html=True)
 

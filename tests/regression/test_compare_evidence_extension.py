@@ -640,7 +640,7 @@ def test_simultaneous_units_preserve_target_active_gate_asymmetry():
     units = _build_compare_unit_rows(
         station_rows,
         identities,
-        is_sequential=False,
+
     )
 
     assert dict(zip(units["peer_sign"], units["outcome"])) == {
@@ -675,7 +675,7 @@ def test_empty_compare_units_retain_component_snr_schema():
     units = _build_compare_unit_rows(
         pd.DataFrame(),
         pd.DataFrame(),
-        is_sequential=False,
+
     )
 
     assert units.empty
@@ -737,62 +737,6 @@ def test_coverage_keeps_only_station_categories_retained_by_threshold():
     ]
 
 
-def test_scheduled_pairs_use_planned_target_time_and_per_side_micro_medians():
-    """Reduce scheduled decodes to Joint and one-sided planned-pair outcomes."""
-    station_rows = pd.DataFrame(
-        {
-            "peer_sign": ["A1AAA"] * 7,
-            "peer_grid": ["AA00"] * 7,
-            "time": pd.to_datetime(
-                [
-                    "2026-07-01T00:00Z",
-                    "2026-07-01T00:00Z",
-                    "2026-07-01T00:02Z",
-                    "2026-07-01T00:02Z",
-                    "2026-07-01T00:10Z",
-                    "2026-07-01T00:22Z",
-                    "2026-07-01T00:04Z",
-                ],
-                utc=True,
-            ),
-            "is_me": [1, 1, 0, 0, 1, 0, 1],
-            "stat_val": [1.0, 5.0, -1.0, 3.0, 7.0, 4.0, 99.0],
-        }
-    )
-    identities = station_rows[["peer_sign", "peer_grid"]].drop_duplicates()
-
-    units = _build_compare_unit_rows(
-        station_rows,
-        identities,
-        is_sequential=True,
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-
-    assert units["outcome"].tolist() == [
-        COMPARE_OUTCOME_JOINT,
-        COMPARE_OUTCOME_TARGET_ONLY,
-        COMPARE_OUTCOME_REFERENCE_ONLY,
-    ]
-    assert units["evidence_utc"].tolist() == list(
-        pd.to_datetime(
-            [
-                "2026-07-01T00:00Z",
-                "2026-07-01T00:10Z",
-                "2026-07-01T00:20Z",
-            ],
-            utc=True,
-        )
-    )
-    assert units["metric"].iloc[0] == 2.0
-    assert units["metric"].iloc[1:].isna().all()
-    assert units["target_snr_db"].iloc[0] == pytest.approx(3.0)
-    assert units["reference_snr_db"].iloc[0] == pytest.approx(1.0)
-    assert units["target_snr_db"].iloc[1] == pytest.approx(7.0)
-    assert pd.isna(units["reference_snr_db"].iloc[1])
-    assert pd.isna(units["target_snr_db"].iloc[2])
-    assert units["reference_snr_db"].iloc[2] == pytest.approx(4.0)
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -997,144 +941,6 @@ def test_selected_path_coverage_recipe_renders_only_comparison_unit_row(
         dispose_matplotlib_figure(figure)
 
 
-@pytest.mark.parametrize("language", ("en", "de"))
-def test_selected_scheduled_coverage_names_pairs_in_titles_and_y_axes(
-    language,
-):
-    """Keep scheduled A/B units distinct from simultaneous WSPR cycles."""
-    units = _canonical_compare_units(
-        [
-            ("A1AAA", "AA00", "2026-07-01T00:00Z", "joint", 1.0, True),
-            (
-                "A1AAA",
-                "AA00",
-                "2026-07-01T01:00Z",
-                "target_only",
-                np.nan,
-                True,
-            ),
-            ("A1AAA", "AA00", "2026-07-02T00:00Z", "joint", 2.0, True),
-            (
-                "A1AAA",
-                "AA00",
-                "2026-07-02T01:00Z",
-                "reference_only",
-                np.nan,
-                True,
-            ),
-        ]
-    )
-    recipe = _coverage_recipe(
-        units,
-        start="2026-07-01T00:00Z",
-        end="2026-07-03T00:00Z",
-        population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
-    )
-    translations = T[language]
-    recipe["labels"].update(
-        {
-            "gate_note": translations[
-                "fig_compare_coverage_gate_scheduled"
-            ],
-            "joint_share_y": translations["fig_compare_joint_share_y"],
-            "selected_joint_share": translations[
-                "fig_selected_compare_joint_share"
-            ],
-            "selected_chronological_title": translations[
-                "fig_selected_compare_coverage_chronological_title"
-            ],
-            "selected_utc_hour_title": translations[
-                "fig_selected_compare_coverage_utc_hour_title"
-            ],
-            "selected_title_unit": translations[
-                "fig_selected_compare_coverage_unit_scheduled"
-            ],
-            "selected_unit_y": translations[
-                "fig_compare_coverage_unit_y_scheduled"
-            ],
-            "selected_unit_folded_y": translations[
-                "fig_compare_coverage_unit_folded_y_scheduled"
-            ],
-        }
-    )
-
-    figure = render_selected_compare_coverage_export_figure(recipe)
-    try:
-        _assert_compare_coverage_header_layout(
-            figure,
-            header_gids=(
-                "selected-compare-coverage-chronological-header",
-                "selected-compare-coverage-folded-header",
-            ),
-        )
-        assert _figure_artist_with_gid(
-            figure,
-            "selected-compare-coverage-chronological-header",
-        ).get_text() == translations[
-            "fig_selected_compare_coverage_chronological_title"
-        ].format(
-            unit=translations[
-                "fig_selected_compare_coverage_unit_scheduled"
-            ],
-            time_bin="1 h",
-        )
-        assert _figure_artist_with_gid(
-            figure,
-            "selected-compare-coverage-folded-header",
-        ).get_text() == translations[
-            "fig_selected_compare_coverage_utc_hour_title"
-        ].format(
-            unit=translations[
-                "fig_selected_compare_coverage_unit_scheduled"
-            ],
-        )
-        assert next(
-            axis
-            for axis in figure.axes
-            if axis.get_gid()
-            == "selected-compare-coverage-chronological-axis"
-        ).get_ylabel() == translations[
-            "fig_compare_coverage_unit_y_scheduled"
-        ]
-        assert next(
-            axis
-            for axis in figure.axes
-            if axis.get_gid()
-            == "selected-compare-coverage-folded-axis"
-        ).get_ylabel() == translations[
-            "fig_compare_coverage_unit_folded_y_scheduled"
-        ]
-        _assert_neighboring_y_labels_do_not_overlap(
-            figure,
-            axis_gid_pairs=(
-                (
-                    "compare-temporal-selected-outcome-chronological-share-axis",
-                    "selected-compare-coverage-folded-axis",
-                ),
-            ),
-        )
-        _assert_folded_y_labels_fit_figure(
-            figure,
-            folded_axis_gids=(
-                "selected-compare-coverage-folded-axis",
-            ),
-            header_gids=(
-                "selected-compare-coverage-chronological-header",
-                "selected-compare-coverage-folded-header",
-            ),
-        )
-        note = _assert_compare_coverage_note_is_in_footer(
-            figure,
-            primary_axis_gids=(
-                "selected-compare-coverage-chronological-axis",
-                "selected-compare-coverage-folded-axis",
-            ),
-        )
-        assert note.get_text() == translations[
-            "fig_compare_coverage_gate_scheduled"
-        ]
-    finally:
-        dispose_matplotlib_figure(figure)
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -1679,7 +1485,7 @@ def test_joint_projection_preserves_existing_absolute_delta_snr_contract():
     comparison_units = _build_compare_unit_rows(
         station_rows,
         identities,
-        is_sequential=False,
+
     )
     assert comparison_units.loc[
         comparison_units["outcome"].eq(COMPARE_OUTCOME_JOINT),
@@ -1701,7 +1507,7 @@ def test_joint_projection_preserves_existing_absolute_delta_snr_contract():
     wrapper_result = _build_evidence_points(
         station_rows,
         identities,
-        is_sequential=False,
+
     )
 
     pd.testing.assert_frame_equal(projected, wrapper_result)

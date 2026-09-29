@@ -75,12 +75,6 @@ python -m streamlit run app.py
 `index.html` and `CNAME` provide a static redirect/domain path to the deployed
 Streamlit application. They are not part of analysis execution.
 
-### Separate Relay Utility
-
-`tools/Timed-AB-Relay-Switch/` is a separate console program for timed USB HID
-relay switching. It has independent requirements, configuration, wrappers, and
-operating risks. The Streamlit application neither imports nor starts it.
-
 ## Component Responsibilities
 
 ### Configuration
@@ -137,9 +131,8 @@ six hours through 24 hours offer the same set with `30m` as the default; runs
 over 24 hours through seven days offer `30m`, `1h`, `2h`, `3h`, `6h`, `12h`,
 and `24h` with `12h` as the default; longer runs offer `1h`, `2h`, `3h`, `6h`,
 `12h`, and `24h`, also defaulting to `12h`. Thus `2h` remains offered in every
-tier. Legacy `5m` and `15m` values remain accepted at configuration and URL
-boundaries, but are hidden for new choices unless an explicit valid loaded
-value must remain selectable. If a configuration is saved before either
+tier. Configuration and URL boundaries accept only the current canonical
+choices; retired compatibility-only `5m` and `15m` inputs are rejected. If a configuration is saved before either
 selected-station control has initialized its durable state, the writer resolves
 and serializes the applicable duration-derived default rather than a fixed
 fallback; an explicit operator choice remains unchanged. Drill-Down zoom
@@ -150,10 +143,10 @@ schema version, while `ui/config_io.py` validates and applies the semantic
 settings. Version 1 is explicitly pre-production, not a first public production
 contract. It may be revised in place before the first production release, and
 earlier unpublished version-1 prototypes are rejected rather than migrated or
-guessed. After a configuration schema has been published for production, a
-subsequent schema bump is incomplete until every preceding supported production
-version has an explicit ordered migration; unsupported versions are rejected
-rather than interpreted with current defaults.
+guessed. Only the current saved-configuration and public-URL contracts are
+accepted: retired mode/result aliases, localized session tokens, duration-specific
+detector fields and former omission-default mappings are not migrated.
+Unsupported versions are rejected rather than interpreted with current defaults.
 
 Local Neighborhood has one supported method, `local_median`, retained explicitly
 in the scientific context, saved configuration, and URL. Guided and Classic show
@@ -173,25 +166,26 @@ offset-establishment workflow. Performance-only documents omit both correction
 fields. Applicable unpublished v1 documents without the mode are rejected:
 neither the numeric value nor profile identity is used to guess its meaning.
 
-Reference Station comparison state stores `reference_callsign` plus an
-independent `reference_qth` constrained to exactly four Maidenhead characters.
-RX Hardware A/B stores only the distinct `reference_callsign`; both displayed
-grid-4 values and both SQL locator predicates derive from core Target `qth`.
+Reference Setup/Station stores an exact `reference_callsign` and the resolved
+four-character `reference_qth`. An empty Reference grid means location discovery
+is still required; no separate manual Reference-locator field is exposed.
+`core/reference_location.py` owns role-, band-, effective-window- and provider-bound
+archive discovery. Candidate grid-4 values retain full reported locator variants,
+report counts and first/last report times. A single candidate resolves automatically;
+multiple candidates require explicit selection. No reports, invalid input and source
+failure remain distinct outcomes. Discovery and the resulting run use the same provider.
+`ui/reference_location_state.py` owns discovery context and stale-selection invalidation;
+`ui/reference_location.py` renders candidate status and selection.
+The discovery query bounds grouped endpoint/locator variants and rejects a truncated
+candidate inventory. Invalid locators cannot establish a selectable grid. It also
+checks that the entered Target grid has eligible Target reports without changing the
+analysis origin. Historical decode fallback follows the existing whole-window policy;
+provider request leases are released before any user choice. A saved current-format
+configuration with a resolved grid retains that selection.
 
-The TX Hardware A/B branch records a required `tx_ab_method`. New session state
-defaults to `simultaneous`; that active branch stores `reference_callsign` and
-derives both comparison grid-4 values from the first four characters of core
-Target `qth`. It deliberately omits redundant `reference_qth`. The `sequential`
-branch instead stores a shared
-`repeat_interval_minutes` plus disjoint `target_start_minute` and
-`reference_start_minute` phases. The UI exposes **Repeat Interval**,
-**Target Start**, and **Reference Start** only for sequential operation, offers
-intervals of 4, 6, 10, 12, 20, 30, or 60 minutes, restricts starts to distinct
-even phases below the interval, and defaults them to 10, 0, and 2 minutes.
-Sequential Benchmark always assigns planned pairs from this schedule; the
-unpublished fixed-bin prototype is not a supported runtime branch. This remains
-schema version 1: pre-production v1 documents without the now-required active
-branch fields are rejected rather than migrated or guessed.
+Reference Neighbourhood uses the Local Median algorithm. All Benchmark pairing is same-cycle; scheduled TX
+methods and schedule fields are no longer supported. Unpublished configurations using
+retired branch fields are rejected, not silently reinterpreted.
 
 The reusable configuration's optional `profile` carries the stable ID and
 localized presentation text used by built-in demos. `config/demo_profiles.py`
@@ -214,7 +208,7 @@ cache policy. The visible metadata panel and profile identity used by a later
 save remain while only population filters, evidence thresholds or result-view
 controls are adapted; they are removed when the operator changes the experiment
 definition: Question/direction/result family, Target callsign/QTH/band/window,
-Benchmark design or Reference, neighborhood radius, sequential schedule, or
+Benchmark design or Reference, neighborhood radius, or
 correction intent/value. Population- or evidence-changing scientific callbacks
 also release both Performance and Benchmark selected-station identities because
 the former path may not survive the new run. Result-view-only controls do not.
@@ -228,7 +222,7 @@ the footer and a queued rerun discards its pending parent-container messages
 (observed with Streamlit 1.64.0). It collects the profile title, optional description and stable ID,
 then prepares bytes from the current durable inspector state without rerunning
 the scientific analysis. The serialized `time_selection` always carries the
-same quantized absolute UTC boundaries held by the canonical editor state and
+same minute-precision absolute UTC boundaries held by the canonical editor state and
 used by the query.
 
 ### Input Editors
@@ -245,14 +239,14 @@ terminal Review panel. Guided renders every applicable filter, scope, and
 evidence control when that step is available; it has no general-purpose versus
 customize selector. Result-family defaults, loaded configurations, and demos
 populate those canonical visible fields directly. Rendering a loaded value is
-not an edit and therefore does not by itself retire demo provenance. A newly
-selected Benchmark may therefore have valid transient RX/TX Benchmark intent
-while canonical `val_comp_mode` remains
-`none` until Hardware A/B, Reference Station, or Local Neighborhood is chosen.
-During that incomplete state, Run, Save Config, and public-URL synchronization
-are gated, while the advanced panel explicitly routes Benchmark thresholds, so
-the canonical `none` value cannot be misrepresented as an intentional
-Performance configuration. Correction mode is
+not an edit and therefore does not by itself retire demo provenance. Selecting
+RX/TX Benchmark without an existing design initializes canonical `val_comp_mode`
+to `reference_station`; an existing Reference Setup/Station or Reference
+Neighbourhood choice is preserved. Run remains available to report incomplete or
+invalid fields, while submission requires valid inputs and resolved Reference
+discovery when applicable. Save Config and public-URL synchronization require a
+valid canonical configuration. The advanced panel routes Benchmark thresholds
+for Benchmark intent. Correction mode is
 different: it is durable operator provenance
 stored in the configuration, held in the canonical
 `val_snr_correction_mode` field, and preserved when editors switch. Guided
@@ -281,8 +275,8 @@ configuration, or public URLs.
 
 The four canonical time fields hold absolute UTC start/end dates and times.
 `ui/time_window.py` initializes them once per session as the 24 hours ending at
-the current 15-minute UTC boundary. Editing either endpoint floors it to that
-same quantum and writes the effective value back before callbacks, config
+the current UTC minute. Every entered minute is preserved; only seconds and
+microseconds are removed before callbacks, config
 serialization, URL synchronization, Guided summaries, or analysis execution
 read the state. Reset resolves a fresh absolute default; ordinary reruns do not
 advance it.
@@ -335,13 +329,12 @@ submission; loading alone still starts no analysis.
 
 `core/analysis_context.py` defines an immutable `AnalysisContext` containing
 canonical scientific settings. `ui/analysis_context_adapter.py` translates
-canonical Streamlit session values into that context. Reference
-Station identity consists of `reference_callsign` plus an independently entered,
-exactly four-character `reference_qth` grid. RX and simultaneous TX Hardware A/B
-carry only the distinct `reference_callsign`; both sides use the grid-4 derived
-from core Target `qth`. TX Hardware A/B additionally carries the canonical
-`tx_ab_method`. Target and Reference role names are presentation terms and do
-not replace these scientific identity fields.
+canonical Streamlit session values into that context. Fixed Reference identity is
+`reference_callsign` plus the resolved four-character `reference_qth`. Target selection
+uses its exact callsign and the first four characters of `qth`; its complete four- or
+six-character QTH remains the geographic origin. Controlled setups and independent
+stations use the same fixed-reference matching contract. Target and Reference roles
+do not replace their scientific identity fields.
 
 `snr_correction_mode` does not enter `AnalysisContext`, SQL, cache identity or
 the scientific request fingerprint. It records why a correction value is being
@@ -514,28 +507,22 @@ be changed as a generic query optimization.
 `core/analysis_runner.py` builds ClickHouse SQL for:
 
 - TX and RX comparison analyses;
-- local, fixed-reference and same-cycle hardware A/B comparisons;
-- periodic scheduled TX A/B comparisons;
+- same-cycle Reference Setup/Station and Reference Neighbourhood comparisons;
 - TX and RX opportunity analyses.
 
 All analysis SQL uses the half-open UTC predicate `start <= time < end`.
-Scheduled TX A/B post-fetch eligibility applies the same convention to both
-planned starts, so adjacent windows cannot share an observation or planned
-pair.
+Adjacent windows therefore cannot share an endpoint observation.
 
 Every Performance and Benchmark Target branch requires the exact direction-specific
 callsign and a reported endpoint locator whose first four characters equal the
 configured Target QTH grid-4. The complete four- or six-character Target QTH is
 retained separately as the geographic origin for map, radius, distance/azimuth,
-and solar calculations. Reference Station requires the exact Reference callsign
-and a reported endpoint locator matching its independently configured, exactly
-four-character Reference grid-4. RX and simultaneous TX Hardware A/B require
-distinct callsigns but derive the shared grid-4 for both sides from Target QTH;
-there is no independent Hardware `reference_qth`. Physical co-location remains
-an experiment invariant that archive rows cannot prove. Local benchmarks select
-geographically eligible callsign/full-locator identities. Sequential TX
-Hardware A/B applies the shared Target callsign and grid-4 to both schedule
-branches.
+and solar calculations. Reference Setup/Station requires a distinct exact Reference
+callsign plus its resolved Reference grid-4. Physical co-location remains an experiment
+invariant that archive rows cannot prove. Reference Neighbourhood selects geographically
+eligible callsign/full-locator contributors. Remote peer pairing retains exact callsign
+plus full reported locator on one band and in the same two-minute UTC slot; no frequency
+equality or cross-cycle pair is inferred.
 
 Special-callsign exclusion has the same remote-peer boundary in Performance and
 Benchmark. `config/app_config.py` owns `SPECIAL_CALLSIGN_PREFIXES` (`Q`, `0`,
@@ -570,12 +557,7 @@ a truncated result. The wrapper encloses complete unions and final aggregations,
 so it limits only transport/output rows and never an individual union branch or
 input to a scientific aggregate. No separate `COUNT(*)` request is made.
 
-For periodic hardware A/B Benchmark work, SQL applies the exact UTC-minute modulo
-predicate for each path's repeat interval and start phase. Comparison post-fetch
-processing rejects rows outside their assigned path schedule and attaches stable
-`tx_ab_pair_id`, `tx_ab_pair_target_time`, and
-`tx_ab_pair_reference_time` columns before evidence is written to Parquet.
-It also applies mode-specific post-fetch synchronization and filtering.
+Post-fetch processing applies same-cycle Target-Active synchronization and filtering.
 
 Geographic Analysis Scope is deliberately a post-fetch scientific gate, not a
 provider-SQL predicate. Provider responses and their raw-query cache entries
@@ -594,15 +576,12 @@ synchronization may therefore use an out-of-scope row to establish that the
 Target was active, but that row cannot subsequently contribute an outcome,
 rate, count, artifact, or export. When moving-station exclusion is enabled, a
 peer's locator history is likewise evaluated before scope filtering, so
-choosing a narrower scope cannot hide evidence that the peer moved. Scheduled
-TX A/B pair assignment also precedes geographic filtering.
+choosing a narrower scope cannot hide evidence that the peer moved.
 
 Solar selection classifies each distinct timestamp once per analysis and maps
 the state back to its original rows. Both Performance and Benchmark use the
 unchanged `get_solar_state` astronomy function at Target QTH. Performance uses
-canonical WSPR-slot timestamps; simultaneous Benchmark retains its existing slot
-conversion, and scheduled TX A/B retains the midpoint between the two planned
-pair timestamps. No timestamp rounding, astronomy approximation, persistent
+canonical WSPR-slot timestamps; Benchmark retains its existing slot conversion. No timestamp rounding, astronomy approximation, persistent
 solar cache, or change to the day/greyline/night boundaries is introduced.
 
 `core/data_engine.py` executes HTTP requests and returns structured
@@ -651,22 +630,15 @@ at a time. Database provenance is distinct from RAM/disk delivery tier.
 
 ### Scientific Engines
 
-`core/compare_engine.py` performs pure comparison aggregation for simultaneous
-and scheduled observations. Simultaneous TX Hardware A/B follows the same
-Target-Active, peer-cycle consolidation, joint Delta SNR and one-sided outcome
-path as other fixed-reference same-cycle comparisons. For periodic TX A/B
-analysis, each planned Target
-slot is paired bijectively with its nearest planned Reference slot. An exact
-half-interval tie pairs the lower and higher phases in the same repeat cycle,
-independent of which path is called Target. Aggregation includes peer identity
-in the pair key, takes a micro-median when one peer has multiple decoded rows
-on either side of a scheduled pair, and computes Delta only for a pair with
-both sides. Boundary pairs are admitted only when both planned transmission
-starts satisfy `start <= planned_start < end`.
+`core/compare_engine.py` performs pure same-cycle comparison aggregation. Reference
+Setup/Station and Reference Neighbourhood retain Target-Active conditioning, exact
+peer-cycle consolidation, Joint-only Delta SNR and one-sided outcomes. An identity
+with observations on both sides in different cycles can retain Both (Async) coverage
+without creating a paired Delta SNR.
 
 Benchmark weighting and segment support share the exact peer identity
 `peer_sign` plus full reported `peer_grid`. Each identity independently meets
-the Joint-observation or complete-Scheduled-Pair threshold, contributes one
+the Joint-observation threshold, contributes one
 peer median, and counts once toward the segment minimum. The segment `cnt`
 therefore counts qualifying peer identities rather than unique callsigns.
 Different full locators under one callsign remain separate, including locators
@@ -675,8 +647,6 @@ but contribute neither a Delta-SNR median nor support for that segment median.
 Footer, Inspector, and export station counts use the same identity contract;
 these counts do not establish independent physical stations or sites.
 
-`core/tx_ab_schedule.py` owns supported repeat-interval and start validation,
-the exact ClickHouse schedule predicate, and stable planned-pair assignment.
 `core/snr_utils.py` centralizes
 normalized-SNR rounding and CSV formatting. `core/evidence_statistics.py`
 centralizes neutral evidence-metric formatting, histogram-bin selection and
@@ -697,10 +667,11 @@ processed schema deliberately:
 
 `core/input_validation.py` contains dependency-free callsign and Maidenhead
 locator validation. Core Target QTH accepts four or six characters; the
-Reference Station comparison field requires exactly one grid-4, while Hardware
-A/B derives its grid-4 from Target QTH rather than accepting Reference locator
-state. `core/time_utils.py` contains dependency-free UTC-minute parsing and
-formatting, default-window resolution, query-time quantization, and effective
+resolved Reference identity requires exactly one grid-4. The shared lightweight
+`ui/input_validation_state.py` records field-level validation issues for Guided and
+Classic Run attempts, supplies actionable messages to the field renderers and clears corrected issues.
+It does not turn archive failure into a callsign validation error. `core/time_utils.py` contains dependency-free UTC-minute parsing and
+formatting, default-window resolution, minute-precision normalization, and effective
 interval validation. Keeping these idle-shell helpers separate prevents
 NumPy-backed geometry from loading before an analysis is requested.
 `core/math_utils.py` retains compatibility exports while owning Maidenhead
@@ -732,8 +703,7 @@ may report a highest observed count only when it is present in the diagnostic,
 and it must never display the configured minimum as though it had been
 observed. Performance Target-only successes contribute once to both success and confirmed
 opportunity counts; their provenance count is never added again. Benchmark preserves its established generic
-no-qualifying-result boundary and records the applicable Joint or complete
-Scheduled-Pair and segment requirements without inventing station-support
+no-qualifying-result boundary and records the applicable Joint and segment requirements without inventing station-support
 maxima that the Benchmark pipeline did not calculate.
 Map preparation owns its working evidence frame and transfers that owner into
 Benchmark or Performance aggregation, which may attach transient columns in place;
@@ -742,11 +712,9 @@ explicitly.
 The initial map read uses `map_preparation_columns` through the existing leased
 Parquet reader. Performance reuses its established map/export projection;
 simultaneous Benchmark keeps peer coordinates and identity, both normalized SNRs,
-presence counts, and Reference summary fields. Scheduled Benchmark keeps peer
-coordinates and identity, the already assigned pair ID, path role, and normalized
-SNR. Detailed Local Median Reference rows and other evidence-only columns remain
+presence counts, and Reference summary fields. Detailed Local Median Reference rows and other evidence-only columns remain
 in the complete staged artifact for inspection and export. This projection is
-for post-filtered evidence, not raw observations requiring pair assignment.
+for post-filtered evidence, not raw observations requiring consolidation.
 Compass and distance labels use lookups over the configured bins. Distance,
 bearing, half-open bin membership, and out-of-bounds segment handling retain
 their established calculations and labels.
@@ -856,7 +824,7 @@ substituting another station or rewriting saved intent. The existing saved
 configuration and URL representations remain unchanged.
 
 The owning adapter initializes and synchronizes transient widget keys, resolves
-time-bin defaults and retained compatibility choices, persists real table
+time-bin defaults and canonical choices, persists real table
 selection events, and applies outlier navigation and focus requests. Startup,
 factory reset, configuration loading, scientific invalidation, and result reset
 delegate their selection changes to this same adapter. Only actual table
@@ -971,8 +939,8 @@ complete active-scope UTC window, requiring at least three successful normalized
 Target SNR observations per station. It precomputes the duration-adaptive
 chronological profiles required by the current run and one fixed one-hour
 UTC-folded profile. The policy is determined from the complete selected window,
-never from the observed evidence span; a valid explicitly loaded legacy `5m` or
-`15m` profile is retained without exposing that width as a normal new choice. Each
+never from the observed evidence span; only current canonical choices are
+accepted by the input boundaries. Each
 chronological density cell receives at most one station-bin median anomaly per
 station; each folded cell receives one station-date-hour median anomaly.
 The bin median and the Q1/Q3 boundaries of the subtle IQR band use those same
@@ -1031,7 +999,7 @@ boxed unavailable notice; chronological panels retain the exact selected UTC
 window. When a Benchmark Delta SNR population has no paired rows, its
 chronological panel remains in place across that complete window, draws no
 density, median or IQR artists, and contains the localized no-paired-evidence
-notice. This state means that no retained Joint unit or complete Scheduled Pair
+notice. This state means that no retained Joint unit
 remains in the displayed scope; the corresponding coverage panel can still
 contain one-sided retained outcomes.
 `ui/plots/temporal_layout.py` owns the shared two-column geometry, lower-row
@@ -1048,13 +1016,11 @@ invalidates cached previews and prepared exports when this renderer changes.
 
 Benchmark temporal preparation uses one canonical retained-unit frame after the
 completed run's gates, geographic scope and station-level category thresholds.
-Each simultaneous row is one transmitter-cycle for RX Benchmark or one
-receiver-cycle for TX Benchmark. Sequential TX rows are reduced to one Scheduled
-A/B Pair per receiver and planned pair ID after per-side micro-medians; the
-planned Target timestamp is its temporal coordinate. Each unit is classified
-as Only Target, Joint or Only Reference. The simultaneous Target-Active Gate
-remains asymmetric: Only Reference is retained when the Target was active
-globally in that cycle but that path decoded only the Reference.
+Each row is one exact transmitter identity and cycle for RX Benchmark or one exact
+receiver identity and cycle for TX Benchmark. Each unit is classified as Only Target,
+Joint or Only Reference. The Target-Active Gate remains asymmetric: Only Reference is
+retained when the Target was active globally in that cycle but that path decoded only
+the Reference.
 
 The absolute temporal Delta SNR recipe remains a Joint-only projection of this
 frame. Its chronological grid spans the selected half-open
@@ -1065,8 +1031,7 @@ are excluded, and bins without paired rows remain masked or NaN. Changing the
 selected start therefore changes bin membership and the resulting density,
 median and quartile inputs; rendering does not merely widen the x-axis. Its
 chronological and pooled UTC-hour bin medians retain their raw
-observation-level populations. Q1 and Q3 use those same unrounded Joint Spot or
-complete Scheduled Pair values before temporal density binning and the
+observation-level populations. Q1 and Q3 use those same unrounded Joint Spot values before temporal density binning and the
 median-centered nonlinear display transform. The subtle IQR band is bounded by
 fine Q1/Q3 lines, requires at least five values, breaks at unsupported bins
 without suppressing sparse medians, and does not alter the complete finite
@@ -1107,7 +1072,7 @@ quantized; raw extrema remain part of the non-clipping axis envelope.
 
 Optional Delta-SNR outlier-candidate reporting is a lazy, presentation-side
 subsystem over the retained full-precision comparison units. One simultaneous
-Joint Spot or complete Scheduled Pair remains the native detection unit; the
+Joint Spot remains the native detection unit; the
 selected temporal display bin never redefines an event. Per path, the detector
 first takes one median per UTC-aligned 10-minute cell solely to build scalable
 baseline support. It then assigns every retained native paired unit a residual
@@ -1131,7 +1096,7 @@ outlier. Each path first estimates its effective evidence cadence from the media
 eligible Joint, Only Target, and Only Reference outcome times. Intervals longer
 than the absolute 45-minute episode-gap cap are treated as outages or session
 breaks and excluded; at least two retained intervals are required, otherwise
-the configured simultaneous or Scheduled Pair cadence is the fallback. The
+the two-minute WSPR cadence is the fallback. The
 initial pilot excludes at least 60 minutes around a tested support cell, widened
 to twice that path-effective cadence when necessary. Same-sign native units
 form a provisional path episode while their gaps do not exceed the smaller of
@@ -1195,9 +1160,7 @@ bursts**. These names describe temporal evidence shape and never change
 qualification. Observed span and largest evidence gap are stored separately;
 irregular WSPR sampling therefore does not claim continuous physical duration
 between observations. The path-effective cadence and its resulting maximum
-episode gap are also retained on every candidate. Scheduled Pair cadence is
-passed explicitly as the sparse-evidence fallback, so the same engine does not
-represent a non-simultaneous pair as a two-minute impulse. The validated policy
+episode gap are also retained on every candidate. The validated policy
 and its stable signature participate in enabled detector, Inspector-cache,
 marker, and export identity; disabled analysis never consults the retained
 control values. Changing the reporting toggle or any detector gate follows the
@@ -1206,15 +1169,10 @@ configuration-changed notice is shown, and a new analysis waits for an explicit
 Run action. The widget rerun itself never starts provider or detector work.
 The current configuration writer and public-URL serializer emit only these
 three shared values. The factory policy for new analyses is 6 dB, 3, and 3 dB.
-Because version-1 documents and URLs originally omitted gates equal to the
-former 3 dB, 4, and 3 dB policy, their input adapters retain that exact omitted-
-value meaning; new URLs therefore serialize the changed 6 dB departure and 3
-robust-z values explicitly. At the input boundary, an unpublished version-1
-document that still contains the former duration-specific fields is converted
-by taking its Short burst departure and robust-z values plus the unchanged
-baseline difference; mixing old and new threshold fields is rejected. Public
-URL v1 accepts the same legacy burst mapping for parse-only compatibility and
-emits only the shared parameter names.
+Saved configurations and public URLs accept only the current shared detector
+fields and current defaults. Retired duration-specific fields and the former
+omitted-value mappings are rejected without migration; writers emit the current
+canonical parameter names.
 
 Each qualified path episode retains its Target and correction-adjusted
 Reference SNR episode medians, local component baselines, and component
@@ -1277,9 +1235,9 @@ the focus interval from the strong-anchor-trimmed reported bounds. The complete
 interval is clipped to the completed analysis window and may exceed 24 hours. A
 separate multi-path action selects and focuses all qualifying identities. These
 actions change only result presentation and never rerun or redefine detection.
-A single collapsed **WSPR cycle evidence** or **Scheduled-pair evidence** table
+A single collapsed **WSPR cycle evidence** table
 replaces the former technical-details and direction-breakdown tables. It lists only
-qualified event-member Joint units or complete Scheduled Pairs, in exact UTC,
+qualified event-member Joint units, in exact UTC,
 path, direction, local-baseline, Delta-SNR, and residual order. Target and
 correction-adjusted Reference SNR remain retained in the detector/report model
 for diagnostic decomposition but are not displayed in this compact table.
@@ -1378,8 +1336,8 @@ defaults to `30m`; over 24 hours through seven days the set is `30m`, `1h`,
 `1h`, `2h`, `3h`, `6h`, `12h`, and `24h`, also defaulting to `12h`. A valid
 explicitly persisted bin remains selectable even when that adaptive list would
 not otherwise offer it, so loading a saved configuration does not silently
-reinterpret the choice. Compatibility-only `5m` and `15m` remain hidden unless
-explicitly loaded. Performance and selected-station controls use this same
+reinterpret the choice. Retired compatibility-only `5m` and `15m` inputs are
+rejected. Performance and selected-station controls use this same
 policy. Every folded profile remains fixed at one hour.
 
 Selected Station Evidence permits zero or one station in Performance and in
@@ -1451,14 +1409,14 @@ figure built through the shared temporal layout primitives. The left **Δ SNR
 over Time** panel preserves the selected path population's actual UTC sequence
 at the chosen aggregation bin across the exact selected UTC window. The right
 **Δ SNR by UTC Hour** panel simultaneously folds those same observation-level
-Joint Spots or Scheduled Pairs from all represented dates into fixed one-hour
+Joint Spots from all represented dates into fixed one-hour
 UTC slots. Folding remains row-weighted: it pools qualifying evidence by UTC
 hour without first reducing or equally weighting represented dates. Both panels
 use independent panel-relative density normalization, one shared colorbar and
 the selected population's presentation-only,
 median-centered nonlinear Delta SNR scale with absolute dB tick labels. No
 date-first reduction is introduced for quartiles: the IQR band's Q1/Q3
-boundaries use the same raw Joint-Spot or complete-Scheduled-Pair population as
+boundaries use the same raw Joint-Spot population as
 each bin median, and the band appears only from five contributed values onward.
 Unsupported bins break the band without hiding their medians, and the band does
 not change axis limits. No
@@ -1499,9 +1457,7 @@ analysis.
 The focused metric recipes are native-time projections, not two-minute versions
 of the aggregated selected-station recipe. Simultaneous Benchmark contributes
 one actual Delta SNR point per retained consolidated Joint Spot at its canonical
-cycle UTC. Sequential TX A/B contributes one actual Pair Delta SNR point per
-retained complete Scheduled Pair at planned Target-start UTC; both Target and
-Reference component rows remain together in the table. Performance contributes
+cycle UTC. Performance contributes
 one actual normalized Target-SNR point per successful confirmed opportunity at
 canonical cycle UTC; unsuccessful opportunities have no SNR value to plot. The
 metric recipes contain no temporal-bin median or quartiles, density grid,
@@ -1791,8 +1747,10 @@ that selected-station section and is the direct target of the per-event
 active application region only while the viewport is above the documentation
 boundary; the documentation controller owns fragments from that boundary
 downward. Passive scrolling replaces the current fragment without adding
-browser-history entries. Guided Continue replaces a stale manual fragment with
-the parameter-settings anchor without forcing a scroll. Loading a demo and
+browser-history entries. Guided Continue opens the next panel and scrolls once
+to its heading after its request-token marker mounts and the heading position
+settles, retaining the parameter-settings fragment. Ordinary field reruns do not
+repeat that scroll, and deliberate user navigation cancels a pending landing. Loading a demo and
 the Guided walkthrough may request a one-shot scroll to the parameter-settings
 region. The Guided **Skip to review and run** action opens terminal Review and
 uses the ordinary main Run submission navigation. A fresh main-button, demo, or URL
@@ -1896,26 +1854,18 @@ must remain outside `README.md`.
 1. Streamlit state is converted to canonical analysis and presentation contexts.
 2. The controller validates inputs and obtains one combined analysis/provider
    permit from the bounded FIFO queue.
-3. `analysis_runner` builds the mode-specific comparison SQL. Reference Station
-   uses its exact callsign plus independent Reference grid-4; simultaneous
-   Hardware A/B uses distinct callsigns plus one Target-derived grid-4. Periodic
-   TX A/B predicates select each path by its exact repeat interval and UTC start
-   phase.
-4. `run_data_preparation` fetches and processes every block required by the
-   active Benchmark result against the selected provider. Any provider failover
-   restarts this unpublished phase.
-5. Post-fetch logic applies solar selection, evaluates moving-station integrity
-   and then Target-Active synchronization against the geographically global
-   population that otherwise remains eligible, and finally retains only peers
-   strictly nearer than Geographic Analysis Scope. For
-   periodic TX A/B data it also filters schedule mismatches, excludes a boundary
-   pair unless both planned starts satisfy `start <= planned_start < end`, and
-   assigns the stable planned-pair columns before geographic filtering.
-6. The geographically scoped processed rows, including planned-pair columns,
-   are staged as an unregistered session Parquet artifact. All successful blocks
-   are registered together after complete active-result preparation succeeds.
-7. `compare_engine` groups periodic pairs by peer identity and pair ID, applies
-   per-side micro-medians, and builds station and segment aggregates.
+3. Reference discovery resolves or validates the fixed Reference grid-4 for the
+   selected provider, role, band and effective UTC window. `analysis_runner` builds
+   exact Target/Reference selectors or the geographic Local Median pool.
+4. `run_data_preparation` fetches and processes the active Benchmark result against
+   the same provider used for discovery. A failed source cannot silently supply a
+   locator from one archive and evidence from another.
+5. Post-fetch logic applies solar selection, global moving-station integrity and
+   Target-Active synchronization before Geographic Analysis Scope.
+6. Scoped processed rows are staged as unregistered session Parquet artifacts and
+   registered only after complete active-result preparation succeeds.
+7. `compare_engine` forms station and segment summaries from exact peer-cycle evidence.
+
 8. `map_data` and `plot_engine` render the map preview.
 9. The Inspector preparation coordinator reads the necessary evidence through
    the existing scientific helpers; focused components render segment and
@@ -1927,7 +1877,7 @@ must remain outside `README.md`.
 
 1. In a no-benchmark Performance run, an active-cycle ClickHouse query returns one
    row per time slot and peer identity with target/external evidence and target
-   SNR. Hidden benchmark and scheduled TX A/B settings do not participate in
+   SNR. Hidden Benchmark settings do not participate in
    this standalone Performance query.
 2. The fetched globally Target-Active frame is normalized into the explicit
    opportunity schema. Rows that collide after callsign/locator case and whitespace
@@ -2207,12 +2157,6 @@ checks the fixed serial partition; it does not execute the regression suite.
 dispatch to open the deployed Streamlit URL. It is a keep-awake mechanism, not a
 health assertion suite and not CI for repository changes.
 
-### Relay Utility Services
-
-The separate timed relay tool uses HID hardware and can use network time. Those
-dependencies are isolated from the Streamlit application and are documented in
-the tool directory.
-
 ## Module Dependency Rules
 
 The intended dependency direction is:
@@ -2384,7 +2328,7 @@ capabilities.
    documents the proposed median-per-endpoint alternative, a frozen-population
    sensitivity calculation and its unresolved physical interpretation. Its
    accepted decision retains strongest SNR where currently used, preserves the
-   distinct Local Median and Sequential A/B reductions, and documents the
+   distinct Local Median and then-supported Sequential A/B reductions, and documents the
    best-report rationale in both manuals. The Figure 3 difference is a
    report-selection/weighting effect before time aggregation, not proof of
    physical signal artifacts or full paper reproduction. Current reducers and

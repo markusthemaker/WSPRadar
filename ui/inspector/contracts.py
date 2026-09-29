@@ -30,7 +30,6 @@ class InspectorContext:
     analysis_id: str
     title: str
     is_compare: bool
-    is_sequential: bool
     parquet_path: Any
     line1_str: str
     translations: Mapping[str, str]

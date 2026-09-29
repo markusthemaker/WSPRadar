@@ -27,7 +27,6 @@ if TYPE_CHECKING:
 
 
 OUTLIER_EXPORT_JOINT_SPOT = "joint_spot"
-OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR = "complete_scheduled_pair"
 DELTA_SNR_OUTLIER_EXPORT_SCHEMA_VERSION = 1
 OUTLIER_EVENT_PATHS_TABLE_FILENAME = (
     "table_delta_snr_outlier_event_paths.csv"
@@ -225,12 +224,10 @@ def _finite_or_none(value: object) -> float | None:
     return numeric_value if math.isfinite(numeric_value) else None
 
 
-def _paired_unit_type(is_sequential: bool) -> str:
+def _paired_unit_type() -> str:
     """Return the canonical native-evidence code for later localization."""
     return (
-        OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR
-        if is_sequential
-        else OUTLIER_EXPORT_JOINT_SPOT
+        OUTLIER_EXPORT_JOINT_SPOT
     )
 
 
@@ -386,8 +383,6 @@ def _event_observed_bounds(
 def build_delta_snr_outlier_export_tables(
     outlier_model: "DeltaSnrOutlierModel",
     report_view_model: DeltaSnrOutlierReportViewModel,
-    *,
-    is_sequential: bool,
 ) -> DeltaSnrOutlierExportTables:
     """Build readable event-path and native paired-evidence export tables.
 
@@ -406,7 +401,7 @@ def build_delta_snr_outlier_export_tables(
         )
     event_path_rows: list[dict[str, object]] = []
     paired_evidence_rows: list[dict[str, object]] = []
-    paired_unit_type = _paired_unit_type(bool(is_sequential))
+    paired_unit_type = _paired_unit_type()
 
     for event_number, card in enumerate(
         _ordered_report_cards(report_view_model),
@@ -577,7 +572,6 @@ __all__ = [
     "DELTA_SNR_OUTLIER_EXPORT_SCHEMA_VERSION",
     "DeltaSnrOutlierExportTables",
     "OUTLIER_EVENT_PATH_COLUMNS",
-    "OUTLIER_EXPORT_COMPLETE_SCHEDULED_PAIR",
     "OUTLIER_EXPORT_JOINT_SPOT",
     "OUTLIER_PAIRED_EVIDENCE_COLUMNS",
     "OUTLIER_EVENT_PATHS_TABLE_FILENAME",

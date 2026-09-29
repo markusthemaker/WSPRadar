@@ -127,7 +127,7 @@ def _database_source(provider: WsprDatabaseProviderConfig) -> DatabaseSource:
 
 
 def _direct_fetch_source(provider: WsprDatabaseProviderConfig) -> FetchSource:
-    """Map one provider to the legacy direct-fetch source enum."""
+    """Map one provider to the current direct-fetch source enum."""
     return {
         "wspr_live": FetchSource.WSPR_LIVE,
         "wd2": FetchSource.WD2,
@@ -551,8 +551,6 @@ def _cached_strict_target_evidence(
         frame = _dataframe_cache_peek(cache_key)
         if analysis.get("analysis_kind") == "opportunity":
             marker_column = "target_seen"
-        elif analysis.get("is_sequential"):
-            marker_column = "is_me"
         else:
             marker_column = "has_u"
         if frame is None:

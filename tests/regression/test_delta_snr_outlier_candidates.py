@@ -319,7 +319,7 @@ def test_transport_precision_and_reference_correction_preserve_boundary_detectio
     comparison_units = _build_compare_unit_rows(
         normalized_rows,
         source[["peer_sign", "peer_grid"]].drop_duplicates(),
-        is_sequential=False,
+
     )
     original_units = comparison_units.copy(deep=True)
     model = _detect(

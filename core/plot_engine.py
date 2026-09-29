@@ -46,7 +46,6 @@ from config.plot_constants import (
     SUCCESS_MAP_TARGET_COLOR,
 )
 from core.analysis_context import (
-    COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
 )
 from core.opportunity_engine import (
@@ -549,7 +548,6 @@ def render_map_figure(
     theme_cfg = MAP_THEMES.get(theme, MAP_THEMES["dark"])
     analysis_id = map_data.analysis_id
     is_compare = map_data.is_compare
-    is_sequential = map_data.is_sequential
     is_opportunity = validate_map_analysis_mode(
         analysis_kind=map_data.analysis_kind,
         is_compare=is_compare,
@@ -602,26 +600,14 @@ def render_map_figure(
         if is_opportunity
         else None
     )
-    # Fixed identities use their callsigns. Sequential TX uses path roles
-    # because Target and Reference share one transmitter callsign.
-    if (
-        analysis_context.comparison_mode == COMPARISON_HARDWARE_AB
-        and is_sequential
-    ):
-        lbl_only_me = t_lang['leg_only_me'].format(
-            callsign=t_lang['txt_target']
-        )
-        lbl_only_ref = t_lang['leg_only_ref'].format(
-            ref_callsign=t_lang['txt_reference']
-        )
+    # Fixed identities use their callsigns.
+    lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
+    if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+        lbl_only_ref = t_lang['leg_only_ref_radius']
     else:
-        lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
-        if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
-            lbl_only_ref = t_lang['leg_only_ref_radius']
-        else:
-            lbl_only_ref = t_lang['leg_only_ref'].format(
-                ref_callsign=analysis_context.reference_callsign.upper()
-            )
+        lbl_only_ref = t_lang['leg_only_ref'].format(
+            ref_callsign=analysis_context.reference_callsign.upper()
+        )
 
     visible_segs = segs[segs["r_min"] < max_dist_km].copy()
 
@@ -643,7 +629,7 @@ def render_map_figure(
         cbar_title = t_lang[f"cbar_abs_{abs_terms['mode'].lower()}"]
         cmap = mpl.colors.ListedColormap(clrs)
         norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
-    
+
     with _timed_span(timing_collector, "wedge creation"):
         # Draw Heatmap Wedges
         patches = []
@@ -677,7 +663,7 @@ def render_map_figure(
         else:
             colorbar_mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             colorbar_mappable.set_array([])
-    
+
     lbl_both_async = t_lang['leg_both_async']
 
     scatter_start = perf_counter()
@@ -688,7 +674,7 @@ def render_map_figure(
         df_both = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0) & (df_plot['count_only_r'] > 0)]
         df_only_u = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0) & (df_plot['count_only_r'] == 0)]
         df_only_r = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] == 0) & (df_plot['count_only_r'] > 0)]
-        
+
         # Draw Scatter Dots Legend
         if not df_joint.empty: ax.scatter(df_joint['peer_lon'], df_joint['peer_lat'], c=COLOR_JOINT, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=t_lang['leg_joint'])
         if not df_both.empty: ax.scatter(df_both['peer_lon'], df_both['peer_lat'], c=COLOR_BOTH_ASYNC, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=9, label=lbl_both_async)
@@ -789,7 +775,7 @@ def render_map_figure(
     cbar.ax.tick_params(colors=theme_cfg["cbar_text"])
     cbar.set_label(cbar_title, color=theme_cfg["cbar_text"], fontweight='bold', labelpad=15, fontsize=FONT_LEGEND)
 
-    
+
     # Meta Footer
     t_time = f"{start_t.strftime('%d-%b-%Y')} - {end_t.strftime('%d-%b-%Y')}"
     t_band = analysis_context.band
@@ -800,39 +786,19 @@ def render_map_figure(
         t_lang["map_footer_band"].format(value=t_band),
         t_lang["map_footer_solar"].format(value=t_solar),
     ]
-    
+
     if is_compare:
-        if is_sequential:
-            meta_parts.append(t_lang["map_footer_sync_sequential_ab"])
-            meta_parts.append(
-                t_lang["map_footer_joint_pairs_per_station"].format(
-                    threshold=analysis_context.min_joint_spots_per_station
-                )
+        meta_parts.append(
+            t_lang["map_footer_joint_spots_per_station"].format(
+                threshold=analysis_context.min_joint_spots_per_station
             )
-            meta_parts.append(
-                t_lang["map_footer_schedule"].format(
-                    interval=analysis_context.tx_ab_repeat_interval_minutes,
-                    target_start=analysis_context.tx_ab_target_start_minute,
-                    reference_start=analysis_context.tx_ab_reference_start_minute,
-                )
+        )
+        meta_parts.append(
+            t_lang["map_footer_joint_stations_per_segment"].format(
+                threshold=base_min_stations
             )
-            meta_parts.append(
-                t_lang["map_footer_joint_stations_per_segment"].format(
-                    threshold=base_min_stations
-                )
-            )
-        else:
-            meta_parts.append(
-                t_lang["map_footer_joint_spots_per_station"].format(
-                    threshold=analysis_context.min_joint_spots_per_station
-                )
-            )
-            meta_parts.append(
-                t_lang["map_footer_joint_stations_per_segment"].format(
-                    threshold=base_min_stations
-                )
-            )
-            
+        )
+
         benchmark_offset_db = round(float(analysis_context.reference_snr_correction_db), 1)
         if abs(benchmark_offset_db) >= 0.05:
             offset_label = t_lang["txt_benchmark_offset_note"]
@@ -842,11 +808,6 @@ def render_map_figure(
             local_mode = t_lang['opt_local_median']
             ref_radius = analysis_context.neighborhood_radius_km
             reference_value = f"{local_mode} (≤{ref_radius} km)"
-        elif analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
-            if is_sequential:
-                reference_value = t_lang['txt_reference']
-            else:
-                reference_value = analysis_context.reference_callsign.upper()
         else:
             reference_value = analysis_context.reference_callsign.upper()
         meta_parts.append(
@@ -897,14 +858,12 @@ def render_map_figure(
             theme_config=theme_cfg,
             stations_plural=t_lang["map_success_footer_stations"],
             evidence_plural=(
-                t_lang["map_compare_footer_pairs"]
-                if is_sequential
-                else t_lang["map_compare_footer_spots"]
+                t_lang["map_compare_footer_spots"]
             ),
         )
         fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
-        
+
     else:
         counts = opportunity_footer_counts(df_plot, max_dist_km=max_dist_km)
         success_footer_axis = _draw_footer_summary_bars(
@@ -960,7 +919,6 @@ def generate_map_plot(
     df,
     title,
     is_compare,
-    is_sequential,
     start_t,
     end_t,
     max_dist_km,
@@ -981,20 +939,12 @@ def generate_map_plot(
             df,
             analysis_id=analysis_id,
             is_compare=is_compare,
-            is_sequential=is_sequential,
             analysis_kind=analysis_kind,
             center_latitude=lat_0,
             center_longitude=lon_0,
             min_spots=analysis_context.min_joint_spots_per_station,
             min_opportunities=analysis_context.min_confirmed_opportunities_per_peer,
             base_min_stations=base_min_stations,
-            tx_ab_repeat_interval_minutes=(
-                analysis_context.tx_ab_repeat_interval_minutes
-            ),
-            tx_ab_target_start_minute=analysis_context.tx_ab_target_start_minute,
-            tx_ab_reference_start_minute=(
-                analysis_context.tx_ab_reference_start_minute
-            ),
             owns_input=True,
         )
     map_data = map_data_result.map_data

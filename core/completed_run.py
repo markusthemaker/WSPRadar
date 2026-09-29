@@ -1,7 +1,7 @@
 """Immutable, dependency-light contracts for published analysis results.
 
 Records contain metadata and artifact references, never DataFrames or figures.
-The explicit dictionary codec preserves the version-2 session snapshot shape;
+The explicit dictionary codec preserves the version-3 session snapshot shape;
 live artifact ownership and availability remain the controller's responsibility.
 """
 
@@ -23,7 +23,7 @@ from core.result_diagnostics import (
 )
 
 
-COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION = 2
+COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION = 3
 COMPLETED_RENDERABLE = "renderable"
 COMPLETED_PREPARED_NO_DATA = "prepared_no_data"
 COMPLETED_MAP_NO_DATA = "map_no_data"
@@ -57,19 +57,16 @@ class CompletedAnalysisIdentity:
     id: str
     analysis_kind: str
     is_compare: bool
-    is_sequential: bool
     absolute_method_version: str | None
 
     def __post_init__(self) -> None:
         _require_text(self.id, "analysis.id")
-        if type(self.is_compare) is not bool or type(self.is_sequential) is not bool:
+        if type(self.is_compare) is not bool:
             raise ValueError("Completed analysis mode flags must be booleans")
         if self.analysis_kind not in {"comparison", "opportunity"}:
             raise ValueError("Completed analysis kind is unsupported")
         if self.is_compare != (self.analysis_kind == "comparison"):
             raise ValueError("Completed analysis kind and comparison flag disagree")
-        if self.is_sequential and not self.is_compare:
-            raise ValueError("Completed sequential analysis must be a comparison")
         if self.absolute_method_version is not None:
             _require_text(self.absolute_method_version, "analysis.absolute_method_version")
 
@@ -79,14 +76,13 @@ class CompletedAnalysisIdentity:
             id=analysis["id"],
             analysis_kind=analysis["analysis_kind"],
             is_compare=analysis["is_compare"],
-            is_sequential=analysis["is_sequential"],
             absolute_method_version=analysis.get("absolute_method_version"),
         )
 
     @classmethod
     def from_dict(cls, snapshot) -> CompletedAnalysisIdentity:
         _require_fields(snapshot, {
-            "id", "analysis_kind", "is_compare", "is_sequential", "absolute_method_version",
+            "id", "analysis_kind", "is_compare",  "absolute_method_version",
         }, "Completed analysis identity")
         return cls(**snapshot)
 
@@ -95,7 +91,6 @@ class CompletedAnalysisIdentity:
             "id": self.id,
             "analysis_kind": self.analysis_kind,
             "is_compare": self.is_compare,
-            "is_sequential": self.is_sequential,
             "absolute_method_version": self.absolute_method_version,
         }
 
