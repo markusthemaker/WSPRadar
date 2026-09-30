@@ -266,6 +266,60 @@ def _format_benchmark_mode(t, benchmark_mode):
     return t[translation_keys[benchmark_mode]]
 
 
+def _select_reference_design(widget_key, benchmark_mode, on_change):
+    """Apply a new Reference choice through its existing editor callback."""
+    if benchmark_mode not in _benchmark_mode_options(None):
+        raise ValueError(f"Unsupported Reference design {benchmark_mode!r}.")
+    if st.session_state.get(widget_key) == benchmark_mode:
+        return
+    st.session_state[widget_key] = benchmark_mode
+    on_change()
+
+
+def render_reference_design_selector(t, *, widget_key, on_change, descriptions=None):
+    """Render single-selection Reference choices with independent native help."""
+    descriptions = descriptions or {}
+    help_keys = {
+        "reference_station": "hlp_benchmark_reference_station",
+        "local_neighborhood": "hlp_benchmark_local_neighborhood",
+    }
+    with st.container(key=widget_key):
+        for benchmark_mode in _benchmark_mode_options(t):
+            choice_label = _format_benchmark_mode(t, benchmark_mode)
+            is_selected = st.session_state.get(widget_key) == benchmark_mode
+            selection_column, help_column = st.columns(
+                [0.9, 0.1], gap="small", vertical_alignment="center"
+            )
+            with selection_column:
+                st.button(
+                    (
+                        t["fmt_reference_choice_selected"].format(choice=choice_label)
+                        if is_selected else choice_label
+                    ),
+                    key=f"{widget_key}_{benchmark_mode}",
+                    type="primary" if is_selected else "secondary",
+                    icon=(
+                        ":material/radio_button_checked:"
+                        if is_selected else ":material/radio_button_unchecked:"
+                    ),
+                    on_click=_select_reference_design,
+                    args=(widget_key, benchmark_mode, on_change),
+                    width="stretch",
+                )
+            with help_column:
+                with st.popover(
+                    "?",
+                    key=f"{widget_key}_{benchmark_mode}_help",
+                    type="tertiary",
+                    help=t["fmt_reference_choice_help"].format(choice=choice_label),
+                    on_change="ignore",
+                ):
+                    st.markdown(f"**{choice_label}**")
+                    st.markdown(t[help_keys[benchmark_mode]])
+            if benchmark_mode in descriptions:
+                st.caption(descriptions[benchmark_mode])
+
+
 def _classic_question_options():
     """Return the four stable direction/result questions in display order."""
     return ANALYSIS_QUESTION_CHOICES
@@ -296,14 +350,13 @@ def _comparison_column_widths(t, comparison_mode, analysis_direction):
 
 
 def _render_reference_identity(
-    t, *, on_change=reset_experiment_definition, on_change_args=(), help_overrides=None,
+    t, *, on_change=reset_experiment_definition, on_change_args=(),
 ):
     """Render the Reference callsign without a duplicate location display."""
-    help_overrides = help_overrides or {}
     text_input_no_autocomplete(
         t["lbl_reference_callsign"], key="val_ref_callsign",
         placeholder=t["ph_reference_callsign"],
-        help=help_overrides.get("reference_callsign", t["hlp_callsign_entry"]),
+        help=t["hlp_reference_callsign"],
         max_chars=15, normalize_uppercase=True, on_change=on_change,
         args=on_change_args,
     )
@@ -344,17 +397,14 @@ def render_target_and_window_fields(
     on_change_args=(),
     correction_context_on_change=None,
     correction_context_on_change_args=(),
-    help_overrides=None,
 ):
     """Render shared Target identity, band, and time controls.
 
     Both input editors use the same widget keys, normalization and scientific
-    callbacks. ``help_overrides`` adds Guided explanations without changing the
-    canonical values or Classic wording. Identity/QTH/band changes may use a
+    callbacks and concise field help. Identity/QTH/band changes may use a
     separate callback because they invalidate an established pair correction,
     while changing only the time window does not.
     """
-    help_overrides = help_overrides or {}
     correction_context_on_change = correction_context_on_change or on_change
     correction_context_on_change_args = (
         correction_context_on_change_args
@@ -376,10 +426,7 @@ def render_target_and_window_fields(
             callsign_label,
             key="val_callsign",
             placeholder=t["ph_target_callsign"],
-            help=help_overrides.get(
-                "callsign",
-                t["hlp_callsign_entry"],
-            ),
+            help=t["hlp_callsign_entry"],
             max_chars=15,
             normalize_uppercase=True,
             on_change=correction_context_on_change,
@@ -393,7 +440,7 @@ def render_target_and_window_fields(
         text_input_no_autocomplete(
             t["lbl_qth"],
             key="val_qth",
-            help=help_overrides.get("qth"),
+            help=t["hlp_target_qth"],
             max_chars=6,
             normalize_uppercase=True,
             on_change=correction_context_on_change,
@@ -408,7 +455,7 @@ def render_target_and_window_fields(
             t["lbl_band"],
             list(BAND_MAP.keys()),
             key="val_band",
-            help=help_overrides.get("band"),
+            help=t["hlp_band"],
             on_change=correction_context_on_change,
             args=correction_context_on_change_args,
         )
@@ -429,7 +476,7 @@ def render_target_and_window_fields(
             st.date_input(
                 t["lbl_start_d"],
                 key="val_start_d",
-                help=help_overrides.get("time"),
+                help=t["hlp_time_window"],
                 min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
                 max_value=today_utc,
                 on_change=handle_start_date_change,
@@ -441,7 +488,7 @@ def render_target_and_window_fields(
             st.date_input(
                 t["lbl_end_d"],
                 key="val_end_d",
-                help=help_overrides.get("time"),
+                help=t["hlp_time_window"],
                 min_value=minimum_end_date,
                 max_value=maximum_end_date,
                 on_change=handle_time_window_change,
@@ -516,7 +563,6 @@ def render_reference_correction_field(
     *,
     on_change=reset_experiment_definition,
     on_change_args=(),
-    help_text=None,
 ):
     """Render the shared Reference-side SNR correction field."""
     correction_db = round(
@@ -541,7 +587,7 @@ def render_reference_correction_field(
         key=_REFERENCE_CORRECTION_TEXT_KEY,
         placeholder="0.0",
         autocomplete="off",
-        help=help_text or t["hlp_benchmark_offset_db"],
+        help=t["hlp_benchmark_offset_db"],
         on_change=_normalize_reference_correction_state,
         args=(
             on_change,
@@ -559,16 +605,10 @@ def render_reference_design_fields(
     *,
     on_change=handle_reference_correction_context_change,
     on_change_args=(),
-    help_overrides=None,
 ):
-    """Render canonical Reference fields with shared contextual tooltips."""
-    help_overrides = help_overrides or {}
+    """Render Reference fields with shared field-specific help in both editors."""
     comp_mode = st.session_state.get("val_comp_mode")
     if comp_mode == "local_neighborhood":
-        st.markdown(
-            f"**{t['opt_local_median']}**",
-            help=t["txt_local_median_explanation"],
-        )
         if st.session_state.get("val_local_benchmark", "local_median") != "local_median":
             st.error(t["err_local_benchmark"])
         st.slider(
@@ -577,7 +617,7 @@ def render_reference_design_fields(
             MAX_DYNAMIC_RADIUS_KM,
             step=10,
             key="val_ref_radius_km",
-            help=help_overrides.get("local_radius"),
+            help=t["hlp_reference_radius"],
             on_change=on_change,
             args=on_change_args,
         )
@@ -587,8 +627,21 @@ def render_reference_design_fields(
             t,
             on_change=on_change,
             on_change_args=on_change_args,
-            help_overrides=help_overrides,
         )
+
+
+def _classic_reference_design_help(t):
+    """Explain both Reference choices independently of the current selection."""
+    help_keys = {
+        "reference_station": "hlp_benchmark_reference_station",
+        "local_neighborhood": "hlp_benchmark_local_neighborhood",
+    }
+    return "\n\n".join(
+        f"**{_format_benchmark_mode(t, mode)}**\n\n{t[help_keys[mode]]}"
+        for mode in _benchmark_mode_options(t)
+    )
+
+
 def render_benchmark_expander(t, *, step_number=None):
     """Render the conditional Classic Benchmark-design controls."""
     with st.expander(
@@ -611,7 +664,8 @@ def render_benchmark_expander(t, *, step_number=None):
                 benchmark_modes,
                 key=CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
                 index=None,
-                label_visibility="collapsed",
+                label_visibility="visible",
+                help=_classic_reference_design_help(t),
                 on_change=handle_classic_benchmark_design_change,
                 format_func=lambda benchmark_mode: _format_benchmark_mode(
                     t, benchmark_mode
@@ -677,6 +731,7 @@ def render_scope_fields(
             t["lbl_solar"],
             ["all", "day", "night", "greyline"],
             key="val_solar",
+            help=t["hlp_solar"],
             on_change=on_change,
             args=on_change_args,
             format_func=lambda solar_state: t[
@@ -863,10 +918,10 @@ def render_advanced_expander(t, *, result_type=None, step_number=None):
     ):
         col3, col4 = st.columns(2, gap="large")
         with col3:
-            st.markdown(f"**{t['hdr_remote_station_filters']}**")
-            render_station_population_fields(t)
             st.markdown(f"**{t['hdr_analysis_scope']}**")
             render_scope_fields(t)
+            st.markdown(f"**{t['hdr_remote_station_filters']}**")
+            render_station_population_fields(t)
         with col4:
             st.markdown(f"**{t['hdr_evidence_requirements']}**")
             render_evidence_threshold_fields(t, result_type=result_type)

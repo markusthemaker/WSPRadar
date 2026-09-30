@@ -206,7 +206,7 @@ the Reference grid-4 is resolved from the selected archive, role, band and effec
 UTC window. One candidate resolves automatically; multiple candidates require explicit
 selection with reported locator variants, counts and time coverage available for review.
 No reports and source failure are distinct. Discovery and the analysis share one provider.
-Reference Neighbourhood uses the Local Median. Sequential TX A/B and its schedule fields
+Reference Neighborhood uses the Local Median. Sequential TX A/B and its schedule fields
 are retired; unsupported unpublished configurations are rejected without migration.
 
 `results_view` is divided into `performance` and, when applicable, `benchmark`.
@@ -239,7 +239,14 @@ accepted. Unsupported versions, retired aliases and earlier formats are
 rejected without migration or guessed defaults. The formal JSON Schema enumerates valid fields, values, and
 conditional branches.
 
-Local Neighborhood uses Local Median Neighborhood in both input views. The
+Reference Neighborhood uses the Local Median in both input views. Guided has
+concise help for each Reference choice and separate help for the Reference
+callsign and Neighborhood Radius fields. Classic keeps the native radio selector
+in the left column, with one help icon beside its visible Benchmark design label.
+That help explains both Reference choices regardless of the current selection;
+entry guidance belongs to the separate help on the Reference callsign and
+Neighborhood Radius fields. Both input views use the same localized help text.
+The neighborhood input shows the radius without a separate method heading. The
 scientific method remains explicit as `local_benchmark: "local_median"` in
 saved configurations and public URLs, even though there is no method selector.
 Unsupported local-method values are rejected at configuration, URL, and core
@@ -255,7 +262,7 @@ transient session UI state and are not added to the version-1 saved-config
 contract. Classic asks RX/TX Performance or RX/TX Benchmark first, then reuses
 the shared Target/window fields and adds the Benchmark design when applicable.
 Selecting RX/TX Benchmark without an existing design initializes `reference_station`;
-an existing Reference Setup/Station or Reference Neighbourhood choice is preserved.
+an existing Reference Setup/Station or Reference Neighborhood choice is preserved.
 Run reports incomplete or invalid fields locally before submission; Save Config
 and public-URL synchronization require a valid canonical configuration. The advanced
 panel uses Benchmark thresholds for Benchmark intent. Correction

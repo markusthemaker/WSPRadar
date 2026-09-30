@@ -149,8 +149,14 @@ detector fields and former omission-default mappings are not migrated.
 Unsupported versions are rejected rather than interpreted with current defaults.
 
 Local Neighborhood has one supported method, `local_median`, retained explicitly
-in the scientific context, saved configuration, and URL. Guided and Classic show
-its fixed localized explanation and the neighborhood radius. Configuration and
+in the scientific context, saved configuration, and URL. Guided provides concise
+help for each Reference choice and separate help for its callsign or radius field.
+Classic keeps the native radio selector in the left column, with one help icon
+beside the visible Benchmark design label. Its help always explains both Reference
+choices regardless of the current selection; entry guidance appears only in the
+separate help on the callsign and radius fields. Both views use the same localized
+help text. Reference Neighborhood explains the Local Median in this help and shows
+the neighborhood radius without a separate method heading. Configuration and
 core analysis boundaries reject unsupported method values rather than replacing
 them with a different scientific comparison. Invalid active input cancels result
 rendering and clears completed result state while preserving the input for
@@ -183,7 +189,7 @@ analysis origin. Historical decode fallback follows the existing whole-window po
 provider request leases are released before any user choice. A saved current-format
 configuration with a resolved grid retains that selection.
 
-Reference Neighbourhood uses the Local Median algorithm. All Benchmark pairing is same-cycle; scheduled TX
+Reference Neighborhood uses the Local Median algorithm. All Benchmark pairing is same-cycle; scheduled TX
 methods and schedule fields are no longer supported. Unpublished configurations using
 retired branch fields are rejected, not silently reinterpreted.
 
@@ -234,7 +240,7 @@ and Guided navigation keys are transient presentation state outside
 `AnalysisContext` and the version-1 saved configuration. Classic renders that
 Question first, followed by Target/window fields and, only for Benchmark, a
 required Benchmark-design panel. Both result types then render the shared
-**Optional filters, analysis scope, and evidence requirements** panel and a
+**Filters, scope and evidence** panel and a
 terminal Review panel. Guided renders every applicable filter, scope, and
 evidence control when that step is available; it has no general-purpose versus
 customize selector. Result-family defaults, loaded configurations, and demos
@@ -242,7 +248,7 @@ populate those canonical visible fields directly. Rendering a loaded value is
 not an edit and therefore does not by itself retire demo provenance. Selecting
 RX/TX Benchmark without an existing design initializes canonical `val_comp_mode`
 to `reference_station`; an existing Reference Setup/Station or Reference
-Neighbourhood choice is preserved. Run remains available to report incomplete or
+Neighborhood choice is preserved. Run remains available to report incomplete or
 invalid fields, while submission requires valid inputs and resolved Reference
 discovery when applicable. Save Config and public-URL synchronization require a
 valid canonical configuration. The advanced panel routes Benchmark thresholds
@@ -507,7 +513,7 @@ be changed as a generic query optimization.
 `core/analysis_runner.py` builds ClickHouse SQL for:
 
 - TX and RX comparison analyses;
-- same-cycle Reference Setup/Station and Reference Neighbourhood comparisons;
+- same-cycle Reference Setup/Station and Reference Neighborhood comparisons;
 - TX and RX opportunity analyses.
 
 All analysis SQL uses the half-open UTC predicate `start <= time < end`.
@@ -519,7 +525,7 @@ configured Target QTH grid-4. The complete four- or six-character Target QTH is
 retained separately as the geographic origin for map, radius, distance/azimuth,
 and solar calculations. Reference Setup/Station requires a distinct exact Reference
 callsign plus its resolved Reference grid-4. Physical co-location remains an experiment
-invariant that archive rows cannot prove. Reference Neighbourhood selects geographically
+invariant that archive rows cannot prove. Reference Neighborhood selects geographically
 eligible callsign/full-locator contributors. Remote peer pairing retains exact callsign
 plus full reported locator on one band and in the same two-minute UTC slot; no frequency
 equality or cross-cycle pair is inferred.
@@ -631,7 +637,7 @@ at a time. Database provenance is distinct from RAM/disk delivery tier.
 ### Scientific Engines
 
 `core/compare_engine.py` performs pure same-cycle comparison aggregation. Reference
-Setup/Station and Reference Neighbourhood retain Target-Active conditioning, exact
+Setup/Station and Reference Neighborhood retain Target-Active conditioning, exact
 peer-cycle consolidation, Joint-only Delta SNR and one-sided outcomes. An identity
 with observations on both sides in different cycles can retain Both (Async) coverage
 without creating a paired Delta SNR.

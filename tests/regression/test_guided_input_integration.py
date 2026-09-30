@@ -42,6 +42,8 @@ import sys
 
 from streamlit.testing.v1 import AppTest
 
+from i18n import T
+
 
 project_root = Path(sys.argv[1]).resolve()
 initial_state = json.loads(sys.argv[2])
@@ -89,6 +91,7 @@ result = {
             "disabled": popover.proto.popover.disabled,
         }
         for popover in application.get("popover")
+        if popover.proto.popover.label == T[application.session_state["lang"]]["btn_save_config"]
     ],
     "warnings": [warning.value for warning in application.warning],
     "errors": [error.value for error in application.error],
@@ -367,23 +370,45 @@ def test_guided_definitions_reuse_documentation_defined_term_markup():
     renderer_source = (
         REPOSITORY_ROOT / "ui" / "guided_inputs" / "renderer.py"
     ).read_text(encoding="utf-8")
-    assert 'st.markdown(content["body_md"], unsafe_allow_html=True)' in (
-        renderer_source
+    body_markdown_calls = [
+        node
+        for node in ast.walk(ast.parse(renderer_source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "st"
+        and node.func.attr == "markdown"
+        and node.args
+        and any(
+            isinstance(argument, ast.Subscript)
+            and isinstance(argument.value, ast.Name)
+            and argument.value.id == "content"
+            and isinstance(argument.slice, ast.Constant)
+            and argument.slice.value == "body_md"
+            for argument in ast.walk(node.args[0])
+        )
+    ]
+    assert len(body_markdown_calls) == 1
+    assert any(
+        keyword.arg == "unsafe_allow_html"
+        and isinstance(keyword.value, ast.Constant)
+        and keyword.value.value is True
+        for keyword in body_markdown_calls[0].keywords
     )
 
 
-def test_reference_design_options_route_localized_descriptions_into_radio_captions(monkeypatch):
+def test_reference_design_options_route_localized_descriptions_into_shared_choices(monkeypatch):
     """Place each complete explanation directly under its Reference choice."""
     for language in ("en", "de"):
         markdown = Mock()
-        radio = Mock()
+        selector = Mock()
+        monkeypatch.setattr(renderer, "render_reference_design_selector", selector)
         monkeypatch.setattr(
             renderer,
             "st",
             SimpleNamespace(
                 session_state=_canonical_state(lang=language),
                 markdown=markdown,
-                radio=radio,
                 columns=Mock(return_value=(_NullContext(), _NullContext())),
             ),
         )
@@ -395,21 +420,17 @@ def test_reference_design_options_route_localized_descriptions_into_radio_captio
 
         markdown.assert_not_called()
         options = GUIDED_INPUTS[language]["options"]["reference_design"]
-        positional_args, keyword_args = radio.call_args
-        assert positional_args == (
-            GUIDED_INPUTS[language]["steps"]["reference_design"]["title"],
-            tuple(options),
-        )
-        assert keyword_args["captions"] == tuple(
-            option["description"] for option in options.values()
-        )
+        positional_args, keyword_args = selector.call_args
+        assert positional_args == (T[language],)
+        assert keyword_args["descriptions"] == {
+            mode: option["description"] for mode, option in options.items()
+        }
         assert all(set(option) == {"label", "description"} for option in options.values())
-        assert keyword_args["width"] == "stretch"
+        assert keyword_args["widget_key"] == "guided_reference_design"
         assert keyword_args["on_change"] is renderer._handle_reference_design_change
-        assert [
-            keyword_args["format_func"](option_key)
-            for option_key in options
-        ] == [option["label"] for option in options.values()]
+        assert [T[language][f"opt_benchmark_{mode}"] for mode in options] == [
+            option["label"] for option in options.values()
+        ]
 
 
 def test_guided_reference_uses_shared_fields_without_duplicate_explanations(
@@ -449,6 +470,7 @@ def test_guided_reference_uses_shared_fields_without_duplicate_explanations(
             shared_reference_fields,
         )
         monkeypatch.setattr(renderer, "render_reference_correction_field", correction_field)
+        monkeypatch.setattr(renderer, "render_reference_design_selector", Mock())
 
         renderer._render_reference_design_fields(T["en"], GUIDED_INPUTS["en"])
 
@@ -459,7 +481,7 @@ def test_guided_reference_uses_shared_fields_without_duplicate_explanations(
         assert "local_benchmark_content" not in keyword_args
         assert "should_show_local_benchmark_explanation" not in keyword_args
         assert "tx_ab_method_content" not in keyword_args
-        assert "reference_callsign" in keyword_args["help_overrides"]
+        assert "help_overrides" not in keyword_args
 
 
 @pytest.mark.parametrize("input_view", ["guided", "classic"])
@@ -497,9 +519,23 @@ else:
     application.run()
     assert application.exception.values == []
     columns = application.get("column")
-    assert len(columns) == 2
     selector_key = "guided_reference_design" if input_view == "guided" else CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY
-    assert [widget.key for widget in columns[0].radio] == [selector_key]
+    if input_view == "guided":
+        assert [widget.key for widget in columns[0].button] == [
+            f"{selector_key}_reference_station", f"{selector_key}_local_neighborhood"
+        ]
+        assert len(columns[0].get("popover")) == 2
+    else:
+        assert [widget.key for widget in columns[0].radio] == [selector_key]
+        assert len(columns[0].button) == 0
+        assert len(columns[0].get("popover")) == 0
+        selector = application.radio(selector_key)
+        assert selector.value == "reference_station"
+        assert T[language]["hlp_benchmark_reference_station"] in selector.proto.help
+        assert T[language]["hlp_benchmark_local_neighborhood"] in selector.proto.help
+        assert T[language]["hlp_reference_callsign"] not in selector.proto.help
+        assert T[language]["hlp_reference_radius"] not in selector.proto.help
+        assert application.text_input("val_ref_callsign").proto.help == T[language]["hlp_reference_callsign"]
     expected_captions = (
         tuple(
             option["description"]
@@ -508,22 +544,24 @@ else:
         if input_view == "guided"
         else ()
     )
-    assert tuple(columns[0].radio[0].proto.captions) == expected_captions
+    assert tuple(caption.value for caption in columns[0].caption) == expected_captions
     assert len(columns[0].text_input) == 0
     reference_field_keys = ["val_ref_callsign"]
     if input_view == "classic":
         reference_field_keys.append("_val_benchmark_offset_db_text")
-    assert [widget.key for widget in columns[1].text_input] == reference_field_keys
+    reference_column = next(
+        column for column in columns
+        if any(widget.key == "val_ref_callsign" for widget in column.text_input)
+    )
+    assert [widget.key for widget in reference_column.text_input] == reference_field_keys
     assert len(application.text_input) == len(reference_field_keys)
-    assert len(application.caption) == 0
+    assert len(application.caption) == len(expected_captions)
     assert len(application.info) == 0
     assert application.session_state["val_ref_qth"] == "JO63"
     if input_view == "guided":
         application.radio("val_snr_correction_mode").set_value("established_offset").run()
         assert application.exception.values == []
-        assert [widget.key for widget in application.get("column")[1].text_input] == [
-            "val_ref_callsign",
-        ]
+        assert application.text_input("val_ref_callsign").proto.help == T[language]["hlp_reference_callsign"]
         assert [widget.key for widget in application.text_input] == [
             "val_ref_callsign", "_val_benchmark_offset_db_text",
         ]
@@ -556,6 +594,25 @@ else:
         assert application.exception.values == []
         assert application.session_state["val_benchmark_offset_db"] == 0.0
         assert [widget.key for widget in application.text_input] == ["val_ref_callsign"]
+    else:
+        application.radio(selector_key).set_value("local_neighborhood").run()
+        assert application.exception.values == []
+        assert application.session_state["val_comp_mode"] == "local_neighborhood"
+        assert application.slider("val_ref_radius_km").proto.help == T[language]["hlp_reference_radius"]
+        selector_help = application.radio(selector_key).proto.help
+        assert selector_help == selector.proto.help
+        assert T[language]["hlp_benchmark_reference_station"] in selector_help
+        assert T[language]["hlp_benchmark_local_neighborhood"] in selector_help
+        assert T[language]["hlp_reference_radius"] not in selector_help
+        assert T[language]["hlp_reference_callsign"] not in selector_help
+        assert application.text_input("_val_benchmark_offset_db_text").proto.help == (
+            T[language]["hlp_benchmark_offset_db"]
+        )
+        application.radio(selector_key).set_value("reference_station").run()
+        assert application.exception.values == []
+        assert application.session_state["val_comp_mode"] == "reference_station"
+        assert application.text_input("val_ref_callsign").value == "CALL/P"
+        assert application.text_input("val_ref_callsign").proto.help == T[language]["hlp_reference_callsign"]
 
 
 @pytest.mark.parametrize("intent", ["no_offset", "established_offset", "establish_offset"])
@@ -746,6 +803,7 @@ def test_reference_panel_keeps_only_actionable_correction_warning(monkeypatch, b
         ),
     )
     monkeypatch.setattr(renderer, "render_reference_design_fields", Mock())
+    monkeypatch.setattr(renderer, "render_reference_design_selector", Mock())
     monkeypatch.setattr(renderer, "render_reference_correction_field", Mock())
 
     renderer._render_reference_design_fields(T["en"], GUIDED_INPUTS["en"])
@@ -1220,9 +1278,11 @@ def test_scope_panel_always_shows_active_controls_without_preset_choice(monkeypa
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("direction", ["rx", "tx"])
 def test_custom_scope_panel_shows_only_relevant_evidence_guidance(
     monkeypatch,
     language,
+    direction,
 ):
     """Explain Performance or Benchmark thresholds for the active result."""
     messages = GUIDED_INPUTS[language]["messages"]
@@ -1235,6 +1295,12 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(
         ),
         (
             "reference_station",
+            "compare_evidence_requirements_body",
+            "success_evidence_requirements_body",
+            "benchmark",
+        ),
+        (
+            "local_neighborhood",
             "compare_evidence_requirements_body",
             "success_evidence_requirements_body",
             "benchmark",
@@ -1252,6 +1318,7 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(
                 session_state=_canonical_state(
                     guided_scope_mode="custom",
                     val_comp_mode=comparison_mode,
+                    val_analysis_direction=direction,
                 ),
                 radio=Mock(),
                 markdown=Mock(),
@@ -1277,6 +1344,8 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(
         )
 
         captions = [call.args[0] for call in caption.call_args_list]
+        assert messages["station_population_body"] in captions
+        assert messages["analysis_scope_body"] in captions
         assert messages[expected_key] in captions
         assert messages[excluded_key] not in captions
         assert render_evidence_fields.call_args.kwargs["result_type"] == (
@@ -1812,14 +1881,14 @@ st.session_state["test_available_nodes"] = result.available_nodes
     )
 
     for expected_reference in (reference, "CALL/P"):
-        application.radio("guided_reference_design").set_value("local_neighborhood").run()
+        application.button("guided_reference_design_local_neighborhood").click().run()
         assert not application.exception
         assert "scope_and_evidence" in application.session_state["test_available_nodes"]
         assert "review_and_run" in application.session_state["test_available_nodes"]
         assert "offset_calibration" not in application.session_state["test_available_nodes"]
         # A rerun while the callsign widget is hidden must retain its canonical value.
         application.run()
-        application.radio("guided_reference_design").set_value("reference_station").run()
+        application.button("guided_reference_design_reference_station").click().run()
         assert not application.exception
         assert application.text_input("val_ref_callsign").value == expected_reference
         assert tuple(application.session_state["test_available_nodes"]) == expected_nodes

@@ -30,6 +30,7 @@ from ui.components.config_fields import (
     render_evidence_threshold_fields,
     render_reference_correction_field,
     render_reference_design_fields,
+    render_reference_design_selector,
     render_scope_fields,
     render_station_population_fields,
     render_target_and_window_fields,
@@ -296,20 +297,13 @@ def _render_use_case_selector(t, guided_content):
 
 
 def _render_target_and_window_fields(t, guided_content):
-    """Render the existing Target/time widgets with richer Guided field help."""
-    messages = guided_content["messages"]
+    """Render Target/time widgets with the same concise help as Classic."""
     render_target_and_window_fields(
         t,
         on_change=_guided_experiment_definition_change,
         on_change_args=("target_and_window",),
         correction_context_on_change=_guided_correction_context_change,
         correction_context_on_change_args=("target_and_window",),
-        help_overrides={
-            "callsign": messages["target_callsign_help"],
-            "qth": messages["target_qth_help"],
-            "band": messages["band_help"],
-            "time": messages["time_help"],
-        },
     )
 
 
@@ -320,16 +314,13 @@ def _render_reference_design_fields(t, guided_content):
     benchmark_mode = st.session_state.get("val_comp_mode")
     selection_column, fields_column = st.columns([0.5, 0.5], gap="large")
     with selection_column:
-        st.radio(
-            guided_content["steps"]["reference_design"]["title"],
-            tuple(options),
-            key="guided_reference_design",
-            index=None,
-            label_visibility="collapsed",
-            format_func=lambda value: options[value]["label"],
-            captions=tuple(option["description"] for option in options.values()),
+        render_reference_design_selector(
+            t,
+            widget_key="guided_reference_design",
             on_change=_handle_reference_design_change,
-            width="stretch",
+            descriptions={
+                mode: option["description"] for mode, option in options.items()
+            },
         )
         _render_field_error("val_comp_mode", widget_key="guided_reference_design")
         if benchmark_mode == "local_neighborhood":
@@ -348,10 +339,6 @@ def _render_reference_design_fields(t, guided_content):
                 t,
                 on_change=_guided_correction_context_change,
                 on_change_args=("reference_design",),
-                help_overrides={
-                    "reference_callsign": messages["reference_callsign_help"],
-                    "local_radius": messages["local_radius_help"],
-                },
             )
 
 
@@ -389,14 +376,14 @@ def _render_scope_and_evidence_fields(t, guided_content):
     """Always render the grouped population, scope, and evidence controls."""
     messages = guided_content["messages"]
     st.markdown(f"**{messages['station_population_title']}**")
-    st.caption(messages["station_population_body"])
+    st.caption(messages["station_population_body"], unsafe_allow_html=True)
     render_station_population_fields(
         t,
         on_change=_guided_scientific_change,
         on_change_args=("scope_and_evidence",),
     )
     st.markdown(f"**{messages['analysis_scope_title']}**")
-    st.caption(messages["analysis_scope_body"])
+    st.caption(messages["analysis_scope_body"], unsafe_allow_html=True)
     render_scope_fields(
         t,
         on_change=_guided_scientific_change,
@@ -409,7 +396,7 @@ def _render_scope_and_evidence_fields(t, guided_content):
         if st.session_state.get("val_comp_mode") == "none"
         else "compare_evidence_requirements_body"
     )
-    st.caption(messages[evidence_requirements_key])
+    st.caption(messages[evidence_requirements_key], unsafe_allow_html=True)
     render_evidence_threshold_fields(
         t,
         result_type=(

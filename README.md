@@ -67,9 +67,9 @@ The question determines the appropriate evidence design:
 | <span class="analysis-choice"><span class="analysis-family">RX Benchmark</span><br><strong class="analysis-variant">Reference Setup/Station</strong></span> | Did two local receive paths differ while observing the same remote transmissions? | Compare two antennas, each feeding its own simultaneous receiver and decoder chain, as complete receive paths; attribute a difference specifically to the antennas only when the remaining chains are matched, characterized or confirmed by crossover; feed one antenna through a characterized splitter into two receivers to compare receiver or decoder paths; place a preamplifier, filter, feedline or common-mode choke in only one otherwise controlled path and benchmark the two documented complete receive paths. |
 | <span class="analysis-choice"><span class="analysis-family">TX Benchmark</span><br><strong class="analysis-variant">Reference Setup/Station</strong></span> | Did two local transmit paths differ in the same WSPR cycles? | Feed two antennas from separate calibrated transmit chains and transmit simultaneously with synchronized cycles, distinguishable signals and adequate isolation; compare two feedlines, matching networks, filters or complete transmit paths while controlling actual power, timing and the remaining chain. |
 | <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Reference Setup/Station</strong></span> | How does my complete station compare with one known station? | <strong>RX:</strong> compare your receiver with a known Buddy receiver while both observe the same remote transmitters in the same cycles; <strong>TX:</strong> compare your transmitter with a Buddy transmitter at the same remote receivers in the same cycles; repeat a stable, well-understood Buddy design as a relative whole-station baseline before and after documented station work, without treating the Buddy as an absolute calibrated standard. |
-| <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Reference Neighbourhood (Local Median)</strong></span> | How does my complete station compare with the observed nearby WSPR peers? | See whether your receive or transmit station is broadly above, near or below the cycle- and path-specific median of qualifying observed local peers inside the selected radius; commission a station when no single suitable Buddy Reference is available; identify directions, distances or UTC periods where the station departs from that contextual local baseline, while checking neighborhood membership and radius sensitivity. This compares complete stations under the observed conditions; it does not isolate antenna gain or rank all nearby stations. |
+| <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Reference Neighborhood (Local Median)</strong></span> | How does my complete station compare with the observed nearby WSPR peers? | See whether your receive or transmit station is broadly above, near or below the cycle- and path-specific median of qualifying observed local peers inside the selected radius; commission a station when no single suitable Buddy Reference is available; identify directions, distances or UTC periods where the station departs from that contextual local baseline, while checking neighborhood membership and radius sensitivity. This compares complete stations under the observed conditions; it does not isolate antenna gain or rank all nearby stations. |
 
-The Reference is part of the scientific question, not just a display choice. A controlled local setup provides the strongest basis for attributing an observed difference to local paths or components, but only to the extent that the remaining chains are controlled. An independent Reference Station compares complete installed stations, including QTH, equipment, terrain and the local interference and noise environment. A Reference Neighbourhood describes the Target relative to a changing local population, not an isolated antenna or a fixed calibrated standard.
+The Reference is part of the scientific question, not just a display choice. A controlled local setup provides the strongest basis for attributing an observed difference to local paths or components, but only to the extent that the remaining chains are controlled. An independent Reference Station compares complete installed stations, including QTH, equipment, terrain and the local interference and noise environment. A Reference Neighborhood describes the Target relative to a changing local population, not an isolated antenna or a fixed calibrated standard.
 
 These perspectives make WSPRadar useful for more than formal antenna comparisons. Performance can establish a station baseline, show where a station is dependably heard, reveal directional or distance-dependent behavior, identify recurring daily patterns, and help locate when an intermittent change appeared. Benchmark can compare antennas, feedlines, filters, preamplifiers, receivers or complete paths; contrast two complete stations; or place one station in the context of its active local neighborhood.
 
@@ -130,10 +130,10 @@ The aim is not to produce a flattering number. It is to obtain a result you can 
     * [2.2 TX Performance](#sec-3-tx-performance)
     * [2.3 RX Benchmark](#sec-3-rx-benchmark)
         * [2.3.1 Reference Setup/Station](#sec-3-rx-benchmark-hardware)
-        * [2.3.2 Reference Neighbourhood](#sec-3-rx-benchmark-local-median)
+        * [2.3.2 Reference Neighborhood](#sec-3-rx-benchmark-local-median)
     * [2.4 TX Benchmark](#sec-3-tx-benchmark)
         * [2.4.1 Reference Setup/Station](#sec-3-tx-benchmark-simultaneous)
-        * [2.4.2 Reference Neighbourhood](#sec-3-tx-benchmark-local-median)
+        * [2.4.2 Reference Neighborhood](#sec-3-tx-benchmark-local-median)
     * [2.5 Find and Review Temporary ΔSNR Departures](#sec-outlier)
         * [2.5.1 When to use this expert diagnostic](#sec-outlier-1)
         * [2.5.2 How detection works in practice](#sec-outlier-2)
@@ -267,7 +267,7 @@ Choose **Benchmark** when the question is explicitly relative to a Reference. Th
 
 <a id="sec-2-6"></a>
 
-* **Reference Neighbourhood (Local Median)** compares your complete receiving or transmitting station with a changing Reference formed from qualifying nearby WSPR observations inside the selected radius. The Reference is calculated separately for each remote station and WSPR cycle.
+* **Reference Neighborhood (Local Median)** compares your complete receiving or transmitting station with a changing Reference formed from qualifying nearby WSPR observations inside the selected radius. The Reference is calculated separately for each remote station and WSPR cycle.
 
 Use it to investigate where your station’s observed performance lies above, near or below the contributing local peers when no suitable fixed Reference Station is available. It describes your station in its observed local context; it does not isolate antenna gain or establish a ranking of all nearby stations.
 
@@ -426,7 +426,7 @@ Interpret this as a benchmark of complete installed receiving stations. It can s
 
 <a id="sec-3-rx-benchmark-local-median"></a>
 
-##### 2.3.2 Reference Neighbourhood
+##### 2.3.2 Reference Neighborhood
 
 The Reference is the cycle- and path-specific median of one contribution from each active local receiver identity inside the selected radius. Membership can change from cycle to cycle, so the result is a contextual local baseline rather than a fixed station comparison.
 
@@ -486,7 +486,7 @@ Interpret the result as a benchmark of complete installed transmitting stations.
 
 <a id="sec-3-tx-benchmark-local-median"></a>
 
-##### 2.4.2 Reference Neighbourhood
+##### 2.4.2 Reference Neighborhood
 
 The Reference is the cycle- and receiver-path median of one contribution from each active local transmitter identity inside the selected radius. It is a changing local baseline, not one fixed station, and it depends on the active membership and accuracy of their reported powers.
 
@@ -647,13 +647,13 @@ A complete Performance statement can additionally say whether at-least-once reac
 
 > For this Target, Reference, band, UTC window and selected segment, station-balanced Delta SNR favored the Target/Reference by the displayed amount. The observation-level Delta SNR, joint station and spot/pair counts, Joint Evidence Share and Decode Outcomes describe the supporting paired and one-sided evidence.
 
-For a controlled-setup result, name the complete paths compared and any crossover or calibration. For an independent Reference station, state that complete installed stations and their environments were benchmarked. For a Reference Neighbourhood, state the radius and changing local-median Reference definition.
+For a controlled-setup result, name the complete paths compared and any crossover or calibration. For an independent Reference station, state that complete installed stations and their environments were benchmarked. For a Reference Neighborhood, state the radius and changing local-median Reference definition.
 
 Match the design name to the quantity being described:
 
 * A **controlled setup** compares the documented local paths.
 * An **independent-station comparison** compares complete installed stations and their environments.
-* **Reference Neighbourhood (Local Median)** compares the complete Target station with the median of the contributing nearby peers inside the selected radius under the observed conditions.
+* **Reference Neighborhood (Local Median)** compares the complete Target station with the median of the contributing nearby peers inside the selected radius under the observed conditions.
 * A directional result describes the observed WSPR paths and participating stations rather than an absolute radiation pattern.
 * Benchmark map colors use a run-scaled, symmetric dB color bar: blue favors the Reference, red favors the Target and `0 dB` is equality. Use the numerical color-bar values when comparing maps from different runs.
 
@@ -736,7 +736,7 @@ After an accepted Run action, the page moves to the processing-status panel belo
 
 #### 4.2 Question, Target and measurement-window controls
 
-Classic presents the scientific setup in a question-led order. The first panel, **`Question`**, requires one of four complete analysis choices: `RX Performance`, `TX Performance`, `RX Benchmark` or `TX Benchmark`. This single choice sets both the RX/TX direction and whether the run produces stand-alone Performance evidence or a Target-versus-Reference Benchmark. The second panel, **`Target and measurement window`**, then collects the existing Target identity, QTH, band and absolute UTC interval. A Benchmark adds **`Benchmark design`** next. Both result types then show **`Optional filters, analysis scope, and evidence requirements`** followed by the terminal Review panel, so Performance has four Classic panels and Benchmark has five.
+Classic presents the scientific setup in a question-led order. The first panel, **`Question`**, requires one of four complete analysis choices: `RX Performance`, `TX Performance`, `RX Benchmark` or `TX Benchmark`. This single choice sets both the RX/TX direction and whether the run produces stand-alone Performance evidence or a Target-versus-Reference Benchmark. The second panel, **`Target and measurement window`**, then collects the existing Target identity, QTH, band and absolute UTC interval. A Benchmark adds **`Benchmark design`** next. Both result types then show **`Filters, scope and evidence`** followed by the terminal Review panel, so Performance has four Classic panels and Benchmark has five.
 
 | UI label | Default | What it controls |
 |---|---|---|
@@ -758,9 +758,11 @@ A four-character Maidenhead locator identifies a broad grid square; six characte
 For `RX Benchmark` and `TX Benchmark`, Classic displays a third panel named **`Benchmark design`** and offers:
 
 - `Reference Setup/Station`
-- `Reference Neighbourhood`
+- `Reference Neighborhood`
 
-Selecting RX or TX Benchmark without an existing design preselects **Reference Setup/Station** in Guided and Classic. An existing Reference Setup/Station or Reference Neighbourhood choice is preserved.
+Guided provides concise help for each Reference choice and separate help for the Reference callsign and Neighborhood Radius fields, explaining what to enter and what each field controls. In Classic, the help beside **Benchmark design** explains both Reference choices regardless of the current selection. The Reference callsign and Neighborhood Radius fields have their own help for entry guidance. Reference Neighborhood uses the Local Median described in the choice help; set the geographic extent with Neighborhood Radius.
+
+Selecting RX or TX Benchmark without an existing design preselects **Reference Setup/Station** in Guided and Classic. An existing Reference Setup/Station or Reference Neighborhood choice is preserved.
 
 Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. The terminal Review panel appears after the shared filters, scope and evidence panel. On Run, invalid or incomplete fields are marked locally with red feedback and corrective guidance; correcting a field clears its issue. Archive lookup failure is reported separately from an invalid callsign or an empty report window. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names; it is not an exhaustive field or parameter catalog.
 
@@ -770,12 +772,12 @@ Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and
 | **Reference-side SNR correction (dB)** | blank = `0.0`; `-99.9` to `+99.9 dB` | Benchmark | Added to Reference SNR before Target-minus-Reference Delta SNR is calculated. Enter decimal points, for example `1.2`. |
 | **Reference callsign** | blank | Reference Setup/Station | Exact Reference reporting identity. |
 | **Reference location** | resolved from the selected archive | Reference Setup/Station | One observed grid-4 resolves automatically; choose explicitly when several are reported. No separate manual Reference locator is required. |
-| **Neighborhood Radius (km)** | `100`; 10–250 km in 10 km steps | Reference Neighbourhood | Defines the local Reference pool around Target QTH. |
+| **Neighborhood Radius (km)** | `100`; 10–250 km in 10 km steps | Reference Neighborhood | Defines the local Reference pool around Target QTH. |
 
 
 Switching the Question or Benchmark design hides controls that do not apply. Saved configurations contain only the inputs applicable to the selected analysis. Values whose scientific meaning changes under the new design are cleared rather than reinterpreted.
 
-Enter only the exact Reference callsign; Target QTH is the sole manually entered analysis locator and remains the origin for map, distance, azimuth, solar and neighbourhood geometry. Reference location discovery runs for the selected role, band, effective UTC window and archive. One observed grid-4 resolves automatically; multiple candidates require your choice and show their full locator variants, report counts and first/last report times. A successful lookup with no qualifying reports is distinct from a source error. The same archive supplies the ensuing analysis; a resolved grid-4 is retained with the saved analysis definition.
+Enter only the exact Reference callsign; Target QTH is the sole manually entered analysis locator and remains the origin for map, distance, azimuth, solar and neighborhood geometry. Reference location discovery runs for the selected role, band, effective UTC window and archive. One observed grid-4 resolves automatically; multiple candidates require your choice and show their full locator variants, report counts and first/last report times. A successful lookup with no qualifying reports is distinct from a source error. The same archive supplies the ensuing analysis; a resolved grid-4 is retained with the saved analysis definition.
 
 One grid-4 is not proof of one physical site. Different fine locators within it remain visible as reported variants; a coarse/fine combination may be geographically compatible without proving one transmitter or receiver. Discovery does not merge the remote peer identities used for pairing.
 
@@ -785,7 +787,7 @@ Different reported grids can reflect separate sites or incorrect archive metadat
 
 A positive correction increases corrected Reference SNR and therefore reduces Target-minus-Reference Delta SNR. Enter a measured `target - reference` calibration offset with the same sign. For example, a common-input calibration of `+1.6 dB` is entered as `+1.6 dB`. [Section 7.5](#sec-7-5) defines the equations.
 
-The correction applies to the selected Reference receive/transmit path, or each local contribution before the Reference Neighbourhood (Local Median) is formed.
+The correction applies to the selected Reference receive/transmit path, or each local contribution before the Reference Neighborhood (Local Median) is formed.
 
 | Guided choice | Meaning | Required value |
 |---|---|---|
@@ -795,19 +797,19 @@ The correction applies to the selected Reference receive/transmit path, or each 
 
 A constant correction cannot repair clipping, unstable AGC, intermittent routing, frequency-dependent response or incorrect power reporting. Controlled-setup calibration should use a common input or calibrated reference plane. A geographically separated Reference Station can support only a repeatable baseline for that particular pair, band and setup — not an absolute calibration. [Appendix C](#sec-reference-snr-calibration) gives the practical procedure.
 
-For Reference Neighbourhood (Local Median), use `0.0 dB` when no independently justified correction has been established. A nonzero correction requires a documented reason why the same additive offset applies to the contributing Reference population under the selected conditions. Adjusting the correction until the neighborhood matches the Target does not establish calibration. A common offset cannot correct different unknown errors in individual neighboring stations.
+For Reference Neighborhood (Local Median), use `0.0 dB` when no independently justified correction has been established. A nonzero correction requires a documented reason why the same additive offset applies to the contributing Reference population under the selected conditions. Adjusting the correction until the neighborhood matches the Target does not establish calibration. A common offset cannot correct different unknown errors in individual neighboring stations.
 
 <a id="sec-5-4"></a>
 
 #### 4.4 Filters and evidence thresholds
 
-Guided and Classic use the same panel name, **`Optional filters, analysis scope, and evidence requirements`**, for these controls. Guided always shows the applicable fields inside that step; there is no separate preset-choice gate. Untouched setups initialize the visible fields from the result-specific defaults below; loaded configurations and demos populate the same visible fields with their stored values. Displaying those values does not itself edit them or detach demo context. Here “optional” describes the population filters and scope choices; the active evidence requirements always participate in the analysis.
+Guided and Classic use the same panel name, **`Filters, scope and evidence`**, for these controls. Guided always shows the applicable fields inside that step; there is no separate preset-choice gate. Untouched setups initialize the visible fields from the result-specific defaults below; loaded configurations and demos populate the same visible fields with their stored values. Displaying those values does not itself edit them or detach demo context. The displayed filter, scope and evidence settings apply even if you leave this panel unchanged.
 
 Choose filters and thresholds from the intended population and evidence floor before a confirmatory run. Changing them after inspecting the result creates a different analysis and should be retained separately.
 
 | Control | Default | Applies to | Effect and use |
 |---|---|---|---|
-| **Exclude Special Callsigns Q, 0, 1** | Performance on; Benchmark off | all results | Excludes remote peer callsigns beginning with `Q`, `0` or `1`: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter. The prefix rule does not establish whether a station carries telemetry. Retain beacon/telemetry-like identities when they are part of the question; exclude them when the intended population is ordinary amateur activity. |
+| **Exclude Special Callsigns Q, 0, 1** | Performance on; Benchmark off | all results | Excludes remote peer callsigns beginning with `Q`, `0` or `1`: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighborhood reference contributors, remain eligible under this filter. The prefix rule does not establish whether a station carries telemetry. Retain beacon/telemetry-like identities when they are part of the question; exclude them when the intended population is ordinary amateur activity. |
 | **Exclude Moving Stations** | Performance on; Benchmark off | mapped peers | Excludes callsigns reporting more than one grid-4 in the otherwise eligible global population. Use Drill-Down to distinguish movement from bad locator data. |
 | **Solar state at Target QTH** | `All 24h` | all results | Keeps `Daylight (Elev > +6°)`, `Nighttime (Elev < -6°)`, `Greyline (-6° to +6°)` or all cycles according to Target-QTH solar elevation. |
 | **Maximum peer distance from Target (km)** | `22000`; choices `2500`, `5000`, `10000`, `15000`, `20000`, `22000` | all results | Removes peers at or beyond the selected distance from analysis, processed artifacts and exports. Target-Active gating may still use out-of-scope evidence solely to establish Target operation. |
@@ -817,7 +819,7 @@ Choose filters and thresholds from the intended population and evidence floor be
 
 The two exclusion defaults apply only to untouched interactive setups. A Performance setup starts with both exclusions on; a Benchmark setup starts with both off. After the operator changes either exclusion manually, that explicit value persists across Question changes rather than being replaced by a result-type default. Loaded configurations, demos and analysis URLs likewise retain their explicitly saved choices.
 
-`Maximum peer distance from Target (km)` limits the analysed population after the archive rows have been retrieved, so reducing it does not avoid the archive row limit. A smaller Reference Neighbourhood radius and `Exclude Special Callsigns Q, 0, 1` can reduce the population retrieved for some analyses; [Section 5.6](#sec-6-6) covers oversized requests.
+`Maximum peer distance from Target (km)` limits the analysed population after the archive rows have been retrieved, so reducing it does not avoid the archive row limit. A smaller Reference Neighborhood radius and `Exclude Special Callsigns Q, 0, 1` can reduce the population retrieved for some analyses; [Section 5.6](#sec-6-6) covers oversized requests.
 
 <a id="sec-5-5"></a>
 
@@ -911,7 +913,7 @@ An empty-result notice reports the scope and evidence parameters captured for th
 | **`Only Reference = 0`** | Check Target-active conditioning, thresholds and active scope; zero can be correct. |
 | **Unexpected Reference Setup/Station Delta SNR sign** | Verify physical A/B mapping, Target/Reference order, correction sign, actual/reported power and calibration. Reconcile one path in Drill-Down. |
 | **Local result changes with radius** | Inspect local contributors and report radius sensitivity rather than selecting only the most favorable radius. |
-| **Run stops because the source result is too large** | Shorten the UTC window. `Exclude Special Callsigns Q, 0, 1` or a smaller Reference Neighbourhood radius can reduce relevant source queries; maximum peer distance cannot because it is applied after retrieval. |
+| **Run stops because the source result is too large** | Shorten the UTC window. `Exclude Special Callsigns Q, 0, 1` or a smaller Reference Neighborhood radius can reduce relevant source queries; maximum peer distance cannot because it is applied after retrieval. |
 | **Recent spots appear incomplete** | Allow about five minutes after the final cycle, then check upload and upstream status. |
 
 An upstream-data problem changes what the source supplied. An experiment-design problem changes whether the retained evidence answers the intended question. Diagnose and report them separately.
@@ -922,7 +924,7 @@ An upstream-data problem changes what the source supplied. An experiment-design 
 
 Performance and every Benchmark design match Target archive rows by exact callsign plus Target QTH grid-4. A Target uploading `JN37` while configured as `JN38` does not match.
 
-Reference Setup/Station uses the exact Reference callsign plus the grid-4 resolved from the selected archive period. Discovery uses the Reference role (RX or TX), band, effective UTC window and selected data source. One reported grid-4 resolves automatically; several require an explicit choice. Full reported locator variants, report counts and first/last report times support that choice. The location is an archive selector, not a verified physical site. Reference Neighbourhood selects its contributors geographically.
+Reference Setup/Station uses the exact Reference callsign plus the grid-4 resolved from the selected archive period. Discovery uses the Reference role (RX or TX), band, effective UTC window and selected data source. One reported grid-4 resolves automatically; several require an explicit choice. Full reported locator variants, report counts and first/last report times support that choice. The location is an archive selector, not a verified physical site. Reference Neighborhood selects its contributors geographically.
 
 WSPRadar does not reconstruct a compound callsign from Type 2 and Type 3 messages and does not infer a missing locator. Check the selected data source for both exact identities and their intended reported grid-4 values. If one identity is missing, appears only without the required locator, or is stored under a different grid-4, simultaneous Reference Setup/Station cannot match it merely because another archive or map display looks correct.
 
@@ -1025,7 +1027,7 @@ These systems establish substantial prior art in data acquisition, exploration, 
 WSPRadar inherits accumulated WSPR observations, activity checks, reported-power correction, common-condition pairing, calibrated receive-chain comparison, database joins and geographic/time inspection. It integrates them into one TX/RX workflow with:
 
 * Performance based on confirmed opportunities;
-* Reference Setup/Station and dynamic Reference Neighbourhoods;
+* Reference Setup/Station and dynamic Reference Neighborhoods;
 * same-cycle matching;
 * reported-power normalization and optional Reference-side correction;
 * paired Delta SNR separated from one-sided Decode Outcomes;
@@ -1075,7 +1077,7 @@ This chapter uses **summary** or **descriptive statistic** for the rates, median
 | TX Performance | one remote-receiver peer-cycle | Target TX active; peer RX decodes Target TX or another qualifying same-band TX | peer Decode Rate, then equal-peer mean; pooled opportunity rate retained | conditional observability, not all attempted transmissions |
 | RX Reference Setup/Station | one remote-transmitter peer-cycle | Target active; both receivers report the same transmitter-cycle for Delta SNR | station median Delta SNR, then median across stations | complete receive paths unless chains are controlled |
 | TX Reference Setup/Station | one remote-receiver peer-cycle | Target active; same receiver-cycle for paired Delta SNR | station median Delta SNR, then median across stations | power, chain and joint-decode selection |
-| Reference Neighbourhood (Local Median) | one Target/local-Reference peer-cycle | Target active; one contribution per active local identity | local median Reference, then station/segment Delta medians | changing uncalibrated membership |
+| Reference Neighborhood (Local Median) | one Target/local-Reference peer-cycle | Target active; one contribution per active local identity | local median Reference, then station/segment Delta medians | changing uncalibrated membership |
 
 The hierarchy can be read from left to right: WSPRadar first decides which evidence units belong to the analysis, then calculates a peer- or path-level quantity, and only then forms the displayed station-balanced summary. The formulas below make those steps auditable; the text following each formula explains the same operation in ordinary station terms.
 
@@ -1091,7 +1093,7 @@ WSPRadar does not classify a row as Type 1, Type 2 or Type 3 and does not join c
 The lowest unit differs by design:
 
 * Performance and Benchmark use one peer identity in one eligible WSPR cycle.
-* Reference Neighbourhood additionally constructs a cycle/path Reference from qualifying local identities before forming Target-minus-Reference evidence.
+* Reference Neighborhood additionally constructs a cycle/path Reference from qualifying local identities before forming Target-minus-Reference evidence.
 
 Same-cycle matching means the same two-minute UTC archive slot and exact remote callsign plus full reported locator on the same band. It does not require identical RF frequencies or prove equal physical propagation paths; simultaneous TX signals normally need distinct clear frequencies. Only Joint evidence supplies Delta SNR. One-sided evidence and station-level Both (Async) remain available without an invented missing-side SNR.
 
@@ -1109,19 +1111,19 @@ WSPRadar treats reported identity as scientific data rather than a cosmetic labe
 | RX Performance | exact RX callsign + Target QTH grid-4 | TX callsign + full reported TX locator | Target-active peer-cycle |
 | TX Performance | exact TX callsign + Target QTH grid-4 | RX callsign + full reported RX locator | Target-active peer-cycle |
 | Reference Setup/Station | exact Target callsign + Target grid-4 | exact Reference callsign + resolved Reference grid-4; exact remote callsign + full reported locator | consolidated peer-cycle |
-| Reference Neighbourhood | exact Target callsign + Target grid-4 | local identity inside radius; remote peer identity | Target/local-Reference peer-cycle |
+| Reference Neighborhood | exact Target callsign + Target grid-4 | local identity inside radius; remote peer identity | Target/local-Reference peer-cycle |
 
 Target archive selection uses grid-4 even when a six-character QTH is configured. The full QTH remains relevant to distance, azimuth, solar elevation and local-radius geometry. A matching grid-4 does not prove physical co-location.
 
 This matching uses the exact callsign and locator fields supplied by the selected archive. WSPRadar neither reconstructs a compound callsign from its hash nor borrows a locator from a neighboring Type 2 or Type 3 cycle. A simultaneous extended-WSPR sequence can therefore contribute one same-phase comparison unit in each aligned cycle when both archive sides resolve consistently; a missing or differently represented callsign/grid-4 does not become eligible by inference.
 
-If several qualifying non-identical rows represent one logical side/peer/cycle identity, WSPRadar retains the strongest qualifying normalized SNR as the best observed value for that logical identity. This prevents exact repeats or weaker secondary decodes from lowering the retained side value, but it is not a representative central value for one physical receiver. Different multi-receiver/reporting behavior on the two sides can therefore introduce asymmetry. Reference Neighbourhood (Local Median) instead forms a median within each local identity before aggregating across identities.
+If several qualifying non-identical rows represent one logical side/peer/cycle identity, WSPRadar retains the strongest qualifying normalized SNR as the best observed value for that logical identity. This prevents exact repeats or weaker secondary decodes from lowering the retained side value, but it is not a representative central value for one physical receiver. Different multi-receiver/reporting behavior on the two sides can therefore introduce asymmetry. Reference Neighborhood (Local Median) instead forms a median within each local identity before aggregating across identities.
 
 **Why retain the strongest report?** Multiple reports for the same station, peer and WSPR cycle do not necessarily represent independent observations. If weaker reports arise from transmitter or receiver replicas, spurious components or secondary decodes, their mean or median has no established interpretation as the main signal's SNR. Retaining the strongest qualifying normalized SNR represents the best observed reception and prevents weaker secondary reports from lowering that value. These reports still contribute only one detection outcome or paired observation for the relevant cycle/path.
 
 This best-report interpretation is consistent with WsprDaemon's documented multi-receiver merging: when several receivers contribute reports for the same transmission, it reports the best SNR to WSPRnet. This is a reporting precedent, not proof that a particular archived report represents the intended signal or that both comparison endpoints selected the same spectral component. <a href="#ref-11">[Ref-11]</a>
 
-The strongest-report rule applies to Performance SNR values, both endpoints of simultaneous fixed-Reference Benchmark, and the Target side of Reference Neighbourhood (Local Median). Local Reference contributors retain their within-identity medians and subsequent median across identities. These distinct constructions are defined in [Section 7.7](#sec-7-7). Medians and IQR across retained observations remain summaries of the resulting evidence, separate from choosing one SNR value within a cycle/path.
+The strongest-report rule applies to Performance SNR values, both endpoints of simultaneous fixed-Reference Benchmark, and the Target side of Reference Neighborhood (Local Median). Local Reference contributors retain their within-identity medians and subsequent median across identities. These distinct constructions are defined in [Section 7.7](#sec-7-7). Medians and IQR across retained observations remain summaries of the resulting evidence, separate from choosing one SNR value within a cycle/path.
 
 The local pool excludes the Target by exact callsign. A base callsign and suffixed callsign are distinct unless the exact Target form matches. Bad, stale or changing locators can split one physical station, move it geographically or trigger the moving-station exclusion.
 
@@ -1268,7 +1270,7 @@ For every Benchmark design, a station is one exact `callsign + full reported loc
 
 For example, two qualifying identities with the same callsign and locators `JO31AA` and `JO31AB`, with peer medians of `+2 dB` and `+4 dB`, contribute a segment median of `+3 dB` and support count `2`. A minimum of two qualifying stations retains that segment; a minimum of three does not.
 
-<p style="page-break-after: avoid; -pdf-keep-with-next: true;"><strong>Reference Neighbourhood (Local Median)</strong></p>
+<p style="page-break-after: avoid; -pdf-keep-with-next: true;"><strong>Reference Neighborhood (Local Median)</strong></p>
 
 For each remote peer-cycle, WSPRadar first calculates one normalized SNR contribution per active local `callsign + locator`, then takes the exact median across contributing local identities. An absent local identity is omitted rather than assigned zero. Reference correction is applied before the local pool is aggregated. The Target is compared with this cycle/path median, after which peer and segment Delta-SNR medians are calculated.
 
@@ -1599,7 +1601,7 @@ Use the result type that matches the statement:
 * **Benchmark Delta SNR** supports paired Target-minus-Reference description within the Joint subset.
 * **Decode Outcomes** support statements about pairability and one-sided evidence.
 * **Distance or direction structure** supports statements about observed path segments, not direct radiation angle or gain pattern.
-* **Reference Neighbourhood** supports descriptions of how the complete Target station compared with the contributing nearby peers under the selected conditions. Its Reference changes with the qualifying observations, radius, remote path and cycle. It is neither a permanent station ranking nor a calibrated antenna comparison.
+* **Reference Neighborhood** supports descriptions of how the complete Target station compared with the contributing nearby peers under the selected conditions. Its Reference changes with the qualifying observations, radius, remote path and cycle. It is neither a permanent station ranking nor a calibrated antenna comparison.
 
 A positive or negative Delta SNR quantifies the observed paired SNR difference under that construction. It does not identify which component or environmental difference caused it. Joint Evidence Share describes pairability or coverage of the retained evidence; it is not a Target win rate.
 

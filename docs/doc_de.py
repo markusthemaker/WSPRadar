@@ -736,7 +736,7 @@ Nach dem angenommenen Start einer Analyse springt die Seite zum Laufstatus unter
 
 #### 4.2 Frage, Target und Messzeitraum
 
-Die Klassische Eingabe ordnet die wissenschaftliche Konfiguration nach der Fragestellung. Im ersten Bereich **`Frage`** muss eine von vier vollständigen Analysen gewählt werden: `RX Performance`, `TX Performance`, `RX-Benchmark` oder `TX-Benchmark`. Diese eine Auswahl legt sowohl die RX-/TX-Richtung als auch fest, ob der Lauf eigenständige Performance-Evidenz oder einen Target–Referenz-Benchmark erzeugt. Der zweite Bereich **`Target und Messzeitraum`** erfasst anschließend wie bisher Target-Identität, QTH, Band und absoluten UTC-Zeitraum. Bei einem Benchmark folgt **`Benchmark-Design`**. Beide Ergebnistypen zeigen danach **`Optionale Filter, Analyseumfang und Evidenzanforderungen`** und abschließend den Prüfbereich; Performance besitzt damit vier und Benchmark fünf klassische Bereiche.
+Die Klassische Eingabe ordnet die wissenschaftliche Konfiguration nach der Fragestellung. Im ersten Bereich **`Frage`** muss eine von vier vollständigen Analysen gewählt werden: `RX Performance`, `TX Performance`, `RX-Benchmark` oder `TX-Benchmark`. Diese eine Auswahl legt sowohl die RX-/TX-Richtung als auch fest, ob der Lauf eigenständige Performance-Evidenz oder einen Target–Referenz-Benchmark erzeugt. Der zweite Bereich **`Target und Messzeitraum`** erfasst anschließend wie bisher Target-Identität, QTH, Band und absoluten UTC-Zeitraum. Bei einem Benchmark folgt **`Benchmark-Design`**. Beide Ergebnistypen zeigen danach **`Filter, Analyseumfang und Evidenz`** und abschließend den Prüfbereich; Performance besitzt damit vier und Benchmark fünf klassische Bereiche.
 
 | UI-Bezeichnung | Standard | Funktion |
 |---|---|---|
@@ -759,6 +759,8 @@ Für `RX-Benchmark` und `TX-Benchmark` zeigt die Klassische Eingabe einen dritte
 
 - `Referenzaufbau/-station`
 - `Referenznachbarschaft`
+
+Die geführte Eingabe bietet zu jeder Referenzoption eine kurze Hilfe und getrennte Hilfen zu den Feldern für Referenz-Rufzeichen und Nachbarschaftsradius. Diese erklären, was einzugeben ist und was das jeweilige Feld steuert. In der klassischen Eingabe erklärt die Hilfe neben **Benchmark-Design** beide Referenzoptionen unabhängig von der aktuellen Auswahl. Die Felder für Referenz-Rufzeichen und Nachbarschaftsradius haben eigene Hilfen zur Eingabe. Die Referenznachbarschaft verwendet den in der Auswahlhilfe beschriebenen lokalen Median; den geografischen Umfang legst du mit dem Nachbarschaftsradius fest.
 
 Wird RX- oder TX-Benchmark ohne bestehendes Design gewählt, ist in der geführten und klassischen Eingabe **Referenzaufbau/-station** vorausgewählt. Eine bestehende Auswahl von Referenzaufbau/-station oder Referenznachbarschaft bleibt erhalten.
 
@@ -801,7 +803,7 @@ Verwende beim lokalen Nachbarschafts-Median `0.0 dB`, wenn keine unabhängig beg
 
 #### 4.4 Filter und Evidenzschwellen
 
-Geführte und klassische Eingabe verwenden für diese Einstellungen denselben Bereichsnamen **`Optionale Filter, Analyseumfang und Evidenzanforderungen`**. Innerhalb dieses Schritts zeigt die geführte Eingabe stets die zutreffenden Felder; eine getrennte vorgeschaltete Auswahl entfällt. Unveränderte Konfigurationen initialisieren die sichtbaren Felder mit den nachstehenden ergebnisspezifischen Standardwerten; geladene Konfigurationen und Demos tragen ihre gespeicherten Werte in dieselben sichtbaren Felder ein. Das bloße Anzeigen dieser Werte bearbeitet sie nicht und löst den Demo-Kontext nicht. „Optional“ bezieht sich hier auf Populationsfilter und Umfangsauswahl; die aktiven Evidenzanforderungen gehen stets in die Analyse ein.
+Geführte und klassische Eingabe verwenden für diese Einstellungen denselben Bereichsnamen **`Filter, Analyseumfang und Evidenz`**. Innerhalb dieses Schritts zeigt die geführte Eingabe stets die zutreffenden Felder; eine getrennte vorgeschaltete Auswahl entfällt. Unveränderte Konfigurationen initialisieren die sichtbaren Felder mit den nachstehenden ergebnisspezifischen Standardwerten; geladene Konfigurationen und Demos tragen ihre gespeicherten Werte in dieselben sichtbaren Felder ein. Das bloße Anzeigen dieser Werte bearbeitet sie nicht und löst den Demo-Kontext nicht. Die angezeigten Einstellungen für Filter, Analyseumfang und Evidenz gelten auch dann, wenn du diesen Bereich unverändert lässt.
 
 Wähle Filter und Schwellen vor einem bestätigenden Lauf aus der beabsichtigten Population und der gewünschten Evidenzuntergrenze. Eine nachträgliche Änderung nach Betrachtung des Ergebnisses erzeugt eine andere Analyse und sollte getrennt aufbewahrt werden.
 

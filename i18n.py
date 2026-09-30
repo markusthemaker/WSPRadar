@@ -17,13 +17,13 @@ T = {
 
         'lbl_time_aggregation_bin_size': "Select time aggregation bin size",
         'lbl_report_delta_snr_outlier_candidates': "Report ΔSNR outlier candidates",
-        'tt_report_delta_snr_outlier_candidates': """Detect path-level ΔSNR excursions at native Joint Spot resolution against candidate-excluded, two-sided local baselines. Nearby same-sign residuals are grouped into spot impulses, short bursts, or sustained excursions for description, while every group must pass the same three qualification gates. Evidence without a defensible local baseline remains unclassified. Detection is independent of the displayed chronological aggregation; candidates are inspection prompts, not causal labels.""",
+        'tt_report_delta_snr_outlier_candidates': """Flag unusual ΔSNR departures for closer inspection, using supporting observations before and after each candidate. This adds a report; it does not remove evidence or identify a cause.""",
         'lbl_delta_snr_outlier_minimum_departure_db': "Minimum absolute ΔSNR departure (dB)",
-        'tt_delta_snr_outlier_minimum_departure_db': "Smallest permitted absolute difference between a grouped candidate's median ΔSNR and its candidate-excluded local baseline. Lower values increase sensitivity; higher values are stricter.",
+        'tt_delta_snr_outlier_minimum_departure_db': """Minimum difference, in either direction, between a candidate’s median ΔSNR and its surrounding baseline. Lower values flag smaller departures.""",
         'lbl_delta_snr_outlier_minimum_robust_z': "Minimum robust z-score",
-        'tt_delta_snr_outlier_minimum_robust_z': "Smallest permitted absolute departure relative to the robust spread of the local baseline evidence. No duration or evidence-count boost is applied. Lower values increase sensitivity when the local baseline is variable.",
+        'tt_delta_snr_outlier_minimum_robust_z': """Minimum departure relative to the robust spread of the surrounding evidence. Higher values require the departure to stand out more strongly from that variability.""",
         'lbl_delta_snr_outlier_maximum_baseline_difference_db': "Maximum pre/post baseline difference (dB)",
-        'tt_delta_snr_outlier_maximum_baseline_difference_db': "Maximum permitted absolute difference between the candidate-excluded baselines before and after the candidate timeframe. A larger difference leaves more changing backgrounds evaluable; a smaller difference requires a more stable local baseline.",
+        'tt_delta_snr_outlier_maximum_baseline_difference_db': """Largest allowed difference between the baselines before and after a candidate. Lower values require a more stable background.""",
         'btn_reset_delta_snr_outlier_detector_defaults': "Reset detector defaults",
         'lbl_delta_snr_outlier_detector_thresholds': "Outlier detector thresholds",
         'fmt_delta_snr_outlier_detector_thresholds': "Departure ≥ {departure:g} dB · robust z ≥ {robust_z:g} · pre/post baseline difference ≤ {baseline_difference:g} dB",
@@ -176,7 +176,7 @@ T = {
         "share_analysis_message": "Open this link to reconstruct and rerun the analysis with the current WSPRadar code and upstream data.",
         "share_mode_performance": "Performance",
         "share_mode_reference_station": "Reference Setup/Station",
-        "share_mode_local_neighborhood": "Reference Neighbourhood",
+        "share_mode_local_neighborhood": "Reference Neighborhood",
         "hdr_results_compare": "{direction} Benchmark Results",
         "hdr_results_success": "{direction} Performance Results",
 
@@ -431,7 +431,7 @@ T = {
         "comp_title_ref": "{callsign} (Reference)",
         "comp_title_local_median": "Local Median Neighborhood (≤{radius} km)",
         "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> | License: <a href='https://github.com/markusthemaker/WSPRadar/blob/main/LICENSE' target='_blank' style='color:#39ff14; text-decoration:none;'>AGPLv3</a><br>Developed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>) ",
-        "exp_adv": "Optional filters, analysis scope, and evidence requirements",
+        "exp_adv": "Filters, scope and evidence",
         "exp_comp": "Benchmark design",
         "exp_core": "Target and measurement window",
         "exp_question": "Question",
@@ -453,16 +453,26 @@ T = {
         "abs_tx_rate_column": "T/(T+OS) (%)",
         "abs_tx_counter_column": "Other Signals (OS)",
         "fig_tx_comp": "TX Benchmark: {callsign} (Target) vs. {comp_title}",
-        "hlp_max_dist": "Scientific maximum distance of mapped peers from Target QTH. Only peers strictly nearer than this maximum remain in the processed result, map, Inspector and export; the provider query and raw query cache remain global.",
-        "hlp_min_spots": "Benchmark maps require at least X joint spots per station.",
-        "hlp_min_opportunities_rx": """In RX Performance, a remote TX station qualifies only after this many confirmed opportunities. Each opportunity is classified as Heard by Target or Heard by others only. The Target RX decoding a peer TX directly confirms both endpoints and counts as a success and opportunity, including Target-only evidence once. Another eligible RX reporting that same peer TX confirms peer TX activity for a Miss only while the Target RX is active.""",
-        "hlp_min_opportunities_tx": """In TX Performance, a remote RX station qualifies only after this many confirmed opportunities. Each opportunity is classified as Target heard or Other signals heard only. The peer RX decoding the Target TX directly confirms both endpoints and counts as a success and opportunity, including Target-only evidence once. The same peer RX reporting another qualifying TX confirms peer RX activity for a Miss only while the Target TX is active.""",
-        "hlp_min_stations_compare": """A map segment is displayed only when it contains at least this many qualifying stations with the required paired evidence. Each exact callsign + full reported locator identity counts once; the same callsign at different locators counts separately. One-sided evidence does not count toward this minimum. This counts reported identities, not independent physical stations.""",
-        "hlp_min_stations_success_rx": """An RX Performance map segment is displayed only when it contains at least this many qualifying TX stations. A station qualifies after meeting the confirmed-opportunity threshold above, whether its outcomes are Heard by Target or Heard by others only.""",
-        "hlp_min_stations_success_tx": """A TX Performance map segment is displayed only when it contains at least this many qualifying RX stations. A station qualifies after meeting the confirmed-opportunity threshold above, whether its outcomes are Target heard or Other signals heard only.""",
-        "hlp_benchmark_offset_db": """Added to the Reference-side SNR before ΔSNR is calculated. Applies to Benchmark maps only. A fixed Reference uses its selected identity; Reference Neighbourhood uses the contributing reference population. Enter decimal values with a point. If a calibration run shows Target minus Reference = +1.6 dB, enter +1.6 dB.""",
+        "hlp_solar": """Select daylight, nighttime or greyline at the Target’s location, rather than along the entire radio path. All 24h keeps all solar states within your measurement window.""",
+        "hlp_max_dist": """Include only remote stations nearer than this distance from the Target. This changes analysis evidence, maps, Inspector and exports; it does not reduce archive retrieval.""",
+        "hlp_min_spots": """Minimum Joint Spots per remote station: Target–Reference comparisons from the same WSPR cycle. The same minimum applies separately to one-sided evidence, which does not qualify a station for ΔSNR.""",
+        "hlp_min_opportunities_rx": """Minimum confirmed opportunities per remote transmitter. Count both Target decodes and transmissions heard by other receivers while the active Target does not decode them.""",
+        "hlp_min_opportunities_tx": """Minimum confirmed opportunities per remote receiver. Count both Target decodes and cycles when that same receiver hears another qualifying transmitter but misses the active Target.""",
+        "hlp_min_stations_compare": """Minimum qualifying callsign + full locator identities per map segment. Each must meet the Joint Spot minimum; one-sided evidence does not count. These are reported identities, not necessarily independent physical stations.""",
+        "hlp_min_stations_success_rx": """Show a map segment only when this many remote transmitters meet the confirmed-opportunity minimum. Stations can qualify even if none of their signals were decoded by the Target.""",
+        "hlp_min_stations_success_tx": """Show a map segment only when this many remote receivers meet the confirmed-opportunity minimum. A receiver can qualify even if it never decoded the Target.""",
+        "hlp_benchmark_offset_db": """Added to Reference SNR before calculating ΔSNR. Positive values lower ΔSNR; negative values raise it. Use 0.0 dB unless you have a documented correction for this comparison.""",
         "err_benchmark_offset_db": "Enter a value from -99.9 to 99.9 using a decimal point, for example 1.2 or -1.2.",
-        "hlp_callsign_entry": """Use the exact identifier uploaded to WSPR. Letter-only reporting identifiers and slash forms such as CALL/P or a terminal suffix such as CALL-1 are accepted. CALL, CALL/P and CALL-1 are abstract examples; enter your actual identity as stored in the database. Each spelling is a distinct identity.""",
+        "hlp_callsign_entry": """Enter the exact reporting identity stored in the WSPR archive, including any suffix. Different spellings select different identities.""",
+        "hlp_target_qth": """Enter the Target’s Maidenhead locator for the selected period. It anchors station selection, map geometry, distance and local solar state.""",
+        "hlp_band": """Analyze one WSPR band at a time. Choose the band used during the measurement period.""",
+        "hlp_time_window": """Choose a UTC interval when station identities, locations and setup were reasonably stable. Longer windows add evidence but may mix different operating and propagation conditions.""",
+        "hlp_reference_callsign": """Enter the Reference callsign exactly as reported in the WSPR archive, including any suffix. For example, `CALL` and `CALL/P` are distinct reporting identities; enter the form actually recorded for your Reference. WSPRadar resolves its location from the selected band, direction and UTC window.""",
+        "hlp_reference_radius": """Maximum distance from the Target for contributing Reference stations. A larger radius can add contributors but makes the comparison less local.""",
+        "hlp_benchmark_reference_station": """Compare the Target with another controlled signal path or one known station, at the same or another location. The comparison reflects the complete setups and their operating conditions.""",
+        "hlp_benchmark_local_neighborhood": """Compare the Target with the median of qualifying nearby station contributions within your chosen radius, for each remote station and WSPR cycle. No single fixed Reference is selected; contributors can change between paths and cycles.""",
+        "fmt_reference_choice_selected": "{choice} (selected)",
+        "fmt_reference_choice_help": "Help for {choice}",
         "lbl_band": "Operating Band",
         "lbl_benchmark_offset_db": "Reference-side SNR correction (dB)",
         "lbl_config_file": "Select WSPRadar .config file",
@@ -498,10 +508,10 @@ T = {
         "lbl_time_window": "UTC measurement window",
         "txt_benchmark_offset_note": "Ref SNR Corr: {offset:+.1f} dB",
         "opt_comp_none": "Performance — no Reference",
-        "opt_comp_radius": "Benchmark — Reference Neighbourhood",
+        "opt_comp_radius": "Benchmark — Reference Neighborhood",
         "opt_comp_buddy": "Benchmark — Reference Setup/Station",
         "opt_benchmark_reference_station": "Reference Setup/Station",
-        "opt_benchmark_local_neighborhood": "Reference Neighbourhood",
+        "opt_benchmark_local_neighborhood": "Reference Neighborhood",
         "opt_question_rx_performance": "RX Performance",
         "opt_question_tx_performance": "TX Performance",
         "opt_question_rx_benchmark": "RX Benchmark",
@@ -511,7 +521,6 @@ T = {
         "desc_question_rx_benchmark": """Compare what the Target and Reference receivers hear under matched conditions.""",
         "desc_question_tx_benchmark": """Compare how the Target and Reference transmit paths are heard under matched conditions.""",
         "opt_local_median": "Local Median Neighborhood",
-        "txt_local_median_explanation": """Compares the Target with the median of qualifying nearby station contributions for each remote station and WSPR cycle. Contributors can change between paths and cycles. The result describes complete-station performance relative to those observed peers.""",
         "err_local_benchmark": """Local Median Neighborhood is the supported local method. Use Reset Config to restore valid inputs.""",
         "err_reference_callsign_same": "Target and Reference callsigns must be different.",
         "err_reference_callsign_required": "Please configure a Reference Callsign.",
@@ -569,17 +578,17 @@ T = {
         "hdr_remote_station_filters": "Remote station filters",
         "hdr_analysis_scope": "Analysis scope",
         "hdr_evidence_requirements": "Evidence requirements",
-        "tt_exclude_special": """Excludes remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter.""",
+        "tt_exclude_special": """Exclude remote callsigns starting with Q, 0 or 1, typically used for balloon telemetry. Target and Reference stations, including neighborhood contributors, remain eligible.""",
         "title": "WSPRadar.org",
         "lbl_filter_moving": "Exclude Moving Stations",
-        "tt_filter_moving": "Filters out balloons, cars, or ships that change their locator during the selected timeframe.","txt_joint": "Joint",
+        "tt_filter_moving": """Exclude remote callsigns reported from more than one four-character grid square. Locator changes can reflect movement or reporting errors; movement within one square is not detected.""","txt_joint": "Joint",
         "txt_joint_decodes": "Joint Decodes",
         "txt_remote": "Total Remote",
         "txt_rx_stations": "RX Stations",
         "txt_tx_stations": "TX Stations",
         "warn_analysis_queue_full": "High demand right now. The analysis queue is full. Please try again shortly.",
         "warn_analysis_queue_timeout": "Analysis capacity did not become available in time. Please run the analysis again.",
-        "warn_analysis_result_row_limit": """Search result exceeded the safe limit of **{max_rows} rows**, so the analysis was stopped before processing; no partial result was analyzed. Shorten the analysis period. {special_callsign_advice}**{max_peer_distance_label}**, moving-station, solar-state, and evidence filters are applied after retrieval and will not avoid this limit. For a Reference Neighbourhood comparison, reducing **{neighborhood_radius_label}** can reduce the database result.""",
+        "warn_analysis_result_row_limit": """Search result exceeded the safe limit of **{max_rows} rows**, so the analysis was stopped before processing; no partial result was analyzed. Shorten the analysis period. {special_callsign_advice}**{max_peer_distance_label}**, moving-station, solar-state, and evidence filters are applied after retrieval and will not avoid this limit. For a Reference Neighborhood comparison, reducing **{neighborhood_radius_label}** can reduce the database result.""",
         "warn_analysis_result_row_limit_special_callsign_advice": "Enabling **{special_callsign_label}** may also reduce the database result. ",
         "status_analysis_result_row_limit": "Analysis stopped at the safe row limit",
         "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters. Are the callsign entries, locator, band, date, and UTC time correct?",
@@ -658,13 +667,13 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
 
         'lbl_time_aggregation_bin_size': "Zeitliche Aggregationsbreite auswählen",
         'lbl_report_delta_snr_outlier_candidates': "ΔSNR-Ausreißerkandidaten melden",
-        'tt_report_delta_snr_outlier_candidates': "Erkennt funkwegbezogene ΔSNR-Auslenkungen auf der nativen Auflösung von Joint Spots gegenüber kandidatenbereinigten, beidseitigen lokalen Baselines. Zeitlich nahe Residuen mit gleichem Vorzeichen werden zur Beschreibung als Spot-Impuls, kurzer Ausbruch oder anhaltende Auslenkung gruppiert; jede Gruppe muss jedoch dieselben drei Qualifikationskriterien erfüllen. Evidenz ohne belastbare lokale Baseline bleibt unklassifiziert. Die Erkennung ist von der angezeigten chronologischen Aggregation unabhängig; Kandidaten sind Prüfhinweise, keine Ursachenzuordnung.",
+        'tt_report_delta_snr_outlier_candidates': """Markiere ungewöhnliche ΔSNR-Abweichungen zur genaueren Prüfung anhand unterstützender Beobachtungen vor und nach jedem Kandidaten. Dies ergänzt einen Bericht; es entfernt keine Evidenz und bestimmt keine Ursache.""",
         'lbl_delta_snr_outlier_minimum_departure_db': "Minimale absolute ΔSNR-Abweichung (dB)",
-        'tt_delta_snr_outlier_minimum_departure_db': "Kleinster zulässiger absoluter Unterschied zwischen dem medianen ΔSNR eines gruppierten Kandidaten und seiner kandidatenbereinigten lokalen Baseline. Niedrigere Werte erhöhen die Empfindlichkeit; höhere Werte sind strenger.",
+        'tt_delta_snr_outlier_minimum_departure_db': """Mindestunterschied in beliebiger Richtung zwischen dem medianen ΔSNR eines Kandidaten und seiner umgebenden Baseline. Niedrigere Werte markieren kleinere Abweichungen.""",
         'lbl_delta_snr_outlier_minimum_robust_z': "Minimaler robuster z-Wert",
-        'tt_delta_snr_outlier_minimum_robust_z': "Kleinste zulässige absolute Abweichung relativ zur robusten Streuung der lokalen Baseline-Evidenz. Dauer und Evidenzanzahl bewirken keine Verstärkung. Niedrigere Werte erhöhen die Empfindlichkeit bei einer variablen lokalen Baseline.",
+        'tt_delta_snr_outlier_minimum_robust_z': """Mindestabweichung relativ zur robusten Streuung der umgebenden Evidenz. Höhere Werte verlangen, dass sich die Abweichung stärker von dieser Variabilität abhebt.""",
         'lbl_delta_snr_outlier_maximum_baseline_difference_db': "Maximaler Unterschied zwischen Baseline davor/danach (dB)",
-        'tt_delta_snr_outlier_maximum_baseline_difference_db': "Maximal zulässiger absoluter Unterschied zwischen den kandidatenbereinigten Baselines vor und nach dem Kandidatenzeitraum. Ein größerer Wert lässt mehr veränderliche Hintergründe auswertbar; ein kleinerer Wert verlangt eine stabilere lokale Baseline.",
+        'tt_delta_snr_outlier_maximum_baseline_difference_db': """Größter zulässiger Unterschied zwischen den Baselines vor und nach einem Kandidaten. Niedrigere Werte verlangen einen stabileren Hintergrund.""",
         'btn_reset_delta_snr_outlier_detector_defaults': "Detektor-Standardwerte wiederherstellen",
         'lbl_delta_snr_outlier_detector_thresholds': "Schwellenwerte des Ausreißerdetektors",
         'fmt_delta_snr_outlier_detector_thresholds': "Abweichung ≥ {departure:g} dB · robuster z-Wert ≥ {robust_z:g} · Baseline-Unterschied davor/danach ≤ {baseline_difference:g} dB",
@@ -1072,7 +1081,7 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "comp_title_ref": "{callsign} (Referenz)",
         "comp_title_local_median": "Lokaler Nachbarschafts-Median (≤{radius} km)",
         "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> | License: <a href='https://github.com/markusthemaker/WSPRadar/blob/main/LICENSE' target='_blank' style='color:#39ff14; text-decoration:none;'>AGPLv3</a><br>Developed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>) ",
-        "exp_adv": "Optionale Filter, Analyseumfang und Evidenzanforderungen",
+        "exp_adv": "Filter, Analyseumfang und Evidenz",
         "exp_comp": "Benchmark-Design",
         "exp_core": "Target und Messzeitraum",
         "exp_question": "Frage",
@@ -1094,16 +1103,26 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "abs_tx_rate_column": "T/(T+OS) (%)",
         "abs_tx_counter_column": "Other Signals (OS)",
         "fig_tx_comp": "TX-Benchmark: {callsign} (Target) vs. {comp_title}",
-        "hlp_max_dist": "Wissenschaftliche Maximalentfernung der kartierten Peers vom Target-QTH. Nur Peers mit einer strikt kleineren Entfernung bleiben in verarbeitetem Ergebnis, Karte, Inspector und Export; Provider-Abfrage und Rohabfrage-Cache bleiben global.",
-        "hlp_min_spots": "Benchmark-Karten erfordern mindestens X gemeinsame Spots pro Station.",
-        "hlp_min_opportunities_rx": """Bei RX Performance qualifiziert sich eine entfernte TX-Station erst ab dieser Anzahl bestätigter Gelegenheiten. Jede Gelegenheit wird als Vom Target gehört oder Nur von anderen gehört klassifiziert. Der Decode eines Peer-TX durch den Target-RX bestätigt beide Endpunkte unmittelbar und zählt als Erfolg und Gelegenheit, einschließlich Target-only-Evidenz genau einmal. Meldet ein anderer geeigneter RX denselben Peer-TX, bestätigt dies dessen Aktivität für einen Miss nur bei aktivem Target-RX.""",
-        "hlp_min_opportunities_tx": """Bei TX Performance qualifiziert sich eine entfernte RX-Station erst ab dieser Anzahl bestätigter Gelegenheiten. Jede Gelegenheit wird als Target gehört oder Nur andere Signale gehört klassifiziert. Der Decode des Target-TX durch den Peer-RX bestätigt beide Endpunkte unmittelbar und zählt als Erfolg und Gelegenheit, einschließlich Target-only-Evidenz genau einmal. Meldet derselbe Peer-RX einen anderen qualifizierenden TX, bestätigt dies seine Aktivität für einen Miss nur bei aktivem Target-TX.""",
-        "hlp_min_stations_compare": """Ein Kartensegment wird nur angezeigt, wenn es mindestens diese Anzahl qualifizierender Stationen mit der erforderlichen gepaarten Evidenz enthält. Jede exakte Identität aus Rufzeichen + vollständig gemeldetem Locator zählt einmal; dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt. Einseitige Evidenz zählt nicht für diese Mindestanzahl. Gezählt werden gemeldete Identitäten, nicht unabhängige physische Stationen.""",
-        "hlp_min_stations_success_rx": """Ein RX-Performance-Kartensegment wird nur angezeigt, wenn es mindestens diese Anzahl qualifizierender TX-Stationen enthält. Eine Station qualifiziert sich, wenn sie die oben festgelegte Schwelle bestätigter Gelegenheiten erfüllt — unabhängig davon, ob ihre Outcomes Vom Target gehört oder Nur von anderen gehört lauten.""",
-        "hlp_min_stations_success_tx": """Ein TX-Performance-Kartensegment wird nur angezeigt, wenn es mindestens diese Anzahl qualifizierender RX-Stationen enthält. Eine Station qualifiziert sich, wenn sie die oben festgelegte Schwelle bestätigter Gelegenheiten erfüllt — unabhängig davon, ob ihre Outcomes Target gehört oder Nur andere Signale gehört lauten.""",
-        "hlp_benchmark_offset_db": """Wird vor der Berechnung von ΔSNR zum Referenzseiten-SNR addiert. Gilt nur für Benchmark-Karten. Eine feste Referenz verwendet ihre ausgewählte Identität; die Referenznachbarschaft verwendet die beitragende Referenzpopulation. Dezimalwerte werden mit einem Punkt eingegeben. Wenn ein Kalibrierlauf Target minus Referenz = +1.6 dB ergibt, verwende +1.6 dB.""",
+        "hlp_solar": """Wähle Tageslicht, Nacht oder Greyline am Standort des Targets; maßgeblich ist dieser Standort, nicht der gesamte Funkweg. Ganze 24h behält alle Sonnenzustände innerhalb deines Messzeitraums bei.""",
+        "hlp_max_dist": """Beziehe nur Gegenstationen ein, deren Entfernung vom Target kleiner als dieser Wert ist. Dies verändert die Evidenz in Analyse, Karten, Inspector und Exporten; es verringert nicht den Archivabruf.""",
+        "hlp_min_spots": """Mindestzahl an Joint Spots je Gegenstation: Target–Referenz-Vergleiche aus demselben WSPR-Zyklus. Derselbe Mindestwert gilt getrennt für einseitige Evidenz, die eine Station nicht für ΔSNR qualifiziert.""",
+        "hlp_min_opportunities_rx": """Mindestzahl bestätigter Gelegenheiten je entferntem Sender. Gezählt werden sowohl Target-Decodes als auch Aussendungen, die andere Empfänger hören, während das aktive Target sie nicht decodiert.""",
+        "hlp_min_opportunities_tx": """Mindestzahl bestätigter Gelegenheiten je entferntem Empfänger. Gezählt werden sowohl Decodes des Targets als auch Zyklen, in denen derselbe Empfänger einen anderen qualifizierenden Sender hört, aber das aktive Target nicht decodiert.""",
+        "hlp_min_stations_compare": """Mindestzahl qualifizierender Identitäten aus Rufzeichen + vollständigem Locator je Kartensegment. Jede muss die Mindestzahl an Joint Spots erfüllen; einseitige Evidenz zählt nicht. Dies sind gemeldete Identitäten, nicht zwingend unabhängige physische Stationen.""",
+        "hlp_min_stations_success_rx": """Zeige ein Kartensegment nur, wenn diese Anzahl entfernter Sender die Mindestzahl bestätigter Gelegenheiten erfüllt. Stationen können sich qualifizieren, auch wenn das Target keines ihrer Signale decodiert hat.""",
+        "hlp_min_stations_success_tx": """Zeige ein Kartensegment nur, wenn diese Anzahl entfernter Empfänger die Mindestzahl bestätigter Gelegenheiten erfüllt. Ein Empfänger kann sich qualifizieren, auch wenn er das Target nie decodiert hat.""",
+        "hlp_benchmark_offset_db": """Wird vor der Berechnung von ΔSNR zum Referenz-SNR addiert. Positive Werte senken ΔSNR; negative Werte erhöhen es. Verwende 0,0 dB, sofern du keine dokumentierte Korrektur für diesen Vergleich hast.""",
         "err_benchmark_offset_db": "Gib einen Wert von -99.9 bis 99.9 mit Dezimalpunkt ein, zum Beispiel 1.2 oder -1.2.",
-        "hlp_callsign_entry": """Verwende die exakt zu WSPR hochgeladene Kennung. Nur aus Buchstaben bestehende Meldekennungen, Schrägstrichformen wie CALL/P und ein abschließendes Suffix wie CALL-1 sind zulässig. CALL, CALL/P und CALL-1 sind abstrakte Beispiele; gib deine tatsächliche Kennung aus der Datenbank ein. Jede Schreibweise ist eine eigene Identität.""",
+        "hlp_callsign_entry": """Gib die exakte im WSPR-Archiv gespeicherte Meldekennung einschließlich eines etwaigen Suffixes ein. Unterschiedliche Schreibweisen wählen unterschiedliche Identitäten aus.""",
+        "hlp_target_qth": """Gib den Maidenhead-Locator des Targets für den ausgewählten Zeitraum ein. Er dient als Bezugspunkt für Stationsauswahl, Kartengeometrie, Entfernung und lokalen Sonnenstand.""",
+        "hlp_band": """Analysiere jeweils ein WSPR-Band. Wähle das während des Messzeitraums verwendete Band.""",
+        "hlp_time_window": """Wähle einen UTC-Zeitraum, in dem Stationskennungen, Standorte und Aufbau möglichst stabil waren. Längere Zeiträume liefern mehr Evidenz, können aber unterschiedliche Betriebs- und Ausbreitungsbedingungen mischen.""",
+        "hlp_reference_callsign": """Gib das Referenzrufzeichen einschließlich eines etwaigen Suffixes exakt so ein, wie es im WSPR-Archiv gemeldet wurde. Beispielsweise sind `CALL` und `CALL/P` unterschiedliche Meldekennungen; gib die tatsächlich für deine Referenz gespeicherte Form ein. WSPRadar bestimmt ihren Standort anhand des gewählten Bands, der Analyserichtung und des UTC-Zeitraums.""",
+        "hlp_reference_radius": """Maximale Entfernung beitragender Referenzstationen vom Target. Ein größerer Radius kann zusätzliche Stationen einbeziehen, macht den Vergleich aber weniger lokal.""",
+        "hlp_benchmark_reference_station": """Vergleiche das Target mit einem anderen kontrollierten Signalpfad oder einer bekannten Station am selben oder an einem anderen Standort. Der Vergleich spiegelt die vollständigen Aufbauten und ihre Betriebsbedingungen wider.""",
+        "hlp_benchmark_local_neighborhood": """Vergleiche das Target für jede Gegenstation und jeden WSPR-Zyklus mit dem Median qualifizierender Beiträge benachbarter Stationen innerhalb des von dir gewählten Radius. Es wird keine einzelne feste Referenz ausgewählt; die beitragenden Stationen können je nach Funkweg und Zyklus wechseln.""",
+        "fmt_reference_choice_selected": "{choice} (ausgewählt)",
+        "fmt_reference_choice_help": "Hilfe zu {choice}",
         "lbl_band": "Frequenzband",
         "lbl_benchmark_offset_db": "Referenzseitige SNR-Korrektur (dB)",
         "lbl_config_file": "WSPRadar .config Datei auswaehlen",
@@ -1152,7 +1171,6 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "desc_question_rx_benchmark": """Vergleiche, was die Target- und Referenzempfänger unter zugeordneten Bedingungen hören.""",
         "desc_question_tx_benchmark": """Vergleiche, wie die Target- und Referenzsendepfade unter zugeordneten Bedingungen gehört werden.""",
         "opt_local_median": "Lokaler Nachbarschafts-Median",
-        "txt_local_median_explanation": """Vergleicht das Target für jede entfernte Station und jeden WSPR-Zyklus mit dem Median der qualifizierenden Beiträge benachbarter Stationen. Die Beitragenden können je nach Funkweg und Zyklus wechseln. Das Ergebnis beschreibt das Verhalten der vollständigen Station im Vergleich zu diesen beobachteten Peers.""",
         "err_local_benchmark": """Lokaler Nachbarschafts-Median ist die unterstützte lokale Methode. Verwende Reset Konfig, um gültige Eingaben wiederherzustellen.""",
         "err_reference_callsign_same": "Target- und Referenz-Rufzeichen m\u00fcssen verschieden sein.",
         "err_reference_callsign_required": "Bitte ein Referenz-Rufzeichen konfigurieren.",
@@ -1210,9 +1228,9 @@ Older archive records may have missing or ambiguous mode information. WSPRadar a
         "hdr_remote_station_filters": "Remote Stationsfilter",
         "hdr_analysis_scope": "Analyseumfang",
         "hdr_evidence_requirements": "Evidenzanforderungen",
-        "tt_exclude_special": """Schließt entfernte Peer-Rufzeichen aus, die mit Q, 0 oder 1 beginnen: sendende Peers in RX-Analysen und empfangende Peers in TX-Analysen. Target- und Referenzstationen einschließlich der Stationen, die zur Referenz der lokalen Nachbarschaft beitragen, bleiben von diesem Filter unberührt.""",
+        "tt_exclude_special": """Schließe entfernte Rufzeichen aus, die mit Q, 0 oder 1 beginnen und typischerweise für Ballontelemetrie verwendet werden. Target- und Referenzstationen einschließlich beitragender Nachbarschaftsstationen bleiben zulässig.""",
         "lbl_filter_moving": "Bewegliche Stationen filtern",
-        "tt_filter_moving": "Filtert Ballons, Autos oder Schiffe heraus, die im Analysezeitraum ihren Locator wechseln.",
+        "tt_filter_moving": """Schließe entfernte Rufzeichen aus, die aus mehr als einem Gitterfeld mit vierstelligem Locator gemeldet wurden. Locatorwechsel können Bewegung oder Meldefehler widerspiegeln; Bewegung innerhalb eines Felds wird nicht erkannt.""",
         "title": "WSPRadar.org",
         "txt_joint": "Synced",
         "txt_joint_decodes": "Synced Decodes",
@@ -1324,7 +1342,7 @@ RESULT_GUIDANCE = {
                 "limits": """The result describes complete installed paths. Sites, terrain, local noise, antennas, radios and operating practice can differ. Shared grid-4 does not prove co-location. Component attribution or calibrated gain requires independent control of the other relevant differences.""",
             },
             "benchmark_local_median": {
-                "read": """<strong class="defined-term">Reference Neighbourhood (Local Median)</strong> shows how the complete Target station compares with qualifying nearby station observations within {radius} km. For each remote station and WSPR cycle, the Reference is the median of one contribution per observed local callsign-and-locator identity. The contributors may differ between paths and cycles. Read Delta SNR together with Joint Evidence Share and Decode Outcomes, then use Drill-Down to inspect the contributing local identities. Look for within-run consistency across remote stations and time, while checking whether the Reference population changes alongside the observed difference.""",
+                "read": """<strong class="defined-term">Reference Neighborhood (Local Median)</strong> shows how the complete Target station compares with qualifying nearby station observations within {radius} km. For each remote station and WSPR cycle, the Reference is the median of one contribution per observed local callsign-and-locator identity. The contributors may differ between paths and cycles. Read Delta SNR together with Joint Evidence Share and Decode Outcomes, then use Drill-Down to inspect the contributing local identities. Look for within-run consistency across remote stations and time, while checking whether the Reference population changes alongside the observed difference.""",
                 "limits": """The Reference represents contributing observations, not every nearby station or one calibrated standard. A cycle may have only one local contributor. Differences in complete stations, sites, noise, reported power and propagation remain part of the comparison; the result does not isolate antenna gain.""",
             },
             "map_compare_rx": {
@@ -1428,7 +1446,7 @@ RESULT_GUIDANCE = {
                 "limits": """The rows show how retained evidence formed the result. They cannot reveal unobserved receiver activity, the SNR of a missed Target or the cause of a failed decode.""",
             },
             "drilldown_local_median": {
-                "read": """For Reference Neighbourhood (Local Median), Drill-Down lists the local Reference identities that contributed to each cycle’s median. Use these rows to inspect contributor membership and SNR values, including whether membership changed alongside the observed Delta SNR. Several contributor rows can explain one Target-versus-neighborhood comparison; they are not additional independent paired observations.""",
+                "read": """For Reference Neighborhood (Local Median), Drill-Down lists the local Reference identities that contributed to each cycle’s median. Use these rows to inspect contributor membership and SNR values, including whether membership changed alongside the observed Delta SNR. Several contributor rows can explain one Target-versus-neighborhood comparison; they are not additional independent paired observations.""",
                 "limits": """Contributor inspection supports investigation of the changing Reference. It cannot by itself determine whether an observed change was caused by the Target, the neighborhood or their respective conditions.""",
             },
             "download": {
@@ -1615,8 +1633,8 @@ The <strong class="defined-term">Target</strong> is your station or signal path 
 An <strong class="defined-term">offset</strong> is a repeatable Target–Reference difference that is already present before the effect you want to study. A Reference-side correction adjusts the Reference SNR before ΔSNR is calculated. Leave the correction at **0.0 dB** unless the offset was established and documented for the same identities or paths, band, hardware and comparison method. The correction shifts every comparison result; it cannot compensate for uncontrolled differences that vary with time, station or radio path.""",
             },
             "scope_and_evidence": {
-                "title": "Optional filters, analysis scope, and evidence requirements",
-                "body_md": """Review the remote station filters, analysis scope and evidence requirements for this run. The displayed controls always show the active values used by the analysis.""",
+                "title": "Filters, scope and evidence",
+                "body_md": """Choose which remote stations and observations contribute to your results, and how much evidence is required for station and map summaries. Review the displayed settings and change them where your question requires it. These values apply even if you leave this panel unchanged.""",
             },
             "review_and_run": {
                 "title": "Review and run",
@@ -1648,7 +1666,7 @@ An <strong class="defined-term">offset</strong> is a repeatable Target–Referen
                     "description": """Compare with another controlled signal path at your station or one known station at the same or another location. A controlled setup helps you investigate equipment differences; an independent station provides a comparison of complete stations and their operating conditions.""",
                 },
                 "local_neighborhood": {
-                    "label": "Reference Neighbourhood",
+                    "label": "Reference Neighborhood",
                     "description": """Compare with the local median of qualifying nearby stations within your chosen radius. This provides a local comparison when you do not have a suitable individual Reference. The contributing stations can vary across signal paths and time.""",
                 },
             },
@@ -1683,7 +1701,7 @@ An <strong class="defined-term">offset</strong> is a repeatable Target–Referen
             "offset_none": "{step} · Reference correction — 0.0 dB ✓",
             "offset_established": "{step} · Reference correction — {offset:+.1f} dB ✓",
             "offset_establish": "{step} · Baseline run — 0.0 dB correction ✓",
-            "scope": "{step} · Optional filters, analysis scope, and evidence requirements — max {distance} km · {solar} ✓",
+            "scope": "{step} · Filters, scope and evidence — max {distance} km · {solar} ✓",
             "review_ready": "{step} · Review — ready to run ✓",
         },
         "messages": {
@@ -1694,12 +1712,6 @@ An <strong class="defined-term">offset</strong> is a repeatable Target–Referen
             "demo_walkthrough_help": "Review each preset choice and what it changes in the analysis.",
             "demo_skip_to_review": "Skip to review and run",
             "demo_skip_to_review_help": "Open the complete configuration summary and start the analysis immediately with the current settings.",
-            "target_callsign_help": """Use the exact identifier uploaded to WSPR. Letter-only reporting identifiers and slash forms such as CALL/P or a terminal suffix such as CALL-1 are accepted. CALL, CALL/P and CALL-1 are abstract examples; enter your actual identity as stored in the database. Each spelling is a distinct identity.""",
-            "target_qth_help": """QTH means station location. Enter the 4- or 6-character Maidenhead locator used by the Target during the selected period. WSPRadar uses it to identify and position the Target and to calculate map geometry, distance, direction and the local solar state.""",
-            "band_help": """Choose the single WSPR band used for the experiment. WSPRadar does not combine evidence from different bands because propagation, antenna response, noise and station hardware can differ substantially by band.""",
-            "time_help": """Choose a period in which the callsigns, locations, hardware, schedules and reported power were correct and reasonably stable. Shorter windows describe a more specific situation but may contain little evidence; longer windows add evidence while mixing more propagation states and possible station changes.""",
-            "reference_callsign_help": """Enter the Reference’s exact reporting identity. CALL/P is an abstract example; use the actual identity stored in the database. Its location is resolved from the selected band, direction and UTC period. Each spelling or suffix selects a distinct identity.""",
-            "local_radius_help": """Only active Reference stations within this distance of the Target QTH may contribute. Increasing the radius usually adds candidates but makes the benchmark less local. This setting changes the Reference population and the result; it is not merely a map-zoom control.""",
             "local_existing_correction_warning": """This configuration already contains a {offset:+.1f} dB correction for the local Reference. The standard Guided neighborhood path leaves that advanced value unchanged, so it would still affect every ΔSNR. Open Classic setup to review or reset it before running.""",
             "correction_formula": """**Corrected ΔSNR = Target SNR − (Reference SNR + correction)**\x20\x20\nA positive ΔSNR favors the Target; a negative value favors the Reference.""",
             "correction_consequence": """{offset:+.1f} dB will be added to every Reference SNR before subtraction. A positive correction lowers the corrected ΔSNR; a negative correction raises it.""",
@@ -1708,12 +1720,30 @@ An <strong class="defined-term">offset</strong> is a repeatable Target–Referen
 
 After the run, choose and document one ΔSNR estimate: the median or arithmetic mean from **Station Medians**, or from **Joint Spots**. Enter the observed Target − Reference value with the same sign as the Reference correction in the next run — for example, enter `+1.6 dB` for a `+1.6 dB` baseline.""",
             "station_population_title": "Remote station filters",
-            "station_population_body": """The special-callsign filter excludes remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter. The moving-station filter excludes stations whose reported locator changed during the selected period. Exclusions can improve identity or location consistency, but they can also remove valid evidence. Set them from the experiment design rather than after seeing a preferred result.""",
+            "station_population_body": """<strong class="defined-term">Remote stations</strong> are the transmitters your Target listens for in RX analyses, or the receivers that listen for your Target in TX analyses. These filters let you restrict which of those stations contribute to the analysis.
+
+The special-callsign filter excludes remote callsigns beginning with Q, 0 or 1, typically used for balloon telemetry. Target and Reference stations, including Reference Neighborhood reference contributors, remain eligible under this filter.
+
+The moving-station filter excludes remote callsigns reported from more than one four-character grid locator square in the eligible observations.
+
+Use these filters when those exclusions match your investigation. They can improve consistency, but can also remove valid evidence; choose them from your question, rather than to obtain a preferred result.""",
             "analysis_scope_title": "Analysis scope",
-            "analysis_scope_body": """Solar state selects observations by the Sun's elevation at the Target QTH. Maximum distance limits which peer stations remain in the analysis, map, Inspector and export. These settings change the analyzed data; maximum distance is not only a map-zoom control.""",
+            "analysis_scope_body": """Use Solar state to examine observations made during daylight, nighttime or greyline conditions at the Target’s location. This describes the Sun’s position at the Target, not along the entire radio path.
+
+Maximum peer distance limits how far from the Target contributing remote stations may be. It changes the evidence included in the analysis, map, Inspector and exports.""",
             "evidence_requirements_title": "Evidence requirements",
-            "compare_evidence_requirements_body": """Each station must provide the selected minimum number of joint observations. A map segment must also contain the selected number of qualifying stations. A station is one exact callsign + full reported locator identity. Each qualifying identity contributes one station median and counts once toward segment support; the same callsign at different locators counts separately. One-sided evidence does not qualify an identity for segment Delta SNR. These are reported identities, not a count of independent physical stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
-            "success_evidence_requirements_body": """Each station must provide the selected minimum number of confirmed opportunities. A map segment must also contain the selected number of qualifying stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
+            "compare_evidence_requirements_body": """Evidence requirements set a minimum amount of support for your results: enough observations for each station, and enough qualifying stations within each <strong class="defined-term">map segment</strong> — a geographic area defined by direction and distance.
+
+A station qualifies for the ΔSNR map when it provides the required number of <strong class="defined-term">Joint Spots</strong>: comparisons of Target and Reference observations from the same WSPR cycle through the same remote station. Each qualifying station contributes one median ΔSNR and counts once toward the map segment’s station minimum. Observations involving only the Target or only the Reference do not satisfy that paired-evidence requirement.
+
+A station is one exact callsign + full reported locator identity; the same callsign at different locators counts separately. These are reported identities, not a count of independent physical stations.
+
+Higher minimums require more supporting evidence but reduce station and geographic coverage. They do not remove propagation effects or guarantee measurement quality.""",
+            "success_evidence_requirements_body": """Evidence requirements set a minimum amount of support for your results: enough observations for each station, and enough qualifying stations within each <strong class="defined-term">map segment</strong> — a geographic area defined by direction and distance.
+
+A station qualifies when it provides the required number of <strong class="defined-term">confirmed reception opportunities</strong>. These include successful Target decodes and opportunities where other reports establish the relevant activity but the Target decode is absent. They are not simply a count of successful decodes. A map segment must also contain the selected number of qualifying stations.
+
+Higher minimums require more supporting evidence but reduce station and geographic coverage. They do not remove propagation effects or guarantee measurement quality.""",
             "included": "excluded",
             "not_included": "included",
             "compare_evidence": """joint evidence ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
@@ -1740,7 +1770,7 @@ After the run, choose and document one ΔSNR estimate: the median or arithmetic 
         "validation": {
             "use_case": "Choose one operating question before continuing.",
             "target_and_window": "Enter a valid Target identity and QTH, select a band, and complete the UTC measurement window before continuing.",
-            "reference_design": "Complete the selected Reference design: enter the Reference callsign or set the Reference Neighbourhood radius. The fixed Reference location is resolved automatically.",
+            "reference_design": "Complete the selected Reference design: enter the Reference callsign or set the Reference Neighborhood radius. The fixed Reference location is resolved automatically.",
             "offset_calibration": "Choose whether to use no correction, enter an established correction below, or set up an offset-establishment run.",
             "scope_and_evidence": "Review the active filters, analysis scope and evidence requirements and correct any invalid value before continuing.",
             "review_and_run": "Complete the required question, Target, measurement window, Reference design when applicable, and the visible scope and evidence fields before running.",
@@ -1779,8 +1809,8 @@ Deine Station oder dein Signalpfad ist das <strong class="defined-term">Target</
 Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target–Referenz-Differenz, die bereits vorhanden ist, bevor der eigentliche untersuchte Effekt hinzukommt. Eine referenzseitige Korrektur verändert das Referenz-SNR, bevor ΔSNR berechnet wird. Belasse die Korrektur bei **0,0 dB**, sofern der Offset nicht für dieselben Kennungen oder Pfade, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt und dokumentiert wurde. Die Korrektur verschiebt jedes Vergleichsergebnis; sie kann keine unkontrollierten Unterschiede ausgleichen, die sich mit Zeit, Station oder Funkweg ändern.""",
             },
             "scope_and_evidence": {
-                "title": "Optionale Filter, Analyseumfang und Evidenzanforderungen",
-                "body_md": """Prüfe Remote Stationsfilter, Analyseumfang und Evidenzanforderungen für diesen Lauf. Die angezeigten Bedienelemente zeigen stets die aktiven Werte, die in der Analyse verwendet werden.""",
+                "title": "Filter, Analyseumfang und Evidenz",
+                "body_md": """Wähle, welche Gegenstationen und Beobachtungen zu deinen Ergebnissen beitragen und wie viel Evidenz für Stations- und Kartenzusammenfassungen erforderlich ist. Prüfe die angezeigten Einstellungen und ändere sie dort, wo deine Fragestellung es erfordert. Diese Werte gelten auch dann, wenn du diesen Bereich unverändert lässt.""",
             },
             "review_and_run": {
                 "title": "Prüfen und starten",
@@ -1847,7 +1877,7 @@ Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target�
             "offset_none": "{step} · Referenzkorrektur — 0,0 dB ✓",
             "offset_established": "{step} · Referenzkorrektur — {offset:+.1f} dB ✓",
             "offset_establish": "{step} · Basislinienlauf — 0,0 dB Korrektur ✓",
-            "scope": "{step} · Optionale Filter, Analyseumfang und Evidenzanforderungen — max. {distance} km · {solar} ✓",
+            "scope": "{step} · Filter, Analyseumfang und Evidenz — max. {distance} km · {solar} ✓",
             "review_ready": "{step} · Prüfung — startbereit ✓",
         },
         "messages": {
@@ -1858,12 +1888,6 @@ Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target�
             "demo_walkthrough_help": "Prüfe jede Voreinstellung und erfahre, was sie in der Analyse verändert.",
             "demo_skip_to_review": "Direkt zu Prüfen und starten",
             "demo_skip_to_review_help": "Öffne die vollständige Konfigurationsübersicht und starte die Analyse sofort mit den aktuellen Einstellungen.",
-            "target_callsign_help": """Verwende die exakt zu WSPR hochgeladene Kennung. Nur aus Buchstaben bestehende Meldekennungen, Schrägstrichformen wie CALL/P und ein abschließendes Suffix wie CALL-1 sind zulässig. CALL, CALL/P und CALL-1 sind abstrakte Beispiele; gib deine tatsächliche Kennung aus der Datenbank ein. Jede Schreibweise ist eine eigene Identität.""",
-            "target_qth_help": """QTH bedeutet Stationsstandort. Gib den vier- oder sechsstelligen Maidenhead-Locator ein, den das Target im ausgewählten Zeitraum verwendet hat. WSPRadar nutzt ihn zur Identifikation und Positionierung des Targets sowie für Kartengeometrie, Entfernung, Richtung und lokalen Sonnenstand.""",
-            "band_help": """Wähle das einzelne WSPR-Band des Versuchs. WSPRadar führt Evidenz verschiedener Bänder nicht zusammen, weil sich Ausbreitung, Antennenverhalten, Rauschen und Stationshardware je nach Band deutlich unterscheiden können.""",
-            "time_help": """Wähle einen Zeitraum, in dem Rufzeichen, Standorte, Hardware, Zeitpläne und gemeldete Leistung korrekt und möglichst stabil waren. Kürzere Zeiträume beschreiben eine konkretere Situation, können aber wenig Evidenz enthalten. Längere Zeiträume liefern mehr Evidenz, mischen jedoch mehr Ausbreitungszustände und mögliche Stationsänderungen.""",
-            "reference_callsign_help": """Gib die exakte Meldekennung der Referenz ein. CALL/P ist ein abstraktes Beispiel; verwende die tatsächlich in der Datenbank gespeicherte Kennung. Ihr Standort wird aus dem gewählten Band, der Analyserichtung und dem UTC-Zeitraum bestimmt. Jede Schreibweise und jedes Suffix wählt eine eigene Identität.""",
-            "local_radius_help": """Nur aktive Referenzstationen innerhalb dieser Entfernung vom Target-QTH dürfen beitragen. Ein größerer Radius liefert meist mehr Kandidaten, macht den Vergleich aber weniger lokal. Diese Einstellung verändert die Referenzpopulation und das Ergebnis; sie ist nicht nur eine Karten-Zoomstufe.""",
             "local_existing_correction_warning": """Diese Konfiguration enthält bereits eine Korrektur von {offset:+.1f} dB für die lokale Referenz. Der normale geführte Nachbarschaftspfad verändert diesen erweiterten Wert nicht; er würde deshalb weiterhin jedes ΔSNR beeinflussen. Öffne vor dem Start die Klassische Eingabe, um ihn zu prüfen oder zurückzusetzen.""",
             "correction_formula": """**Korrigiertes ΔSNR = Target-SNR − (Referenz-SNR + Korrektur)**\x20\x20\nEin positives ΔSNR spricht für das Target, ein negativer Wert für die Referenz.""",
             "correction_consequence": """Vor der Subtraktion werden zu jedem Referenz-SNR {offset:+.1f} dB addiert. Eine positive Korrektur senkt das korrigierte ΔSNR; eine negative Korrektur erhöht es.""",
@@ -1872,12 +1896,30 @@ Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target�
 
 Wähle und dokumentiere nach dem Lauf genau einen ΔSNR-Schätzwert: Median oder arithmetisches Mittel aus **Stationsmediane** oder aus **Joint-Spots**. Trage den beobachteten Wert Target − Referenz mit demselben Vorzeichen im nächsten Lauf als Referenzkorrektur ein — beispielsweise `+1.6 dB` bei einer Basislinie von `+1.6 dB`.""",
             "station_population_title": "Remote Stationsfilter",
-            "station_population_body": """Der Spezial-Rufzeichenfilter schließt entfernte Peer-Rufzeichen aus, die mit Q, 0 oder 1 beginnen: sendende Peers in RX-Analysen und empfangende Peers in TX-Analysen. Target- und Referenzstationen einschließlich der Stationen, die zur Referenz der lokalen Nachbarschaft beitragen, bleiben von diesem Filter unberührt. Der Filter für bewegliche Stationen schließt Stationen aus, deren gemeldeter Locator sich im ausgewählten Zeitraum geändert hat. Solche Ausschlüsse können die Konsistenz von Identität und Standort verbessern, entfernen aber möglicherweise auch gültige Evidenz. Lege sie aus dem Versuchsdesign fest und nicht erst nach einem bevorzugten Ergebnis.""",
+            "station_population_body": """<strong class="defined-term">Gegenstationen</strong> sind bei RX-Analysen die Sender, auf deren Signale dein Target hört, und bei TX-Analysen die Empfänger, die auf die Signale deines Targets hören. Mit diesen Filtern schränkst du ein, welche dieser Stationen zur Analyse beitragen.
+
+Der Spezial-Rufzeichenfilter schließt entfernte Rufzeichen aus, die mit Q, 0 oder 1 beginnen und typischerweise für Ballontelemetrie verwendet werden. Target- und Referenzstationen einschließlich der Stationen, die zur Referenz der lokalen Nachbarschaft beitragen, bleiben von diesem Filter unberührt.
+
+Der Filter für bewegliche Stationen schließt entfernte Rufzeichen aus, die in den zulässigen Beobachtungen aus mehr als einem Gitterfeld mit vierstelligem Locator gemeldet wurden.
+
+Nutze diese Filter, wenn die Ausschlüsse zu deiner Untersuchung passen. Sie können die Konsistenz verbessern, aber auch gültige Evidenz entfernen; wähle sie anhand deiner Fragestellung und nicht, um ein bevorzugtes Ergebnis zu erzielen.""",
             "analysis_scope_title": "Analyseumfang",
-            "analysis_scope_body": """Der Sonnenzustand wählt Beobachtungen anhand des Sonnenstands am Target-QTH aus. Die Maximalentfernung begrenzt, welche Gegenstationen in Analyse, Karte, Inspector und Export verbleiben. Diese Einstellungen verändern die analysierten Daten; die Maximalentfernung ist nicht nur eine Karten-Zoomstufe.""",
+            "analysis_scope_body": """Nutze Sonnenstand am Target-QTH, um Beobachtungen bei Tageslicht, in der Nacht oder bei Greyline-Bedingungen am Standort des Targets zu untersuchen. Dies beschreibt die Position der Sonne am Target, nicht entlang des gesamten Funkwegs.
+
+Die maximale Peer-Entfernung legt fest, wie weit beitragende Gegenstationen vom Target entfernt sein dürfen. Sie verändert die Evidenz, die in Analyse, Karte, Inspector und Exporte eingeht.""",
             "evidence_requirements_title": "Evidenzanforderungen",
-            "compare_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl an Joint-Beobachtungen liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Eine Station ist eine exakte Identität aus Rufzeichen + vollständig gemeldetem Locator. Jede qualifizierende Identität trägt einen Stationsmedian bei und zählt einmal zur Segmentunterstützung; dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt. Einseitige Evidenz qualifiziert eine Identität nicht für das Delta SNR eines Segments. Dies sind gemeldete Identitäten, keine Anzahl unabhängiger physischer Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
-            "success_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl bestätigter Gelegenheiten liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
+            "compare_evidence_requirements_body": """Evidenzanforderungen legen eine Mindestbasis für deine Ergebnisse fest: genügend Beobachtungen je Station und genügend qualifizierende Stationen in jedem <strong class="defined-term">Kartensegment</strong> — einem geografischen Bereich, der durch Richtung und Entfernung definiert ist.
+
+Eine Station qualifiziert sich für die ΔSNR-Karte, wenn sie die erforderliche Anzahl an <strong class="defined-term">Joint Spots</strong> liefert: Vergleiche von Target- und Referenzbeobachtungen aus demselben WSPR-Zyklus über dieselbe Gegenstation. Jede qualifizierende Station trägt einen medianen ΔSNR-Wert bei und zählt einmal zur Mindestzahl an Stationen im Kartensegment. Beobachtungen, die nur das Target oder nur die Referenz betreffen, erfüllen diese Anforderung an gepaarte Evidenz nicht.
+
+Eine Station ist eine exakte Identität aus Rufzeichen + vollständig gemeldetem Locator; dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt. Dies sind gemeldete Identitäten, keine Anzahl unabhängiger physischer Stationen.
+
+Höhere Mindestwerte verlangen mehr unterstützende Evidenz, verringern aber Stationszahl und geografische Abdeckung. Sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
+            "success_evidence_requirements_body": """Evidenzanforderungen legen eine Mindestbasis für deine Ergebnisse fest: genügend Beobachtungen je Station und genügend qualifizierende Stationen in jedem <strong class="defined-term">Kartensegment</strong> — einem geografischen Bereich, der durch Richtung und Entfernung definiert ist.
+
+Eine Station qualifiziert sich, wenn sie die erforderliche Anzahl <strong class="defined-term">bestätigter Empfangsgelegenheiten</strong> liefert. Dazu gehören erfolgreiche Target-Decodes und Gelegenheiten, bei denen andere Meldungen die relevante Aktivität belegen, aber der Target-Decode fehlt. Gezählt werden also nicht nur erfolgreiche Decodes. Ein Kartensegment benötigt zusätzlich die gewählte Anzahl qualifizierender Stationen.
+
+Höhere Mindestwerte verlangen mehr unterstützende Evidenz, verringern aber Stationszahl und geografische Abdeckung. Sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
             "included": "ausgeschlossen",
             "not_included": "einbezogen",
             "compare_evidence": """Joint-Evidenz ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",

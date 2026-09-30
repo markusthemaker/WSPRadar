@@ -606,7 +606,7 @@
     },
     "advancedParametersWithComparison": {
       "type": "object",
-      "description": "Advanced controls active for fixed-Reference and Reference Neighbourhood comparisons.",
+      "description": "Advanced controls active for fixed-Reference and Reference Neighborhood comparisons.",
       "required": [
         "solar_state",
         "max_peer_distance_km",
@@ -739,7 +739,7 @@
     },
     "excludeSpecialCallsigns": {
       "type": "boolean",
-      "description": "Whether to exclude remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighbourhood reference contributors, remain eligible under this filter. This required saved value has no schema-level default; the interactive UI uses result-specific defaults."
+      "description": "Whether to exclude remote peer callsigns beginning with Q, 0, or 1: transmitters in RX analyses and receivers in TX analyses. Target and Reference stations, including Reference Neighborhood reference contributors, remain eligible under this filter. This required saved value has no schema-level default; the interactive UI uses result-specific defaults."
     },
     "excludeMovingStations": {
       "type": "boolean",

@@ -642,7 +642,7 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
         ("RX Benchmark", "Reference Setup/Station"),
         ("TX Benchmark", "Reference Setup/Station"),
         ("RX/TX Benchmark", "Reference Setup/Station"),
-        ("RX/TX Benchmark", "Reference Neighbourhood (Local Median)"),
+        ("RX/TX Benchmark", "Reference Neighborhood (Local Median)"),
     ):
         assert (
             f'<span class="analysis-family">{benchmark_family}</span><br>'
@@ -855,9 +855,9 @@ def test_english_playbooks_define_performance_opportunities_and_tx_ab_timing():
 
 
 def test_bilingual_benchmark_uses_two_reference_choices_and_same_cycle_evidence():
-    """Keep one fixed-Reference contract and preserve neighbourhood interpretation."""
+    """Keep one fixed-Reference contract and preserve neighborhood interpretation."""
     for manual, fixed, local, controlled, independent, no_reports, source_error in (
-        (DOC_EN, "Reference Setup/Station", "Reference Neighbourhood",
+        (DOC_EN, "Reference Setup/Station", "Reference Neighborhood",
          "The intended difference is the component or path under test",
          "distinct complete receiving stations", "no qualifying reports", "source error"),
         (DOC_DE, "Referenzaufbau/-station", "Referenznachbarschaft",
@@ -1832,7 +1832,7 @@ def test_bilingual_manuals_document_result_specific_population_defaults():
                 "remote peer callsigns beginning with Q, 0",
                 "transmitters in RX analyses and receivers in TX analyses",
                 "Target and Reference stations",
-                "Reference Neighbourhood reference contributors",
+                "Reference Neighborhood reference contributors",
                 "remain eligible under this filter",
             ),
             "The prefix rule does not establish whether a station carries telemetry.",
@@ -1855,17 +1855,53 @@ def test_bilingual_manuals_document_result_specific_population_defaults():
 def test_special_callsign_guidance_preserves_remote_peer_boundary_across_surfaces(
     language, manual, control, semantic_fragments, telemetry_boundary,
 ):
-    """Keep manual, shared tooltip and Guided help on the same role boundary."""
+    """Keep concise field help and fuller guidance on the same peer boundary."""
     manual_row = next(line for line in manual.splitlines() if line.startswith(f"| {control} |"))
-    surfaces = (
-        manual_row,
-        T[language]["tt_exclude_special"],
+    for fragment in semantic_fragments:
+        assert fragment in manual_row.replace("`", "")
+
+    tooltip = T[language]["tt_exclude_special"]
+    guided_body = re.sub(
+        r"</?strong\b[^>]*>", "",
         GUIDED_INPUTS[language]["messages"]["station_population_body"],
     )
-    for guidance in surfaces:
-        normalized_guidance = guidance.replace("`", "")
-        for fragment in semantic_fragments:
-            assert fragment in normalized_guidance
+    if language == "en":
+        guided_prefix = "remote callsigns beginning with Q, 0 or 1"
+        tooltip_fragments = (
+            "Exclude remote callsigns starting with Q, 0 or 1",
+            "typically used for balloon telemetry",
+            "Target and Reference stations",
+            "including neighborhood contributors",
+            "remain eligible",
+        )
+        guided_roles = (
+            "transmitters your Target listens for in RX analyses",
+            "receivers that listen for your Target in TX analyses",
+        )
+    else:
+        guided_prefix = "entfernte Rufzeichen aus, die mit Q, 0 oder 1 beginnen"
+        tooltip_fragments = (
+            "Schließe entfernte Rufzeichen aus, die mit Q, 0 oder 1 beginnen",
+            "typischerweise für Ballontelemetrie verwendet",
+            "Target- und Referenzstationen",
+            "einschließlich beitragender Nachbarschaftsstationen",
+            "bleiben zulässig",
+        )
+        guided_roles = (
+            "bei RX-Analysen die Sender, auf deren Signale dein Target hört",
+            "bei TX-Analysen die Empfänger, die auf die Signale deines Targets hören",
+        )
+
+    for fragment in tooltip_fragments:
+        assert fragment in tooltip
+    assert guided_prefix in guided_body
+    for fragment in guided_roles:
+        assert fragment in guided_body
+
+    # Guided defines the RX/TX remote roles; concise shared field help retains
+    # Target/Reference eligibility, including local Reference contributors.
+    for fragment in semantic_fragments[-3:]:
+        assert fragment in guided_body.replace("`", "")
     assert telemetry_boundary in manual_row
     assert "{special}" in GUIDED_INPUTS[language]["messages"]["review_population_value"]
     assert "{moving}" in GUIDED_INPUTS[language]["messages"]["review_population_value"]
@@ -1882,12 +1918,16 @@ def test_bilingual_manuals_document_classic_question_first_workflow():
         assert question in DOC_EN
     for benchmark_design in (
         "`Reference Setup/Station`",
-        "`Reference Neighbourhood`",
+        "`Reference Neighborhood`",
     ):
         assert benchmark_design in DOC_EN
     assert "first panel, **`Question`**" in DOC_EN
     assert "second panel, **`Target and measurement window`**" in DOC_EN
     assert "omits the **`Benchmark design`** panel entirely" in DOC_EN
+    assert "Guided provides concise help for each Reference choice and separate help" in DOC_EN
+    assert "help beside **Benchmark design** explains both Reference choices regardless of the current selection" in DOC_EN
+    assert "Reference callsign and Neighborhood Radius fields have their own help for entry guidance" in DOC_EN
+    assert "Reference Neighborhood uses the Local Median described in the choice help" in DOC_EN
 
     for question in (
         "RX Performance",
@@ -1904,6 +1944,10 @@ def test_bilingual_manuals_document_classic_question_first_workflow():
     assert "Im ersten Bereich **`Frage`**" in DOC_DE
     assert "Der zweite Bereich **`Target und Messzeitraum`**" in DOC_DE
     assert "entfällt der Bereich **`Benchmark-Design`** vollständig" in DOC_DE
+    assert "Die geführte Eingabe bietet zu jeder Referenzoption eine kurze Hilfe und getrennte Hilfen" in DOC_DE
+    assert "Hilfe neben **Benchmark-Design** beide Referenzoptionen unabhängig von der aktuellen Auswahl" in DOC_DE
+    assert "Referenz-Rufzeichen und Nachbarschaftsradius haben eigene Hilfen zur Eingabe" in DOC_DE
+    assert "Die Referenznachbarschaft verwendet den in der Auswahlhilfe beschriebenen lokalen Median" in DOC_DE
 
 
 def test_bilingual_manuals_document_shared_review_and_open_panel_contract():
@@ -1927,16 +1971,20 @@ def test_bilingual_manuals_document_shared_review_and_open_panel_contract():
 
 def test_bilingual_manuals_document_always_visible_scope_and_classic_order():
     """Describe one visible shared panel without changing default semantics."""
-    assert "**`Optional filters, analysis scope, and evidence requirements`**" in DOC_EN
+    assert "**`Filters, scope and evidence`**" in DOC_EN
+    assert "Optional filters, analysis scope, and evidence requirements" not in DOC_EN
     assert "Guided always shows the applicable fields inside that step" in DOC_EN
     assert "there is no separate preset-choice gate" in DOC_EN
     assert "loaded configurations and demos populate the same visible fields" in DOC_EN
+    assert "The displayed filter, scope and evidence settings apply even if you leave this panel unchanged" in DOC_EN
     assert "Performance has four Classic panels and Benchmark has five" in DOC_EN
 
-    assert "**`Optionale Filter, Analyseumfang und Evidenzanforderungen`**" in DOC_DE
+    assert "**`Filter, Analyseumfang und Evidenz`**" in DOC_DE
+    assert "Optionale Filter, Analyseumfang und Evidenzanforderungen" not in DOC_DE
     assert "zeigt die geführte Eingabe stets die zutreffenden Felder" in DOC_DE
     assert "eine getrennte vorgeschaltete Auswahl entfällt" in DOC_DE
     assert "geladene Konfigurationen und Demos" in DOC_DE
+    assert "Die angezeigten Einstellungen für Filter, Analyseumfang und Evidenz gelten auch dann, wenn du diesen Bereich unverändert lässt" in DOC_DE
     assert "Performance besitzt damit vier und Benchmark fünf klassische Bereiche" in DOC_DE
 
 

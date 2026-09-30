@@ -865,15 +865,20 @@ def test_stale_local_method_recovers_through_application_reset(
         markdown for markdown in application.markdown
         if markdown.value == f"**{T[language]['opt_local_median']}**"
     ]
-    assert len(local_method_headings) == 1
-    explanation = T[language]["txt_local_median_explanation"]
-    visible_captions = [caption.value for caption in application.caption]
-    if input_view == "classic":
-        assert local_method_headings[0].proto.help == explanation
-        assert explanation not in visible_captions
+    assert local_method_headings == []
+    if input_view == "guided":
+        assert application.slider("val_ref_radius_km").proto.help == T[language]["hlp_reference_radius"]
+        assert T[language]["hlp_benchmark_local_neighborhood"] in [
+            markdown.value for markdown in application.markdown
+        ]
     else:
-        assert local_method_headings[0].proto.help == ""
-        assert explanation in visible_captions
+        from ui.classic_input_state import CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY
+
+        assert application.slider("val_ref_radius_km").proto.help == T[language]["hlp_reference_radius"]
+        selector_help = application.radio(CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY).proto.help
+        assert T[language]["hlp_benchmark_reference_station"] in selector_help
+        assert T[language]["hlp_benchmark_local_neighborhood"] in selector_help
+        assert T[language]["hlp_reference_radius"] not in selector_help
 
 
 def test_waiting_status_shows_only_the_sessions_own_queue_position(monkeypatch):

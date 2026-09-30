@@ -15,7 +15,10 @@ from core.analysis_context import COMPARISON_NONE
 from i18n import GUIDED_INPUTS, T
 from ui import callbacks, state_manager
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
-from ui.classic_input_state import is_classic_input_ready
+from ui.classic_input_state import (
+    CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
+    is_classic_input_ready,
+)
 from ui.components import config_fields, config_panel
 from ui.components.config_panel import (
     _benchmark_mode_options,
@@ -61,7 +64,7 @@ def test_classic_benchmark_design_excludes_canonical_performance_mode():
             "en",
             (
                 "Reference Setup/Station",
-                "Reference Neighbourhood",
+                "Reference Neighborhood",
             ),
         ),
         (
@@ -73,18 +76,24 @@ def test_classic_benchmark_design_excludes_canonical_performance_mode():
         ),
     ],
 )
+@pytest.mark.parametrize("selected_mode", ["none", "reference_station", "local_neighborhood"])
 def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
     monkeypatch,
     language,
     expected_labels,
+    selected_mode,
 ):
-    """Offer only the two localized designs after Benchmark is selected."""
-    benchmark_selector = Mock()
+    """Explain both native choices while keeping entry guidance on the fields."""
+    radio = Mock()
+    buttons = Mock()
+    popover = Mock(return_value=_NullContext())
+    fields = Mock()
+    correction = Mock()
     session_state = _SessionState(
         {
             "config_panels_expanded": True,
             "val_analysis_direction": "rx",
-            "val_comp_mode": "none",
+            "val_comp_mode": selected_mode,
         }
     )
     monkeypatch.setattr(
@@ -93,25 +102,142 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
         SimpleNamespace(
             session_state=session_state,
             expander=Mock(return_value=_NullContext()),
+            container=Mock(return_value=_NullContext()),
             columns=Mock(return_value=(_NullContext(), _NullContext())),
-            radio=benchmark_selector,
+            radio=radio,
+            button=buttons,
+            popover=popover,
         ),
     )
+    monkeypatch.setattr(config_panel, "render_reference_design_fields", fields)
+    monkeypatch.setattr(config_panel, "render_reference_correction_field", correction)
 
     labels = T[language]
     config_panel.render_benchmark_expander(labels)
 
-    positional_args, keyword_args = benchmark_selector.call_args
     canonical_modes = [
         "reference_station",
         "local_neighborhood",
     ]
-    assert positional_args == (labels["lbl_comp_mode"], canonical_modes)
-    assert tuple(
-        keyword_args["format_func"](benchmark_mode)
-        for benchmark_mode in canonical_modes
-    ) == expected_labels
-    assert keyword_args["label_visibility"] == "collapsed"
+    radio.assert_called_once()
+    assert radio.call_args.args == (labels["lbl_comp_mode"], canonical_modes)
+    keyword_args = radio.call_args.kwargs
+    assert keyword_args["key"] == CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY
+    assert keyword_args["index"] is None
+    assert keyword_args["label_visibility"] == "visible"
+    assert keyword_args["on_change"] is callbacks.handle_classic_benchmark_design_change
+    assert tuple(keyword_args["format_func"](mode) for mode in canonical_modes) == expected_labels
+    assert keyword_args["width"] == "stretch"
+    help_text = keyword_args["help"]
+    for mode, choice_label, field_help_key in zip(
+        canonical_modes, expected_labels, ("hlp_reference_callsign", "hlp_reference_radius"),
+    ):
+        assert f"**{choice_label}**" in help_text
+        assert labels[f"hlp_benchmark_{mode}"] in help_text
+        assert labels[field_help_key] not in help_text
+    buttons.assert_not_called()
+    popover.assert_not_called()
+    fields.assert_called_once_with(labels)
+    if selected_mode == "none":
+        correction.assert_not_called()
+    else:
+        correction.assert_called_once_with(labels)
+    assert session_state[CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY] == (
+        None if selected_mode == "none" else selected_mode
+    )
+    assert session_state.val_comp_mode == selected_mode
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("selected_mode", ["reference_station", "local_neighborhood"])
+def test_guided_reference_selector_names_one_selected_choice_and_keeps_help_separate(
+    monkeypatch, language, selected_mode,
+):
+    """Expose selection in words while reading help leaves scientific state intact."""
+    widget_key = "guided_reference_design"
+    labels = T[language]
+    descriptions = {
+        mode: option["description"]
+        for mode, option in GUIDED_INPUTS[language]["options"]["reference_design"].items()
+    }
+    session_state = _SessionState({widget_key: selected_mode, "val_comp_mode": selected_mode})
+    surface = SimpleNamespace(
+        session_state=session_state,
+        container=Mock(return_value=_NullContext()),
+        columns=Mock(return_value=(_NullContext(), _NullContext())),
+        button=Mock(),
+        popover=Mock(return_value=_NullContext()),
+        markdown=Mock(),
+        caption=Mock(),
+    )
+    on_change = Mock()
+    monkeypatch.setattr(config_panel, "st", surface)
+
+    config_fields.render_reference_design_selector(
+        labels, widget_key=widget_key, on_change=on_change, descriptions=descriptions,
+    )
+
+    modes = _benchmark_mode_options(labels)
+    assert len(surface.button.call_args_list) == len(modes)
+    assert len(surface.popover.call_args_list) == len(modes)
+    for mode, button_call, help_call in zip(
+        modes, surface.button.call_args_list, surface.popover.call_args_list,
+    ):
+        choice_label = config_panel._format_benchmark_mode(labels, mode)
+        selected = mode == selected_mode
+        assert button_call.args == (
+            labels["fmt_reference_choice_selected"].format(choice=choice_label)
+            if selected else choice_label,
+        )
+        assert button_call.kwargs["type"] == ("primary" if selected else "secondary")
+        assert button_call.kwargs["key"] == f"{widget_key}_{mode}"
+        assert "help" not in button_call.kwargs
+        assert help_call.kwargs["key"] == f"{widget_key}_{mode}_help"
+        assert help_call.kwargs["help"] == labels["fmt_reference_choice_help"].format(choice=choice_label)
+        assert help_call.kwargs["on_change"] == "ignore"
+    assert [call.args[0] for call in surface.caption.call_args_list] == list(descriptions.values())
+    assert session_state == {widget_key: selected_mode, "val_comp_mode": selected_mode}
+    on_change.assert_not_called()
+
+
+@pytest.mark.parametrize("selected_mode", ["reference_station", "local_neighborhood"])
+def test_reference_choice_adapter_calls_existing_callback_once_for_a_new_choice(
+    monkeypatch, selected_mode,
+):
+    """Preserve canonical callback ownership and make repeat selection idempotent."""
+    widget_key = "guided_reference_design"
+    old_mode = "local_neighborhood" if selected_mode == "reference_station" else "reference_station"
+    state = _SessionState({widget_key: old_mode, "val_comp_mode": old_mode, "val_benchmark_offset_db": 1.6})
+    monkeypatch.setattr(config_panel, "st", SimpleNamespace(session_state=state))
+    callback_observations = []
+
+    def apply_existing_callback():
+        callback_observations.append(dict(state))
+        state["val_comp_mode"] = state[widget_key]
+
+    callback = Mock(side_effect=apply_existing_callback)
+    config_panel._select_reference_design(widget_key, selected_mode, callback)
+    callback.assert_called_once_with()
+    assert callback_observations[0][widget_key] == selected_mode
+    assert callback_observations[0]["val_comp_mode"] == old_mode
+    assert state["val_comp_mode"] == selected_mode
+    state_before_repeat = dict(state)
+
+    config_panel._select_reference_design(widget_key, selected_mode, callback)
+    callback.assert_called_once_with()
+    assert state == state_before_repeat
+
+
+def test_reference_choice_adapter_rejects_noncanonical_choice_without_mutation(monkeypatch):
+    state = _SessionState({"guided_reference_design": "reference_station"})
+    monkeypatch.setattr(config_panel, "st", SimpleNamespace(session_state=state))
+    callback = Mock()
+
+    with pytest.raises(ValueError, match="Unsupported Reference design"):
+        config_panel._select_reference_design("guided_reference_design", "none", callback)
+
+    callback.assert_not_called()
+    assert state == {"guided_reference_design": "reference_station"}
 
 
 @pytest.mark.parametrize(
@@ -215,7 +341,7 @@ def test_classic_question_selector_is_four_way_and_bilingual(
             "Question",
             "Target and measurement window",
             "Benchmark design",
-            "Optional filters, analysis scope, and evidence requirements",
+            "Filters, scope and evidence",
             "Target callsign (receiver under test)",
             "Target callsign (transmitter under test)",
             "Target QTH (4 or 6 characters)",
@@ -225,7 +351,7 @@ def test_classic_question_selector_is_four_way_and_bilingual(
             "Frage",
             "Target und Messzeitraum",
             "Benchmark-Design",
-            "Optionale Filter, Analyseumfang und Evidenzanforderungen",
+            "Filter, Analyseumfang und Evidenz",
             "Target-Rufzeichen (Empfänger im Test)",
             "Target-Rufzeichen (Sender im Test)",
             "Target-QTH (4 oder 6 Zeichen)",
@@ -250,6 +376,12 @@ def test_classic_headings_and_target_labels_are_task_oriented(
     assert labels["exp_comp"] == expected_comparison_heading
     assert labels["lbl_comp_mode"] == expected_comparison_heading
     assert labels["exp_adv"] == expected_advanced_heading
+    assert GUIDED_INPUTS[language]["steps"]["scope_and_evidence"]["title"] == (
+        expected_advanced_heading
+    )
+    assert GUIDED_INPUTS[language]["summaries"]["scope"].startswith(
+        f"{{step}} · {expected_advanced_heading} — "
+    )
     assert labels["lbl_callsign_rx"] == expected_rx_callsign
     assert labels["lbl_callsign_tx"] == expected_tx_callsign
     assert labels["lbl_qth"] == expected_qth
@@ -307,10 +439,11 @@ def test_classic_advanced_panel_groups_filters_scope_and_evidence(
     language,
 ):
     """Expose the three scientific control groups without Guided explanations."""
-    markdown = Mock()
-    station_population_fields = Mock()
-    scope_fields = Mock()
-    evidence_threshold_fields = Mock()
+    render_events = []
+    markdown = Mock(side_effect=lambda text: render_events.append(("heading", text)))
+    station_population_fields = Mock(side_effect=lambda *_args: render_events.append(("fields", "population")))
+    scope_fields = Mock(side_effect=lambda *_args: render_events.append(("fields", "scope")))
+    evidence_threshold_fields = Mock(side_effect=lambda *_args, **_kwargs: render_events.append(("fields", "evidence")))
     session_state = _SessionState({"config_panels_expanded": True})
     monkeypatch.setattr(
         config_panel,
@@ -338,9 +471,17 @@ def test_classic_advanced_panel_groups_filters_scope_and_evidence(
     config_panel.render_advanced_expander(labels)
 
     assert [call.args[0] for call in markdown.call_args_list] == [
-        f"**{labels['hdr_remote_station_filters']}**",
         f"**{labels['hdr_analysis_scope']}**",
+        f"**{labels['hdr_remote_station_filters']}**",
         f"**{labels['hdr_evidence_requirements']}**",
+    ]
+    assert render_events == [
+        ("heading", f"**{labels['hdr_analysis_scope']}**"),
+        ("fields", "scope"),
+        ("heading", f"**{labels['hdr_remote_station_filters']}**"),
+        ("fields", "population"),
+        ("heading", f"**{labels['hdr_evidence_requirements']}**"),
+        ("fields", "evidence"),
     ]
     station_population_fields.assert_called_once_with(labels)
     scope_fields.assert_called_once_with(labels)
@@ -791,31 +932,53 @@ def test_benchmark_segment_threshold_help_uses_reported_peer_identity(
     guided_help = GUIDED_INPUTS[language]["messages"][
         "compare_evidence_requirements_body"
     ]
-    expected_fragments = {
+    expected_tooltip_fragments = {
+        "en": (
+            "callsign + full locator",
+            "Joint Spot minimum",
+            "one-sided evidence does not count",
+            "reported identities",
+            "independent physical stations",
+        ),
+        "de": (
+            "Rufzeichen + vollständigem Locator",
+            "Mindestzahl an Joint Spots",
+            "einseitige Evidenz zählt nicht",
+            "gemeldete Identitäten",
+            "unabhängige physische Stationen",
+        ),
+    }
+    for required_fragment in expected_tooltip_fragments[language]:
+        assert required_fragment in threshold_help
+    expected_guided_fragments = {
         "en": (
             "callsign + full reported locator",
             "same callsign at different locators counts separately",
-            "One-sided evidence does not",
             "independent physical stations",
         ),
         "de": (
             "Rufzeichen + vollständig gemeldetem Locator",
             "dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt",
-            "Einseitige Evidenz",
             "physisch",
         ),
     }
-    for required_fragment in expected_fragments[language]:
-        assert required_fragment in threshold_help
+    for required_fragment in expected_guided_fragments[language]:
         assert required_fragment in guided_help
     assert (
-        "one station median" in guided_help
+        "one median ΔSNR" in guided_help
         if language == "en"
-        else "einen Stationsmedian" in guided_help
+        else "einen medianen ΔSNR-Wert" in guided_help
+    )
+    assert (
+        "only the Target or only the Reference do not satisfy" in guided_help
+        if language == "en"
+        else "nur das Target oder nur die Referenz" in guided_help
+        and "erfüllen diese Anforderung an gepaarte Evidenz nicht" in guided_help
     )
 
 
-def test_guided_scope_fields_use_two_equal_columns(monkeypatch):
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_guided_scope_fields_use_two_equal_columns(monkeypatch, language):
     """Place solar state and geographic distance beside each other."""
     selectbox = Mock()
     columns = Mock(return_value=(_NullContext(), _NullContext()))
@@ -826,14 +989,18 @@ def test_guided_scope_fields_use_two_equal_columns(monkeypatch):
     )
 
     config_fields.render_scope_fields(
-        T["en"],
+        T[language],
         use_two_column_layout=True,
     )
 
     columns.assert_called_once_with(2, gap="large")
     assert [call.args[0] for call in selectbox.call_args_list] == [
-        T["en"]["lbl_solar"],
-        T["en"]["lbl_max_dist"],
+        T[language]["lbl_solar"],
+        T[language]["lbl_max_dist"],
+    ]
+    assert [call.kwargs["help"] for call in selectbox.call_args_list] == [
+        T[language]["hlp_solar"],
+        T[language]["hlp_max_dist"],
     ]
 
 
@@ -874,22 +1041,19 @@ def test_guided_evidence_fields_use_two_equal_columns(monkeypatch):
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_callsign_entry_guidance_recommends_standard_forms_in_both_languages(
+def test_callsign_entry_guidance_preserves_exact_identity_and_validation_in_both_languages(
     language,
 ):
-    """Explain letter-only and suffix forms without treating aliases as equivalent."""
+    """Keep concise help identity-specific while validation explains accepted forms."""
     labels = T[language]
 
-    assert "CALL" in labels["hlp_callsign_entry"]
-    assert "CALL/P" in labels["hlp_callsign_entry"]
-    assert "CALL-1" in labels["hlp_callsign_entry"]
-    assert "distinct" in labels["hlp_callsign_entry"].lower() or "eigene" in labels[
-        "hlp_callsign_entry"
-    ].lower()
+    expected_fragments = {
+        "en": ("exact reporting identity", "including any suffix", "Different spellings select different identities"),
+        "de": ("exakte im WSPR-Archiv gespeicherte Meldekennung", "Suffixes", "Unterschiedliche Schreibweisen wählen unterschiedliche Identitäten"),
+    }
+    for fragment in expected_fragments[language]:
+        assert fragment in labels["hlp_callsign_entry"]
     assert "CALL/P" in labels["ph_reference_callsign"]
-    guided_messages = GUIDED_INPUTS[language]["messages"]
-    assert "CALL" in guided_messages["target_callsign_help"]
-    assert "CALL/P" in guided_messages["reference_callsign_help"]
     if language == "en":
         required_letter_text = "at least one letter"
         no_digit_text = "a digit is not required"
@@ -946,10 +1110,10 @@ def test_analysis_selector_uses_full_width_segments_without_visible_heading(
 @pytest.mark.parametrize("language", ["en", "de"])
 @pytest.mark.parametrize("direction", ["rx", "tx"])
 @pytest.mark.parametrize("method", ["local_median", "local_best"])
-def test_local_benchmark_shows_fixed_method_without_mutating_state(
+def test_local_benchmark_shows_only_radius_with_shared_help_without_mutating_state(
     monkeypatch, language, direction, method,
 ):
-    """Keep method help in a tooltip, preserve radius and reject stale input."""
+    """Leave method explanation on its choice and reject unsupported saved methods."""
     session_state = _SessionState({
         "val_comp_mode": "local_neighborhood",
         "val_analysis_direction": direction,
@@ -963,13 +1127,10 @@ def test_local_benchmark_shows_fixed_method_without_mutating_state(
     monkeypatch.setattr(config_panel, "st", surface)
     config_fields.render_reference_design_fields(T[language])
     surface.radio.assert_not_called()
-    explanation = T[language]["txt_local_median_explanation"]
-    surface.markdown.assert_called_once_with(
-        f"**{T[language]['opt_local_median']}**",
-        help=explanation,
-    )
+    surface.markdown.assert_not_called()
     surface.caption.assert_not_called()
     assert surface.slider.call_args.kwargs["key"] == "val_ref_radius_km"
+    assert surface.slider.call_args.kwargs["help"] == T[language]["hlp_reference_radius"]
     assert session_state["val_local_benchmark"] == method
     assert session_state["val_ref_radius_km"] == 150
     if method == "local_median":
@@ -980,7 +1141,9 @@ def test_local_benchmark_shows_fixed_method_without_mutating_state(
 
 @pytest.mark.parametrize("language", ["en", "de"])
 @pytest.mark.parametrize("reference_qth", ["", "JO62"])
-def test_reference_identity_has_one_callsign_without_location_caption(monkeypatch, language, reference_qth):
+def test_reference_identity_has_one_callsign_without_location_caption(
+    monkeypatch, language, reference_qth,
+):
     text_input = Mock()
     state = _SessionState({"val_callsign": "CALL", "val_qth": "JN37AA", "val_ref_callsign": "CALL/P", "val_ref_qth": reference_qth})
     surface = SimpleNamespace(session_state=state, error=Mock(), caption=Mock(), selectbox=Mock(), markdown=Mock())
@@ -990,8 +1153,12 @@ def test_reference_identity_has_one_callsign_without_location_caption(monkeypatc
     assert text_input.call_count == 1
     assert text_input.call_args.kwargs["key"] == "val_ref_callsign"
     assert text_input.call_args.kwargs["placeholder"] == T[language]["ph_reference_callsign"]
+    assert text_input.call_args.kwargs["help"] == T[language]["hlp_reference_callsign"]
+    assert "CALL/P" in text_input.call_args.kwargs["help"]
+    assert "CALL" in text_input.call_args.kwargs["help"].replace("CALL/P", "")
     surface.selectbox.assert_not_called()
     surface.caption.assert_not_called()
+    assert state.val_ref_callsign == "CALL/P"
     assert state.val_ref_qth == reference_qth
     surface.error.assert_not_called()
 
@@ -1040,9 +1207,8 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-@pytest.mark.parametrize("input_view", ["guided", "classic"])
 def test_shared_date_widgets_suggest_and_constrain_the_end_date(
-    monkeypatch, language, input_view,
+    monkeypatch, language,
 ):
     """Keep date fields at row start with their help, callbacks and date bounds."""
     date_input = Mock()
@@ -1074,14 +1240,8 @@ def test_shared_date_widgets_suggest_and_constrain_the_end_date(
     )
     monkeypatch.setattr(config_panel, "text_input_no_autocomplete", Mock())
 
-    time_help = (
-        GUIDED_INPUTS[language]["messages"]["time_help"]
-        if input_view == "guided"
-        else None
-    )
-    config_fields.render_target_and_window_fields(
-        T[language], help_overrides={"time": time_help},
-    )
+    time_help = T[language]["hlp_time_window"]
+    config_fields.render_target_and_window_fields(T[language])
 
     start_date_call, end_date_call = date_input.call_args_list
     markdown.assert_not_called()

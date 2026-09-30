@@ -769,7 +769,7 @@ def test_compare_station_insights_guidance_gates_multi_selection_copy(
 
 
 def test_outlier_report_guidance_uses_shared_gates_and_descriptive_classes():
-    """Keep the three hard gates and non-qualifying duration labels bilingual."""
+    """Keep detailed detector guidance and concise report help bilingual."""
     expected_fragments = {
         "en": (
             "every group must pass the same configured minimum absolute median departure",
@@ -804,6 +804,18 @@ def test_outlier_report_guidance_uses_shared_gates_and_descriptive_classes():
             "Target-SNR und korrigiertes Referenz-SNR",
         ),
     }
+    expected_tooltip_fragments = {
+        "en": (
+            "Flag unusual ΔSNR departures for closer inspection",
+            "supporting observations before and after each candidate",
+            "This adds a report; it does not remove evidence or identify a cause.",
+        ),
+        "de": (
+            "Markiere ungewöhnliche ΔSNR-Abweichungen zur genaueren Prüfung",
+            "unterstützender Beobachtungen vor und nach jedem Kandidaten",
+            "Dies ergänzt einen Bericht; es entfernt keine Evidenz und bestimmt keine Ursache.",
+        ),
+    }
 
     for language in ("en", "de"):
         expected_item = RESULT_GUIDANCE[language]["sections"][
@@ -815,9 +827,8 @@ def test_outlier_report_guidance_uses_shared_gates_and_descriptive_classes():
             assert fragment in expected_item["read"]
         for retired_claim in retired_claims[language]:
             assert retired_claim not in complete_copy
-        assert "same three qualification gates" in tooltip or (
-            "dieselben drei Qualifikationskriterien" in tooltip
-        )
+        for fragment in expected_tooltip_fragments[language]:
+            assert fragment in tooltip
         guidance = _build_guidance(
             RESULT_GUIDANCE_OUTLIER_REPORT,
             language=language,

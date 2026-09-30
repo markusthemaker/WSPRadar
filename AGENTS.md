@@ -452,6 +452,12 @@ checks** below.
 
 - Optimize code for human readability and maintainability, not merely for
   brevity.
+- Use American English for English UI labels, help text, and new or edited
+  documentation: for example, `neighbor`, `neighborhood`, `color`, `center`, and
+  `behavior`. Preserve original source titles, direct quotations, proper names,
+  URLs, canonical identifiers, schema fields, compatibility export headings,
+  and historical records. Audit active presentation and prose before changing
+  spelling; do not use blanket replacements across protected strings.
 - Keep human-maintained configuration, UI copy, and localization catalogs
   editor-friendly. In Python text catalogs such as `i18n.py`, keep each prose
   paragraph on one physical source line and rely on the editor's soft wrapping;
@@ -954,7 +960,7 @@ technically correct or already present.
   generic inventory of screens. Chapter 2 uses the four analysis families **RX
   Performance**, **TX Performance**, **RX Benchmark**, and **TX Benchmark**.
   RX and TX Benchmark each distinguish Reference Setup/Station and Reference
-  Neighbourhood. Both use same-cycle evidence; experimental intent describes
+  Neighborhood. Both use same-cycle evidence; experimental intent describes
   controlled setups or independent stations without selecting another method.
 - Keep Section 2.5 explicitly scoped as an optional expert diagnostic tool for
   finding and reviewing temporary Delta-SNR departures. It owns practical use,
