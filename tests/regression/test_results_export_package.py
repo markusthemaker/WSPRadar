@@ -1364,9 +1364,10 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
     }
     browser_calls = []
     build_calls = []
+    markdown_calls = []
     fake_streamlit = SimpleNamespace(
         session_state=session_state,
-        markdown=lambda *_args, **_kwargs: None,
+        markdown=lambda body, **_kwargs: markdown_calls.append(body),
         columns=lambda *_args, **_kwargs: (
             _FooterColumn(),
             _FooterColumn(),
@@ -1413,6 +1414,10 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
     results_export.render_download_all_results(T["en"])
 
     assert build_calls == [session_state]
+    assert T["en"]["help_share_analysis"] in markdown_calls
+    assert (
+        f"**Keep in mind.** {T['en']['help_share_analysis_limits']}"
+    ) in markdown_calls
     assert browser_calls == [
         {
             "share_url": (

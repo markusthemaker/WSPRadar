@@ -21,7 +21,9 @@ RESULT_GUIDANCE_MAP = "map"
 RESULT_GUIDANCE_SEGMENT = "segment"
 RESULT_GUIDANCE_COMPARISON_EVIDENCE = "comparison_evidence"
 RESULT_GUIDANCE_TEMPORAL_EVIDENCE = "temporal_evidence"
+RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE = "temporal_evidence_coverage"
 RESULT_GUIDANCE_OUTLIER_REPORT = "outlier_report"
+RESULT_GUIDANCE_OUTLIER_FOCUS = "outlier_focus"
 RESULT_GUIDANCE_SUCCESS_EVIDENCE = "success_evidence"
 RESULT_GUIDANCE_STATION_INSIGHTS = "station_insights"
 RESULT_GUIDANCE_SELECTED_STATIONS = "selected_stations"
@@ -38,7 +40,9 @@ RESULT_GUIDANCE_SECTION_IDS = frozenset(
         RESULT_GUIDANCE_SEGMENT,
         RESULT_GUIDANCE_COMPARISON_EVIDENCE,
         RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE,
         RESULT_GUIDANCE_OUTLIER_REPORT,
+        RESULT_GUIDANCE_OUTLIER_FOCUS,
         RESULT_GUIDANCE_SUCCESS_EVIDENCE,
         RESULT_GUIDANCE_STATION_INSIGHTS,
         RESULT_GUIDANCE_SELECTED_STATIONS,
@@ -114,13 +118,9 @@ def _result_guidance_item_keys(
     if section_id == RESULT_GUIDANCE_CONTEXT:
         if not is_compare:
             return [f"context_{direction.lower()}_success"]
-        context_key = (
-            f"context_{direction.lower()}_compare"
-        )
-        return [
-            context_key,
-            _comparison_benchmark_guidance_key(analysis_context),
-        ]
+        # Preserve Benchmark validation while keeping its setup details below.
+        _comparison_benchmark_guidance_key(analysis_context)
+        return [f"context_{direction.lower()}_compare"]
 
     if section_id == RESULT_GUIDANCE_MAP:
         if is_compare:
@@ -150,12 +150,23 @@ def _result_guidance_item_keys(
             "temporal_evidence_joint"
         ]
 
-    if section_id == RESULT_GUIDANCE_OUTLIER_REPORT:
+    if section_id == RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE:
         if not is_compare:
             raise ValueError(
-                "Outlier Report guidance is unavailable for Performance"
+                "Benchmark Temporal Evidence Coverage guidance is unavailable "
+                "for Performance"
             )
-        return ["outlier_report"]
+        return ["temporal_evidence_coverage_joint"]
+
+    if section_id in {
+        RESULT_GUIDANCE_OUTLIER_REPORT,
+        RESULT_GUIDANCE_OUTLIER_FOCUS,
+    }:
+        if not is_compare:
+            raise ValueError(
+                "Outlier guidance is unavailable for Performance"
+            )
+        return [section_id]
 
     if section_id == RESULT_GUIDANCE_SUCCESS_EVIDENCE:
         if is_compare:
@@ -222,7 +233,13 @@ def _result_guidance_item_keys(
             )
             == LOCAL_BENCHMARK_MEDIAN
         ):
+            item_keys.append("benchmark_local_median")
             item_keys.append("drilldown_local_median")
+        elif (
+            getattr(analysis_context, "comparison_mode", COMPARISON_NONE)
+            == COMPARISON_REFERENCE_STATION
+        ):
+            item_keys.append("benchmark_reference")
         return item_keys
 
     raise ValueError(f"Unknown result-guidance section: {section_id}")
@@ -280,8 +297,27 @@ def build_result_guidance(
         )
         for item_key in item_keys
     ]
-    read_text = " ".join(item.read for item in items)
-    limits_text = " ".join(item.limits for item in items)
+    read_text = "\n\n".join(item.read for item in items)
+    if section_id == RESULT_GUIDANCE_CONTEXT:
+        layout_heading_keys = {
+            "map_heading": "hdr_results_map_view",
+            "segment_heading": "hdr_results_segment_inspector",
+            "evidence_heading": (
+                "hdr_results_comparison_evidence"
+                if is_compare
+                else "hdr_results_success_evidence"
+            ),
+            "temporal_heading": "hdr_results_temporal_evidence",
+            "stations_heading": "lbl_insights",
+            "selected_heading": "hdr_results_selected_station_evidence",
+            "drilldown_heading": "hdr_results_drilldown",
+        }
+        layout = guidance_content["context_layout"].format(**{
+            placeholder: escape(str(translations[translation_key]))
+            for placeholder, translation_key in layout_heading_keys.items()
+        })
+        read_text = f"{read_text}\n\n{layout}"
+    limits_text = "\n\n".join(item.limits for item in items)
     return (
         f"**{guidance_content['read_label']}** {read_text}\n\n"
         f"**{guidance_content['limits_label']}** {limits_text}"

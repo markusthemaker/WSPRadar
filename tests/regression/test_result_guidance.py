@@ -2,6 +2,7 @@
 
 import ast
 from collections import Counter
+from html import escape
 from pathlib import Path
 import re
 from string import Formatter
@@ -23,12 +24,14 @@ from ui.result_guidance import (
     RESULT_GUIDANCE_DOWNLOAD,
     RESULT_GUIDANCE_DRILLDOWN,
     RESULT_GUIDANCE_MAP,
+    RESULT_GUIDANCE_OUTLIER_FOCUS,
     RESULT_GUIDANCE_OUTLIER_REPORT,
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     RESULT_GUIDANCE_STATION_INSIGHTS,
     RESULT_GUIDANCE_SUCCESS_EVIDENCE,
     RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE,
     build_result_guidance,
 )
 
@@ -39,7 +42,9 @@ COMPARE_SECTIONS = (
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_COMPARISON_EVIDENCE,
     RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE,
     RESULT_GUIDANCE_OUTLIER_REPORT,
+    RESULT_GUIDANCE_OUTLIER_FOCUS,
     RESULT_GUIDANCE_STATION_INSIGHTS,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     RESULT_GUIDANCE_DRILLDOWN,
@@ -59,6 +64,22 @@ SUCCESS_SECTIONS = (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _context_layout_headings(translations, *, is_compare):
+    """Name the actual section headers expected in the top-level reading path."""
+    heading_keys = {
+        "map_heading": "hdr_results_map_view",
+        "segment_heading": "hdr_results_segment_inspector",
+        "evidence_heading": (
+            "hdr_results_comparison_evidence" if is_compare else "hdr_results_success_evidence"
+        ),
+        "temporal_heading": "hdr_results_temporal_evidence",
+        "stations_heading": "lbl_insights",
+        "selected_heading": "hdr_results_selected_station_evidence",
+        "drilldown_heading": "hdr_results_drilldown",
+    }
+    return {field: escape(translations[key]) for field, key in heading_keys.items()}
 
 
 def _flatten_catalog(catalog, prefix=()):
@@ -85,8 +106,9 @@ def _format_fields(template):
 
 
 def _plain_guidance(guidance):
-    """Remove catalog-authored semantic term tags for wording assertions."""
-    return re.sub(r"</?strong(?:\s+[^>]*)?>", "", guidance)
+    """Ignore emphasis and paragraph spacing when checking prose meaning."""
+    unstyled = re.sub(r"</?strong(?:\s+[^>]*)?>", "", guidance).replace("**", "")
+    return " ".join(unstyled.split())
 
 
 def _build_guidance(
@@ -118,44 +140,59 @@ def _build_guidance(
 
 @pytest.mark.parametrize("language", ("en", "de"))
 @pytest.mark.parametrize("direction", ("rx", "tx"))
-def test_performance_guidance_counts_target_only_success_and_names_endpoint_roles(
-    language, direction
-):
-    """RX peer TX to Target RX and TX Target TX to peer RX each prove both ends."""
-    context = _build_guidance(
-        RESULT_GUIDANCE_CONTEXT,
-        language=language,
-        analysis_id=f"{direction.upper()}_SUCCESS",
-        is_compare=False,
-    )
-    drilldown = _build_guidance(
-        RESULT_GUIDANCE_DRILLDOWN,
-        language=language,
-        analysis_id=f"{direction.upper()}_SUCCESS",
-        is_compare=False,
-    )
-    combined = str(context) + str(drilldown)
+def test_performance_guidance_counts_target_only_success_and_names_endpoint_roles(language, direction):
+    """Keep detailed opportunity and outcome definitions beside the evidence."""
+    map_guidance = _plain_guidance(_build_guidance(
+        RESULT_GUIDANCE_MAP, language=language,
+        analysis_id=f"{direction.upper()}_SUCCESS", is_compare=False,
+    ))
+    drilldown = _plain_guidance(_build_guidance(
+        RESULT_GUIDANCE_DRILLDOWN, language=language,
+        analysis_id=f"{direction.upper()}_SUCCESS", is_compare=False,
+    ))
+    for label in (
+        T[language][f"map_success_{direction}_opportunity_target"],
+        T[language][f"map_success_{direction}_opportunity_counter"],
+    ):
+        assert label in map_guidance
     if language == "en":
-        assert "with or without external confirmation" in combined
-        assert "provenance subset of successes" in combined
-        assert "already included once" in combined
-        assert "unknown and excluded" in combined
-        assert "Target-Active Gate" in combined
-        assert "was listening" in combined
-        roles = "peer TX → Target RX" if direction == "rx" else "Target TX → peer RX"
-        assert roles in combined
-        assert "does not enter this rate" not in combined
-        assert "without the independent confirmation required" not in combined
+        for phrase in ("callsign and reported locator", "in one WSPR cycle",
+                       "Target activity is confirmed", "confirms both endpoints",
+                       "Target-only", "already included once", "success count and successful SNR",
+                       "was listening"):
+            assert phrase in drilldown
+        expected = (
+            ("another eligible receiver to report the same transmitter",
+             "Cycles without evidence of Target activity are excluded")
+            if direction == "rx" else
+            ("same receiver to report another qualifying transmitter",
+             "insufficient activity evidence remains unknown and excluded")
+        )
+        assert "does not enter this rate" not in drilldown
     else:
-        assert "mit oder ohne externe Bestätigung" in combined
-        assert "Herkunftsteilmenge der Erfolge" in combined
-        assert "bereits genau einmal" in combined
-        assert "unbekannt und ausgeschlossen" in combined
-        assert "Target-Active Gate" in combined
-        assert "zugehört hat" in combined
-        roles = "Peer-TX → Target-RX" if direction == "rx" else "Target-TX → Peer-RX"
-        assert roles in combined
-        assert "fließt aber nicht in diese Rate ein" not in combined
+        for phrase in ("Rufzeichen und gemeldeten Locator", "in einem WSPR-Zyklus",
+                       "bestätigter Target-Aktivität", "bestätigt beide Endpunkte",
+                       "Target-only", "bereits einmal", "Erfolgsanzahl und im erfolgreichen SNR",
+                       "zugehört hat"):
+            assert phrase in drilldown
+        expected = (
+            ("anderer geeigneter Empfänger denselben Sender meldet",
+             "Zyklen ohne Nachweis der Target-Aktivität werden ausgeschlossen")
+            if direction == "rx" else
+            ("derselbe Empfänger einen anderen qualifizierenden Sender meldet",
+             "unzureichend belegte Aktivität bleibt unbekannt und ausgeschlossen")
+        )
+        assert "fließt aber nicht in diese Rate ein" not in drilldown
+    for phrase in expected:
+        assert phrase in drilldown
+    segment = _plain_guidance(_build_guidance(
+        RESULT_GUIDANCE_SEGMENT, language=language,
+        analysis_id=f"{direction.upper()}_SUCCESS", is_compare=False,
+    ))
+    assert (
+        "successful opportunities divided by all confirmed opportunities" if language == "en"
+        else "erfolgreiche Gelegenheiten durch alle bestätigten Gelegenheiten"
+    ) in segment
 
 
 def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
@@ -183,6 +220,13 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
                 "section",
                 "station_counter",
                 "station_target",
+                "map_heading",
+                "segment_heading",
+                "evidence_heading",
+                "temporal_heading",
+                "stations_heading",
+                "selected_heading",
+                "drilldown_heading",
             }, path
 
     for language in ("en", "de"):
@@ -194,14 +238,16 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
                 language,
                 section_key,
             )
-            assert len(section_content["limits"]) < len(
-                section_content["read"]
-            ), (language, section_key)
-            if section_key != "drilldown_local_median":
-                assert 'class="defined-term"' in section_content["read"], (
-                    language,
-                    section_key,
+            read_text = section_content["read"]
+            if section_key.startswith("context_"):
+                read_text += "\n\n" + RESULT_GUIDANCE[language]["context_layout"].format(
+                    **_context_layout_headings(T[language], is_compare=section_key.endswith("compare"))
                 )
+            assert len(section_content["limits"]) < len(read_text), (language, section_key)
+            for part in section_content.values():
+                assert part.count('<strong class="defined-term">') == part.count(
+                    "</strong>"
+                ), (language, section_key)
 
 
 @pytest.mark.parametrize(
@@ -283,296 +329,135 @@ def test_compare_temporal_and_selected_guidance_uses_full_readability_budget(
         )
 
 
-@pytest.mark.parametrize(
-    ("section_key", "english_missing_unit", "german_missing_unit"),
-    (
-        ("temporal_evidence_joint", "no Joint Spot remains", "kein Joint Spot"),
-        ("selected_compare_joint", "no Joint Spot remains", "kein Joint Spot"),
-    ),
-)
-def test_compare_temporal_guidance_explains_full_window_and_blank_intervals(
-    section_key,
-    english_missing_unit,
-    german_missing_unit,
-):
-    """Explain selected-window geometry without confusing gaps with zero dB."""
-    english_read = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
-    german_read = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
-
-    for phrase in (
-        "full selected UTC window",
-        "bins begin at the selected start",
-        "final interval may be shorter",
-        "remain blank rather than becoming 0 dB",
-        "whole panel is blank",
-        "can still show one-sided evidence",
-        english_missing_unit,
-    ):
-        assert phrase in english_read
-    for phrase in (
-        "vollständige ausgewählte UTC-Zeitfenster",
-        "Bins beginnen am ausgewählten Startzeitpunkt",
-        "abschließende Intervall kann kürzer sein",
-        "bleiben leer, statt zu 0 dB zu werden",
-        "gesamte Panel leer",
-        "kann dennoch einseitige Evidenz zeigen",
-        german_missing_unit,
-    ):
-        assert phrase in german_read
+@pytest.mark.parametrize("section_key", ("temporal_evidence_joint", "selected_compare_joint"))
+def test_compare_temporal_guidance_explains_full_window_and_blank_intervals(section_key):
+    """Explain selected-window geometry without treating missing pairs as zero."""
+    english = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
+    german = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
+    for phrase in ("UTC window", "begin", "last may be shorter", "Blank intervals",
+                   "no Joint evidence", "not a 0 dB"):
+        assert phrase in english
+    for phrase in ("UTC-Zeitfenster", "beginnen", "letzte", "kürzer",
+                   "Leere Intervalle", "keine Joint-Evidenz", "0 dB"):
+        assert phrase in german
+    coverage = RESULT_GUIDANCE["en"]["sections"]["temporal_evidence_coverage_joint"]["read"]
+    assert "Only Target and Only Reference" in coverage
 
 
 def test_selected_compare_guidance_names_the_rendered_coverage_units():
-    """Keep selected-path help aligned with same-cycle RX and TX plots."""
-    expected_copy = {
-        "en": {
-            "selected_compare_joint": (
-                "Retained WSPR Cycles",
-                "per represented UTC date",
-            ),
-        },
-        "de": {
-            "selected_compare_joint": (
-                "Berücksichtigte WSPR-Zyklen",
-                "je berücksichtigtem UTC-Tag",
-            ),
-        },
-    }
-
-    for language, section_contracts in expected_copy.items():
-        sections = RESULT_GUIDANCE[language]["sections"]
-        for section_key, required_phrases in section_contracts.items():
-            combined = " ".join(sections[section_key].values())
-            for required_phrase in required_phrases:
-                assert required_phrase in combined
+    """Keep one-path coverage on retained cycles with date-averaged hourly bars."""
+    for language, phrases in {
+        "en": ("retained WSPR cycles", "per represented date", "all three outcomes"),
+        "de": ("berücksichtigte WSPR-Zyklen", "je berücksichtigtem Tag", "aller drei Outcomes"),
+    }.items():
+        combined = _plain_guidance(" ".join(
+            RESULT_GUIDANCE[language]["sections"]["selected_compare_joint"].values()
+        ))
+        for phrase in phrases:
+            assert phrase in combined
 
 
 def test_joint_temporal_guidance_explains_the_figures_and_target_favored_gate():
-    """Make simultaneous temporal evidence interpretable without the manual."""
-    english_temporal = RESULT_GUIDANCE["en"]["sections"][
-        "temporal_evidence_joint"
-    ]
-    english_selected = RESULT_GUIDANCE["en"]["sections"][
-        "selected_compare_joint"
-    ]
-    german_temporal = RESULT_GUIDANCE["de"]["sections"][
-        "temporal_evidence_joint"
-    ]
-    german_selected = RESULT_GUIDANCE["de"]["sections"][
-        "selected_compare_joint"
-    ]
-
-    english_temporal_text = " ".join(english_temporal.values())
-    english_selected_text = " ".join(english_selected.values())
-    german_temporal_text = " ".join(german_temporal.values())
-    german_selected_text = " ".join(german_selected.values())
-
-    for expected in (
-        "not |ΔSNR|",
-        "median of all Joint Spots",
-        "relative Joint-Spot density per panel",
-        "nonlinear axis",
-        "one split vote",
-        "blue line",
-        "amber line",
-        "A gap between lines shows volume weighting",
-        "Target activity",
-        "no equivalent gate",
-        "Target-favoring",
-        "The gate does not alter Joint ΔSNR",
-        "Joint Spots contain both sides",
-    ):
-        assert expected in english_temporal_text
-
-    for expected in (
-        "one chosen {peer_type} station",
-        "one specific radio path",
-        "Only Joint units supply ΔSNR",
-        "RX: Target decoded a qualifying signal",
-        "TX: Target was decoded somewhere",
-        "Reference has no equivalent gate",
-        "One-sided counts favor Target",
-        "Swapping roles can change coverage",
-        "paired values reverse sign",
-        "gate cannot alter Joint evidence",
-    ):
-        assert expected in english_selected_text
-
-    for expected in (
-        "nicht |ΔSNR|",
-        "Median aller Joint Spots",
-        "relative Joint-Spot-Dichte je Panel",
-        "nichtlinearer Achse",
-        "aufgeteilte Stimme",
-        "blaue Linie",
-        "gelbe Linie",
-        "Target-Aktivität",
-        "kein entsprechendes Referenz-Gate",
-        "Target-begünstigt",
-        "Joint-ΔSNR bleibt unverändert",
-        "Joint Spots beide Seiten enthalten",
-    ):
-        assert expected in german_temporal_text
-
-    for expected in (
-        "eine gewählte {peer_type}-Station",
-        "Nur Joint liefert ΔSNR",
-        "RX: Target decodierte ein qualifizierendes Signal",
-        "TX: Target wurde irgendwo decodiert",
-        "Kein Referenz-Gate",
-        "Target-begünstigt",
-        "Rollentausch kann einseitige Abdeckung ändern",
-        "gepaarte Werte wechseln Vorzeichen",
-        "Gate ändert Joint-Evidenz nicht",
-    ):
-        assert expected in german_selected_text
+    """Keep paired-metric help separate from coverage weighting and Target gate."""
+    phrases = {
+        "en": {
+            "temporal_evidence_joint": (
+                "median of all qualifying Joint Spots", "relative observation concentration",
+                "nonlinear dB axis", "at least two dates",
+                "time from left to right and ΔSNR vertically",
+                "blue cells contain a lower concentration", "orange/red cells a higher concentration",
+            ),
+            "temporal_evidence_coverage_joint": (
+                "each station one vote", "blue line", "amber line",
+                "total height counts stations", "one remote station in one WSPR cycle",
+                "Joint units divided by all retained units", "daily average",
+                "each distinct station one rate vote", "observed Target activity",
+                "decoded a qualifying signal in RX", "decoded somewhere in TX",
+                "no equivalent gate", "not symmetric wins or losses",
+                "Joint Spots already contain both sides", "pairability, not Target success",
+            ),
+            "selected_compare_joint": (
+                "one selected {peer_type} path", "Every Joint Spot has equal weight",
+                "Target-offline cycles are excluded", "without an equivalent Reference activity gate",
+                "Swapping roles can change coverage", "paired differences reverse sign",
+                "Joint Spots already contain both sides",
+            ),
+        },
+        "de": {
+            "temporal_evidence_joint": (
+                "Median aller qualifizierenden Joint Spots", "relative Beobachtungsdichte",
+                "nichtlinearen dB-Achse", "mindestens zwei Tagen",
+                "Zeit von links nach rechts und ΔSNR senkrecht",
+                "Blaue Felder enthalten eine geringere Dichte", "orange und rote eine höhere",
+            ),
+            "temporal_evidence_coverage_joint": (
+                "jede Station eine Stimme", "blaue Linie", "bernsteinfarbene Linie",
+                "Gesamthöhe zählt daher Stationen", "jeweils eine Gegenstation in einem WSPR-Zyklus",
+                "Joint-Einheiten geteilt durch alle beibehaltenen Einheiten",
+                "durchschnittliche tägliche Beteiligung", "einer Ratenstimme",
+                "beobachteter Target-Aktivität", "qualifizierendes Signal decodiert",
+                "irgendwo decodiert", "kein entsprechendes Gate",
+                "keine symmetrischen Siege oder Niederlagen",
+                "Joint Spots enthalten bereits beide Seiten", "Paarbarkeit, nicht den Target-Erfolg",
+            ),
+            "selected_compare_joint": (
+                "einem ausgewählten {peer_type}-Funkweg", "Jeder Joint Spot hat hier dasselbe Gewicht",
+                "Zyklen ohne Target-Aktivität werden ausgeschlossen",
+                "ohne entsprechende Aktivitätsbedingung für die Referenz",
+                "Ein Rollentausch kann die Abdeckung verändern",
+                "gepaarte Differenzen wechseln das Vorzeichen",
+                "Joint Spots enthalten bereits beide Seiten",
+            ),
+        },
+    }
+    for language, items in phrases.items():
+        for key, expected in items.items():
+            combined = _plain_guidance(" ".join(RESULT_GUIDANCE[language]["sections"][key].values()))
+            for phrase in expected:
+                assert phrase in combined, (language, key, phrase)
 
 
 
 
 def test_directional_success_temporal_guidance_stays_near_readability_target():
-    """Allow modest overruns of the approximate 2,000-character target."""
+    """Bound readable prose without charging HTML and Markdown styling as text."""
     for language in ("en", "de"):
         for direction in ("rx", "tx"):
             item = RESULT_GUIDANCE[language]["sections"][
                 f"success_temporal_evidence_{direction}"
             ]
-            assert len(item["read"]) + len(item["limits"]) <= 2700
+            assert len(_plain_guidance(" ".join(item.values()))) <= 2700
 
 
-@pytest.mark.parametrize(
-    ("language", "section_key", "population_phrases"),
-    (
-        (
-            "en",
-            "temporal_evidence_joint",
-            ("same bin population", "Joint Spots"),
-        ),
-        (
-            "en",
-            "selected_compare_joint",
-            ("same bin population", "Joint Spots"),
-        ),
-        (
-            "en",
-            "success_temporal_evidence_rx",
-            (
-                "one station-bin median per station chronologically",
-                "one station-date-hour median per station and date when folded",
-            ),
-        ),
-        (
-            "en",
-            "success_temporal_evidence_tx",
-            (
-                "one station-bin median per station chronologically",
-                "one station-date-hour median per station and date when folded",
-            ),
-        ),
-        (
-            "en",
-            "selected_success_rx",
-            (
-                "raw successful observations chronologically",
-                "date-hour medians when folded",
-            ),
-        ),
-        (
-            "en",
-            "selected_success_tx",
-            (
-                "raw successful observations chronologically",
-                "date-hour medians when folded",
-            ),
-        ),
-        (
-            "de",
-            "temporal_evidence_joint",
-            ("derselben Bin-Population", "Joint Spots"),
-        ),
-        (
-            "de",
-            "selected_compare_joint",
-            ("derselben Bin-Population", "Joint Spots"),
-        ),
-        (
-            "de",
-            "success_temporal_evidence_rx",
-            (
-                "einen Stations-Bin-Median je Station",
-                "einen Stations-Datum-Stunden-Median je Station und Tag",
-            ),
-        ),
-        (
-            "de",
-            "success_temporal_evidence_tx",
-            (
-                "einen Stations-Bin-Median je Station",
-                "einen Stations-Datum-Stunden-Median je Station und Tag",
-            ),
-        ),
-        (
-            "de",
-            "selected_success_rx",
-            (
-                "rohe erfolgreiche Beobachtungen",
-                "Datum-Stunden-Mediane",
-            ),
-        ),
-        (
-            "de",
-            "selected_success_tx",
-            (
-                "rohe erfolgreiche Beobachtungen",
-                "Datum-Stunden-Mediane",
-            ),
-        ),
-    ),
-)
-def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
-    language,
-    section_key,
-    population_phrases,
-):
-    """Keep the IQR-band presentation and Q1–Q3 meaning explicit."""
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("section_key", (
+    "temporal_evidence_joint", "selected_compare_joint",
+    "success_temporal_evidence_rx", "success_temporal_evidence_tx",
+    "selected_success_rx", "selected_success_tx",
+))
+def test_temporal_iqr_guidance_defines_population_support_and_interpretation(language, section_key):
+    """Preserve middle-half spread, minimum support, and the actual population."""
     item = RESULT_GUIDANCE[language]["sections"][section_key]
-    combined = f"{item['read']} {item['limits']}"
-
-    common_phrases = (
-        (
-            "Q1–Q3",
-            "middle 50%",
-            "five",
-            "not uncertainty or a confidence interval",
-        )
-        if language == "en"
-        else (
-            "Q1–Q3",
-            "mittleren 50 %",
-            "fünf",
-            "nicht die Unsicherheit oder ein Konfidenzintervall",
-        )
-    )
-    presentation_phrases = (
-        ("subtle IQR band", "bounded by fine Q1–Q3 lines")
-        if language == "en"
-        else ("dezentes IQR-Band", "begrenzt von feinen Q1–Q3-Linien")
-    )
-    for required_phrase in (
-        *common_phrases,
-        *presentation_phrases,
-        *population_phrases,
-    ):
-        assert required_phrase in combined, (
-            language,
-            section_key,
-            required_phrase,
-        )
-    superseded_phrase = (
-        "Fine pale Q1–Q3 rails"
-        if language == "en"
-        else "Feine helle Q1–Q3-Linien"
-    )
-    assert superseded_phrase not in combined
+    text = _plain_guidance(" ".join(item.values()))
+    for phrase in (("Q1–Q3", "middle 50%", "five", "not a confidence interval")
+                   if language == "en"
+                   else ("Q1–Q3", "mittleren 50 %", "fünf", "kein Konfidenzintervall")):
+        assert phrase in text
+    if section_key.startswith("success_temporal"):
+        role = "receiver" if section_key.endswith("tx") else "station"
+        german_role = "Empfänger" if section_key.endswith("tx") else "Station"
+        expected = ((f"one median per {role} in each chronological bin",
+                     f"one median per {role}, date, and hour")
+                    if language == "en" else
+                    (f"einen Median je {german_role} in jedem chronologischen Bin",
+                     f"einen Median je {german_role}, Datum und Stunde"))
+    elif section_key.startswith("selected_success"):
+        expected = (("chronologically", "date-hour medians")
+                    if language == "en" else ("im Zeitverlauf", "Datum-Stunden-Mediane"))
+    else:
+        expected = ("Joint Spots",)
+    for phrase in expected:
+        assert phrase in text
 
 
 @pytest.mark.parametrize(
@@ -595,7 +480,7 @@ def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
             "Heard by others only",
             "Selected Station SNR Evidence",
             "Selected Station Temporal Evidence",
-            "replaces the current station",
+            "replaces it",
         ),
         (
             "en",
@@ -605,7 +490,7 @@ def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
             "Other signals heard only",
             "Selected Station SNR Evidence",
             "Selected Station Temporal Evidence",
-            "replaces the current receiver",
+            "replaces it",
         ),
         (
             "de",
@@ -615,7 +500,7 @@ def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
             "Nur von anderen gehört",
             "SNR-Evidenz der ausgewählten Station",
             "Zeitliche Evidenz der ausgewählten Station",
-            "ersetzt die bisherige Station",
+            "ersetzt ihn",
         ),
         (
             "de",
@@ -625,7 +510,7 @@ def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
             "Nur andere Signale gehört",
             "SNR-Evidenz der ausgewählten Station",
             "Zeitliche Evidenz der ausgewählten Station",
-            "ersetzt den bisher ausgewählten Empfänger",
+            "ersetzt ihn",
         ),
     ),
 )
@@ -697,8 +582,8 @@ def test_compare_selected_guidance_routes_single_and_combined_station_copy():
         selected_station_count=1,
     )
 
-    assert "one chosen TX station" in guidance
-    assert "one specific radio path" in guidance
+    assert "one selected TX path" in guidance
+    assert "one selected TX path" in guidance
     assert "chosen TX stations" not in guidance
     assert not _format_fields(guidance)
 
@@ -727,129 +612,60 @@ def test_compare_selected_guidance_routes_single_and_combined_station_copy():
         selected_station_count=2,
         allows_multiple_station_selection=True,
     )
-    assert "chosen TX radio paths" in combined_guidance
+    assert "selected TX paths" in combined_guidance
     assert (
-        "combined view is observation-weighted"
+        "path with more paired observations has more influence"
         in _plain_guidance(combined_guidance)
     )
-    assert "one specific radio path" not in combined_guidance
+    assert "one selected TX path" not in combined_guidance
     assert not _format_fields(combined_guidance)
 
 
-@pytest.mark.parametrize(('single_phrase', 'multi_phrase'), [('Select one row to inspect one path', 'Select one or more rows')])
-def test_compare_station_insights_guidance_gates_multi_selection_copy(
-
-    single_phrase,
-    multi_phrase,
-):
-    """Preserve singleton guidance off and expose multi-row guidance only on."""
-    analysis_context = AnalysisContext(
-        comparison_mode=(
-            COMPARISON_REFERENCE_STATION
-        )
-    )
-    analysis_id = "RX_COMP"
-    single_guidance = _build_guidance(
-        RESULT_GUIDANCE_STATION_INSIGHTS,
-        analysis_id=analysis_id,
-
-        analysis_context=analysis_context,
-    )
-    multi_guidance = _build_guidance(
-        RESULT_GUIDANCE_STATION_INSIGHTS,
-        analysis_id=analysis_id,
-
-        analysis_context=analysis_context,
-        allows_multiple_station_selection=True,
-    )
-
-    assert single_phrase in single_guidance
-    assert multi_phrase not in single_guidance
-    assert multi_phrase in multi_guidance
+def test_compare_station_insights_guidance_gates_multi_selection_copy():
+    """Route single-row and combined-path instructions only by selection capability."""
+    context = AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION)
+    single = _build_guidance(RESULT_GUIDANCE_STATION_INSIGHTS, analysis_context=context)
+    multi = _build_guidance(RESULT_GUIDANCE_STATION_INSIGHTS, analysis_context=context,
+                            allows_multiple_station_selection=True)
+    assert "select one row to examine that path" in single
+    assert "several paths" not in single
+    assert "several paths to inspect their combined evidence" in multi
+    assert "does not give each path equal weight" in multi
 
 
 def test_outlier_report_guidance_uses_shared_gates_and_descriptive_classes():
-    """Keep detailed detector guidance and concise report help bilingual."""
-    expected_fragments = {
-        "en": (
-            "every group must pass the same configured minimum absolute median departure",
-            "minimum absolute robust z-score",
-            "maximum pre/post baseline difference",
-            "These names describe the grouped evidence span only",
-            "The Joint-only table shows exact UTC, path, direction, local baseline, ΔSNR and residual.",
-            "**Expected local ΔSNR**",
-            "**Observed median ΔSNR**",
-            "**Largest single-cycle departure**",
-        ),
-        "de": (
-            "jede Gruppe muss dieselbe konfigurierte minimale absolute Medianabweichung",
-            "minimalen absoluten robusten z-Wert",
-            "maximalen Baseline-Unterschied davor/danach",
-            "Diese Bezeichnungen beschreiben nur die Zeitspanne der gruppierten Evidenz",
-            "Die Joint-only-Tabelle zeigt genaue UTC-Zeit, Funkweg, Richtung, lokale Baseline, ΔSNR und Residuum.",
-            "**Erwartetes lokales ΔSNR**",
-            "**Beobachteter ΔSNR-Median**",
-            "**Größte Einzelzyklusabweichung**",
-        ),
+    """Preserve detector qualification, report meanings, and noncausal interpretation."""
+    contracts = {
+        "en": ("excluding the candidate itself", "observed ΔSNR minus that baseline",
+               "All use the same configured requirements", "median departure", "robust z-score",
+               "stability between the before/after baselines", "both point-level departure requirements",
+               "weaker observations may remain", "does not classify them as normal",
+               "not established physical events", "Target, Reference, or both changed"),
+        "de": ("der Kandidat selbst bleibt dabei ausgeschlossen", "abzüglich dieser Baseline",
+               "Für alle gelten dieselben konfigurierten Anforderungen", "Medianabweichung",
+               "robusten z-Wert", "Stabilität der Baselines davor und danach",
+               "beide Abweichungsanforderungen auf Einzelpunktebene",
+               "schwächere Beobachtungen", "nicht als normal eingestuft",
+               "keine nachgewiesenen physischen Ereignisse", "Target, Referenz oder beide"),
     }
-    retired_claims = {
-        "en": (
-            "Qualification scales with duration",
-            "Typical departure from baseline",
-            "Target SNR and corrected Reference SNR",
-        ),
-        "de": (
-            "Die Qualifikation skaliert mit der Dauer",
-            "Typische Abweichung von der Baseline",
-            "Target-SNR und korrigiertes Referenz-SNR",
-        ),
-    }
-    expected_tooltip_fragments = {
-        "en": (
-            "Flag unusual ΔSNR departures for closer inspection",
-            "supporting observations before and after each candidate",
-            "This adds a report; it does not remove evidence or identify a cause.",
-        ),
-        "de": (
-            "Markiere ungewöhnliche ΔSNR-Abweichungen zur genaueren Prüfung",
-            "unterstützender Beobachtungen vor und nach jedem Kandidaten",
-            "Dies ergänzt einen Bericht; es entfernt keine Evidenz und bestimmt keine Ursache.",
-        ),
-    }
-
-    for language in ("en", "de"):
-        expected_item = RESULT_GUIDANCE[language]["sections"][
-            "outlier_report"
-        ]
-        complete_copy = f"{expected_item['read']} {expected_item['limits']}"
+    for language, phrases in contracts.items():
+        item = RESULT_GUIDANCE[language]["sections"]["outlier_report"]
+        text = _plain_guidance(" ".join(item.values()))
+        for phrase in phrases:
+            assert phrase in text, (language, phrase)
+        for title in (
+            ("Expected local ΔSNR", "Observed median ΔSNR", "Largest single-cycle departure")
+            if language == "en" else
+            ("Erwartetes lokales ΔSNR", "Beobachteter ΔSNR-Median", "Größte Einzelzyklusabweichung")
+        ):
+            assert title in text
         tooltip = T[language]["tt_report_delta_snr_outlier_candidates"]
-        for fragment in expected_fragments[language]:
-            assert fragment in expected_item["read"]
-        for retired_claim in retired_claims[language]:
-            assert retired_claim not in complete_copy
-        for fragment in expected_tooltip_fragments[language]:
-            assert fragment in tooltip
-        guidance = _build_guidance(
-            RESULT_GUIDANCE_OUTLIER_REPORT,
-            language=language,
-            analysis_id="RX_COMP",
-            analysis_context=AnalysisContext(
-                comparison_mode=COMPARISON_REFERENCE_STATION
-            ),
-        )
-        assert expected_item["read"] in guidance
-        assert expected_item["limits"] in guidance
-
-    with pytest.raises(
-        ValueError,
-        match="unavailable for Performance",
-    ):
-        _build_guidance(
-            RESULT_GUIDANCE_OUTLIER_REPORT,
-            analysis_id="RX_ABS",
-            is_compare=False,
-            analysis_context=AnalysisContext(),
-        )
+        assert ("does not remove evidence" if language == "en"
+                else "es entfernt keine Evidenz") in tooltip
+        guidance = _build_guidance(RESULT_GUIDANCE_OUTLIER_REPORT, language=language,
+            analysis_context=AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION))
+        assert item["read"] in guidance and item["limits"] in guidance
+        assert ("robust-z guides" if language == "en" else "Symmetrische Hilfslinien") not in text
 
 
 def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guides():
@@ -954,62 +770,68 @@ def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guid
         ):
             assert superseded_key not in T[language]
 
-    english_sections = RESULT_GUIDANCE["en"]["sections"]
-    for section_key in ("drilldown_compare_joint",):
-        read = english_sections[section_key]["read"]
-        assert "exact centered interval" in read
-        assert "`Filter table` then changes only the displayed rows" in read
-        assert "no temporal median, IQR, density layer, full-run median" in read
-        assert "Segment and full-window Selected Station Evidence remain aggregated density views" in read
-    assert "one actual ΔSNR point for every retained Joint Spot" in english_sections[
-        "drilldown_compare_joint"
-    ]["read"]
-    for section_key in ("drilldown_success_rx", "drilldown_success_tx"):
-        read = english_sections[section_key]["read"]
-        assert "each successful confirmed opportunity" in read
-        assert "unsuccessful opportunities have no SNR point" in read
-
-    english_outlier = english_sections["outlier_report"]
-    assert "preloads its `Outlier Focus`" in english_outlier["read"]
-    assert "robust-z guides at 1, 2, 3 and the configured qualifying threshold" in english_outlier["read"]
-    assert "the individually qualifying native unit with the greatest absolute residual in each review event" in english_outlier["read"]
-    assert "never selects an unsupported or nonqualifying episode peak" in english_outlier["read"]
-    assert "separate from **Largest single-cycle departure**, which remains the true greatest-absolute retained residual" in english_outlier["read"]
-    assert "the strongest residual in each review event" not in english_outlier["read"]
-    assert "same star marks every native unit in that window that belongs to a reported candidate and individually meets both configured departure and robust-z gates" in english_outlier["read"]
-    assert "muted band labelled **Focused episode** identifies the selected reported episode" in english_outlier["read"]
-    assert "Other starred candidate units may have been evaluated against different local baselines and robust spreads" in english_outlier["read"]
-    assert "detector guides, not confidence intervals" in english_outlier["limits"]
-    assert "crossing one guide alone is insufficient" in english_outlier["limits"]
-    assert "padded by half one native-unit width at each end" in english_outlier["limits"]
-    assert "neither a confidence interval nor a measurement of physical-event duration" in english_outlier["limits"]
-
-    german_sections = RESULT_GUIDANCE["de"]["sections"]
-    for section_key in ("drilldown_compare_joint",):
-        read = german_sections[section_key]["read"]
-        assert "exaktes zentriertes Intervall" in read
-        assert "`Tabelle filtern` verändert anschließend nur die angezeigten Zeilen" in read
-        assert "Zeitmedian, IQR, Dichteschicht, Median des vollständigen Laufs" in read
-        assert "aggregierte Dichteansichten" in read
-    for section_key in ("drilldown_success_rx", "drilldown_success_tx"):
-        read = german_sections[section_key]["read"]
-        assert "jeder erfolgreichen bestätigten Gelegenheit" in read
-        assert "erfolglose Gelegenheiten besitzen keinen SNR-Punkt" in read
-
-    german_outlier = german_sections["outlier_report"]
-    assert "lädt dessen `Ausreißerfokus`" in german_outlier["read"]
-    assert "robuste-z-Hilfslinien bei 1, 2, 3" in german_outlier["read"]
-    assert "die einzeln qualifizierende native Einheit mit dem betragsmäßig größten Residuum" in german_outlier["read"]
-    assert "ungestützte oder nicht qualifizierende Episodenspitze" in german_outlier["read"]
-    assert "von der Berichtsgröße **Größte Einzelzyklusabweichung** getrennt" in german_outlier["read"]
-    assert "das stärkste Residuum jedes Prüfereignisses" not in german_outlier["read"]
-    assert "dasselbe Sternsymbol jede native Einheit in diesem Fenster, die zu einem gemeldeten Kandidaten gehört" in german_outlier["read"]
-    assert "mit **Fokussierte Episode** beschriftetes Band kennzeichnet die ausgewählte berichtete Episode" in german_outlier["read"]
-    assert "Andere markierte Kandidateneinheiten können gegen andere lokale Baselines und robuste Streuungen bewertet worden sein" in german_outlier["read"]
-    assert "Detektorhilfen und keine Konfidenzintervalle" in german_outlier["limits"]
-    assert "Überschreiten einer einzelnen Linie reicht nicht aus" in german_outlier["limits"]
-    assert "an beiden Enden um eine halbe Breite der nativen Evidenzeinheit erweitert" in german_outlier["limits"]
-    assert "weder ein Konfidenzintervall noch eine Messung der Dauer eines physischen Ereignisses" in german_outlier["limits"]
+    contracts = {
+        "en": {
+            "drilldown_compare_joint": (
+                "centered interval", "one actual value per retained Joint Spot",
+                "cycle time", "without time-bin medians", "density coloring",
+                "an IQR band", "a full-run median", "UTC-hour folding",
+                "retain their aggregated views", "narrows only the displayed rows",
+            ),
+            "drilldown_success_rx": (
+                "each successful opportunity", "normalized Target SNR",
+                "missed opportunities have no SNR point", "without temporal medians",
+                "changes only displayed rows",
+            ),
+            "drilldown_success_tx": (
+                "each successful opportunity", "normalized Target SNR",
+                "missed opportunities have no SNR point", "without temporal medians",
+                "changes only displayed rows",
+            ),
+            "outlier_focus": (
+                "actual cycle times", "Focused episode", "Expected local ΔSNR",
+                "guides at 1, 2, 3", "configured threshold", "difference in dB",
+                "individually pass both departure requirements",
+                "different baseline and scatter", "strongest individually qualifying observation",
+                "Largest single-cycle departure", "not confidence intervals",
+                "Crossing one line alone", "display padding", "clipped to the selected window",
+                "does not measure a physical event",
+            ),
+        },
+        "de": {
+            "drilldown_compare_joint": (
+                "zentriertes Intervall", "einen tatsächlichen Wert je berücksichtigtem Joint Spot",
+                "Zykluszeit", "ohne Zeit-Bin-Mediane", "Dichtefärbung", "IQR-Band",
+                "Median des vollständigen Laufs", "UTC-Stunde",
+                "aggregierte Darstellung", "nur die angezeigten Zeilen",
+            ),
+            "drilldown_success_rx": (
+                "jeder erfolgreichen Gelegenheit", "normierte Target-SNR",
+                "verpasste Gelegenheiten haben keinen SNR-Punkt", "Einzelwerte ohne Zeitmediane",
+                "verändert nur angezeigte Zeilen",
+            ),
+            "drilldown_success_tx": (
+                "jeder erfolgreichen Gelegenheit", "normierte Target-SNR",
+                "verpasste Gelegenheiten haben keinen SNR-Punkt", "Einzelwerte ohne Zeitmediane",
+                "verändert nur angezeigte Zeilen",
+            ),
+            "outlier_focus": (
+                "tatsächlichen Zykluszeiten", "Fokussierte Episode", "Erwartetes lokales ΔSNR",
+                "bei 1, 2, 3", "konfigurierten Schwelle", "Unterschied in dB",
+                "einzeln beide Abweichungsanforderungen", "anderen Baseline und Streuung",
+                "stärkste einzeln qualifizierende Beobachtung", "Einzelzyklusabweichung",
+                "keine Konfidenzintervalle", "Überschreiten einer einzelnen Linie",
+                "Anzeigerand", "auf das ausgewählte Fenster begrenzt",
+                "nicht die Dauer eines physischen Ereignisses",
+            ),
+        },
+    }
+    for language, items in contracts.items():
+        for key, phrases in items.items():
+            item = RESULT_GUIDANCE[language]["sections"][key]
+            text = _plain_guidance(" ".join(item.values()))
+            for phrase in phrases:
+                assert phrase in text, (language, key, phrase)
 
 
 def test_success_selected_guidance_stays_near_readability_target():
@@ -1022,233 +844,106 @@ def test_success_selected_guidance_stays_near_readability_target():
             assert len(item["read"]) + len(item["limits"]) <= 2700
 
 
-@pytest.mark.parametrize(
-    ("language", "direction", "directional_terms"),
-    (
-        (
-            "en",
-            "rx",
-            (
-                "qualifying TX station",
-                "Heard by Target",
-                "Heard by others only",
-                "one station contributing on one date at that hour",
-            ),
-        ),
-        (
-            "en",
-            "tx",
-            (
-                "qualifying RX station",
-                "Target heard",
-                "Other signals heard only",
-                "one receiver contributing on one date at that hour",
-            ),
-        ),
-        (
-            "de",
-            "rx",
-            (
-                "qualifizierende TX-Station",
-                "Vom Target gehört",
-                "Nur von anderen gehört",
-                "Eine Stationspräsenz bedeutet, dass eine Station",
-            ),
-        ),
-        (
-            "de",
-            "tx",
-            (
-                "qualifizierende RX-Station",
-                "Target gehört",
-                "Nur andere Signale gehört",
-                "Eine Stationspräsenz bedeutet, dass ein Empfänger",
-            ),
-        ),
-    ),
-)
-def test_success_temporal_guidance_explains_two_figures_rates_and_folded_averages(
-    language,
-    direction,
-    directional_terms,
-):
-    """Pin the two-figure, two-weighting, and folded-average interpretation."""
-    item = RESULT_GUIDANCE[language]["sections"][
-        f"success_temporal_evidence_{direction}"
-    ]
-    combined = f"{item['read']} {item['limits']}"
-
-    for expected_term in directional_terms:
-        assert expected_term in combined
-    if language == "en":
-        for expected_term in (
-            "Temporal Evidence",
-            "station-level support and confirmed-opportunity volume",
-            "split vote",
-            "total height is contributing",
-            "<strong class=\"defined-term\">station presences</strong> per represented UTC date",
-            "every distinct",
-            "one rate vote across all folded dates",
-            "recurring dates increase support but not",
-            "counts every confirmed opportunity once chronologically",
-            "average counts per represented date after UTC-hour folding",
-            "Opportunity-level Decode Rate",
-            "With `1h` selected, each folded total is the average",
-            "intentionally different weighting",
-            "bar measures average daily participation",
-            "line weights each distinct",
-        ):
-            assert expected_term in combined
-        assert "station-date split votes" not in combined
-    else:
-        for expected_term in (
-            "Zeitliche Evidenz",
-            "Unterstützung auf Stationsebene",
-            "aufgeteilte Stimme",
-            "gesamte Balkenhöhe zeigt die beitragenden",
-            "<strong class=\"defined-term\">Stationspräsenzen</strong> je berücksichtigtem UTC-Tag",
-            "genau eine Ratenstimme",
-            "Wiederholte Tage erhöhen daher die Evidenzunterstützung",
-            "zählt chronologisch jede bestätigte Gelegenheit einmal",
-            "Durchschnittswerte je berücksichtigtem Tag",
-            "Dekodierrate auf Gelegenheitsebene",
-            "Bei `1h` entspricht jede gefaltete Gesamthöhe dem Mittelwert",
-            "bewusst unterschiedliche Gewichtungen",
-            "durchschnittliche tägliche Beteiligung",
-            "Linie gewichtet jede",
-        ):
-            assert expected_term in combined
-        assert "Stations-Datum-Stunden-Stimmen" not in combined
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("rx", "tx"))
+def test_success_temporal_guidance_explains_two_figures_rates_and_folded_averages(language, direction):
+    """Preserve station-balanced versus opportunity-weighted rates and folded support."""
+    item = RESULT_GUIDANCE[language]["sections"][f"success_temporal_evidence_{direction}"]
+    text = _plain_guidance(" ".join(item.values()))
+    for key in (f"map_success_{direction}_opportunity_target",
+                f"map_success_{direction}_opportunity_counter"):
+        assert T[language][key] in text
+    role = "receiver" if direction == "tx" else "station"
+    german_presences = "Empfängerpräsenzen" if direction == "tx" else "Stationspräsenzen"
+    german_vote = (
+        "jedem unterschiedlichen Empfänger weiterhin eine Stimme über alle Tage"
+        if direction == "tx"
+        else "jeder unterschiedlichen Station weiterhin eine Stimme über alle Tage"
+    )
+    phrases = (
+        ("three successful observations", "station row", "opportunity row",
+         "counts every confirmed opportunity", f"daily average {role} presences",
+         f"each distinct {role} one vote across dates", "`1h`",
+         "corresponding chronological hourly totals", "at least two represented dates")
+        if language == "en" else
+        ("drei erfolgreiche Beobachtungen", "Stationszeile", "Gelegenheitszeile",
+         "zählt jede bestätigte Gelegenheit", f"durchschnittliche tägliche {german_presences}",
+         german_vote,
+         "`1h`", "chronologischen Stundensummen", "mindestens zwei berücksichtigte Tage")
+    )
+    for phrase in phrases:
+        assert phrase in text, (language, direction, phrase)
 
 
 @pytest.mark.parametrize("section_key", ("map_compare_rx", "map_compare_tx"))
 def test_compare_map_guidance_explains_dynamic_symmetric_db_scale(section_key):
-    """Explain cross-map color comparison without retaining S-unit guidance."""
-    english_limits = RESULT_GUIDANCE["en"]["sections"][section_key]["limits"]
-    german_limits = RESULT_GUIDANCE["de"]["sections"][section_key]["limits"]
-
-    assert "stepped dB color scale is symmetric around 0 dB" in english_limits
-    assert "can expand between runs" in english_limits
-    assert "whole-dB step from the largest visible absolute sector value" in english_limits
-    assert "at most 13 color classes" in english_limits
-    assert "outer labelled ticks are the smallest symmetric multiples" in english_limits
-    assert "color-bin boundaries extend another half-step" in english_limits
-    assert "light yellow-green display-neutral band" in english_limits
-    assert "without claiming sub-dB measurement resolution" in english_limits
-    assert "Only 0 dB means equality" in english_limits
-    assert "numerical color-bar values" in english_limits
-    assert "abgestufte dB-Farbskala ist symmetrisch um 0 dB" in german_limits
-    assert "kann sich zwischen Läufen erweitern" in german_limits
-    assert "ganzzahlige dB-Schrittweite für höchstens 13 Farbklassen" in german_limits
-    assert "äußersten beschrifteten Skalenwerte" in german_limits
-    assert "kleinsten symmetrischen Vielfachen" in german_limits
-    assert "Grenzen der Farbintervalle reichen einen weiteren halben Schritt" in german_limits
-    assert "helle gelbgrüne darstellungsneutrale Band" in german_limits
-    assert "ohne eine Messauflösung unterhalb von 1 dB zu beanspruchen" in german_limits
-    assert "Nur 0 dB bedeutet Gleichheit" in german_limits
-    assert "numerischen Werte der Farbskala" in german_limits
-    assert "without fixed headroom" not in english_limits
-    assert "ohne feste Reserve" not in german_limits
-    assert "S-unit" not in english_limits
-    assert "S-Stufe" not in german_limits
+    """Explain comparable dB values without exposing the color-bin implementation."""
+    contracts = {
+        "en": ("symmetric dB scale", "at least −6 to +6 dB", "can expand between runs",
+               "color-bar numbers rather than colors alone", "display interval",
+               "only 0 dB means equality", "no qualifying summary"),
+        "de": ("symmetrische dB-Skala", "mindestens von −6 bis +6 dB",
+               "kann sich zwischen Läufen erweitern", "Zahlen der Farbskala",
+               "Darstellungsintervall", "nur 0 dB bedeutet Gleichheit",
+               "keine qualifizierende Zusammenfassung"),
+    }
+    for language, phrases in contracts.items():
+        text = RESULT_GUIDANCE[language]["sections"][section_key]["limits"]
+        for phrase in phrases:
+            assert phrase in text
+        assert "13" not in text
+        assert "S-unit" not in text
+        assert "S-Stufe" not in text
 
 
 def test_success_map_guidance_uses_status_markers_and_two_level_support():
-    """Pin direction-specific marker outcomes and the two support levels."""
-    expected_terms = {
-        "en": {
-            "rx": ("RX Decode Rate", "Heard by Target", "Heard by others only"),
-            "tx": (
-                "TX Decode Rate",
-                "Target was heard",
-                "Other signals were heard only",
-            ),
-        },
-        "de": {
-            "rx": ("RX-Dekodierrate", "Vom Target gehört", "Nur von anderen gehört"),
-            "tx": (
-                "TX-Dekodierrate",
-                "Target gehört",
-                "Nur andere Signale gehört",
-            ),
-        },
-    }
-    for language, directions in expected_terms.items():
-        for direction, terms in directions.items():
-            item = RESULT_GUIDANCE[language]["sections"][
-                f"map_success_{direction}"
-            ]
-            combined = f"{item['read']} {item['limits']}"
-            assert all(term in combined for term in terms)
-            assert "light-grey" in combined if language == "en" else "Hellgraue" in combined
-            assert (
-                ("STATIONS" in combined and "OPPORTUNITIES" in combined)
-                if language == "en"
-                else ("STATIONEN" in combined and "GELEGENHEITEN" in combined)
-            )
+    """Keep actual marker labels separate from the arithmetic mean sector rate."""
+    for language in ("en", "de"):
+        for direction in ("rx", "tx"):
+            text = _plain_guidance(" ".join(
+                RESULT_GUIDANCE[language]["sections"][f"map_success_{direction}"].values()
+            ))
+            for key in (
+                f"map_success_{direction}_station_target",
+                f"map_success_{direction}_station_counter",
+                "map_success_footer_stations", "map_success_footer_opportunities",
+            ):
+                assert T[language][key] in text
+            expected = (("arithmetic mean", "equal weight", "at least once",
+                         "does not mean every opportunity succeeded", "light-gray",
+                         "lack enough stations for shading")
+                        if language == "en" else
+                        ("arithmetische Mittel", "dasselbe Gewicht", "mindestens einmal",
+                         "nicht, dass jede Gelegenheit erfolgreich war", "hellgrauer",
+                         "für eine Einfärbung nicht ausreicht"))
+            for phrase in expected:
+                assert phrase in text
 
 
 def test_success_segment_distance_and_temporal_guidance_matches_editorial_contract():
-    """Pin the requested bilingual point-of-use interpretation guidance."""
-    directional_expectations = {
-        "en": {
-            "rx": (
-                "Heard by Target",
-                "TX Stations Heard by Target at Least Once by Distance",
-                "Successful RX SNR Deviation",
-            ),
-            "tx": (
-                "Target was heard",
-                "RX Stations Hearing the Target at Least Once by Distance",
-                "Successful TX SNR Deviation",
-            ),
-        },
-        "de": {
-            "rx": (
-                "Vom Target gehört",
-                "Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung",
-                "Abweichung des erfolgreichen RX-SNR",
-            ),
-            "tx": (
-                "Target gehört",
-                "RX-Stationen, die das Target mindestens einmal hörten, nach Entfernung",
-                "Abweichung des erfolgreichen TX-SNR",
-            ),
-        },
-    }
-    distance_legend_labels = {
-        "en": (
-            "`Median`",
-            "`Min-Max (2 stations)`",
-            "`IQR (3+ stations)`",
-        ),
-        "de": (
-            "`Median`",
-            "`Min-Max (2 Stationen)`",
-            "`IQR (3+ Stationen)`",
-        ),
-    }
-    for language, directions in directional_expectations.items():
-        for direction, expected_phrases in directions.items():
+    """Preserve visible figure names, distance spread, and unequal evidence weights."""
+    for language in ("en", "de"):
+        for direction in ("rx", "tx"):
             sections = RESULT_GUIDANCE[language]["sections"]
-            combined = " ".join(
-                sections[f"{prefix}_{direction}"]["read"]
-                for prefix in (
-                    "segment_success",
-                    "success_evidence",
-                    "success_temporal_evidence",
-                )
-            )
-            assert all(phrase in combined for phrase in expected_phrases)
-            assert all(
-                label in combined
-                for label in distance_legend_labels[language]
-            )
-            assert (
-                "Compare the two Decode Rates directly" in combined
-                if language == "en"
-                else "Vergleiche beide Dekodierraten direkt" in combined
-            )
+            distance = _plain_guidance(" ".join(sections[f"success_evidence_{direction}"].values()))
+            segment = _plain_guidance(" ".join(sections[f"segment_success_{direction}"].values()))
+            for key in (
+                f"fig_success_reach_title_{direction}", f"fig_success_consistency_title_{direction}",
+                f"fig_success_snr_distance_title_{direction}",
+            ):
+                assert T[language][key] in distance
+            role = "receivers" if direction == "tx" else "stations"
+            german_role = "Empfängern" if direction == "tx" else "Stationen"
+            for phrase in ((f"two contributing {role}", "Min-Max", "three or more",
+                            "middle 50%", "30 dBm (1 W)")
+                           if language == "en" else
+                           (f"zwei beitragenden {german_role}", "Min-Max", "drei oder mehr",
+                            "mittleren 50 %", "30 dBm (1 W)")):
+                assert phrase in distance
+            assert ("equal weight" if language == "en" else "gleichem Gewicht") in segment
+            assert ("all confirmed opportunities" if language == "en"
+                    else "alle bestätigten Gelegenheiten") in segment
+            assert ("do not prove" if language == "en" else "belegen nicht") in segment
 
 
 def test_success_map_presentation_labels_are_bilingual_and_status_only():
@@ -1322,8 +1017,8 @@ def test_success_map_presentation_labels_are_bilingual_and_status_only():
         (
             "en",
             "TX_ABS",
-            "Target was heard",
-            "Other signals were heard only",
+            "Target heard",
+            "Other signals heard only",
             "tx",
         ),
         ("de", "RX_ABS", "Vom Target gehört", "Nur von anderen gehört", "rx"),
@@ -1370,37 +1065,18 @@ def test_success_guidance_uses_mode_specific_station_status_labels(
 
 
 def test_result_guidance_uses_practical_station_language():
-    """Keep operator-facing copy concrete while preserving the row definition."""
+    """Use archive identities without claiming one unique physical station."""
     for language in ("en", "de"):
-        complete_catalog = " ".join(
-            text
-            for section in RESULT_GUIDANCE[language]["sections"].values()
-            for text in section.values()
-        ).lower()
-        assert "estimator" not in complete_catalog
-        assert "schätzer" not in complete_catalog
-
-    expected_identity_copy = {
-        "station_insights_compare_joint": (
-            "`callsign + locator`",
-            "`Rufzeichen + Locator`",
-        ),
-        "station_insights_success_rx": (
-            "callsign plus locator",
-            "Rufzeichen und Locator",
-        ),
-        "station_insights_success_tx": (
-            "callsign plus locator",
-            "Rufzeichen und Locator",
-        ),
-    }
-    for section_key, (english_identity, german_identity) in (
-        expected_identity_copy.items()
-    ):
-        english = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
-        german = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
-        assert english_identity in english.replace("-", " ")
-        assert german_identity in german
+        complete = " ".join(text for item in RESULT_GUIDANCE[language]["sections"].values()
+                            for text in item.values()).lower()
+        assert "estimator" not in complete
+        assert "schätzer" not in complete
+        for key in ("station_insights_compare_joint", "station_insights_success_rx",
+                    "station_insights_success_tx"):
+            text = _plain_guidance(" ".join(RESULT_GUIDANCE[language]["sections"][key].values()))
+            assert ("callsign and locator" if language == "en"
+                    else "Rufzeichen und Locator") in text
+            assert ("physical" if language == "en" else "physisch") in text
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -1445,32 +1121,32 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
         (
             COMPARISON_REFERENCE_STATION,
             LOCAL_BENCHMARK_MEDIAN,
-            "A controlled local setup can compare antennas, feedlines, radios or complete chains",
+            "A controlled comparison can investigate antennas, feedlines, radios, or complete setups",
             "independently configured",
         ),
         (
             COMPARISON_REFERENCE_STATION,
             LOCAL_BENCHMARK_MEDIAN,
-            "selected by its exact callsign and grid-4 resolved from the selected archive period",
+            "selected Reference callsign within the four-character locator resolved from the archive period",
             "independently configured",
         ),
         (
             COMPARISON_LOCAL_NEIGHBORHOOD,
             LOCAL_BENCHMARK_MEDIAN,
-            "qualifying nearby station observations within 175 km",
+            "qualifying observations from stations within 175 km",
             "strongest qualifying local station",
         ),
     ),
 )
-def test_compare_context_resolves_the_active_benchmark(
+def test_compare_drilldown_resolves_the_active_benchmark(
     comparison_mode,
     local_benchmark,
     expected_text,
     unexpected_text,
 ):
-    """Append only the interpretation limits of the configured benchmark."""
+    """Preserve detailed reference construction beside its underlying observations."""
     guidance = _build_guidance(
-        RESULT_GUIDANCE_CONTEXT,
+        RESULT_GUIDANCE_DRILLDOWN,
         analysis_context=AnalysisContext(
             comparison_mode=comparison_mode,
             local_benchmark=local_benchmark,
@@ -1478,8 +1154,9 @@ def test_compare_context_resolves_the_active_benchmark(
         ),
     )
 
-    assert expected_text in guidance
-    assert unexpected_text not in guidance
+    plain_guidance = _plain_guidance(guidance)
+    assert expected_text in plain_guidance
+    assert unexpected_text not in plain_guidance
 
 
 def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
@@ -1526,21 +1203,17 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
     joint_compare_plain = _plain_guidance(joint_compare)
     tx_compare_plain = _plain_guidance(tx_compare)
 
-    assert "qualifying TX station" in rx_success
+    assert "qualifying remote transmitter identity" in rx_success
     assert "Heard by Target" in rx_success
     assert "Heard by others only" in rx_success
     assert "Elsewhere" not in rx_success
-    assert "qualifying RX station" in tx_success
-    assert "Target was heard" in tx_success
-    assert "Other signals were heard only" in tx_success
+    assert "qualifying remote receiver identity" in tx_success
+    assert "Target heard" in tx_success
+    assert "Other signals heard only" in tx_success
     assert "Other Signals" not in tx_success
-    assert "confirmed opportunity" in rx_context
-    assert "confirmed opportunity" in tx_context
-    assert "Heard by Target" in rx_context
-    assert "Heard by others only" in rx_context
-    assert "Target heard" in tx_context
-    assert "Other signals heard only" in tx_context
-    assert "A Joint Spot is a consolidated same-cycle unit" in joint_compare_plain
+    assert "confirmed reception opportunities" in rx_context
+    assert "confirmed reception opportunities" in tx_context
+    assert "Joint Spot contains Target and Reference evidence for the same remote transmitter in RX, or the same remote receiver in TX, in one WSPR cycle" in joint_compare_plain
     assert all(
         outcome in joint_compare_plain
         for outcome in (
@@ -1550,15 +1223,54 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
             "Only Reference",
         )
     )
-    assert "hatched Stations" in joint_compare_plain
-    assert "solid Spots" in joint_compare_plain
-    assert "Total and Joint counts for both levels appear" in joint_compare_plain
+    assert "hatched bars (Stations) use the total station count" in joint_compare_plain
+    assert "solid bars (Spots) use the total spot count" in joint_compare_plain
+    assert "Total and Joint counts above the figure" in joint_compare_plain
     assert (
-        "A Joint Spot is a consolidated same-cycle unit"
+        "Joint Spot contains Target and Reference evidence for the same remote transmitter in RX, or the same remote receiver in TX, in one WSPR cycle"
         in tx_compare_plain
     )
-    assert "solid Spots" in tx_compare_plain
+    assert "solid bars (Spots) use the total spot count" in tx_compare_plain
     assert "Scheduled Pair" not in tx_compare_plain
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("RX", "TX"))
+def test_benchmark_distributions_explain_population_weighting_and_delta_axis(language, direction):
+    """Retain separate station/observation populations and the signed dB axis."""
+    guidance = _plain_guidance(_build_guidance(
+        RESULT_GUIDANCE_COMPARISON_EVIDENCE,
+        language=language,
+        analysis_id=f"{direction}_COMP",
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION,
+        ),
+    ))
+    expected = {
+        "en": (
+            "each qualifying station one median paired difference",
+            "percentage of stations in each ΔSNR range",
+            "each Joint Spot one value",
+            "frequently observed stations contribute more",
+            "percentage of Joint Spots in each range",
+            "within their own population",
+            "ΔSNR in dB on the horizontal axis",
+            "positive favors Target", "negative favors Reference", "0 dB means equality",
+        ),
+        "de": (
+            "jeder qualifizierenden Station einen Median ihrer gepaarten Unterschiede",
+            "Prozentanteil der Stationen im jeweiligen ΔSNR-Bereich",
+            "jedem Joint Spot einen Wert",
+            "häufig beobachtete Stationen tragen daher mehr bei",
+            "Prozentanteil der Joint Spots im jeweiligen Bereich",
+            "innerhalb ihrer jeweiligen Population",
+            "ΔSNR in dB an der horizontalen Achse",
+            "Positive Werte sprechen für das Target", "negative für die Referenz",
+            "0 dB bedeutet Gleichheit",
+        ),
+    }[language]
+    for phrase in expected:
+        assert phrase in guidance, (language, direction, phrase)
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -1608,9 +1320,9 @@ def test_success_segment_and_temporal_guidance_route_without_changing_compare(la
         else "Vom Target gehört" in success_segment
     )
     assert (
-        "Compare the two Decode Rates directly" in success_segment
+        "Read both rates" in success_segment
         if language == "en"
-        else "Vergleiche beide Dekodierraten direkt" in success_segment
+        else "Lies beide Raten" in success_segment
     )
     assert "Joint Spots" in compare_segment
     assert (
@@ -1666,6 +1378,43 @@ def test_success_guidance_does_not_interpolate_mutable_ui_labels():
     for unsafe_fragment in ("<script>", "<img ", "<iframe "):
         assert unsafe_fragment not in map_guidance
         assert unsafe_fragment not in temporal_guidance
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("is_compare", (False, True), ids=("performance", "benchmark"))
+def test_context_layout_escapes_supplied_section_headers(language, is_compare):
+    """Render actual supplied headers as text without allowing HTML injection."""
+    heading_keys = (
+        "hdr_results_map_view", "hdr_results_segment_inspector",
+        "hdr_results_comparison_evidence", "hdr_results_success_evidence",
+        "hdr_results_temporal_evidence", "lbl_insights",
+        "hdr_results_selected_station_evidence", "hdr_results_drilldown",
+    )
+    translations = dict(T[language])
+    for key in heading_keys:
+        translations[key] = f'{key}: <img src=x onerror="alert(1)"> & \'text\''
+    guidance = build_result_guidance(
+        RESULT_GUIDANCE_CONTEXT,
+        language=language,
+        translations=translations,
+        analysis_id="RX_COMP" if is_compare else "RX_ABS",
+        is_compare=is_compare,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION if is_compare else COMPARISON_NONE,
+        ),
+    )
+    expected_path = " → ".join(
+        _context_layout_headings(translations, is_compare=is_compare).values()
+    )
+    assert f'<strong class="defined-term">{expected_path}</strong>' in guidance
+    assert "<img " not in guidance
+    assert "&lt;img " in guidance
+    assert "&quot;alert(1)&quot;" in guidance
+    assert "&amp; &#x27;text&#x27;" in guidance
+    inactive_evidence_key = (
+        "hdr_results_success_evidence" if is_compare else "hdr_results_comparison_evidence"
+    )
+    assert inactive_evidence_key not in guidance
 
 
 def test_success_guidance_generation_does_not_mutate_analysis_context():
@@ -1793,10 +1542,10 @@ def test_performance_table_guidance_names_only_active_display_columns(
     assert station_counter in station_guidance
     assert station_counter in drilldown_guidance
     assert snr_header in station_guidance
-    assert retired_counter not in station_guidance
-    assert retired_counter not in drilldown_guidance
+    assert f'<strong class="defined-term">{retired_counter}</strong>' not in station_guidance
+    assert f'<strong class="defined-term">{retired_counter}</strong>' not in drilldown_guidance
     assert retired_snr_header not in station_guidance
-    assert retired_opportunity_label not in station_guidance
+    assert f'<strong class="defined-term">{retired_opportunity_label}</strong>' not in station_guidance
     assert "Outcomes identify" not in drilldown_guidance
     assert "Outcomes unterscheiden" not in drilldown_guidance
 
@@ -1918,12 +1667,11 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
         selected_station_count=1,
     )
 
-    assert "Station Medians (Δ SNR)" in joint_figures
-    assert joint_title in joint_figures
-    assert "Station Medians (Δ SNR)" in tx_figures
-    assert joint_title in tx_figures
-    assert selected_chronological_title in selected_figures
-    assert selected_folded_title in selected_figures
+    for guidance in (joint_figures, tx_figures):
+        for title in (T[language]["fig_station_medians_delta"], joint_title):
+            assert f'<strong class="defined-term">{title}</strong>' in guidance
+    for title in (selected_chronological_title, selected_folded_title):
+        assert f'<strong class="defined-term">{title}</strong>' in selected_figures
     retired_selected_title = (
         "Δ SNR Distribution"
         if language == "en"
@@ -2019,6 +1767,193 @@ def test_local_median_drilldown_appends_dynamic_reference_explanation():
     ] in local_median
 
 
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("RX", "TX"))
+@pytest.mark.parametrize(
+    ("section_id", "catalog_key"),
+    (
+        (RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE, "temporal_evidence_coverage_joint"),
+        (RESULT_GUIDANCE_OUTLIER_FOCUS, "outlier_focus"),
+    ),
+)
+def test_new_benchmark_guidance_routes_and_rejects_performance(
+    language, direction, section_id, catalog_key
+):
+    """Route relocated interpretation to its own Benchmark-only help location."""
+    context = AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION)
+    guidance = _build_guidance(
+        section_id, language=language, analysis_id=f"{direction}_COMP",
+        analysis_context=context,
+    )
+    item = RESULT_GUIDANCE[language]["sections"][catalog_key]
+    assert item["read"] in guidance
+    assert item["limits"] in guidance
+    assert not _format_fields(guidance)
+    assert guidance.count("<strong") == guidance.count("</strong>")
+    with pytest.raises(ValueError, match="unavailable for Performance"):
+        _build_guidance(
+            section_id, language=language, analysis_id=f"{direction}_ABS",
+            is_compare=False, analysis_context=AnalysisContext(),
+        )
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("rx", "tx"))
+def test_header_and_drilldown_omit_repeated_snr_definitions(language, direction):
+    """Keep orientation above the map and practical table/plot guidance in Drill-Down."""
+    sections = RESULT_GUIDANCE[language]["sections"]
+    compare = _plain_guidance(sections[f"context_{direction}_compare"]["read"])
+    performance = _plain_guidance(sections[f"context_{direction}_success"]["read"])
+    for text in (compare, performance):
+        assert "result header" not in text
+        assert "UTC window" not in text
+        assert "Ergebniskopf" not in text
+        assert "UTC-Zeitfenster" not in text
+        assert "offset" not in text.lower()
+        assert "30 dBm" not in text
+    drilldown = _plain_guidance(_build_guidance(
+        RESULT_GUIDANCE_DRILLDOWN,
+        language=language,
+        analysis_id=f"{direction.upper()}_COMP",
+        analysis_context=AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION),
+    ))
+    if language == "en":
+        assert "where and when relative signal levels differ" in compare
+        assert "paired and one-sided evidence" in compare
+        assert "geographic reach, Decode Rate, and successful signal levels" in performance
+        expected = (
+            "normalized Target and Reference SNR", "paired ΔSNR",
+            "one actual value", "at its cycle time", "without time-bin medians",
+            "only the displayed rows", "completed analysis unchanged",
+        )
+        removed = (
+            "SNR is the reported signal-to-noise ratio",
+            "normalized Target value minus the normalized Reference value",
+        )
+    else:
+        assert "wo und wann sich die relativen Signalpegel unterscheiden" in compare
+        assert "gepaarte und einseitige Evidenz" in compare
+        assert "geografische Reichweite, Dekodierrate und erfolgreichen Signalpegel" in performance
+        expected = (
+            "normiertes Target- und Referenz-SNR", "gepaartes ΔSNR",
+            "einen tatsächlichen Wert", "zu dessen Zykluszeit", "ohne Zeit-Bin-Mediane",
+            "nur die angezeigten Zeilen", "abgeschlossene Analyse unverändert",
+        )
+        removed = (
+            "SNR ist das gemeldete Signal-Rausch-Verhältnis",
+            "normierte Target-Wert abzüglich des normierten Referenzwerts",
+        )
+    for phrase in expected:
+        assert phrase in drilldown
+    for phrase in removed:
+        assert phrase not in drilldown
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("RX", "TX"))
+@pytest.mark.parametrize("is_compare", (False, True), ids=("performance", "benchmark"))
+def test_header_guidance_highlights_the_actual_mode_specific_result_headers(
+    language, direction, is_compare,
+):
+    """Use the seven visible section headers in order and only the active evidence mode."""
+    headings = _context_layout_headings(T[language], is_compare=is_compare)
+    expected_path = " → ".join(headings.values())
+    emphasized_path = f'<strong class="defined-term">{expected_path}</strong>'
+    catalog_key = f"context_{direction.lower()}_{'compare' if is_compare else 'success'}"
+    layout_template = RESULT_GUIDANCE[language]["context_layout"]
+    assert _format_fields(layout_template) == set(headings)
+    layout = layout_template.format(**headings)
+    assert layout.count(emphasized_path) == 1
+    assert emphasized_path not in RESULT_GUIDANCE[language]["sections"][catalog_key]["read"]
+    guidance = _build_guidance(
+        RESULT_GUIDANCE_CONTEXT,
+        language=language,
+        analysis_id=f"{direction}_{'COMP' if is_compare else 'ABS'}",
+        is_compare=is_compare,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION if is_compare else COMPARISON_NONE,
+        ),
+    )
+    assert guidance.count(emphasized_path) == 1
+    assert f"{layout}\n\n**{RESULT_GUIDANCE[language]['limits_label']}**" in guidance
+    inactive_evidence_key = (
+        "hdr_results_success_evidence" if is_compare else "hdr_results_comparison_evidence"
+    )
+    assert T[language][inactive_evidence_key] not in guidance
+    assert "Performance/Benchmark" not in guidance
+    assert "Performance-/Benchmark" not in guidance
+    assert not _format_fields(guidance)
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("comparison_mode, benchmark_key", (
+    (COMPARISON_REFERENCE_STATION, "benchmark_reference"),
+    (COMPARISON_LOCAL_NEIGHBORHOOD, "benchmark_local_median"),
+))
+def test_benchmark_header_omits_reference_subtype_and_keeps_details_in_drilldown(
+    language, comparison_mode, benchmark_key,
+):
+    """Keep the header on purpose/layout and preserve the full Reference explanation below."""
+    context = AnalysisContext(comparison_mode=comparison_mode, neighborhood_radius_km=175)
+    guidance = _build_guidance(
+        RESULT_GUIDANCE_CONTEXT, language=language, analysis_context=context,
+    )
+    sections = RESULT_GUIDANCE[language]["sections"]
+    base = sections["context_rx_compare"]
+    assert f"context_{benchmark_key}" not in sections
+    reference = sections[benchmark_key]
+    format_values = {"radius": 175}
+    layout = RESULT_GUIDANCE[language]["context_layout"].format(
+        **_context_layout_headings(T[language], is_compare=True)
+    )
+    assert guidance == (
+        f"**{RESULT_GUIDANCE[language]['read_label']}** {base['read']}\n\n{layout}\n\n"
+        f"**{RESULT_GUIDANCE[language]['limits_label']}** {base['limits']}"
+    )
+    assert reference["read"].format(**format_values) not in guidance
+    drilldown = _build_guidance(
+        RESULT_GUIDANCE_DRILLDOWN, language=language, analysis_context=context,
+    )
+    detailed_read = reference["read"].format(**format_values)
+    assert detailed_read in drilldown
+    assert reference["limits"] in drilldown
+    assert layout not in drilldown
+    if comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+        assert f"{detailed_read}\n\n{sections['drilldown_local_median']['read']}" in drilldown
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+def test_benchmark_segment_help_omits_the_redundant_evidence_scope_paragraph(language):
+    """Keep scope guidance concise while retaining the separate statistics label."""
+    read_text = RESULT_GUIDANCE[language]["sections"]["segment"]["read"]
+    scope_label = "Evidence in scope" if language == "en" else "Evidenz im aktiven Bereich"
+    assert scope_label not in read_text
+    assert scope_label in T[language]["txt_results_evidence_scope"]
+    assert T[language]["hdr_results_segment_inspector"] in read_text
+    assert ("active scope" if language == "en" else "aktiven Bereich") in read_text
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("direction", ("rx", "tx"))
+def test_benchmark_map_help_respects_evidence_minimums_and_spot_classification(language, direction):
+    """Do not mistake map thresholds for evidence absence or station classes for spot counts."""
+    item = RESULT_GUIDANCE[language]["sections"][f"map_compare_{direction}"]
+    text = _plain_guidance(" ".join(item.values()))
+    assert T[language]["leg_joint"] in text
+    assert T[language]["leg_both_async"] in text
+    assert T[language]["map_compare_footer_spots"] in text
+    expected = (("Joint Spot requirement", "no qualifying Joint summary",
+                 "unpaired observations from Joint-classified", "does not prove that no pairs existed")
+                if language == "en" else
+                ("Joint-Spot-Anforderung", "keine qualifizierende Joint-Zusammenfassung",
+                 "ungepaarte Beobachtungen von als Joint eingestuften",
+                 "beweist nicht, dass keine Paare vorlagen"))
+    for phrase in expected:
+        assert phrase in text
+    assert "PAIRS" not in text
+    assert "at least one usable pair" not in text
+
+
 def _render_popover_snapshot(input_view):
     """Run one minimal result popover and return its visible semantic payload."""
     script = f"""
@@ -2109,7 +2044,7 @@ render_result_guidance_popover(
     guidance_body = application.markdown[0].value
     assert "Selected Station SNR Evidence" in guidance_body
     assert "Selected Station Temporal Evidence" in guidance_body
-    assert "actual normalized successful Target SNR" in guidance_body
+    assert "successful Target SNR normalized to 30 dBm" in _plain_guidance(guidance_body)
     assert "combined observation-weighted selection" not in guidance_body
     assert "Selected Path Summary" not in guidance_body
 
@@ -2138,6 +2073,17 @@ def test_result_guidance_popover_css_is_wide_and_responsive():
         "            .stMarkdown p"
     ) in css_source
     assert "font-family: Arial, Helvetica, sans-serif !important;" in css_source
+
+
+def test_result_guidance_trigger_uses_scoped_information_blue():
+    """Color only result-help triggers blue while preserving the body term styling."""
+    css_source = (REPOSITORY_ROOT / "ui" / "css.py").read_text(encoding="utf-8")
+    selector = '[class*="st-key-results_guidance_"] button[kind="tertiary"]'
+    for suffix in ("", ":hover"):
+        rule = re.search(re.escape(selector + suffix) + r"\s*\{([^}]+)\}", css_source)
+        assert rule is not None
+        assert "color: #3d9df3 !important;" in rule.group(1)
+    assert ".stMarkdown strong.defined-term" in css_source
 
 
 def _guidance_call_sections(relative_path):
@@ -2178,7 +2124,9 @@ def test_every_rendered_result_heading_has_its_expected_guidance_placement():
             "RESULT_GUIDANCE_SEGMENT": 1,
             "RESULT_GUIDANCE_COMPARISON_EVIDENCE": 1,
             "RESULT_GUIDANCE_TEMPORAL_EVIDENCE": 1,
+            "RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE": 1,
             "RESULT_GUIDANCE_OUTLIER_REPORT": 1,
+            "RESULT_GUIDANCE_OUTLIER_FOCUS": 1,
             "RESULT_GUIDANCE_SUCCESS_EVIDENCE": 1,
             "RESULT_GUIDANCE_STATION_INSIGHTS": 2,
             "RESULT_GUIDANCE_SELECTED_STATIONS": 2,

@@ -59,6 +59,7 @@ from ui.result_hierarchy import (
 )
 from ui.result_guidance import (
     RESULT_GUIDANCE_DRILLDOWN,
+    RESULT_GUIDANCE_OUTLIER_FOCUS,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     render_result_guidance_popover,
 )
@@ -1101,6 +1102,22 @@ def render_benchmark_selected_evidence(
                     DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
                 )
                 if view.drilldown_zoom_benchmark_delta_recipe is not None:
+                    if view.drilldown_zoom_benchmark_delta_recipe.get(
+                        "outlier_overlay"
+                    ) is not None:
+                        render_result_guidance_popover(
+                            RESULT_GUIDANCE_OUTLIER_FOCUS,
+                            t["lbl_drilldown_zoom_outlier_focus"],
+                            language=presentation_context.language,
+                            translations=t,
+                            key=(
+                                f"results_guidance_outlier_focus_"
+                                f"{analysis_id}_{run_id}_{scope_token}"
+                            ),
+                            analysis_id=analysis_id,
+                            is_compare=True,
+                            analysis_context=analysis_context,
+                        )
                     render_cached_recipe(
                         view.drilldown_zoom_benchmark_delta_recipe,
                         preparation=preparation,

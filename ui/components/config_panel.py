@@ -314,7 +314,7 @@ def render_reference_design_selector(t, *, widget_key, on_change, descriptions=N
                     help=t["fmt_reference_choice_help"].format(choice=choice_label),
                     on_change="ignore",
                 ):
-                    st.markdown(f"**{choice_label}**")
+                    st.markdown(f":primary[**{choice_label}**]")
                     st.markdown(t[help_keys[benchmark_mode]])
             if benchmark_mode in descriptions:
                 st.caption(descriptions[benchmark_mode])
@@ -637,7 +637,7 @@ def _classic_reference_design_help(t):
         "local_neighborhood": "hlp_benchmark_local_neighborhood",
     }
     return "\n\n".join(
-        f"**{_format_benchmark_mode(t, mode)}**\n\n{t[help_keys[mode]]}"
+        f":primary[**{_format_benchmark_mode(t, mode)}**]\n\n{t[help_keys[mode]]}"
         for mode in _benchmark_mode_options(t)
     )
 

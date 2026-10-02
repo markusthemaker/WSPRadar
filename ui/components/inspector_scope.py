@@ -31,6 +31,7 @@ from ui.result_guidance import (
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_SUCCESS_EVIDENCE,
     RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE,
     render_result_guidance_popover,
 )
 
@@ -338,6 +339,19 @@ def render_segment_temporal_evidence(
         )
     coverage_base_recipe = temporal_bundle.get("coverage_recipe")
     if is_compare and coverage_base_recipe:
+        render_result_guidance_popover(
+            RESULT_GUIDANCE_TEMPORAL_EVIDENCE_COVERAGE,
+            coverage_base_recipe["title"],
+            language=language,
+            translations=t,
+            key=(
+                f"results_guidance_temporal_coverage_"
+                f"{analysis_id}_{run_id}_{scope_token}"
+            ),
+            analysis_id=analysis_id,
+            is_compare=True,
+            analysis_context=analysis_context,
+        )
         coverage_export_recipe = dict(coverage_base_recipe)
         coverage_export_recipe["time_bin"] = selected_time_bin
         render_cached_recipe(

@@ -378,11 +378,20 @@ def _render_segment_temporal_for_test(
     is_compare,
     include_compare_coverage=False,
     outlier_model=None,
+    presentation_events=None,
 ):
     """Render one temporal bundle while recording compact-recipe dispatches."""
     render_calls = []
+    if presentation_events is None:
+        presentation_events = []
     _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={}, markdown=lambda *_args, **_kwargs: None))
-    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
+    _patch_shared_render_dependency(
+        monkeypatch,
+        'render_result_guidance_popover',
+        lambda section, title, **kwargs: presentation_events.append(
+            ("help", section, title)
+        ),
+    )
     monkeypatch.setattr(
         inspector_selection,
         "initialize_time_bin_widget_state",
@@ -397,6 +406,7 @@ def _render_segment_temporal_for_test(
 
     def record_render(recipe, **kwargs):
         render_calls.append((recipe, kwargs))
+        presentation_events.append(("figure", kwargs["subject"]))
 
     _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', record_render)
     temporal_bundle = {
@@ -416,6 +426,7 @@ def _render_segment_temporal_for_test(
     if include_compare_coverage:
         temporal_bundle["coverage_recipe"] = {
             "kind": "benchmark_temporal_evidence_coverage",
+            "title": "RX Benchmark Temporal Evidence Coverage: Target G3AAA",
             "time_bin": "3h",
         }
     result = inspector_scope.render_segment_temporal_evidence(
@@ -802,10 +813,12 @@ def test_compare_segment_time_bin_drives_absolute_and_coverage_figures(
     monkeypatch,
 ):
     """Dispatch absolute Delta SNR and coverage with one shared bin."""
+    presentation_events = []
     result, render_calls = _render_segment_temporal_for_test(
         monkeypatch,
         is_compare=True,
         include_compare_coverage=True,
+        presentation_events=presentation_events,
     )
 
     assert [
@@ -822,6 +835,15 @@ def test_compare_segment_time_bin_drives_absolute_and_coverage_figures(
     assert result["export_recipe"] is render_calls[0][0]
     assert result["coverage_export_recipe"] is render_calls[1][0]
     assert "delta_change_export_recipe" not in result
+    assert presentation_events == [
+        ("help", "temporal_evidence", "Temporal Evidence"),
+        ("figure", "segment temporal evidence"),
+        (
+            "help", "temporal_evidence_coverage",
+            "RX Benchmark Temporal Evidence Coverage: Target G3AAA",
+        ),
+        ("figure", "segment temporal coverage"),
+    ]
 
 
 def test_compare_display_bin_changes_use_retained_recipes_without_provider_request(
@@ -872,7 +894,8 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
     segment_bundle = {
         "base_recipe": {"kind": "segment_benchmark_temporal"},
         "coverage_recipe": {
-            "kind": "benchmark_temporal_evidence_coverage"
+            "kind": "benchmark_temporal_evidence_coverage",
+            "title": "RX Benchmark Temporal Evidence Coverage: Target G3AAA",
         },
         "time_bin_options": ("1h", "6h"),
         "time_bin_default": "1h",
@@ -3182,3 +3205,182 @@ def test_missing_benchmark_selected_artifact_retains_selected_export_identity(mo
         "parquet_path": "retired.parquet", "analysis_id": "RX_COMP",
         "stage": "selected station rows load",
     }
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    ("has_focus", "has_overlay"),
+    [(False, False), (True, False), (True, True)],
+    ids=["full-window", "ordinary-zoom", "outlier-focus"],
+)
+def test_outlier_focus_guidance_precedes_only_the_overlaid_focused_metric(
+    monkeypatch, language, has_focus, has_overlay,
+):
+    """Place candidate help beside its actual overlay without changing evidence."""
+    from copy import deepcopy
+    from unittest.mock import Mock
+
+    class RenderContainer:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def markdown(self, *_args, **_kwargs):
+            return None
+
+    container = RenderContainer()
+    session_state = {}
+    monkeypatch.setattr(
+        inspector_selected,
+        "st",
+        SimpleNamespace(container=lambda **_kwargs: container, session_state=session_state),
+    )
+    t = T[language]
+    analysis_start = pd.Timestamp("2026-07-01T00:00:00Z")
+    analysis_end = pd.Timestamp("2026-07-01T02:00:00Z")
+    focus_window = (
+        SimpleNamespace(start_utc=analysis_start, end_utc=analysis_end)
+        if has_focus else None
+    )
+    station_rows = pd.DataFrame({
+        "peer_sign": ["G3AAA", "G3AAA"],
+        "peer_grid": ["IO90", "IO90"],
+        "time_slot": [1, 2],
+        "snr_u_norm": [-10.0, -8.0],
+        "snr_r_norm": [-12.0, -12.0],
+        "has_u": [1, 1],
+        "has_r": [1, 1],
+    })
+    original_station_rows = station_rows.copy(deep=True)
+    identity_df = pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]})
+    selected_metadata = {
+        "selected_meta_df": identity_df,
+        "selected_identity_df": identity_df,
+        "selected_identity_pairs": (("G3AAA", "IO90"),),
+        "selected_station_labels": ["G3AAA (IO90)"],
+        "selected_thresholded_rows": station_rows,
+        "selected_identity_cache_key": ("G3AAA", "IO90"),
+    }
+    metric_recipe = {"metric": [2.0, 4.0]}
+    if has_overlay:
+        metric_recipe["outlier_overlay"] = {"candidate_ids": ["candidate-1"]}
+    coverage_recipe = {"outcomes": ["Joint", "Joint"]}
+    original_metric_recipe = deepcopy(metric_recipe)
+    original_coverage_recipe = deepcopy(coverage_recipe)
+    selected_export = {
+        "export_recipe": {"metric": [2.0, 4.0]},
+        "coverage_export_recipe": {"outcomes": ["Joint", "Joint"]},
+    }
+    original_selected_export = deepcopy(selected_export)
+    build_zoom = Mock(return_value=(metric_recipe, coverage_recipe))
+    preparation = SimpleNamespace(
+        prepare_selected_benchmark=Mock(return_value=selected_metadata),
+        load_selected_benchmark_rows=Mock(return_value=station_rows),
+        prepare_selected_benchmark_evidence=Mock(return_value=object()),
+        filter_station_rows_to_focus_window=Mock(return_value=station_rows),
+        build_benchmark_drilldown_zoom_recipes=build_zoom,
+        drilldown_zoom_export_metadata=Mock(return_value={"scope": "focused"}),
+        build_drilldown_table=Mock(return_value=(pd.DataFrame(), None)),
+    )
+    context = SimpleNamespace(
+        translations=t,
+        analysis_id="RX_COMP",
+        run_id=17,
+        analysis_context=SimpleNamespace(reference_snr_correction_db=0.0),
+        presentation_context=SimpleNamespace(language=language, theme="dark"),
+        analysis_start_t=analysis_start,
+        analysis_end_t=analysis_end,
+        parquet_path="unused.parquet",
+        timing_collector=None,
+    )
+    station_view = SimpleNamespace(
+        selected_rows=(0,),
+        station_column="Station",
+        locator_column="Locator",
+        show_non_joint=False,
+    )
+    prepared_segment = SimpleNamespace(bundle={
+        "view_model": SimpleNamespace(
+            is_local_median=False, target_name="Target", reference_header="Reference",
+        ),
+        "outlier_model": object(),
+    })
+    selection = InspectorSelection(
+        run_id=17,
+        analysis_id="RX_COMP",
+        scope_token="all",
+        is_compare=True,
+        is_outlier_reporting_enabled=True,
+    )
+    monkeypatch.setattr(
+        inspector_selected,
+        "render_selected_station_evidence",
+        Mock(return_value=selected_export),
+    )
+    monkeypatch.setattr(
+        inspector_selected,
+        "render_drilldown_header_and_controls",
+        Mock(return_value=(focus_window, "2min", container)),
+    )
+    monkeypatch.setattr(
+        inspector_selection,
+        "drilldown_outlier_context_for_scope",
+        Mock(return_value=SimpleNamespace(request_token="outlier-request")),
+    )
+    events = []
+    guidance_calls = []
+    rendered_recipes = []
+
+    def capture_guidance(section_id, title, **kwargs):
+        events.append(("guidance", section_id))
+        guidance_calls.append((title, kwargs))
+
+    def capture_recipe(recipe, **_kwargs):
+        events.append(("figure", "metric" if recipe is metric_recipe else "coverage"))
+        rendered_recipes.append(recipe)
+
+    monkeypatch.setattr(inspector_selected, "render_result_guidance_popover", capture_guidance)
+    monkeypatch.setattr(inspector_selected, "render_cached_recipe", capture_recipe)
+
+    rendered = inspector_selected.render_benchmark_selected_evidence(
+        context,
+        SimpleNamespace(scope_token="all"),
+        selection,
+        station_view,
+        prepared_segment=prepared_segment,
+        preparation=preparation,
+        session_state=session_state,
+    )
+
+    if has_overlay:
+        assert events == [
+            ("guidance", inspector_selected.RESULT_GUIDANCE_OUTLIER_FOCUS),
+            ("figure", "metric"),
+            ("figure", "coverage"),
+        ]
+        title, guidance_kwargs = guidance_calls[0]
+        assert title == t["lbl_drilldown_zoom_outlier_focus"]
+        assert guidance_kwargs["language"] == language
+        assert guidance_kwargs["translations"] is t
+        assert guidance_kwargs["analysis_context"] is context.analysis_context
+    elif has_focus:
+        assert events == [("figure", "metric"), ("figure", "coverage")]
+        assert guidance_calls == []
+    else:
+        assert events == []
+        assert guidance_calls == []
+    assert build_zoom.call_count == int(has_focus)
+    if has_focus:
+        assert rendered_recipes[0] is metric_recipe
+        assert rendered_recipes[1] is coverage_recipe
+        assert rendered.drilldown_zoom_benchmark_delta_recipe is metric_recipe
+    else:
+        assert rendered.drilldown_zoom_benchmark_delta_recipe is None
+    assert rendered.selected_evidence_export is selected_export
+    assert metric_recipe == original_metric_recipe
+    assert coverage_recipe == original_coverage_recipe
+    assert selected_export == original_selected_export
+    pd.testing.assert_frame_equal(station_rows, original_station_rows)
+    assert session_state == {}

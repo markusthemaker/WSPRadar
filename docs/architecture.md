@@ -473,7 +473,12 @@ scope-copy helpers for the progressive result flow from map overview through
 row-level evidence. `ui/result_guidance.py` resolves mode- and benchmark-aware
 interpretation guidance and renders the same static, click-open bilingual help
 after result headings in Guided and Classic views. The separate
-`RESULT_GUIDANCE` catalog in `i18n.py` owns that explanatory copy. This help is
+`RESULT_GUIDANCE` catalog in `i18n.py` owns that explanatory copy. Benchmark
+Temporal Evidence Coverage has its own guidance immediately before the coverage
+figure. Focused outlier guidance appears only when the native-cycle Delta-SNR
+figure contains a candidate overlay. Share Analysis explains directly inside its
+popover that links rerun settings while Download Evidence preserves the completed
+run's processed observations. This help is
 presentation-only: it does not enter `AnalysisContext`, scientific branches,
 cache identity, or exported evidence. `ui/run_controller.py` places the map and
 deferred Inspector inside one keyed presentation container so CSS can draw a

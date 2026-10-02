@@ -565,17 +565,28 @@ duplicate scientific manual, or an automatic interpretation of live result
 values. The catalog describes established scientific contracts; it must never
 define or select scientific behavior.
 
-- Every item must contain one substantive `read` paragraph and one shorter
-  `limits` paragraph.
-- Treat roughly 2,000 combined characters as a readability target, not a hard
-  editorial limit. Prefer clear, scientifically complete wording over forced
-  compression; modest overruns are acceptable when an essential distinction
-  needs space. Tests may use a generous ceiling only to catch genuinely
-  excessive popover copy.
+- Every item must contain substantive `read` guidance and one shorter `limits`
+  paragraph. The `read` field may use several short paragraphs: begin with a
+  brief introduction, explain figures or items in their visible order, and end
+  with a practical reading action. Use paragraph breaks to separate distinct
+  explanations without forcing a heading onto every paragraph.
+- Treat roughly 2,000 combined displayed characters, excluding markup, as a
+  readability target, not a hard editorial limit. Prefer clear, scientifically
+  complete wording over forced compression; modest overruns are acceptable when
+  an essential distinction needs space. Tests may use a generous ceiling only to
+  catch genuinely excessive popover copy.
 - Begin `read` by naming the visible view and explaining its operator-relevant
-  purpose. As applicable, define the evidence unit, denominator, aggregation or
+  purpose. Prioritize what a new WSPRadar user sees and how to interpret it.
+  As applicable, define the evidence unit, denominator, aggregation or
   weighting; explain how complementary figures differ; and tell the operator
   how to assess breadth, depth, consistency and traceability.
+- Top-level result help above Map View introduces the selected RX/TX
+  Performance or Benchmark analysis, its purpose and high-level expectations,
+  then explains the result hierarchy from Map View downward using the actual
+  localized section headers for the active mode. Do not prepend a separate
+  description of the Reference design or combine Performance/Benchmark section
+  names. Detailed metric, denominator and figure interpretation belongs in the
+  relevant section-specific help.
 - End the positive explanation with a practical reading heuristic. Lead with
   what the evidence can show; keep caveats in `limits`.
 - Use `limits` to state the strongest relevant evidence boundary concretely:
@@ -597,9 +608,26 @@ define or select scientific behavior.
   is a pairability or coverage metric; never describe it as a Target score, win
   rate, or symmetric Target-versus-Reference success rate.
 - Name visible figures, controls, units and result terms exactly as rendered.
-  Use `<strong class="defined-term">...</strong>` for introduced semantic
-  vocabulary, Markdown bold for named figures, and code spans for literal
-  controls, formulas or displayed values.
+  Use green bold `<strong class="defined-term">...</strong>` for introduced
+  semantic definitions and for a figure or item name at the start of the
+  paragraph that explains its meaning. Keep existing definitions green; do not
+  apply green merely because text names something visible or refers back to it.
+  Use ordinary Markdown bold selectively for important quantities, keywords,
+  distinctions and structural headings such as **Read together** and
+  **Keep in mind**, with natural localized equivalents. Put a shared reading
+  cue on its own line when it brings several figure explanations together.
+  Structural headings are not semantic definitions and must not be green. Use
+  code spans for literal controls, formulas or displayed values.
+- Use the existing informational blue for the `How to read this` trigger label
+  and help icon, with a subtle hover treatment. Keep body text in its normal
+  color and preserve green definitions inside the help; scope this styling to
+  result-help triggers rather than all popovers or question marks.
+- For native field tooltips outside `RESULT_GUIDANCE`, use concise prose with
+  selective ordinary Markdown bold. Do not force the result-guidance paragraph
+  structure into a short tooltip. Where a definition needs green emphasis, use
+  the native tooltip renderer's supported equivalent. Preserve exact visible
+  labels, scientific meaning and English/German semantic parity in both kinds
+  of help.
 - Include presentation mechanics only when they materially prevent a wrong
   interpretation; omit self-evident layout, typography and styling narration.
 - Apply the **English–German translation and semantic parity** rules below.
@@ -607,8 +635,9 @@ define or select scientific behavior.
   official German UI terms while writing natural technical German rather than a
   mechanically literal translation.
 - Write each field as a complete prose fragment that remains grammatical when
-  mode-, benchmark- or drill-down-specific items are concatenated. Keep prose
-  paragraphs as triple-quoted strings on one physical source line.
+  mode-, benchmark- or drill-down-specific items are concatenated, preserving
+  their intended paragraph boundaries. Keep each prose paragraph on one physical
+  source line within its triple-quoted field, with blank lines between paragraphs.
 - Resolve variants only from semantic result fields, never localized wording or
   record identity. Escape dynamic substitutions and keep the guidance
   presentation-only and identical in Guided and Classic views.

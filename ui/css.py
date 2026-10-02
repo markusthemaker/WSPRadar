@@ -996,6 +996,16 @@ def apply_custom_css():
             margin: 0 !important;
             color: inherit !important;
         }
+        /* Result-help triggers use Streamlit's dark-theme info blue. The keyed
+         * scope excludes other popovers and the separately mounted help body.
+         */
+        [class*="st-key-results_guidance_"] button[kind="tertiary"] {
+            color: #3d9df3 !important;
+        }
+        [class*="st-key-results_guidance_"] button[kind="tertiary"]:hover {
+            color: #3d9df3 !important;
+            background-color: rgba(61, 157, 243, 0.1) !important;
+        }
         .st-key-documentation_body .stMarkdown strong.defined-term,
         .st-key-guided_input_flow .stMarkdown strong.defined-term,
         div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker)

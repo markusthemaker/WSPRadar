@@ -53,7 +53,7 @@ from core.performance_timer import (
 from core.presentation_context import PresentationContext
 from core.opportunity_engine import ABSOLUTE_METHOD_VERSION
 from core.snr_utils import format_snr_like_columns_for_csv
-from i18n import T
+from i18n import RESULT_GUIDANCE, T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload, build_config_state_signature
 from ui.export_content import OwnedExportContent, content_signature
 from ui.export_payloads import InspectorExportPayload, MapExportPayload
@@ -2867,6 +2867,13 @@ def render_download_all_results(t):
         )
         if share_popover.open:
             with share_popover:
+                st.markdown(t["help_share_analysis"])
+                limits_label = RESULT_GUIDANCE[
+                    st.session_state.get("lang", "en")
+                ]["limits_label"]
+                st.markdown(
+                    f"**{limits_label}** {t['help_share_analysis_limits']}"
+                )
                 share_title, share_message, share_labels = (
                     _share_analysis_content(t)
                 )
