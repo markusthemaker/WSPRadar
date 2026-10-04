@@ -529,6 +529,12 @@ WSPRadar resolves its location from the selected **band, direction and UTC windo
         "opt_local_median": "Local Median Neighborhood",
         "err_local_benchmark": """Local Median Neighborhood is the supported local method. Use Reset Config to restore valid inputs.""",
         "err_reference_callsign_same": "Target and Reference callsigns must be different.",
+        "warn_tx_message_patterns_title": "Check the TX message patterns",
+        "warn_tx_message_patterns": """These callsigns may use different WSPR message patterns. This can skew one-sided counts and Joint Evidence Share.
+
+For a controlled TX comparison, use two standard callsigns transmitting Type 1 messages, or two compound callsigns transmitting synchronized Type 2/Type 3 sequences. When using the same base callsign, give both transmitters different suffixes, for example `CALL/1` and `CALL/2`. Check which suffixes are permitted for your callsign and operation in your country.
+
+Check that matching message types are transmitted in the same two-minute cycles.""",
         "err_reference_callsign_required": "Please configure a Reference Callsign.",
         "err_reference_qth_required": "Resolve the Reference location before starting the analysis.",
         "err_callsign_format": "Enter a plausible callsign/reporting identifier: 3-15 ASCII characters; use '/' only between non-empty alphanumeric segments and at most one terminal '-' before a non-empty alphanumeric suffix. The portion before any hyphen must contain at least one letter; a digit is not required.",
@@ -1185,6 +1191,12 @@ WSPRadar bestimmt ihren Standort anhand des gewählten **Bands, der Analysericht
         "opt_local_median": "Lokaler Nachbarschafts-Median",
         "err_local_benchmark": """Lokaler Nachbarschafts-Median ist die unterstützte lokale Methode. Verwende Reset Konfig, um gültige Eingaben wiederherzustellen.""",
         "err_reference_callsign_same": "Target- und Referenz-Rufzeichen m\u00fcssen verschieden sein.",
+        "warn_tx_message_patterns_title": "WSPR-Nachrichtenfolgen der Sender prüfen",
+        "warn_tx_message_patterns": """Diese Rufzeichen können unterschiedliche WSPR-Nachrichtenfolgen verwenden. Das kann die Anzahl einseitiger Meldungen und den Joint-Evidenzanteil verzerren.
+
+Verwende für einen kontrollierten TX-Vergleich entweder zwei Standardrufzeichen mit Typ-1-Nachrichten oder zwei zusammengesetzte Rufzeichen mit synchronisierten Typ-2-/Typ-3-Nachrichtenfolgen. Wenn beide Sender dasselbe Basisrufzeichen verwenden, müssen beide unterschiedliche Zusätze tragen, zum Beispiel `CALL/1` und `CALL/2`. Prüfe, welche Zusätze für dein Rufzeichen und deinen Betrieb in deinem Land zulässig sind.
+
+Prüfe, dass beide Sender in denselben Zwei-Minuten-Zyklen die jeweils gleichen Nachrichtentypen aussenden.""",
         "err_reference_callsign_required": "Bitte ein Referenz-Rufzeichen konfigurieren.",
         "err_reference_qth_required": "Bestimme den Referenzstandort vor dem Start der Analyse.",
         "err_callsign_format": "Bitte eine plausible Rufzeichen-/Meldekennung eingeben: 3-15 ASCII-Zeichen; '/' nur zwischen nicht leeren alphanumerischen Segmenten und h\u00f6chstens ein abschlie\u00dfendes '-' vor einem nicht leeren alphanumerischen Suffix verwenden. Der Teil vor einem etwaigen Bindestrich muss mindestens einen Buchstaben enthalten; eine Ziffer ist nicht erforderlich.",

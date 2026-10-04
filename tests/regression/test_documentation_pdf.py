@@ -359,7 +359,7 @@ def test_pdf_markdown_extensions_preserve_fenced_code_blocks():
 
 def test_pdf_preserves_section_zero_analysis_hierarchy_markup():
     """Keep each Benchmark family above its decision in the printable table."""
-    table_start = DOC_EN.index("| Analysis | Question | Practical examples |")
+    table_start = DOC_EN.index("| Your question | Practical examples | Analysis to choose |")
     table_end = DOC_EN.index("\n\n", table_start)
 
     rendered = pdf_generator._render_pdf_html(
@@ -368,11 +368,11 @@ def test_pdf_preserves_section_zero_analysis_hierarchy_markup():
     )
 
     assert (
-        '<table class="pdf-intro-analysis-table" width="100%">'
+            '<table class="pdf-intro-analysis-table" width="100%" repeat="1">'
         in rendered
     )
     for header, width_percent in zip(
-        ("Analysis", "Question", "Practical examples"),
+        ("Your question", "Practical examples", "Analysis to choose"),
         pdf_generator.PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT,
     ):
         assert f'<th style="width: {width_percent}%">{header}</th>' in rendered
@@ -384,6 +384,16 @@ def test_pdf_preserves_section_zero_analysis_hierarchy_markup():
         '<strong class="analysis-variant">Reference Setup/Station</strong>'
         in rendered
     )
+
+
+def test_pdf_german_intro_receives_the_same_compact_column_layout():
+    rendered = pdf_generator._render_pdf_html(DOC_DE, T["de"])
+    assert rendered.count('class="pdf-intro-analysis-table"') == 1
+    for header, width in zip(
+        ("Deine Frage", "Praktische Beispiele", "Passende Analyse"),
+        pdf_generator.PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT,
+    ):
+        assert f'<th style="width: {width}%">{header}</th>' in rendered
 
 
 def test_pdf_preprocessing_makes_fenced_code_layout_explicit():
@@ -410,7 +420,7 @@ def test_pdf_preprocessing_preserves_defined_term_markup():
         'Performance/Benchmark Evidence → Temporal Evidence → Station Insights '
         '→ Selected Station Evidence → Drill-Down</strong>'
     )
-    assert rendered.count(defined_evidence_path) == 2
+    assert rendered.count(defined_evidence_path) == 1
 
 
 def test_pdf_preprocessing_preserves_english_section_two_conclusion_callouts():
@@ -543,10 +553,11 @@ def test_pdf_preprocessing_marks_only_each_chapter_seven_method_matrix():
             int(width)
             for width in re.findall(
                 r'<th style="width: (\d+)%">',
-                chapter_intro,
+                re.search(r'<table class="pdf-method-matrix".*?</table>', chapter_intro, re.DOTALL).group(0),
             )
         ) == pdf_generator.PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT
         assert wrapped_header in chapter_intro
+        assert re.search(r'<table[^>]*class="pdf-method-matrix"[^>]*repeat="1"', chapter_intro)
 
     german_rendered = pdf_generator._render_pdf_html(DOC_DE, T["de"])
     assert "Target-/<br/>lokaler-Referenz-<br/>Peer-Zyklus" in german_rendered
@@ -718,3 +729,109 @@ def test_failed_pdf_generation_clears_ready_state(monkeypatch):
         fake_st.buttons[-1][1]["help"]
         == T["de"]["help_documentation_pdf_unavailable"]
     )
+
+
+@pytest.mark.parametrize(
+    "headers,short_label,long_label",
+    (
+        (("Figure", "What to read and how to interpret it"), "Map", "Selected Station Evidence"),
+        (("Darstellung", "Ablesen und einordnen"), "Karte", "Evidenz der ausgewählten Station"),
+    ),
+)
+def test_pdf_reading_guides_fit_label_content_without_changing_other_tables(
+    headers, short_label, long_label,
+):
+    """Guide widths follow each table's labels, not a global one-third rule."""
+    def guide(label):
+        return (
+            f"| {headers[0]} | {headers[1]} |\n|---|---|\n"
+            f"| **{label}** | Preserve this explanation and its **meaning**. |\n"
+        )
+
+    ordinary_table = "| Item | Meaning |\n|---|---|\n| A | Unchanged. |\n"
+    compact_manual = (
+        guide(short_label) + '\n<a id="sec-3"></a>\n\n'
+        "**Reading guide**\n\n" + guide(short_label) + "\n"
+        + guide(long_label) + "\n" + ordinary_table
+        + '\n<a id="sec-4"></a>\n\n' + guide(long_label)
+    )
+    rendered = pdf_generator._render_pdf_html(compact_manual, T["en"])
+    guides = re.findall(
+        r'<table class="pdf-reading-guide"[^>]*>.*?</table>',
+        rendered, flags=re.DOTALL,
+    )
+
+    assert len(guides) == 2
+    widths = [
+        [float(value) for value in re.findall(r'<th style="width: ([0-9.]+)%">', guide_html)]
+        for guide_html in guides
+    ]
+    assert 0 < widths[0][0] < widths[1][0] < 50
+    assert all(sum(pair) == pytest.approx(100) for pair in widths)
+    assert all('repeat="1"' in guide_html for guide_html in guides)
+    assert '<p class="pdf-reading-guide-heading"><strong>Reading guide</strong></p>' in rendered
+    assert rendered.count('class="pdf-reading-guide-label"') == 2
+    assert rendered.count("Preserve this explanation and its <strong>meaning</strong>.") == 4
+    assert "<th>Item</th>" in rendered
+    assert rendered.count('<table repeat="1">') == 3
+
+
+@pytest.mark.parametrize("headers", pdf_generator.PDF_READING_GUIDE_HEADERS)
+def test_pdf_reading_guides_allow_long_labels_to_wrap_without_losing_text(headers):
+    """Long UI labels leave most of the portrait page for interpretation."""
+    long_label = "Long localized scientific figure title " * 4
+    compact_manual = (
+        '<a id="sec-3"></a>\n\n'
+        f"| {headers[0]} | {headers[1]} |\n|---|---|\n"
+        f"| {long_label} | Complete explanatory text remains available. |\n\n"
+        '<a id="sec-4"></a>'
+    )
+    rendered = pdf_generator._render_pdf_html(compact_manual, T["en"])
+    widths = [
+        float(value)
+        for value in re.findall(r'<th style="width: ([0-9.]+)%">', rendered)
+    ]
+
+    assert widths == [38, 62]
+    assert long_label.strip() in rendered
+    assert "Complete explanatory text remains available." in rendered
+
+
+def test_pdf_chapter_two_keeps_subheadings_and_short_guide_lead_ins_together():
+    """Keep local setup headings and table context attached without global rules."""
+    guide = (
+        "| Action | Where it takes you |\n|---|---|\n"
+        "| Show details | Opens the retained evidence. |\n"
+    )
+    long_paragraph = "A detailed description may flow across pages. " * 12
+    compact_manual = (
+        "##### Outside before\n\n**Outside label**\n\n"
+        '<a id="sec-3"></a>\n\n'
+        "#### 2.1 RX Benchmark\n\n"
+        "##### 2.1.1 Reference Setup/Station\n\n"
+        "**Controlled local setup.**\n\n"
+        "Keep the actual setup paragraph with its two introductory headings.\n\n"
+        '<blockquote class="evidence-conclusion"><p>Controlled comparison.</p></blockquote>\n\n'
+        "**Independent station.**\n\n"
+        "Compare the two complete stations.\n\n"
+        "**Inspect the path next.** Both actions select the path and open focus:\n\n"
+        + guide + "\n" + long_paragraph + "\n\n" + guide
+        + '\n<a id="sec-4"></a>\n\n'
+        "##### Outside after\n\n**Another outside label**\n"
+    )
+    rendered = pdf_generator._render_pdf_html(compact_manual, T["en"])
+
+    assert '<h4 class="pdf-chapter-two-heading">2.1 RX Benchmark</h4>' in rendered
+    assert '<h5 class="pdf-chapter-two-heading">2.1.1 Reference Setup/Station</h5>' in rendered
+    assert '<p class="pdf-chapter-two-heading"><strong>Controlled local setup.</strong></p>' in rendered
+    assert '<p class="pdf-chapter-two-heading"><strong>Independent station.</strong></p>' in rendered
+    assert (
+        '<p class="pdf-reading-guide-heading"><strong>Inspect the path next.</strong> '
+        "Both actions select the path and open focus:</p>"
+    ) in rendered
+    assert rendered.count('class="pdf-reading-guide-heading"') == 1
+    assert long_paragraph.strip() in rendered
+    assert "<h5>Outside before</h5>" in rendered
+    assert "<h5>Outside after</h5>" in rendered
+    assert '<p class="pdf-section-label"><strong>Outside label</strong></p>' in rendered
+    assert '<p class="pdf-section-label"><strong>Another outside label</strong></p>' in rendered

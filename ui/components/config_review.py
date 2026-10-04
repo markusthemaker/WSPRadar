@@ -13,6 +13,7 @@ from core.input_validation import (
 )
 from ui.analysis_question_state import derive_analysis_question
 from ui.config_io import SOLAR_KEYS, build_config_settings_from_state
+from ui.input_validation_state import tx_message_pattern_warning
 
 
 def is_canonical_configuration_ready(state: Mapping[str, Any]) -> bool:
@@ -192,6 +193,9 @@ def render_configuration_review(
                 )
             )
     streamlit_api.markdown("\n".join(lines))
+    message_pattern_warning = tx_message_pattern_warning(state, t)
+    if message_pattern_warning:
+        streamlit_api.warning(message_pattern_warning)
     if state.get("val_snr_correction_mode") == "establish_offset":
         streamlit_api.warning(messages["calibration_run_notice"])
     if on_open_classic is not None:

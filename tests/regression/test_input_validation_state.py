@@ -1,11 +1,14 @@
 """Required-field guidance is explicit, reversible and shared by both editors."""
 
 from datetime import date, time
+from copy import deepcopy
+from string import Formatter
 
 import pytest
 
 from ui.input_validation_state import (
-    attempt_input_validation, get_field_error, validate_input_fields,
+    attempt_input_validation, get_field_error, tx_message_pattern_warning,
+    validate_input_fields,
 )
 
 
@@ -90,3 +93,84 @@ def test_time_only_invalid_window_marks_time_fields_and_clears_after_correction(
     assert all(get_field_error(state, field) for field in fields)
     state["val_end_t"] = time(13)
     assert all(get_field_error(state, field) is None for field in fields)
+
+
+@pytest.mark.parametrize("target,reference,expected", [
+    ("DL1MKS", "DL1MKS/P", True),
+    ("DL1MKS/1", "DL1MKS", True),
+    ("DL1MKS", "G1XYZ/P", True),
+    ("F/DL1MKS", "G1XYZ", True),
+    (" dl1mks ", " g1xyz/p ", True),
+    ("DL1MKS", "G1XYZ", False),
+    ("DL1MKS/1", "DL1MKS/2", False),
+    ("DL1MKS/P", "G1XYZ/P", False),
+    ("DL1MKS/P", "DL1MKS/P", False),
+    ("DL1MKS", "", False),
+    ("", "DL1MKS/P", False),
+    ("DL1MKS", "DL1MKS//P", False),
+    ("DL1MKS/", "G1XYZ", False),
+])
+def test_tx_message_pattern_warning_checks_structure_without_rejecting_inputs(
+    target, reference, expected,
+):
+    state = valid_state(
+        guided_use_case="tx_benchmark", val_analysis_direction="tx",
+        val_callsign=target, val_ref_callsign=reference,
+    )
+    before = deepcopy(state)
+    assert bool(tx_message_pattern_warning(state)) is expected
+    assert state == before
+
+
+@pytest.mark.parametrize("direction,mode", [
+    ("rx", "reference_station"), ("rx", "none"),
+    ("rx", "local_neighborhood"), ("tx", "none"),
+    ("tx", "local_neighborhood"), (None, "reference_station"),
+])
+def test_tx_message_pattern_warning_is_limited_to_fixed_reference_tx(direction, mode):
+    state = valid_state(
+        val_analysis_direction=direction, val_comp_mode=mode,
+        val_callsign="DL1MKS", val_ref_callsign="DL1MKS/P",
+    )
+    assert tx_message_pattern_warning(state) is None
+
+
+@pytest.mark.parametrize("view", ["guided", "classic"])
+def test_tx_message_pattern_warning_preserves_validation_and_saved_config(view):
+    from ui.components.config_review import is_canonical_configuration_ready
+    from ui.config_io import build_config_settings_from_state
+
+    state = valid_state(
+        input_view=view, guided_use_case="tx_benchmark",
+        classic_question="tx_benchmark", val_analysis_direction="tx",
+        val_ref_callsign="DL1MKS/P",
+    )
+    settings = build_config_settings_from_state(state)
+    assert tx_message_pattern_warning(state)
+    assert not validate_input_fields(state)
+    assert is_canonical_configuration_ready(state)
+    assert build_config_settings_from_state(state) == settings
+    state["val_callsign"] = "DL1MKS/P"
+    assert "val_ref_callsign" in validate_input_fields(state)
+    assert not is_canonical_configuration_ready(state)
+
+
+def test_tx_message_pattern_warning_uses_bilingual_catalog_with_placeholder_parity():
+    from i18n import T
+
+    for key in ("warn_tx_message_patterns_title", "warn_tx_message_patterns"):
+        assert all(T[language][key] for language in ("en", "de"))
+        placeholders = lambda text: {
+            field for _, field, _, _ in Formatter().parse(text) if field is not None
+        }
+        assert placeholders(T["en"][key]) == placeholders(T["de"][key])
+    for language in ("en", "de"):
+        state = valid_state(
+            lang=language, val_analysis_direction="tx", val_ref_callsign="DL1MKS/P",
+        )
+        warning = tx_message_pattern_warning(state)
+        assert warning == (
+            f"**{T[language]['warn_tx_message_patterns_title']}**\n\n"
+            f"{T[language]['warn_tx_message_patterns']}"
+        )
+        assert "`CALL/1`" in warning and "`CALL/2`" in warning

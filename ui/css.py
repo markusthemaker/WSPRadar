@@ -916,12 +916,12 @@ def apply_custom_css():
             border-top: 1px solid rgba(148, 163, 184, 0.2) !important;
             border-bottom: 1px solid rgba(148, 163, 184, 0.2) !important;
         }
-        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:nth-child(2) {
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:nth-child(1) {
             color: #f1f5f9 !important;
             font-weight: 600 !important;
             line-height: 1.45 !important;
         }
-        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:nth-child(3) {
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:nth-child(2) {
             color: #cbd5e1 !important;
             font-size: 0.92rem !important;
             line-height: 1.45 !important;

@@ -18,7 +18,7 @@ from config import (
     MAP_SCOPE_OPTIONS,
     SNR_CORRECTION_MODES,
 )
-from ui.input_validation_state import get_field_error
+from ui.input_validation_state import get_field_error, tx_message_pattern_warning
 from config.demo_profiles import prepare_demo_description_markdown
 from config.delta_snr_outlier import (
     DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
@@ -368,6 +368,9 @@ def _render_reference_identity(
     if reference_callsign and reference_callsign == normalize_ascii_upper(st.session_state.get("val_callsign", "")) and not get_field_error(st.session_state, "val_ref_callsign"):
         st.error(t["err_reference_callsign_same"])
     _render_field_error("val_ref_qth")
+    message_pattern_warning = tx_message_pattern_warning(st.session_state, t)
+    if message_pattern_warning:
+        st.warning(message_pattern_warning)
 
 
 def _render_analysis_direction_selector(

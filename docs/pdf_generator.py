@@ -4,7 +4,7 @@ Takes the Markdown documentation, fixes lists and LaTeX formulas, and renders vi
 """
 import io
 import base64
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 from importlib.util import find_spec
 from pathlib import Path
@@ -22,10 +22,24 @@ from docs.doc_en import DOC_EN
 DOCUMENTATION_PDF_READY_KEY_PREFIX = "_documentation_pdf_ready"
 _DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
 PDF_MARKDOWN_EXTENSIONS = ("tables", "fenced_code")
-PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT = (28, 27, 45)
+PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT = (27, 45, 28)
 PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT = (18, 20, 23, 22, 17)
 PDF_PROPORTIONAL_FONT_FAMILY = "WSPRadarDejaVuSans"
 PDF_MONOSPACE_FONT_FAMILY = "WSPRadarDejaVuSansMono"
+PDF_READING_GUIDE_FONT_SIZE_PT = 9.0
+PDF_READING_GUIDE_MAX_LABEL_WIDTH_PERCENT = 38.0
+PDF_READING_GUIDE_HEADERS = (
+    ("Figure", "What to read and how to interpret it"),
+    ("Darstellung", "Ablesen und einordnen"),
+    ("Cross-path context", "Meaning"),
+    ("Funkwegübergreifender Kontext", "Bedeutung"),
+    ("Report item", "What it means and what to inspect"),
+    ("Berichtsangabe", "Bedeutung und nächster Prüfschritt"),
+    ("Action", "Where it takes you"),
+    ("Aktion", "Ziel"),
+    ("Change", "Effect on reporting"),
+    ("Änderung", "Wirkung auf den Bericht"),
+)
 
 
 def _register_pdf_fonts():
@@ -403,6 +417,13 @@ def _replace_pdf_math(md_text, translations):
         md_text = md_text.replace(f"${latex}$", html)
 
     inline_formula_replacements = {
+        r"\lor": "&or;",
+        r"\land": "&and;",
+        r"\neg": "&not;",
+        r"|I_g|": "|I<sub>g</sub>|",
+        r"SNR_{measured}": "SNR<sub>measured</sub>",
+        r"SNR_{norm}": "SNR<sub>norm</sub>",
+        r"P_{TX(dBm)}": "P<sub>TX(dBm)</sub>",
         r"\varepsilon": "&epsilon;",
         r"\varepsilon=0.01\ \mathrm{dB}": "&epsilon; = 0.01 dB",
         r"A_c": "A<sub>c</sub>",
@@ -707,11 +728,14 @@ def _preserve_pdf_fenced_code_layout(html_content):
 
 
 def _mark_intro_analysis_table_for_pdf(html_content):
-    """Apply stable print widths to the English Part 0 analysis catalogue."""
-    header_sequence = ("Analysis", "Question", "Practical examples")
+    """Apply stable print widths to either localized Part 0 analysis catalogue."""
+    header_sequence = ("Your question", "Practical examples", "Analysis to choose")
     header_start = html_content.find(f"<th>{header_sequence[0]}</th>")
     if header_start < 0:
-        return html_content
+        header_sequence = ("Deine Frage", "Praktische Beispiele", "Passende Analyse")
+        header_start = html_content.find(f"<th>{header_sequence[0]}</th>")
+        if header_start < 0:
+            return html_content
 
     table_start = html_content.rfind("<table>", 0, header_start)
     table_end = html_content.find("</table>", header_start)
@@ -790,6 +814,7 @@ def _mark_method_matrix_for_pdf(html_content):
     def format_header_cell(header_match):
         width_percent = next(column_widths)
         header_text = header_match.group(1).replace("/", "/<br/>")
+        header_text = header_text.replace("Hauptzusammenfassung", "Haupt-<br/>zusammenfassung")
         return f'<th style="width: {width_percent}%">{header_text}</th>'
 
     matrix_table = matrix_table.replace(
@@ -815,6 +840,8 @@ def _mark_method_matrix_for_pdf(html_content):
                 .replace("Target-/", "Target-/<br/>")
                 .replace("Target/", "Target/<br/>")
                 .replace("-Peer-", "-<br/>Peer-")
+                .replace("Referenzaufbau/-station", "Referenzaufbau/<br/>-station")
+                .replace("Referenznachbarschaft", "Referenz-<br/>nachbarschaft")
             )
         return opening_tag + "".join(cell_parts) + closing_tag
 
@@ -849,6 +876,140 @@ def _mark_method_matrix_for_pdf(html_content):
     )
 
 
+def _mark_reading_guide_tables_for_pdf(html_content):
+    """Fit only Chapter 2 reading-guide label columns to their visible text."""
+    chapter_start = html_content.find('name="sec-3"')
+    chapter_end = html_content.find('name="sec-4"', chapter_start + 1)
+    if chapter_start < 0 or chapter_end < 0:
+        return html_content
+
+    def visible_lines(cell_html):
+        lines = re.split(r"<br\s*/?>", cell_html, flags=re.IGNORECASE)
+        return [
+            " ".join(unescape(re.sub(r"<[^>]+>", "", line)).split())
+            for line in lines
+        ]
+
+    def format_guide(table_match):
+        table_html = table_match.group(0)
+        headers = re.findall(
+            r"<th\b[^>]*>(.*?)</th>", table_html,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if tuple(" ".join(visible_lines(cell)) for cell in headers) not in PDF_READING_GUIDE_HEADERS:
+            return table_html
+
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import cm
+        from reportlab.pdfbase import pdfmetrics
+
+        _register_pdf_fonts()
+        label_cells = [headers[0], *re.findall(
+            r"<tr\b[^>]*>\s*<td\b[^>]*>(.*?)</td>", table_html,
+            flags=re.IGNORECASE | re.DOTALL,
+        )]
+        label_width = max(
+            pdfmetrics.stringWidth(
+                line,
+                f"{PDF_MONOSPACE_FONT_FAMILY if '<code' in cell.lower() else PDF_PROPORTIONAL_FONT_FAMILY}_10",
+                PDF_READING_GUIDE_FONT_SIZE_PT,
+            )
+            for cell in label_cells for line in visible_lines(cell)
+        )
+        # A4 body width follows the existing two-centimetre page margins.
+        # Allow both 4px cell paddings plus 9pt of rendering tolerance.
+        content_width = A4[0] - 4 * cm
+        first_width = round(min(
+            PDF_READING_GUIDE_MAX_LABEL_WIDTH_PERCENT,
+            100 * (label_width + 15) / content_width,
+        ), 1)
+        widths = iter((first_width, round(100 - first_width, 1)))
+        table_html = re.sub(
+            r"<table\b[^>]*>",
+            '<table class="pdf-reading-guide" width="100%" repeat="1">',
+            table_html, count=1, flags=re.IGNORECASE,
+        )
+        table_html = re.sub(
+            r"<th\b[^>]*>(.*?)</th>",
+            lambda match: f'<th style="width: {next(widths):g}%">{match.group(1)}</th>',
+            table_html, count=2, flags=re.IGNORECASE | re.DOTALL,
+        )
+        return re.sub(
+            r"(<tr\b[^>]*>\s*)<td\b",
+            r'\1<td class="pdf-reading-guide-label"',
+            table_html, flags=re.IGNORECASE,
+        )
+
+    chapter_html = re.sub(
+        r"<table\b[^>]*>.*?</table>", format_guide,
+        html_content[chapter_start:chapter_end],
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    def keep_short_table_lead_in(paragraph_match):
+        paragraph_html, whitespace, table_start = paragraph_match.groups()
+        if len(" ".join(visible_lines(paragraph_html))) > 350:
+            return paragraph_match.group(0)
+        return (
+            f'<p class="pdf-reading-guide-heading">{paragraph_html}</p>'
+            + whitespace + table_start
+        )
+
+    chapter_html = re.sub(
+        r'<p>((?:(?!</p>).)*)</p>(\s*)(<table class="pdf-reading-guide")',
+        keep_short_table_lead_in,
+        chapter_html, flags=re.IGNORECASE | re.DOTALL,
+    )
+    chapter_html = re.sub(
+        r"<(h[45])>", r'<\1 class="pdf-chapter-two-heading">',
+        chapter_html, flags=re.IGNORECASE,
+    )
+    chapter_html = re.sub(
+        r"<p>(<strong>[^<]+</strong>)</p>",
+        r'<p class="pdf-chapter-two-heading">\1</p>',
+        chapter_html, flags=re.IGNORECASE,
+    )
+    return html_content[:chapter_start] + chapter_html + html_content[chapter_end:]
+
+
+def _fit_scientific_definition_tables_for_pdf(html_content):
+    """Give short symbols/counts less width and their explanations more."""
+    definitions = (
+        ("sec-5-6", "sec-6", (30, 19, 16, 35)),
+        ("sec-7", "sec-7-1", (24, 76)),
+        ("sec-7-2", "sec-7-3", (36, 64)),
+        ("sec-7-4", "sec-7-5", (14, 14, 12, 16, 8, 36)),
+    )
+    for start, end, widths in definitions:
+        a = html_content.find(f'name="{start}"')
+        b = html_content.find(f'name="{end}"', a + 1)
+        if a < 0 or b < 0:
+            continue
+        section = html_content[a:b]
+        def fit_table(match):
+            table = match.group(0)
+            headers = re.findall(r"<th\b[^>]*>", table)
+            if len(headers) != len(widths):
+                return table
+            remaining = iter(widths)
+            table = table.replace("<table>", '<table width="100%">', 1)
+            if start == "sec-7-4":
+                table = table.replace("Target-Decode", "Target-<br/>Decode")
+            def fit_header(header):
+                width = next(remaining)
+                tag = header.group(0)
+                if 'style="' in tag:
+                    return tag.replace('style="', f'style="width: {width}%; ', 1)
+                return tag[:-1] + f' style="width: {width}%">'
+            return re.sub(
+                r"<th\b[^>]*>",
+                fit_header,
+                table,
+            )
+        section = re.sub(r"<table\b[^>]*>.*?</table>", fit_table, section, flags=re.DOTALL)
+        html_content = html_content[:a] + section + html_content[b:]
+    return html_content
+
+
 def _render_pdf_html(md_text, translations, markdown_module=None):
     """Run the complete Markdown-to-HTML preprocessing used by PDF generation."""
     if markdown_module is None:
@@ -864,7 +1025,46 @@ def _render_pdf_html(md_text, translations, markdown_module=None):
     html_content = _add_pdf_anchor_names(html_content)
     html_content = _inject_pdf_list_markers(html_content)
     html_content = _mark_intro_analysis_table_for_pdf(html_content)
-    return _mark_method_matrix_for_pdf(html_content)
+    html_content = _mark_method_matrix_for_pdf(html_content)
+    html_content = _fit_scientific_definition_tables_for_pdf(html_content)
+    html_content = _mark_reading_guide_tables_for_pdf(html_content)
+    html_content = re.sub(
+        r"<p>(<strong>[^<]+</strong>)</p>",
+        r'<p class="pdf-section-label">\1</p>',
+        html_content,
+        flags=re.IGNORECASE,
+    )
+    def wrap_table_identifiers(match):
+        table = match.group(0).replace("Ansichtsbedienelemente", "Ansichts-<br/>bedienelemente")
+        def wrap_code(code_match):
+            code = code_match.group(1)
+            if len(code) <= 24 or "_" not in code or "<" in code:
+                return code_match.group(0)
+            lines, line = [], ""
+            for part in re.split(r"(?<=_)", code):
+                if line and len(line + part) > 22:
+                    lines.append(line)
+                    line = ""
+                line += part
+            lines.append(line)
+            return "<code>" + "<br/>".join(lines) + "</code>"
+        return re.sub(r"<code>(.*?)</code>", wrap_code, table, flags=re.DOTALL)
+    html_content = re.sub(r"<table\b[^>]*>.*?</table>", wrap_table_identifiers, html_content, flags=re.DOTALL)
+    # A short introduction ending in a colon belongs with its list/code block.
+    html_content = re.sub(
+        r"<p>((?:(?!</?p\b).)*?:)</p>(?=\s*<(?:pre|ul|ol)\b)",
+        lambda m: '<p class="pdf-section-label">' + m.group(1) + '</p>' if len(re.sub(r'<[^>]+>', '', m.group(1))) < 260 else m.group(0),
+        html_content,
+        flags=re.DOTALL,
+    )
+    # Repeat column headings across pages and prevent a lone header row at
+    # a page boundary, including the scientific notation and control tables.
+    return re.sub(
+        r'<table\b(?![^>]*\brepeat=)([^>]*)>',
+        r'<table\1 repeat="1">',
+        html_content,
+        flags=re.IGNORECASE,
+    )
 
 
 
@@ -913,6 +1113,10 @@ def _generate_pdf_doc(lang, logo_b64, version):
         p {{ margin-top: 0; margin-bottom: 6px; }}
 
         h1, h2 {{ color: #0a1428; }}
+        h2, h3, h4, h5, .pdf-section-label {{
+            page-break-after: avoid;
+            -pdf-keep-with-next: true;
+        }}
         h3, h4, .defined-term {{ color: #146b2e; }}
 
         .defined-term {{ font-weight: bold; }}
@@ -1014,6 +1218,29 @@ def _generate_pdf_doc(lang, logo_b64, version):
             -pdf-keep-with-next: true;
         }}
 
+        .pdf-reading-guide {{
+            width: 100%;
+            font-size: {PDF_READING_GUIDE_FONT_SIZE_PT:g}pt;
+            line-height: 1.25;
+        }}
+
+        .pdf-reading-guide th, .pdf-reading-guide td {{
+            padding: 4px;
+            vertical-align: top;
+        }}
+
+        .pdf-reading-guide-label {{ font-weight: bold; }}
+
+        .pdf-reading-guide-heading, .pdf-chapter-two-heading {{
+            page-break-after: avoid;
+            -pdf-keep-with-next: true;
+        }}
+
+        p.pdf-chapter-two-heading {{
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }}
+
         .pdf-method-matrix-label {{
             margin-bottom: 5px;
             font-size: 9pt;
@@ -1023,14 +1250,14 @@ def _generate_pdf_doc(lang, logo_b64, version):
 
         .pdf-method-matrix {{
             width: 100%;
-            font-size: 6pt;
-            line-height: 1.1;
+            font-size: 8pt;
+            line-height: 1.15;
         }}
 
         .pdf-method-matrix th {{
             padding: 3px 2px;
-            font-size: 5.8pt;
-            line-height: 1.05;
+            font-size: 7.8pt;
+            line-height: 1.1;
         }}
 
         .pdf-method-matrix td {{

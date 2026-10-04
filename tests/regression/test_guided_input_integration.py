@@ -1958,6 +1958,79 @@ def test_german_review_uses_resolved_reference_location(monkeypatch):
     assert "Referenzaufbau/-station" in review
 
 
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_tx_message_pattern_warning_renders_at_reference_entry_and_clears(
+    input_view, language,
+):
+    """The shared entry warns for mixed identities without adding an error."""
+    script = '''
+import streamlit as st
+from i18n import GUIDED_INPUTS, T
+from ui.components.config_panel import render_benchmark_expander
+from ui.guided_inputs import renderer
+
+language = st.session_state.lang
+if st.session_state.input_view == "classic":
+    render_benchmark_expander(T[language])
+else:
+    renderer._render_reference_design_fields(T[language], GUIDED_INPUTS[language])
+'''
+    application = AppTest.from_string(script, default_timeout=10)
+    state = _canonical_state(
+        input_view=input_view, lang=language,
+        guided_use_case="tx_benchmark", classic_question="tx_benchmark",
+        guided_reference_design="reference_station", val_comp_mode="reference_station",
+        val_analysis_direction="tx", val_ref_callsign="G1XYZ/P", val_ref_qth="JO01",
+    )
+    for key, value in state.items():
+        application.session_state[key] = value
+    application.run()
+    assert not application.exception
+    assert not application.error
+    assert [warning.value for warning in application.warning] == [
+        f"**{T[language]['warn_tx_message_patterns_title']}**\n\n"
+        f"{T[language]['warn_tx_message_patterns']}"
+    ]
+    application.text_input("val_ref_callsign").set_value("G1XYZ").run()
+    assert not application.exception
+    assert not application.warning
+    assert not application.error
+
+
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_loaded_tx_message_pattern_warning_reaches_review_without_blocking_run(
+    page_region_application, input_view, language,
+):
+    """Loaded configurations receive the advisory even if entry is skipped."""
+    source = _canonical_state(
+        lang=language, val_analysis_direction="tx", val_comp_mode="reference_station",
+        val_ref_callsign="G1XYZ/P", val_ref_qth="JO01",
+    )
+    settings = config_io.build_config_settings_from_state(source)
+    loaded_state = _canonical_state(input_view=input_view, lang=language)
+    config_io.apply_config_values_to_state(
+        config_io.normalize_config_settings(settings), loaded_state,
+    )
+    reconstruct_guided_transients(loaded_state, has_loaded_demo=False)
+    loaded_state.update(
+        run_mode=None, guided_active_node="review_and_run",
+        guided_demo_metadata_open=False,
+    )
+    loaded_state.pop("input_view")
+    application, _ = page_region_application(input_view, **loaded_state)
+    expected = (
+        f"**{T[language]['warn_tx_message_patterns_title']}**\n\n"
+        f"{T[language]['warn_tx_message_patterns']}"
+    )
+    assert expected in [warning.value for warning in application.warning]
+    assert not application.error
+    assert application.button(key="run_analysis_button").disabled is False
+    assert application.session_state["val_callsign"] == source["val_callsign"]
+    assert application.session_state["val_ref_callsign"] == source["val_ref_callsign"]
+
+
 
 def test_switching_to_classic_preserves_configuration_context_and_results(
     monkeypatch,

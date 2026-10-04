@@ -1,4 +1,4 @@
-"""Shared field-level input errors without importing scientific runtime."""
+"""Shared field errors and setup guidance without importing scientific runtime."""
 
 from collections.abc import Mapping
 import math
@@ -41,6 +41,33 @@ _MESSAGES = {
 
 def validation_message(state, key):
     return _MESSAGES.get(state.get("lang", "en"), _MESSAGES["en"])[key]
+
+
+def tx_message_pattern_warning(state: Mapping, labels=None) -> str | None:
+    """Return advisory setup guidance for unlike TX callsign structures.
+
+    A slash is only a reason to check the actual message patterns and schedule;
+    this does not infer firmware settings or establish protocol compatibility.
+    The warning never changes field validity or canonical configuration.
+    """
+    if (
+        state.get("val_analysis_direction") != "tx"
+        or state.get("val_comp_mode") != "reference_station"
+    ):
+        return None
+    target = normalize_ascii_upper(state.get("val_callsign"))
+    reference = normalize_ascii_upper(state.get("val_ref_callsign"))
+    if not is_valid_callsign(target) or not is_valid_callsign(reference):
+        return None
+    if ("/" in target) == ("/" in reference):
+        return None
+    if labels is None:
+        from i18n import T
+        labels = T.get(state.get("lang", "en"), T["en"])
+    return (
+        f"**{labels['warn_tx_message_patterns_title']}**\n\n"
+        f"{labels['warn_tx_message_patterns']}"
+    )
 
 
 def validate_input_fields(state: Mapping, labels=None) -> dict[str, str]:

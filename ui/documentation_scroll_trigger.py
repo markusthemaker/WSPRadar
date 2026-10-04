@@ -47,8 +47,8 @@ export default function(component) {
             layoutName: 'section-0-1',
             startAnchorId: 'sec-1-2',
             endAnchorId: 'sec-1-3',
-            widthPercentages: [28, 27, 45],
-            languages: ['en'],
+            widthPercentages: [27, 45, 28],
+            languages: ['en', 'de'],
         },
         {
             layoutName: 'section-1-2',

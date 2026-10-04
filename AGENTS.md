@@ -986,8 +986,10 @@ technically correct or already present.
   question-to-analysis overview; **What one run produces**; and **Your first
   useful run**.
 - Organize Part I around the operator's analysis question rather than around a
-  generic inventory of screens. Chapter 2 uses the four analysis families **RX
-  Performance**, **TX Performance**, **RX Benchmark**, and **TX Benchmark**.
+  generic inventory of screens. Chapter 2 presents **RX Benchmark**, **TX Benchmark**, **RX Performance**,
+  and **TX Performance**, in that order. Benchmark is the first expected use;
+  Performance receives equal practical and scientific depth. Apply the same
+  Benchmark-first introduction to the preface and analysis-choice overviews.
   RX and TX Benchmark each distinguish Reference Setup/Station and Reference
   Neighborhood. Both use same-cycle evidence; experimental intent describes
   controlled setups or independent stations without selecting another method.
@@ -1006,6 +1008,25 @@ technically correct or already present.
   relevant boundary; how to strengthen or confirm the result; and an
   evidence-matched conclusion. These elements need not become mechanical
   headings when a shorter treatment is clearer.
+- Apply the approved Chapter 2 reading-guide format: begin with the operating
+  question and key quantity, then explain Map, Benchmark/Performance Evidence,
+  Temporal Evidence and selected stations. Segment Inspector selects geographic
+  scope; do not describe it as a result figure. Each figure explanation should
+  state what it summarizes, what a pattern means and what to inspect next.
+  Keep one-sided categories and evidence accounting as a supporting check after
+  the main interpretation. Adapt this pattern to Section 2.5's expert diagnostic
+  workflow rather than forcing every diagnostic through the Map sequence.
+- Introduce Joint Spots before the first Benchmark guide. Use **Joint Spot(s)**
+  for the comparison units and **Delta SNR / ΔSNR** for their calculated values;
+  do not create apparent new concepts with routine synonyms such as matched
+  results or paired Delta SNR. Preserve distinct Performance opportunities,
+  original database reports, station-level summaries and exact localized UI
+  titles. Formal matching terminology remains appropriate where it explains
+  the scientific construction.
+- For reading-guide tables, fit the short label column to its content and give
+  the remaining width to interpretation. One-third/two-thirds is a starting
+  point, not a fixed rule. Inspect the rendered PDF for label wrapping, wasted
+  space and page breaks; do not apply one column ratio to unrelated tables.
 - Share common Benchmark mechanics once at RX- or TX-family level. Design
   subsections should focus on what the Reference represents, which setup
   controls matter, which interpretations become stronger or weaker, and which
@@ -1095,6 +1116,15 @@ technically correct or already present.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
+- Call the WSPRnet reporting record and the queried WSPR data services a
+  **database** (German: **Datenbank**) in normal explanation. Reserve **archive**
+  for an actual stored/downloadable archive, an export archive, an official
+  title or a literal public identifier; do not imply that every provider holds
+  an identical snapshot.
+- For a whole-manual review, account for every chapter and appendix in the
+  handoff: identify substantive changes, reviewed sections retained as-is,
+  technical corrections and any unverified claims. A passing rendering test or
+  unchanged formula is not by itself a scientific correctness review.
 - Define each formula once in its scientific home, ensure it renders in both the
   Web UI and generated PDF, and link to it from practical sections when needed.
 - In Chapter 7, use the hierarchy **reported observations → constructed

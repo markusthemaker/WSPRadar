@@ -144,7 +144,7 @@ def test_manual_scroll_synchronization_is_throttled_guarded_and_cleaned_up():
 
 
 def test_documentation_tables_apply_scoped_column_widths_by_section():
-    """Support one exact English layout and localized natural-width ratios."""
+    """Support the bilingual question-first layout and natural-width ratios."""
     javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
 
     expected_layouts = (
@@ -152,8 +152,8 @@ def test_documentation_tables_apply_scoped_column_widths_by_section():
             "layoutName: 'section-0-1'",
             "startAnchorId: 'sec-1-2'",
             "endAnchorId: 'sec-1-3'",
-            "widthPercentages: [28, 27, 45]",
-            "languages: ['en']",
+            "widthPercentages: [27, 45, 28]",
+            "languages: ['en', 'de']",
         ),
         (
             "layoutName: 'section-1-2'",
