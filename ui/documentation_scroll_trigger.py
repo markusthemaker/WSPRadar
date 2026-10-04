@@ -80,6 +80,12 @@ export default function(component) {
             endAnchorId: 'sec-5-4',
             widthMultipliers: [1.5, 1, 1],
         },
+        {
+            layoutName: 'section-4-4',
+            startAnchorId: 'sec-5-4',
+            endAnchorId: 'sec-5-5',
+            widthPercentages: [24, 18, 14, 44],
+        },
     ];
 
     function anchorIdFromHash(hash) {

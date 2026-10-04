@@ -185,6 +185,12 @@ def test_documentation_tables_apply_scoped_column_widths_by_section():
             "endAnchorId: 'sec-5-4'",
             "widthMultipliers: [1.5, 1, 1]",
         ),
+        (
+            "layoutName: 'section-4-4'",
+            "startAnchorId: 'sec-5-4'",
+            "endAnchorId: 'sec-5-5'",
+            "widthPercentages: [24, 18, 14, 44]",
+        ),
     )
     for layout_contract in expected_layouts:
         for expected_source in layout_contract:

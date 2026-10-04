@@ -1838,7 +1838,9 @@ when that history target is not mounted.
 After lazy content mounts, the same controller assigns documentation-only
 weighted column layouts to the registered anchor-bounded tables. Each multiplier is
 applied to the localized table's natural browser widths and normalized back to
-the unchanged total table width.
+the unchanged total table width. Tables with explicit percentage widths use those
+proportions instead, including the four-column filter and evidence-threshold table
+in Section 4.4 in both languages.
 Hiding an already loaded manual does not immediately re-expand it.
 `Load full documentation` is a prominent explicit fallback, and the same control
 can hide the loaded content. Starting an analysis collapses the manual and
