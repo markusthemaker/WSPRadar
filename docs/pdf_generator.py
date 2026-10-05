@@ -113,6 +113,38 @@ def _replace_pdf_math(md_text, translations):
         r"\frac{\text{Target}}{\text{Target} + \text{Other Signals}}"
     )
     block_replacements = {
+        r"SNR_{\mathrm{norm}}=SNR_{\mathrm{reported}}-P_{\mathrm{reported}}+30": _formula(
+            "SNR<sub>norm</sub> = SNR<sub>reported</sub> - "
+            "P<sub>reported</sub> + 30"
+        ),
+        (
+            r"SNR_{\mathrm{Reference,corr}}="
+            r"SNR_{\mathrm{Reference,norm}}+C_{\mathrm{Reference}}"
+        ): _formula(
+            "SNR<sub>Reference,corr</sub> = "
+            "SNR<sub>Reference,norm</sub> + C<sub>Reference</sub>"
+        ),
+        (
+            r"\Delta SNR=SNR_{\mathrm{Target,norm}}-"
+            r"SNR_{\mathrm{Reference,corr}}"
+        ): _formula(
+            f"{delta_snr_label} = SNR<sub>Target,norm</sub> - "
+            "SNR<sub>Reference,corr</sub>"
+        ),
+        (
+            r"\text{Decode Rate (\%)}=\frac{\text{successful opportunities}}"
+            r"{\text{confirmed opportunities}}\times100"
+        ): _formula(
+            "Decode Rate (%) = successful opportunities / "
+            "confirmed opportunities &times; 100"
+        ),
+        (
+            r"\text{Dekodierrate (\%)}=\frac{\text{erfolgreiche Gelegenheiten}}"
+            r"{\text{bestätigte Gelegenheiten}}\times100"
+        ): _formula(
+            "Dekodierrate (%) = erfolgreiche Gelegenheiten / "
+            "bestätigte Gelegenheiten &times; 100"
+        ),
         (
             r"S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},"
             r"\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}"
@@ -783,7 +815,7 @@ def _mark_intro_analysis_table_for_pdf(html_content):
 def _mark_method_matrix_for_pdf(html_content):
     """Apply stable portrait widths to the Chapter 7 method matrix."""
     chapter_start = html_content.find('name="sec-7"')
-    methods_start = html_content.find('name="sec-7-1"', chapter_start + 1)
+    methods_start = html_content.find('name="sec-7-foundations"', chapter_start + 1)
     if chapter_start < 0 or methods_start < 0:
         return html_content
 
@@ -975,9 +1007,15 @@ def _fit_scientific_definition_tables_for_pdf(html_content):
     """Give short symbols/counts less width and their explanations more."""
     definitions = (
         ("sec-5-6", "sec-6", (30, 19, 16, 35)),
-        ("sec-7", "sec-7-1", (24, 76)),
-        ("sec-7-2", "sec-7-3", (36, 64)),
-        ("sec-7-4", "sec-7-5", (14, 14, 12, 16, 8, 36)),
+        ("sec-7", "sec-7-foundations", (24, 76)),
+        ("sec-7-spots-identities-cycles", "sec-7-normalization-consolidation", (36, 64)),
+        ("sec-7-activity-eligibility", "sec-7-benchmark", (19, 81)),
+        ("sec-7-benchmark-outcomes", "sec-7-benchmark-delta", (25, 75)),
+        ("sec-7-benchmark-delta", "sec-7-benchmark-aggregation", (25, 75)),
+        ("sec-7-benchmark-aggregation", "sec-7-benchmark-coverage", (23, 57, 20)),
+        ("sec-7-benchmark-coverage", "sec-7-neighborhood", (34, 66)),
+        ("sec-7-performance-opportunities", "sec-7-performance-rates", (18, 25, 40, 17)),
+        ("sec-7-outliers", "sec-8", (34, 66)),
     )
     for start, end, widths in definitions:
         a = html_content.find(f'name="{start}"')
@@ -992,8 +1030,15 @@ def _fit_scientific_definition_tables_for_pdf(html_content):
                 return table
             remaining = iter(widths)
             table = table.replace("<table>", '<table width="100%">', 1)
-            if start == "sec-7-4":
+            if start == "sec-7-performance-opportunities":
                 table = table.replace("Target-Decode", "Target-<br/>Decode")
+            if start == "sec-7-outliers":
+                table = re.sub(
+                    r"(<tr\b[^>]*>\s*<td\b[^>]*>\s*<strong>)"
+                    r"(Basislinien|Vorzeichen)(übereinstimmung)(</strong>)",
+                    r"\1\2-<br/>\3\4",
+                    table,
+                )
             def fit_header(header):
                 width = next(remaining)
                 tag = header.group(0)

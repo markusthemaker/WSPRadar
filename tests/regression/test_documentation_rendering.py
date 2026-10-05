@@ -40,6 +40,23 @@ def test_manuals_describe_only_the_current_configuration_and_url_contract():
         assert "`legacy_no_code`" in manual
 
 
+def _scientific_section(manual, anchor):
+    """Read one heading subtree independently of adjacent compatibility aliases."""
+    marker = f'<a id="{anchor}"></a>'
+    assert manual.count(marker) == 1, anchor
+    tail = manual.split(marker, 1)[1]
+    heading = re.search(r"(?m)^(#{1,6})[ \t]+[^\n]+", tail)
+    assert heading is not None, anchor
+    following = tail[heading.end():]
+    next_heading = re.search(
+        rf"(?m)^#{{1,{len(heading.group(1))}}}[ \t]+", following
+    )
+    end = len(tail) if next_heading is None else heading.end() + next_heading.start()
+    section = tail[heading.start():end]
+    # Aliases immediately before the next heading belong to that next section.
+    return re.sub(r'(?:\s*<a id="[^\"]+"></a>)+\s*\Z', '', section)
+
+
 class _FakeStreamlit:
     def __init__(self, session_state=None):
         self.session_state = session_state if session_state is not None else {}
@@ -160,109 +177,201 @@ def test_documentation_text_is_process_cached_without_modification():
     assert get_docs.cache_info().hits == 1
 
 
-def test_english_scientific_methods_use_streamlit_math_delimiters():
-    """Keep Chapter 7 formulas parseable without changing their mathematics."""
-    scientific_methods = DOC_EN.split('<a id="sec-7"></a>', 1)[1].split(
-        '<a id="sec-8"></a>', 1
-    )[0]
+@pytest.mark.parametrize("manual", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_scientific_methods_use_streamlit_math_delimiters(manual):
+    """Keep useful equations parseable without imposing a formula quota."""
+    scientific_methods = _scientific_section(manual, "sec-7")
 
     assert r"\(" not in scientific_methods
     assert r"\)" not in scientific_methods
-    assert (
-        r"$$v_{T,i,b}=\frac{T_{i,b}}{N_{i,b}},\qquad "
-        r"v_{J,i,b}=\frac{J_{i,b}}{N_{i,b}},\qquad "
-        r"v_{R,i,b}=\frac{R_{i,b}}{N_{i,b}}$$"
-        in scientific_methods
-    )
+    for equation in (
+        r"$$SNR_{\mathrm{norm}}=SNR_{\mathrm{reported}}-P_{\mathrm{reported}}+30$$",
+        r"$$SNR_{\mathrm{Reference,corr}}=SNR_{\mathrm{Reference,norm}}+C_{\mathrm{Reference}}$$",
+        r"$$\Delta SNR=SNR_{\mathrm{Target,norm}}-SNR_{\mathrm{Reference,corr}}$$",
+    ):
+        assert equation in scientific_methods
 
 
 def test_scientific_methods_keep_bilingual_section_and_formula_parity():
-    """Keep Chapter 7 structure and mathematical contracts language-neutral."""
-    english_methods = DOC_EN.split('<a id="sec-7"></a>', 1)[1].split(
-        '<a id="sec-8"></a>', 1
-    )[0]
-    german_methods = DOC_DE.split('<a id="sec-7"></a>', 1)[1].split(
-        '<a id="sec-8"></a>', 1
-    )[0]
-
+    """Keep the six groups and mathematical contracts aligned across languages."""
+    english_methods = _scientific_section(DOC_EN, "sec-7")
+    german_methods = _scientific_section(DOC_DE, "sec-7")
     english_anchors = re.findall(r'<a id="(sec-7(?:-[^"]+)?)"></a>', english_methods)
     german_anchors = re.findall(r'<a id="(sec-7(?:-[^"]+)?)"></a>', german_methods)
     english_formulas = re.findall(r"\$\$(.*?)\$\$", english_methods, flags=re.DOTALL)
     german_formulas = re.findall(r"\$\$(.*?)\$\$", german_methods, flags=re.DOTALL)
-    english_formal = english_methods.split('<a id="sec-7-11"></a>', 1)[1]
-    german_formal = german_methods.split('<a id="sec-7-11"></a>', 1)[1]
-    english_outlier_formulas = re.findall(
-        r"\$\$(.*?)\$\$", english_formal, flags=re.DOTALL
-    )
-    german_outlier_formulas = re.findall(
-        r"\$\$(.*?)\$\$", german_formal, flags=re.DOTALL
-    )
-
     assert english_anchors == german_anchors
-    assert english_formulas == german_formulas
-    assert len(english_formulas) == 30
-    assert len(english_outlier_formulas) == 13
-    assert english_outlier_formulas == german_outlier_formulas
-    assert len(english_formulas) - len(english_outlier_formulas) == 17
+    # Localized words may differ; operators and scientific symbols must agree.
+    normalize_formula = lambda formula: re.sub(r"\\text\{[^}]*\}", "TEXT", formula)
+    assert [normalize_formula(formula) for formula in english_formulas] == [
+        normalize_formula(formula) for formula in german_formulas
+    ]
+    for methods in (english_methods, german_methods):
+        assert "opportunity-v3" not in methods
+        assert "native-residual-episode-v8" not in methods
 
 
-def test_outlier_method_keeps_mnemonic_notation_inside_section_7_11():
-    """Keep the approved symbols local to the formal detector method."""
-    english_before, english_remainder = DOC_EN.split(
-        '<a id="sec-7-11"></a>', 1
+@pytest.mark.parametrize("manual", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_scientific_methods_follow_six_reader_groups_and_keep_legacy_links(manual):
+    """Protect the reading sequence while older links keep their semantic home."""
+    methods = _scientific_section(manual, "sec-7")
+    group_anchors = (
+        "sec-7-foundations",
+        "sec-7-benchmark",
+        "sec-7-performance",
+        "sec-7-views",
+        "sec-7-claims",
+        "sec-7-outliers",
     )
-    english_formal, english_after = english_remainder.split(
-        '<a id="sec-8"></a>', 1
-    )
-    german_before, german_remainder = DOC_DE.split(
-        '<a id="sec-7-11"></a>', 1
-    )
-    german_formal, german_after = german_remainder.split(
-        '<a id="sec-8"></a>', 1
-    )
+    assert re.findall(r"(?m)^#### (7\.\d+) ", methods) == [
+        f"7.{number}" for number in range(1, 7)
+    ]
+    positions = [methods.index(f'<a id="{anchor}"></a>') for anchor in group_anchors]
+    assert positions == sorted(positions)
+    for number, anchor in enumerate(group_anchors, start=1):
+        assert _scientific_section(manual, anchor).startswith(f"#### 7.{number} ")
 
-    mnemonic_symbols = (
-        r"\widetilde D_{i,k}",
-        r"\mathcal{B}_{\mathrm{pre}}",
-        r"B^P_{i,k}",
-        r"r^P_{i,u}",
-        r"\mathcal{V}",
-        r"W_i^P",
-        r"W_i^B",
-        r"z_E",
-        r"\operatorname{agree}(E)",
-        r"\varepsilon",
+    compatibility_homes = {
+        "sec-7-1": "sec-7-spots-identities-cycles",
+        "sec-7-2": "sec-7-spots-identities-cycles",
+        "sec-7-3": "sec-7-activity-eligibility",
+        "sec-7-4": "sec-7-performance",
+        "sec-7-5": "sec-7-benchmark-delta",
+        "sec-7-6": "sec-7-benchmark-outcomes",
+        "sec-7-7": "sec-7-benchmark-aggregation",
+        "sec-7-8": "sec-7-views",
+        "sec-7-8-1": "sec-7-view-geography",
+        "sec-7-8-2": "sec-7-benchmark-coverage",
+        "sec-7-8-3": "sec-7-view-time",
+        "sec-7-8-4": "sec-7-view-station",
+        "sec-7-8-5": "sec-7-view-spread",
+        "sec-7-9": "sec-7-view-scope",
+        "sec-7-10": "sec-7-claims",
+        "sec-7-11": "sec-7-outliers",
+    }
+    for old_anchor, current_anchor in compatibility_homes.items():
+        assert _scientific_section(manual, old_anchor) == _scientific_section(
+            manual, current_anchor
+        ), (old_anchor, current_anchor)
+
+
+@pytest.mark.parametrize("manual", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_shared_power_normalization_precedes_both_analysis_families(manual):
+    """Normalization applies to successful SNR in both modes; correction is Benchmark."""
+    foundations = _scientific_section(manual, "sec-7-foundations")
+    benchmark = _scientific_section(manual, "sec-7-benchmark")
+    performance = _scientific_section(manual, "sec-7-performance")
+    normalization = r"$$SNR_{\mathrm{norm}}=SNR_{\mathrm{reported}}-P_{\mathrm{reported}}+30$$"
+    assert _scientific_section(manual, "sec-7").count(normalization) == 1
+    assert normalization in foundations
+    assert "30 dBm" in foundations
+    assert "Performance" in foundations and "Benchmark" in foundations
+    assert r"SNR_{\mathrm{Reference,corr}}" in benchmark
+    assert r"$$\Delta SNR=" in benchmark
+    assert "SNR" in performance
+    assert any(term in performance.casefold() for term in ("normali", "normiert", "normierung"))
+
+
+@pytest.mark.parametrize("manual", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_explicit_chapter_seven_references_are_clickable(manual):
+    """Named Chapter 7 references must work in both the web manual and PDF."""
+    without_links = re.sub(r"\[[^\]]+\]\([^)]*\)", "", manual)
+    without_links = re.sub(
+        r'<a\b[^>]*href="[^"]+"[^>]*>.*?</a>',
+        "",
+        without_links,
+        flags=re.DOTALL,
     )
-    for symbol in mnemonic_symbols:
-        assert symbol in english_formal
-        assert symbol in german_formal
-        assert symbol not in english_before + english_after
-        assert symbol not in german_before + german_after
+    unlinked = re.findall(
+        r"\b(?:Sections?|Chapters?|Abschnitt(?:e|en)?|Kapitel)\s+7(?:\.\d+)*\b",
+        without_links,
+        flags=re.IGNORECASE,
+    )
+    assert not unlinked, unlinked
 
-    for obsolete_symbol in (
-        r"Q_{i,k}",
-        r"\mathcal{Q}_{\mathrm{pre}}",
-        r"\mathcal{U}",
-        r"L=\min",
-        r"W_i=\max",
-    ):
-        assert obsolete_symbol not in english_formal
-        assert obsolete_symbol not in german_formal
 
-    for formula_fragment in (
-        r"B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2}",
-        r"F=\min(1\ \mathrm{dB},D_{\min}-\varepsilon)",
-        r"\varepsilon=0.01\ \mathrm{dB}",
-        r"|m_E|\geq D_{\min}-\varepsilon",
-        r"|r_{i,u}|\geq D_{\min}-\varepsilon",
-        r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}+\varepsilon",
-        r"r^P_{i,u}=D_{i,u}-B^P_{i,k(u)}",
-        r"W_i^B=\max(10,C_i)\ \mathrm{minutes}",
-        r"z_E=0.6745\frac{m_E}{S_{\mathrm{robust}}}",
-        r"\operatorname{agree}(E)\geq\frac{2}{3}",
-    ):
-        assert formula_fragment in english_formal
-        assert formula_fragment in german_formal
+
+def test_outlier_method_preserves_support_scale_and_qualification_rules():
+    """Protect the approved experimental overview, not every algorithmic microstep."""
+    contracts = (
+        ("en", DOC_EN, (
+            "experimental, optional detector",
+            "principal checks, rather than every algorithmic refinement",
+            "Only native Joint Spots",
+            "each exact remote callsign-plus-locator identity",
+            "before display aggregation",
+            "changing Temporal Evidence bins cannot change events",
+            "at least four populated cells",
+            "average of the two flank medians",
+            "both sides equal weight",
+            "Insufficient support on either side leaves the candidate unclassified",
+            "fallback is not a universal minimum",
+            "not probability or statistical significance",
+            "complete candidate excluded",
+            "All four checks must pass together",
+            "two thirds of all retained native observations",
+            "including any neutral bridge",
+            "Duration gives no weaker threshold",
+            "individually pass both departure thresholds",
+            "retested against the event-level requirements",
+            "Weaker interior observations can remain",
+            "No qualifying anchored interval means no event",
+            "All classes pass the same checks",
+            "not uninterrupted behavior between observations",
+            "no multiple-event significance correction",
+            "does not make event counts independent samples",
+            "Assigning a cause still requires",
+        )),
+        ("de", DOC_DE, (
+            "experimentelle, optionale Detektor",
+            "wesentlichen Prüfungen, nicht jede algorithmische Verfeinerung",
+            "Nur native Joint Spots",
+            "jede exakte entfernte Identität aus Rufzeichen und Locator",
+            "vor der Darstellungsaggregation",
+            "können Ereignisse nicht verändern",
+            "mindestens vier besetzte Zellen",
+            "Mittelwert der beiden Flankenmediane",
+            "beide Seiten erhalten gleiches Gewicht",
+            "Reicht die Unterstützung auf einer Seite nicht aus",
+            "bleibt der Kandidat unklassifiziert",
+            "kein allgemeiner Mindestwert",
+            "keine Wahrscheinlichkeit oder statistische Signifikanz",
+            "Ausschluss des vollständigen Kandidaten",
+            "Alle vier Prüfungen müssen gemeinsam bestanden werden",
+            "zwei Drittel aller beibehaltenen nativen Beobachtungen",
+            "einschließlich einer etwaigen neutralen Brücke",
+            "Eine längere Dauer senkt keine Schwelle",
+            "beide Abweichungsschwellen einzeln bestehen",
+            "erneut gegen die Anforderungen auf Ereignisebene geprüft",
+            "Schwächere innere Beobachtungen können verbleiben",
+            "Ohne qualifizierendes Ankerintervall wird kein Ereignis gemeldet",
+            "Alle Klassen bestehen dieselben Prüfungen",
+            "kein ununterbrochenes Verhalten zwischen den Beobachtungen",
+            "macht aus Ereigniszahlen keine unabhängigen Stichproben",
+            "Zuordnung zu einer Ursache erfordert weiterhin",
+        )),
+    )
+    for language, manual, required_meanings in contracts:
+        detector = _scientific_section(manual, "sec-7-outliers")
+        for meaning in required_meanings:
+            assert meaning.casefold() in detector.casefold(), (language, meaning)
+        for control_key in (
+            "lbl_delta_snr_outlier_minimum_departure_db",
+            "lbl_delta_snr_outlier_minimum_robust_z",
+            "lbl_delta_snr_outlier_maximum_baseline_difference_db",
+        ):
+            assert T[language][control_key] in detector
+        for class_key in (
+            "txt_outlier_event_spot_impulse",
+            "txt_outlier_event_short_burst",
+            "txt_outlier_event_sustained_excursion",
+        ):
+            assert T[language][class_key] in detector
+        for value in ("MAD", "IQR", "0.6745", "0.5 dB", "0.01 dB", "+8 dB", "+1 dB", "-7 dB"):
+            assert value in detector
+        assert "(#sec-outlier)" in detector
+        assert "(#sec-5-6)" in detector
+
 
 
 def test_bilingual_preface_introduces_target_peer_and_decode_rate():
@@ -320,12 +429,8 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
     german_outlier = DOC_DE.split('<a id="sec-outlier"></a>', 1)[1].split(
         '<a id="sec-3-9"></a>', 1
     )[0]
-    english_formal = DOC_EN.split('<a id="sec-7-11"></a>', 1)[1].split(
-        '<a id="sec-8"></a>', 1
-    )[0]
-    german_formal = DOC_DE.split('<a id="sec-7-11"></a>', 1)[1].split(
-        '<a id="sec-8"></a>', 1
-    )[0]
+    english_formal = _scientific_section(DOC_EN, "sec-7-outliers")
+    german_formal = _scientific_section(DOC_DE, "sec-7-outliers")
 
     control_keys = (
         "lbl_report_delta_snr_outlier_candidates",
@@ -359,23 +464,19 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
         assert "Joint Spot" in section
     assert "optional expert diagnostic tool" in english_outlier
     assert "not a routine step intended for every operator" in english_outlier
-    assert "[Section 7.11](#sec-7-11)" in english_outlier
+    assert "[Section 7.6](#sec-7-outliers)" in english_outlier
     assert "optionales Diagnosewerkzeug für erfahrene Anwender" in german_outlier
     assert "nicht für den routinemäßigen Einsatz" in german_outlier
-    assert "[Abschnitt 7.11](#sec-7-11)" in german_outlier
+    assert "[Abschnitt 7.6](#sec-7-outliers)" in german_outlier
     assert "cannot create, merge, split or remove an event" in english_outlier
     assert (
         "kann kein Ereignis erzeugen, zusammenführen, teilen oder entfernen"
         in german_outlier
     )
-    assert "at least four populated cells" in english_formal
-    assert "missing cells are never imputed" in english_formal
-    assert "mindestens vier belegte Zellen" in german_formal
-    assert "fehlende Zellen werden niemals ergänzt" in german_formal
-    assert "trimmed to the first and last strong anchor" in english_formal
-    assert "Units already grouped between them remain internal evidence" in english_formal
-    assert "auf den ersten und letzten starken Anker gekürzt" in german_formal
-    assert "dazwischen gruppierte Einheiten" in german_formal
+    assert "experimental, optional detector" in english_formal
+    assert "experimentelle, optionale Detektor" in german_formal
+    assert "No qualifying anchored interval means no event" in english_formal
+    assert "Ohne qualifizierendes Ankerintervall wird kein Ereignis gemeldet" in german_formal
     assert "does not calculate a p-value" in english_outlier
     assert "berechnet keinen p-Wert" in german_outlier
     assert "$$" not in english_outlier
@@ -387,28 +488,37 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
 
 
 def test_bilingual_methods_keep_the_approved_plain_language_explanations():
-    """Protect the approved symbol, evidence-unit, and interpretation details."""
-    assert "An indicator is `1` when its condition is met and `0` otherwise" in DOC_EN
-    assert "Ein Indikator ist `1`, wenn seine Bedingung erfüllt ist, und sonst `0`" in DOC_DE
-    assert "These units are constructed from reported spots; they are not additional radio measurements" in DOC_EN
-    assert "Diese Einheiten werden aus gemeldeten Spots gebildet; sie sind keine zusätzlichen Funkmessungen" in DOC_DE
-    assert "an SNR reported as `-15 dB` at `20 dBm` is normalized to `-5 dB` at `30 dBm`" in DOC_EN
-    assert "Ein mit `-15 dB` gemeldetes SNR bei `20 dBm` wird beispielsweise auf `-5 dB` bei `30 dBm` normiert" in DOC_DE
-    assert "The value $D_{i,c}$ is an observed paired difference for exactly one retained comparison unit" in DOC_EN
-    assert "Der Wert $D_{i,c}$ ist eine beobachtete gepaarte Differenz für genau eine beibehaltene Vergleichseinheit" in DOC_DE
-    assert "$c'$ indexes all successful observations for peer $i$" in DOC_EN
-    assert "$c'$ durchläuft alle erfolgreichen Beobachtungen des Peers $i$" in DOC_DE
-    assert "Here $n_{cell}$ is the evidence count in one density cell" in DOC_EN
-    assert "Dabei ist $n_{cell}$ die Evidenzanzahl in einer Dichtezelle" in DOC_DE
-    assert "1,000 spots are not the same as 1,000 unrelated experiments" in DOC_EN
-    assert "1.000 Spots nicht dasselbe wie 1.000 voneinander unabhängige Experimente" in DOC_DE
-    assert "The selected design therefore defines the analysis target" not in DOC_EN
-    assert "formal statistical language, the estimand" not in DOC_EN
-    assert "Das gewählte Design definiert damit das **Analyseziel**" not in DOC_DE
-    assert "*Estimand*" not in DOC_DE
-    assert "This chapter uses **summary** or **descriptive statistic**" in DOC_EN
-    assert "Dieses Kapitel verwendet **Zusammenfassung** oder **deskriptive Kennzahl**" in DOC_DE
-
+    """Protect observation meaning, sign examples and descriptive limits."""
+    for manual, required_meanings in (
+        (DOC_EN, (
+            "observation unit constructed from reports",
+            "It is not another radio measurement",
+            "This removes only the **reported power difference**",
+            "Decode Outcomes and Performance opportunities remain those actually observed",
+            "A positive correction therefore reduces the reported Target advantage",
+            "only retained successful decodes",
+            "most populated cell is assigned `100`",
+            "not 1,000 independent experiments",
+            "descriptive calculations for the selected evidence",
+        )),
+        (DOC_DE, (
+            "aus Meldungen gebildete Beobachtungseinheit",
+            "keine zusätzliche Funkmessung",
+            "gemeldeten Leistungsunterschied",
+            "tatsächlich beobachtet",
+            "positive Korrektur",
+            "nur beibehaltene erfolgreiche Decodes",
+            "stärksten belegte Zelle",
+            "1.000 unabhängige Experimente",
+            "deskriptive Berechnungen",
+        )),
+    ):
+        methods = _scientific_section(manual, "sec-7")
+        for meaning in required_meanings:
+            assert meaning.casefold() in methods.casefold()
+        for value in ("-15 dB", "20 dBm", "-5 dB", "30 dBm", "+1.5 dB", "+0.5 dB"):
+            assert value in methods
+        assert "estimand" not in methods.casefold()
 
 def test_bilingual_contract_summary_is_public_concise_and_non_exhaustive():
     """Keep Chapter 8 useful without presenting it as an exhaustive schema."""
@@ -425,21 +535,18 @@ def test_bilingual_contract_summary_is_public_concise_and_non_exhaustive():
     assert "gemäß [Abschnitt 4.4](#sec-5-4)" in DOC_DE
 
 
-@pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
-def test_simultaneous_benchmark_formulas_stay_nested_in_numbered_steps(
-    documentation_text,
-):
-    """Align peer and segment estimators with their numbered instructions."""
-    before_peer_formula, after_peer_formula = documentation_text.split(
-        "$$m_i=\\operatorname{median}_{c}(D_{i,c})$$",
-        1,
-    )
-
-    assert before_peer_formula.endswith("\n    ")
-    assert (
-        "\n    $$M_g=\\operatorname{median}_{i\\in I_g}(m_i)$$"
-        in after_peer_formula
-    )
+@pytest.mark.parametrize("manual", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_benchmark_aggregation_example_distinguishes_station_and_spot_weighting(manual):
+    """Retain the worked counterexample without requiring bookkeeping formulas."""
+    aggregation = _scientific_section(manual, "sec-7-benchmark-aggregation")
+    for station, values, median in (
+        ("A", "+6, +6, +6, +6, +6, +6", "+6 dB"),
+        ("B", "-2, -2", "-2 dB"),
+        ("C", "-1, -1", "-1 dB"),
+    ):
+        assert f"| {station} | {values} | {median} |" in aggregation
+    assert "**-1 dB**" in aggregation
+    assert "**+6 dB**" in aggregation
 
 
 @pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
@@ -462,19 +569,15 @@ def test_documentation_anchor_extraction_is_ordered_and_complete(documentation_t
     assert len(anchor_ids) == len(set(anchor_ids))
 
 
-def test_bilingual_manuals_define_one_selected_archive_per_completed_run():
+def test_bilingual_manuals_define_one_selected_database_per_completed_run():
     """Describe source provenance without freezing provider failover narration."""
-    english_data_source = DOC_EN.split('<a id="sec-7-1"></a>', 1)[1].split(
-        '<a id="sec-7-2"></a>', 1
-    )[0]
-    german_data_source = DOC_DE.split('<a id="sec-7-1"></a>', 1)[1].split(
-        '<a id="sec-7-2"></a>', 1
-    )[0]
+    english_data_source = _scientific_section(DOC_EN, "sec-7-foundations")
+    german_data_source = _scientific_section(DOC_DE, "sec-7-foundations")
 
-    assert "one selected database through read-only queries for each completed run" in english_data_source
-    assert "does not combine data sources" in english_data_source
-    assert "einer ausgewählten Datenbank über schreibgeschützte Abfragen" in german_data_source
-    assert "mischt keine Datenquellen" in german_data_source
+    assert "Each completed run reads one selected WSPR database" in english_data_source
+    assert "does not combine sources" in english_data_source
+    assert "Jeder abgeschlossene Lauf liest genau eine ausgewählte WSPR-Datenbank" in german_data_source
+    assert "mischt keine Quellen" in german_data_source
     for manual in (DOC_EN, DOC_DE):
         assert "wspr.live" in manual
         assert "WSPRDaemon" in manual
@@ -715,13 +818,16 @@ def test_local_neighborhood_manuals_present_only_the_median_method(documentation
                 ),
                 "method": (
                     "within-identity median",
-                    "Target-side consolidation retains the strongest",
-                    "full reported locator",
+                    "Target's strongest qualifying normalized SNR",
+                    "remote callsign-plus-full-locator identity",
                     "independent physical sites",
                     "no separate minimum number of local contributors",
-                    "With no contributors, no Reference SNR or paired ΔSNR",
-                    "do not impose a minimum neighborhood size",
-                    "selection effects or dependence between observations",
+                    "none means no Reference SNR or Joint ΔSNR",
+                    "do not impose a neighborhood-size minimum",
+                ),
+                "statistical_limits": (
+                    "Neither removes systematic calibration errors, reporting differences or propagation bias",
+                    "or creates independence",
                 ),
                 "correction": (
                     "use `0.0 dB` when no independently justified correction",
@@ -759,13 +865,16 @@ def test_local_neighborhood_manuals_present_only_the_median_method(documentation
                 ),
                 "method": (
                     "Median innerhalb dieser Identität",
-                    "Zusammenführung auf der Target-Seite behält das stärkste",
-                    "vollständig gemeldetem Locator",
-                    "unabhängiger physischer Standorte",
-                    "keine gesonderte Mindestzahl lokaler Beitragender",
-                    "Ohne Beitragende steht weder ein Referenz-SNR noch gepaartes ΔSNR",
+                    "stärksten qualifizierenden normierten Target-SNR",
+                    "Rufzeichen und vollständigem Locator",
+                    "keine nachweislich unabhängigen physischen Standorte",
+                    "keine eigene Mindestzahl lokaler Beiträge",
+                    "ohne Beitrag gibt es weder Referenz-SNR noch Joint-ΔSNR",
                     "keine Mindestgröße der Nachbarschaft",
-                    "Selektionseffekte oder Abhängigkeiten zwischen Beobachtungen",
+                ),
+                "statistical_limits": (
+                    "weder systematische Kalibrierfehler, Meldeunterschiede noch Ausbreitungsverzerrungen",
+                    "erzeugt keine Unabhängigkeit",
                 ),
                 "correction": (
                     "`0.0 dB`, wenn keine unabhängig begründete Korrektur",
@@ -792,15 +901,19 @@ def test_local_median_manuals_bound_observation_selection_and_station_claims(
     section_anchors = {
         "rx": ("sec-3-rx-benchmark-local-median", "sec-3-tx-benchmark"),
         "tx": ("sec-3-tx-benchmark-local-median", "sec-3-rx-performance"),
-        "method": ("sec-7-7", "sec-7-8"),
         "correction": ("sec-5-3", "sec-5-4"),
         "claims": ("sec-8-1", "sec-8-2"),
     }
     for meaning_scope, required_fragments in required_meaning.items():
-        start_anchor, end_anchor = section_anchors[meaning_scope]
-        section_text = documentation_text.split(
-            f'<a id="{start_anchor}"></a>', 1
-        )[1].split(f'<a id="{end_anchor}"></a>', 1)[0]
+        if meaning_scope == "method":
+            section_text = _scientific_section(documentation_text, "sec-7-benchmark")
+        elif meaning_scope == "statistical_limits":
+            section_text = _scientific_section(documentation_text, "sec-7-dependence-bias")
+        else:
+            start_anchor, end_anchor = section_anchors[meaning_scope]
+            section_text = documentation_text.split(
+                f'<a id="{start_anchor}"></a>', 1
+            )[1].split(f'<a id="{end_anchor}"></a>', 1)[0]
         for required_fragment in required_fragments:
             assert required_fragment in section_text, (meaning_scope, required_fragment)
 
@@ -857,9 +970,9 @@ def test_english_playbooks_define_performance_opportunities_and_tx_ab_timing():
     assert "counts even if that receiver reports no other transmitter" in tx_performance
     assert "while Target activity is also confirmed" in tx_performance
     assert "not that this particular silent receiver was listening" in tx_performance
-    assert "same two-minute UTC reported slot" in DOC_EN
-    assert "exact remote callsign plus full reported locator" in DOC_EN
-    assert "Only Joint Spots supply ΔSNR" in DOC_EN
+    assert "same remote identity in the same cycle" in DOC_EN
+    assert "Exact callsign together with the full reported locator" in DOC_EN
+    assert "Delta SNR compares one Joint Spot" in DOC_EN
     assert "does not require identical RF frequencies" in DOC_EN
     assert '<a id="sec-3-tx-benchmark-sequential"></a>' not in DOC_EN
 
@@ -1324,80 +1437,72 @@ def test_results_chapter_is_question_led_and_uses_the_shared_evidence_path():
 
 
 def test_bilingual_manuals_define_performance_opportunities_and_weighting():
-    """Keep Performance denominators and complementary weighting auditable."""
-    english_contract = (
-        r"$$S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}$$",
-        "`opportunity-v3`",
-        "Target-only success",
-        "already included once in both the success count and the opportunity count",
-        "peer TX → Target RX",
-        "Target TX → peer RX",
-        "particular silent Target RX or peer RX was listening",
-        r"$$n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}$$",
-        r"$$r_i=100\%\times\frac{h_i}{n_i}$$",
-        r"$$R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i$$",
-        r"$$R_{opportunity}(g)=100\%\times\frac{\sum_{i\in I_g}h_i}{\sum_{i\in I_g}n_i}$$",
-        r"$$Reach(g)=100\%\times\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}$$",
-        "Station-balanced Decode Rate",
-        "Opportunity-level Decode Rate",
-        "every peer one equal vote",
-        "pools all qualifying opportunities",
-        "at least one Target success",
-        "success-conditioned distribution",
-        "Missed opportunities have no Target SNR and no synthetic value",
-    )
-    german_contract = (
-        r"$$S_{i,c}=T_{i,c},\qquad O_{i,c}=T_{i,c}\lor E_{i,c},\qquad M_{i,c}=E_{i,c}\land\neg T_{i,c}$$",
-        "`opportunity-v3`",
-        "Target-only-Erfolg",
-        "genau einmal in Erfolgs- und Gelegenheitsanzahl enthalten",
-        "Peer-TX → Target-RX",
-        "Target-TX → Peer-RX",
-        "bestimmter stiller Target-RX oder Peer-RX zugehört hat",
-        r"$$n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}$$",
-        r"$$r_i=100\%\times\frac{h_i}{n_i}$$",
-        r"$$R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i$$",
-        r"$$R_{opportunity}(g)=100\%\times\frac{\sum_{i\in I_g}h_i}{\sum_{i\in I_g}n_i}$$",
-        r"$$Reach(g)=100\%\times\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}$$",
-        "stationsgleichgewichtete Dekodierrate",
-        "Dekodierrate auf Gelegenheitsebene",
-        "eine gleich große Stimme",
-        "Jede Gelegenheit erhält eine gleich große Stimme",
-        "in mindestens einer qualifizierenden Gelegenheit erfolgreich war",
-        "auf erfolgreiche Decodes bedingte Verteilung",
-        "Verpasste Gelegenheiten besitzen kein Target-SNR",
-    )
-
-    for required_text in english_contract:
-        assert required_text in DOC_EN
-    for required_text in german_contract:
-        assert required_text in DOC_DE
-
+    """Keep endpoint evidence, counting, weighting and censoring explicit."""
+    for manual, required_meanings in (
+        (DOC_EN, (
+            "remote transmitter is decoded by the Target, or by another eligible receiver",
+            "remote receiver decodes the Target, or another qualifying transmitter",
+            "Target receiver activity is also established in that cycle",
+            "Target transmitter activity is also established in that cycle",
+            "not added again to the totals",
+            "creates no second opportunity",
+            "particular receiver required for this opportunity was listening",
+            "Unknown observations stay excluded",
+            "successes plus Misses",
+            "giving each station equal weight",
+            "divide total successes by total opportunities",
+            "at least one Target success",
+            "Misses have no Target SNR",
+        )),
+        (DOC_DE, (
+            "entfernte Sender",
+            "anderen zulässigen Empfänger",
+            "entfernte Empfänger",
+            "anderen qualifizierenden Sender",
+            "Target-Empfängers",
+            "Target-Senders",
+            "nicht nochmals zu den Gesamtsummen addiert",
+            "keine zweite Gelegenheit",
+            "für diese Gelegenheit benötigte Empfänger empfangsbereit war",
+            "Unbekannte Beobachtungen bleiben ausgeschlossen",
+            "Erfolgen plus Misses",
+            "jede Station erhält dasselbe Gewicht",
+            "Gesamterfolge durch Gesamtgelegenheiten teilen",
+            "mindestens einem Target-Erfolg",
+            "Misses haben kein Target-SNR",
+        )),
+    ):
+        performance = _scientific_section(manual, "sec-7-performance")
+        for meaning in required_meanings:
+            assert meaning.casefold() in performance.casefold()
+        for value in ("90%", "50%", "70%", "95 / 110", "100%"):
+            assert value in performance.replace(" %", "%")
+        assert "opportunity-v3" not in performance
 
 def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
     """Keep one selected peer and its public export artifacts explicit."""
     english_contract = (
         "Exact `callsign + locator` identities: normally at most one per result type",
-        "filters the active retained scope to one exact peer identity",
-        "without changing the upstream analysis population",
+        "restricts the active retained scope to one exact remote identity",
+        "does not change upstream matching or eligibility",
         "actual normalized successful Target SNR",
-        "With one peer",
-        "numerically identical",
-        "distinguish path presence from evidence volume",
+        "With one station",
+        "both Decode Rate weightings coincide",
+        "station presence and opportunity volume remain different support counts",
         "Only Target, Joint and Only Reference",
-        "changes only the retained-evidence view",
+        "changes the view, not the completed scientific result",
     )
     german_contract = (
         "exakte Identitäten aus `Rufzeichen + Locator`: normalerweise höchstens eine je Ergebnistyp",
-        "genau eine Peer-Identität",
-        "ohne die vorgelagerte Analysepopulation zu verändern",
+        "eine exakte entfernte Identität",
+        "verändert weder die vorgelagerte Zuordnung noch die Zulässigkeit",
         "das tatsächliche normierte erfolgreiche Target-SNR",
-        "Bei genau einem Peer",
-        "stationsgleichgewichtete Dekodierrate und die Dekodierrate auf Gelegenheitsebene",
-        "numerisch identisch",
-        "Funkwegpräsenz von Evidenzvolumen",
+        "Bei einer Station",
+        "beide Gewichtungen der Dekodierrate",
+        "innerhalb eines belegten Intervalls gleich",
+        "Stationspräsenz und Gelegenheitsvolumen bleiben jedoch unterschiedliche Unterstützungszahlen",
         "Only Target, Joint und Only Reference",
-        "verändert nur die Ansicht der beibehaltenen Evidenz",
+        "verändern die Ansicht, nicht das abgeschlossene wissenschaftliche Ergebnis",
     )
 
     for required_text in english_contract:
@@ -1465,35 +1570,36 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
 
 
 def test_bilingual_manuals_define_benchmark_evidence_science_and_limits():
-    """Keep Benchmark pairability, weighting, and one-sided limits explicit."""
-    english_contract = (
-        r"$$N_{i,b}=T_{i,b}+J_{i,b}+R_{i,b}$$",
-        r"$$JES_{station}(b)=100\%\times\operatorname{mean}_{i}\left(\frac{J_{i,b}}{N_{i,b}}\right)$$",
-        r"$$JES_{outcome}(b)=100\%\times\frac{\sum_iJ_{i,b}}{\sum_iN_{i,b}}$$",
-        "Only Target, Joint and Only Reference",
-        "equal peer weight versus equal evidence-unit weight",
-        "Joint Evidence Share measures pairability",
-        "It is not a Target win rate",
-        "directional and asymmetric",
-        "One-sided evidence still has no ΔSNR",
-    )
-    german_contract = (
-        r"$$N_{i,b}=T_{i,b}+J_{i,b}+R_{i,b}$$",
-        r"$$JES_{station}(b)=100\%\times\operatorname{mean}_{i}\left(\frac{J_{i,b}}{N_{i,b}}\right)$$",
-        r"$$JES_{outcome}(b)=100\%\times\frac{\sum_iJ_{i,b}}{\sum_iN_{i,b}}$$",
-        "Only Target, Joint und Only Reference",
-        "jedem beitragenden Peer dasselbe Gewicht",
-        "Joint-Evidenzanteil misst die Paarbarkeit",
-        "keine Gewinnquote des Targets",
-        "gerichtet und asymmetrisch",
-        "Einseitige Evidenz besitzt weiterhin kein ΔSNR",
-    )
-
-    for required_text in english_contract:
-        assert required_text in DOC_EN
-    for required_text in german_contract:
-        assert required_text in DOC_DE
-
+    """Protect Joint-share denominators, weighting and one-sided limits."""
+    for manual, required_meanings in (
+        (DOC_EN, (
+            "Only Target + Joint + Only Reference",
+            "including a station with **zero Joint Spots**",
+            "A station with no outcome contributes no fraction",
+            "Average those fractions",
+            "Divide the total Joint count by the total retained outcomes",
+            "each station contributes one total count divided among",
+            "Neither is a Target win rate",
+            "They receive no artificial ΔSNR",
+            "not symmetric wins and losses",
+        )),
+        (DOC_DE, (
+            "Only Target + Joint + Only Reference",
+            "null Joint Spots",
+            "ohne Outcome",
+            "Diese Anteile mitteln",
+            "gesamte Joint-Anzahl",
+            "jede Station insgesamt einen Zählwert",
+            "Keine ist eine Target-Siegquote",
+            "kein künstliches ΔSNR",
+            "keine symmetrischen Siege und Niederlagen",
+        )),
+    ):
+        methods = _scientific_section(manual, "sec-7")
+        for meaning in required_meanings:
+            assert meaning.casefold() in methods.casefold()
+        for outcome in ("Only Target", "Joint", "Only Reference", "Both (Async)"):
+            assert f"| **{outcome}** |" in methods
 
 def test_bilingual_manuals_require_map_values_to_be_read_with_support():
     """Retain map interpretation while allowing presentation details to evolve."""
@@ -1514,28 +1620,28 @@ def test_bilingual_manuals_require_map_values_to_be_read_with_support():
         (
             DOC_EN,
             (
-                "callsign + full reported locator",
-                "Each identity must separately meet",
-                "exactly the identities counted",
-                "only one-sided evidence do not contribute",
-                "same callsign at different full locators counts separately",
-                "does not establish independent physical stations or sites",
-                "segment median of `+3 dB` and support count `2`",
-                "minimum of three does not",
+                "remote callsign-plus-full-locator identity",
+                "minimum Joint-evidence count separately to each exact",
+                "exactly the identities contributing a qualifying station median count",
+                "One-sided-only identities do not provide ΔSNR support",
+                "count separately if both qualify",
+                "reported identities, not proven independent physical sites",
+                "segment median of `+3 dB` with support count **2**",
+                "a three-station minimum does not",
             ),
         ),
         (
             DOC_DE,
             (
-                "Rufzeichen + vollständig gemeldeter Locator",
-                "Jede Identität muss für sich",
-                "die konfigurierte Mindestzahl an Joint-Evidenz",
-                "Genau die Identitäten",
-                "ausschließlich einseitiger Evidenz tragen nicht",
-                "unterschiedlichen vollständigen Locatorn zählt getrennt",
-                "keine unabhängigen physischen Stationen oder Standorte",
-                "Segmentmedian von `+3 dB` und eine Unterstützungszahl von `2`",
-                "Mindestanzahl von drei nicht",
+                "Identität aus Rufzeichen und vollständigem Locator",
+                "Mindestzahl an Joint-Evidenz getrennt für jede exakte",
+                "Mindestzahl an Joint-Evidenz",
+                "genau die Identitäten mit einem qualifizierenden Stationsmedian",
+                "Rein einseitige Identitäten liefern keine ΔSNR-Unterstützung",
+                "zählen getrennt, sofern beide qualifizieren",
+                "keine nachweislich unabhängigen physischen Standorte",
+                "Segmentmedian von `+3 dB` bei einer Stationszahl von **2**",
+                "ein Minimum von drei nicht",
             ),
         ),
     ],
@@ -1546,9 +1652,7 @@ def test_benchmark_manuals_use_one_identity_for_weighting_and_segment_support(
     required_meaning,
 ):
     """Keep identity, paired qualification and physical-independence limits explicit."""
-    aggregation_section = documentation_text.split(
-        '<a id="sec-7-7"></a>', 1
-    )[1].split('<a id="sec-7-8"></a>', 1)[0]
+    aggregation_section = _scientific_section(documentation_text, "sec-7-benchmark-aggregation")
 
     for required_fragment in required_meaning:
         assert required_fragment in aggregation_section
@@ -1605,18 +1709,24 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
         gate_diagnostic = manual.split('<a id="sec-6-5"></a>', 1)[1].split(
             '<a id="sec-6-6"></a>', 1
         )[0]
-        assert "(#sec-7-3)" in gate_diagnostic
+        assert "(#sec-7-activity-eligibility)" in gate_diagnostic
 
     assert "`Include Unpaired Evidence`" in DOC_EN
     assert "`Ungepaarte Evidenz einbeziehen`" in DOC_DE
-    assert "**Only Target**, **Joint**, **Only Reference** and, at identity level, **Both (Async)**" in DOC_EN
-    assert "**Only Target**, **Joint**, **Only Reference** sowie auf Identitätsebene **Both (Async)**" in DOC_DE
+    for manual in (DOC_EN, DOC_DE):
+        outcomes = _scientific_section(manual, "sec-7-benchmark-outcomes")
+        for outcome in ("Only Target", "Joint", "Only Reference", "Both (Async)"):
+            assert f"| **{outcome}** |" in outcomes
 
 
 def test_end_user_manuals_omit_internal_interval_boundary_convention():
     """Keep time mechanics out; the density-cell contract is documented explicitly."""
-    english_outside_density = DOC_EN.split('<a id="sec-7-8-5"></a>')[0] + DOC_EN.split('<a id="sec-7-9"></a>')[1]
-    german_outside_density = DOC_DE.split('<a id="sec-7-8-5"></a>')[0] + DOC_DE.split('<a id="sec-7-9"></a>')[1]
+    english_outside_density = DOC_EN.replace(
+        _scientific_section(DOC_EN, "sec-7-view-spread"), "", 1
+    )
+    german_outside_density = DOC_DE.replace(
+        _scientific_section(DOC_DE, "sec-7-view-spread"), "", 1
+    )
     assert "half-open" not in english_outside_density
     assert "start <= time < end" not in DOC_EN
     assert "halboffen" not in german_outside_density
@@ -1625,53 +1735,89 @@ def test_end_user_manuals_omit_internal_interval_boundary_convention():
 
 @pytest.mark.parametrize("manual", [DOC_EN, DOC_DE], ids=["en", "de"])
 def test_manuals_define_correction_aware_temporal_density_coordinates(manual):
-    density_section = manual.split('<a id="sec-7-8-5"></a>')[1].split('<a id="sec-7-9"></a>')[0]
-    assert "`k = floor(d + c + 0.5)`" in density_section
-    assert "`k - c`" in density_section
-    assert "`[k - 0.5 - c, k + 0.5 - c)`" in density_section
-    assert "1 dB" in density_section
-    assert "Performance" in density_section
-    assert "Drill-Down" in density_section
+    """Keep scientific display consequences without internal cell-ID formulas."""
+    density = _scientific_section(manual, "sec-7-view-spread")
+    for value in ("1 dB", "0.5 dB", "0 dB", "IQR", "Performance"):
+        assert value in density.replace("0,5", "0.5")
+    for internal_formula in ("k = floor", "float64", "k - 0.5 - c"):
+        assert internal_formula not in density
+    phrases = (
+        ("shift with the Reference correction", "counts and relative colors stay unchanged", "does not round the retained observations or their statistics", "need not lie at cell centers")
+        if manual is DOC_EN else
+        ("verschieben sich mit der Referenzkorrektur", "Zellanzahlen und relative Farben unverändert", "rundet weder die beibehaltenen Beobachtungen noch ihre Kennzahlen", "nicht in der Zellmitte liegen")
+    )
+    for phrase in phrases:
+        assert phrase in density
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
-    """Keep temporal populations and density normalization explicit."""
-    assert "Chronological views preserve the actual sequence of the run" in DOC_EN
-    assert "across the full selected UTC window" in DOC_EN
-    assert "Bins begin at the selected start; the final interval may be shorter" in DOC_EN
-    assert "intervals without evidence remain blank rather than becoming 0 dB" in DOC_EN
-    assert "does not by itself mean that the data source returned no observations" in DOC_EN
-    assert "fold evidence from represented dates onto the same 24-hour UTC clock" in DOC_EN
-    assert "Benchmark temporal coverage uses all retained Only Target, Joint and Only Reference units" in DOC_EN
-    assert "requires at least two represented evidence dates" in DOC_EN
-    assert r"$$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$" in DOC_EN
-    assert "not 100% of all evidence" in DOC_EN
-
-    assert "Chronologische Ansichten bewahren die tatsächliche Reihenfolge des Laufs" in DOC_DE
-    assert "über das vollständige ausgewählte UTC-Zeitfenster" in DOC_DE
-    assert "Die Bins beginnen am ausgewählten Startzeitpunkt" in DOC_DE
-    assert "Zeitabschnitte ohne Evidenz bleiben leer, statt zu 0 dB zu werden" in DOC_DE
-    assert "daraus folgt nicht, dass die Datenquelle keine Beobachtungen lieferte" in DOC_DE
-    assert "Beobachtungen verschiedener Tage auf dieselbe 24-Stunden-UTC-Uhr" in DOC_DE
-    assert "zeitliche Benchmark-Abdeckung verwendet alle beibehaltenen Einheiten Only Target, Joint und Only Reference" in DOC_DE
-    assert "mindestens zwei Tage mit Evidenz" in DOC_DE
-    assert r"$$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$" in DOC_DE
-    assert "nicht 100 % der gesamten Evidenz" in DOC_DE
+    """Keep temporal populations, missingness, folding and panel-relative density."""
+    for manual, required_meanings in (
+        (DOC_EN, (
+            "Chronological views preserve the sequence of the run",
+            "Bins start at the selected UTC start",
+            "final bin can be shorter",
+            "Empty intervals remain missing, not 0 dB",
+            "Coverage separately includes all retained one-sided and Joint outcomes",
+            "does not establish that the database returned no reports",
+            "needs at least two dates represented by the relevant evidence",
+            "even if that hour has no evidence",
+            "hours outside the window do not",
+            "partially overlapping boundary hour counts as one slot",
+            "first pool each station's successes and opportunities",
+            "then average the individual station rates equally",
+            "most populated cell is assigned `100`",
+            "does not mean 100% of all evidence",
+        )),
+        (DOC_DE, (
+            "Chronologische Ansichten bewahren die zeitliche Abfolge des Laufs",
+            "Intervalle beginnen am ausgewählten UTC-Start",
+            "letzte Intervall kann kürzer sein",
+            "Leere Intervalle bleiben ohne Wert, nicht bei 0 dB",
+            "einseitigen und Joint-Outcomes",
+            "Datenbank keine Meldungen geliefert",
+            "mindestens zwei Tage mit der jeweils relevanten Evidenz",
+            "auch dann in den Nenner der gemittelten Unterstützung ein, wenn sie keine Evidenz enthält",
+            "Stunden außerhalb des Fensters",
+            "teilweise überlappende Randstunde zählt als vollständiger Slot",
+            "Erfolge und Gelegenheiten jeder Station",
+            "einzelnen Stationsraten gleich gewichtet",
+            "stärksten belegte Zelle",
+            "nicht 100% der gesamten Evidenz",
+        )),
+    ):
+        temporal = _scientific_section(manual, "sec-7-views")
+        for meaning in required_meanings:
+            assert meaning.casefold() in temporal.casefold()
 
 
 def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
-    """Keep descriptive spread distinct from uncertainty and transforms."""
-    assert "These are descriptive spread summaries, not confidence intervals" in DOC_EN
-    assert "Temporal IQR bands require at least five contributing values" in DOC_EN
-    assert "Empty bins remain missing rather than becoming synthetic zero observations" in DOC_EN
-    assert "raw ΔSNR values, bin membership, counts, medians and quartiles remain unchanged" in DOC_EN
-    assert "Performance successful-SNR views remain on a linear dB axis" in DOC_EN
-
-    assert "Dies sind deskriptive Streuungsmaße und keine Konfidenzintervalle" in DOC_DE
-    assert "Zeitliche IQR-Bänder erfordern mindestens fünf beitragende Werte" in DOC_DE
-    assert "Leere Bins bleiben fehlend" in DOC_DE
-    assert "Rohe ΔSNR-Werte, Bin-Zuordnung, Anzahlen, Mediane und Quartile bleiben unverändert" in DOC_DE
-    assert "Performance-Ansichten des erfolgreichen SNR bleiben auf einer linearen dB-Achse" in DOC_DE
+    """Keep descriptive spread distinct from uncertainty and nonlinear spacing."""
+    for manual, required_meanings in (
+        (DOC_EN, (
+            "Neither is a confidence interval",
+            "Temporal IQR bands require at least five contributing values",
+            "a median remains available with fewer",
+            "three-station rule",
+            "Read the labeled dB coordinates",
+            "not displayed area",
+            "change neither values nor counts, medians or quartiles",
+            "Performance successful-SNR axes remain linear in dB",
+        )),
+        (DOC_DE, (
+            "Beides sind keine Konfidenzintervalle",
+            "mindestens fünf beitragende Werte",
+            "Median bleibt bei weniger Werten verfügbar",
+            "Drei-Stationen-Regel",
+            "beschrifteten dB-Koordinaten",
+            "nicht die dargestellte Fläche",
+            "weder Werte noch Anzahlen, Mediane oder Quartile",
+            "Achsen des erfolgreichen SNR bei Performance bleiben in dB linear",
+        )),
+    ):
+        spread = _scientific_section(manual, "sec-7-view-spread")
+        for meaning in required_meanings:
+            assert meaning.casefold() in spread.casefold()
 
 
 def test_bilingual_manuals_define_centered_native_drilldown_focus():
@@ -1700,7 +1846,7 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
         "half one native evidence-unit width added at each end",
         "neither a confidence interval nor a measurement of physical-event duration",
         "other starred Joint Spots may have been assessed against different baselines and robust spreads",
-        "weaker grouped units retained between strong anchors remain ordinary dots",
+        "Weaker interior observations can remain",
         "Drill-Down focus figures",
     ):
         assert phrase in DOC_EN
@@ -1729,7 +1875,7 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
         "an beiden Enden um eine halbe Breite der nativen Evidenzeinheit erweitert",
         "weder ein Konfidenzintervall noch eine Messung der Dauer eines physischen Ereignisses",
         "Andere mit Stern markierte Joint Spots können gegen andere Baselines und robuste Streuungen geprüft worden sein",
-        "schwächere gruppierte Einheiten, die zwischen starken Ankern beibehalten werden, bleiben normale Punkte",
+        "Schwächere innere Beobachtungen können verbleiben",
         "Drill-Down-Fokusabbildungen",
     ):
         assert phrase in DOC_DE
@@ -1755,30 +1901,27 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
 
 
 def test_bilingual_manuals_separate_qualifying_plot_marker_from_true_peak():
-    """Keep marker eligibility distinct from the report/export peak metric."""
-    for phrase in (
-        "The greatest departure in magnitude from the baseline among retained Joint Spots, retaining its sign",
-        "This report/export value is distinct from the all-path temporal `*`",
-        "among those that individually qualify",
-        "An unsupported or nonqualifying episode peak cannot supply that marker",
-        "The all-path temporal marker is selected only from these strong anchors",
-        "the individually qualifying native unit with the greatest absolute residual supplies the `*`",
-        "Marker selection is separate from **Largest single-cycle departure**",
-        "remains the true greatest-absolute retained residual in each path event for the report and export",
+    """Keep marker and peak meaning in the authoritative practical detector guide."""
+    for manual, required_meanings in (
+        (DOC_EN, (
+            "The greatest departure in magnitude from the baseline among retained Joint Spots, retaining its sign",
+            "This report/export value is distinct from the all-path temporal `*`",
+            "among those that individually qualify",
+            "An unsupported or nonqualifying episode peak cannot supply that marker",
+        )),
+        (DOC_DE, (
+            "Die betragsmäßig größte Abweichung von der Baseline unter den beibehaltenen Joint Spots, mit ihrem Vorzeichen",
+            "Diese Berichts-/Exportgröße unterscheidet sich vom `*` im Zeitplot aller Funkwege",
+            "unter den einzeln qualifizierenden Joint Spots",
+            "Eine ungestützte oder nicht qualifizierende Episodenspitze kann diesen Marker nicht liefern",
+        )),
     ):
-        assert phrase in DOC_EN
+        practical_guide = manual.split('<a id="sec-outlier"></a>', 1)[1].split(
+            '<a id="sec-3-9"></a>', 1
+        )[0]
+        for meaning in required_meanings:
+            assert meaning in practical_guide
 
-    for phrase in (
-        "Die betragsmäßig größte Abweichung von der Baseline unter den beibehaltenen Joint Spots, mit ihrem Vorzeichen",
-        "Diese Berichts-/Exportgröße unterscheidet sich vom `*` im Zeitplot aller Funkwege",
-        "unter den einzeln qualifizierenden Joint Spots",
-        "Eine ungestützte oder nicht qualifizierende Episodenspitze kann diesen Marker nicht liefern",
-        "Der Marker im Zeitplot aller Funkwege wird nur aus diesen starken Ankern ausgewählt",
-        "die einzeln qualifizierende native Einheit mit dem betragsmäßig größten Residuum das `*`",
-        "Die Markerauswahl ist von der Berichtsgröße **Größte Einzelzyklusabweichung** getrennt",
-        "das tatsächliche betragsmäßig größte beibehaltene Residuum jedes Funkwegereignisses",
-    ):
-        assert phrase in DOC_DE
 
 
 def test_benchmark_map_label_matches_station_balanced_delta_contract():
@@ -1788,14 +1931,10 @@ def test_benchmark_map_label_matches_station_balanced_delta_contract():
         T["de"]["cbar_comp"]
         == "Stationsgleichgewichteter Median des \u0394SNR (dB)"
     )
-    for manual in (DOC_EN, DOC_DE):
-        assert r"$$m_i=\operatorname{median}_{c}(D_{i,c})$$" in manual
-        assert r"$$M_g=\operatorname{median}_{i\in I_g}(m_i)$$" in manual
-
     assert "Segment color shows the median of the qualifying transmitters' median ΔSNR values; each transmitter has equal weight" in DOC_EN
-    assert "Positive $D_{i,c}$ favors the Target; negative favors the Reference" in DOC_EN
+    assert "| **Positive ΔSNR** | Target SNR is higher. |" in DOC_EN
     assert "Segmentfarbe zeigt den Median der ΔSNR-Mediane der berücksichtigten Sender; jeder Sender hat dasselbe Gewicht" in DOC_DE
-    assert "Positives $D_{i,c}$ spricht für das Target, negatives für die Referenz" in DOC_DE
+    assert "| **Positives ΔSNR** | Das Target-SNR ist höher. |" in DOC_DE
 
 
 def test_bilingual_manuals_define_saved_inspector_selection_contracts():
@@ -1811,15 +1950,15 @@ def test_bilingual_manuals_define_saved_inspector_selection_contracts():
     assert "Exact `callsign + locator` identities: normally at most one per result type" in english_controls
     assert "multiple Benchmark identities when outlier reporting is enabled" in english_controls
     assert "| No |" in english_controls
-    assert "one exact peer identity" in DOC_EN
-    assert "not matching, eligibility or aggregation upstream" in DOC_EN
+    assert "one exact remote identity" in DOC_EN
+    assert "does not change upstream matching or eligibility" in DOC_EN
 
     assert "getrennt für Performance und Benchmark" in german_controls
     assert "exakte Identitäten aus `Rufzeichen + Locator`: normalerweise höchstens eine je Ergebnistyp" in german_controls
     assert "mehrere Benchmark-Identitäten bei eingeschalteter Ausreißererkennung" in german_controls
     assert "| Nein |" in german_controls
-    assert "genau eine Peer-Identität" in DOC_DE
-    assert "nicht die vorgelagerte Zuordnung, Zulässigkeit oder Aggregation" in DOC_DE
+    assert "eine exakte entfernte Identität" in DOC_DE
+    assert "verändert weder die vorgelagerte Zuordnung noch die Zulässigkeit" in DOC_DE
 
 
 def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():

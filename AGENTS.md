@@ -948,21 +948,21 @@ technically correct or already present.
   Do not reproduce cache, queue or rendering internals unless they explain an
   observable status or materially change troubleshooting.
 - **Part III is a scientific methods reference.** Write for scientifically
-  critical radio amateurs, HamSCI contributors and reviewers. Formal notation,
-  equations and detailed treatment of analysis targets, observation and
-  comparison units, constructed evidence units, derived quantities, descriptive
-  summaries, conditioning, missingness, weighting, dependence, transformations,
-  uncertainty limits, provenance and reproducibility are appropriate. Part III
-  must nevertheless remain accessible to a technically minded radio amateur:
-  introduce the radio or analysis meaning before the formal definition, define
-  symbols and denominators, explain formulas again in plain language and add a
-  small numerical example when it materially improves understanding. Prefer
-  precise plain language over unnecessary statistical jargon. Part III may be
-  longer and denser than the operator sections when the added detail is
-  scientifically material; `lean` means removing non-scientific clutter, not
-  suppressing methods needed for audit. Include software implementation detail
-  only when it changes scientific semantics, provenance or reproducibility; keep
-  repository architecture and cosmetic rendering behavior elsewhere.
+  critical radio amateurs, HamSCI contributors and reviewers. Assume technical
+  amateur-radio knowledge, not statistical training. Explain analysis targets,
+  observation and comparison units, constructed evidence units, derived
+  quantities, descriptive summaries, conditioning, missingness, weighting,
+  dependence, transformations, uncertainty limits, provenance and
+  reproducibility precisely. Introduce the radio or analysis meaning first,
+  then use clear prose, a table, a worked calculation or an equation according
+  to which best explains the method. Displayed formulas and a separate formal
+  methods appendix are not required. Define any symbols, units and denominators
+  used, translate equations into plain language, and add a small numerical
+  example when it materially improves understanding. Scientific completeness
+  means preserving the rules and interpretation boundaries, not every previous
+  notation or repeated explanation. Include the scientific consequences of
+  implementation choices; keep engineering mechanics in architecture, code and
+  tests, and omit cosmetic rendering narration.
 - **Part IV is a practical technical supplement.** Retain platform-, device- and
   calibration-specific procedures that would interrupt the main operator path.
 - Begin with why WSPRadar is useful and distinctive. Part 0 should create
@@ -975,6 +975,18 @@ technically correct or already present.
 - Build understanding progressively. Introduce terms such as Target, Reference,
   peer, Decode Rate, Decode Outcomes, and Delta SNR in plain operator language
   before relying on them. Do not front-load a dense glossary.
+- Organize Chapter 7 in six reader-facing groups: shared evidence foundations;
+  Benchmark; Performance; scope and presentation across space and time;
+  strength of conclusions; and optional experimental Delta-SNR event analysis.
+  Keep Benchmark and Performance explanations together within their respective
+  groups, with comparable scientific care. Explain shared power normalization
+  once, introduce weighting briefly, and define each actual calculation beside
+  its result. Keep interpretation-critical limits beside the affected metric.
+- Make every explicit manual chapter, section and appendix reference clickable
+  to the most specific relevant destination. Link multiple destinations
+  individually. Update visible numbering and bilingual references together,
+  preserving existing semantic destinations through compatibility anchors when
+  sections move. Do not repurpose an old anchor for an unrelated new section.
 - Preserve the manual's authoritative order: Part 0 Preface; Part I Operator
   Guide with **Choose and Prepare the Analysis**, **Run and Interpret Your
   Analysis**, and **Strengthen and Communicate Your Result**; Part II Controls
@@ -997,7 +1009,7 @@ technically correct or already present.
   finding and reviewing temporary Delta-SNR departures. It owns practical use,
   report reading and investigation guidance, not a recommendation that every
   operator enable the detector. Link exact controls to Section 4.6 and the
-  complete scientific construction to Section 7.11.
+  scientific overview and qualification conditions to Section 7.6.
 - Use the common evidence path **Map → Segment Inspector →
   Performance/Benchmark Evidence → Temporal Evidence → Station Insights →
   Selected Station Evidence → Drill-Down**. Explain the path once at overview
@@ -1037,13 +1049,13 @@ technically correct or already present.
   explicitly scoped iteration over generic hypothetical examples embedded in
   every manual revision.
 - Keep the structure as MECE as the subject permits. Give experiment selection,
-  result interpretation, configuration, scientific formulas and inference
+  result interpretation, configuration, scientific definitions and inference
   limits one authoritative home each. When a complex multi-stage method requires
   a documented ownership split, follow the Authoritative Ownership rules below.
   Cross-reference instead of repeating full explanations.
 - Layer practical and scientific depth. State what a result means for the
   operator first, then place exact matching, denominators, evidence units,
-  aggregation, and formulas in Chapter 7, Scientific Methods.
+  aggregation, and any useful equations in Chapter 7, Scientific Methods.
 - Make Part 0 explain why the product is worth exploring, what problems it can
   address, what evidence it produces and why that evidence is different from a
   spot count or one-off report. Make the Part I playbooks teach how to prepare,
@@ -1078,10 +1090,10 @@ technically correct or already present.
   or correctly interpret it.
 - **Keep private implementation identifiers out of the manuals while preserving
   supported public contracts.** Exclude private enum values, DataFrame columns,
-  helper names, cache keys, state keys, temporary state names and internal
-  classifications when their scientific meaning can be stated in domain
-  language. A supported public configuration, URL, export or data identifier may
-  be documented in Chapter 8 or a dedicated data dictionary, but only in a
+  helper names, cache keys, state keys, temporary state names, internal method
+  version tags and classifications when their scientific meaning can be stated
+  in domain language. A supported public configuration, URL, export or data
+  identifier may be documented in Chapter 8 or a dedicated data dictionary, but only in a
   clearly labelled machine-readable contract table; keep that operator-facing
   table concise and explicitly non-exhaustive. The formal JSON Schema remains
   authoritative for the exhaustive saved-configuration field contract. Do not
@@ -1101,7 +1113,7 @@ technically correct or already present.
   checklists.** They establish whether a claim is accurate; they do not establish
   that every implementation or rendering fact belongs in the manual.
 - **Keep scientific mechanics in Chapter 7.** Observation and comparison units,
-  notation, analysis targets, evidence construction, derived quantities,
+  analysis targets, evidence construction, derived quantities,
   descriptive summaries, eligibility, conditioning, missingness, censoring,
   normalization, binning, weighting, aggregation, dependence, analysis
   transformations and scientifically material edge cases belong once in
@@ -1111,8 +1123,21 @@ technically correct or already present.
   would cause a materially wrong operation or interpretation. Section 2.5 is a
   narrow expert-diagnostic exception: it may explain in plain language how to
   operate, read and investigate optional Delta-SNR outlier reporting, while
-  Section 7.11 remains the sole home of its notation, equations, exact method
-  and complete scientific construction.
+  Section 7.6 owns a compact scientific overview of the experimental detector:
+  what it detects, evidence units, local baseline and support, principal
+  qualification conditions, event boundaries and classes, and interpretation
+  limits. Give this optional feature substantially less space than the core
+  analysis methods. Do not require the main manual to reproduce every cadence,
+  guard-width, iterative-refinement, fallback or rescue rule. Explain retained
+  claims precisely without implying that the overview is an exhaustive
+  algorithm specification. Code and tests retain the exact detector behavior;
+  no formal appendix is required. This scoped experimental-feature exception
+  does not relax the definitions of core Benchmark or Performance evidence,
+  eligibility, denominators, weighting or interpretation limits. Engineering
+  implementation details belong in `docs/architecture.md`, code and tests; do
+  not move scientific eligibility, denominators, weighting or limits there to
+  shorten the manual. Do not create a formal appendix merely to preserve
+  replaced notation.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
@@ -1125,8 +1150,9 @@ technically correct or already present.
   handoff: identify substantive changes, reviewed sections retained as-is,
   technical corrections and any unverified claims. A passing rendering test or
   unchanged formula is not by itself a scientific correctness review.
-- Define each formula once in its scientific home, ensure it renders in both the
-  Web UI and generated PDF, and link to it from practical sections when needed.
+- When an equation improves understanding, define it once in its scientific
+  home, ensure it renders in both the Web UI and generated PDF, and link to it
+  from practical sections when needed.
 - In Chapter 7, use the hierarchy **reported observations → constructed
   evidence units → derived quantities → descriptive summaries → bounded
   interpretation**. Distinguish the selected **analysis target** from the
@@ -1142,12 +1168,20 @@ technically correct or already present.
   generalization.
 - Present each non-trivial Chapter 7 method in accessible layers: first state the
   radio or analysis question; then define the observation or comparison unit,
-  eligibility, denominator, grouping and weighting; then give the formula;
-  follow it with a plain-language explanation of what the calculation does; add
-  a small numerical example when useful; and finish with the principal
-  interpretation boundary. Define every symbol, index, unit and denominator so a
-  technically minded amateur does not have to infer the radio meaning from the
-  notation alone.
+  eligibility, denominator, grouping and weighting; explain the calculation or
+  decision rule; and finish with the principal interpretation boundary. Use
+  precise words or tables for abstract bookkeeping instead of mandatory set or
+  index notation. Retain useful equations for Delta SNR, power normalization
+  and Reference SNR correction, with units, sign conventions and small numerical
+  examples that explain their consequences. Define every symbol and index used
+  so the reader need not infer the radio meaning from notation. Examples should
+  resolve a concrete difficulty, not accompany every rule mechanically.
+- Introduce shared evidence rules before Benchmark, then give Performance equal
+  scientific care and completeness, followed by shared aggregation, limits and
+  optional diagnostics. Aim for roughly 5,500-6,500 words in Chapter 7 as a soft
+  readability guide, not a quota. Condense repetition and replace unnecessarily
+  abstract explanations before considering further cuts; never omit unique
+  scientific rules, qualifiers or interpretation limits to meet a word count.
 - State conditioning and selection explicitly: Target-active eligibility,
   independent-activity qualification, joint-decode selection, successful-decode
   censoring, one-sided evidence and any missing-not-at-random consequence.
@@ -1231,8 +1265,8 @@ multi-stage-method ownership rule below:
   to use the tool, its practical detection flow, how to read and investigate
   reported candidates, and the principal interpretation limits. It must say
   clearly that the tool is intended for expert diagnosis rather than routine
-  use, refer exact controls to Section 4.6, and refer the complete method to
-  Section 7.11.
+  use, refer exact controls to Section 4.6, and refer the scientific explanation
+  and qualification rules to Section 7.6.
 - **Part I, Chapter 3 — Strengthen and Communicate Your Result:** breadth,
   internal consistency, experimental repeatability, repetition and controls,
   evidence-matched conclusions, and preservation of the run and its physical
@@ -1254,16 +1288,18 @@ multi-stage-method ownership rule below:
   evidence class of the review; scientific lineage; prior art; source-specific
   boundaries; and bounded novelty claims. State explicitly when the review is a
   focused methodological review rather than a systematic or exhaustive search.
-- **Part III, Chapter 7 — Scientific Methods:** scientific scope and notation;
+- **Part III, Chapter 7 — Scientific Methods:** scientific scope;
   reported observations and constructed evidence units; time model; identity,
   matching and consolidation; eligibility, conditioning and missingness;
-  Performance and Benchmark analysis targets; power normalization and
+  Benchmark and Performance analysis targets; power normalization and
   correction; derived Delta SNR and Decode Outcomes; hierarchical aggregation
   and weighting; geographic, temporal and selected-path descriptive summaries;
   scientifically material display transforms; dependence, uncertainty
-  limitations and dated validation scope; and the formal robust local-baseline
-  Delta-SNR event detector. Present the practical radio meaning before formal
-  notation and explain every formula again in accessible prose.
+  limitations and dated validation scope; and the scientific explanation of the
+  experimental robust local-baseline Delta-SNR event detector, at the compact
+  explanatory depth defined above. Preserve exact core scientific
+  rules in accessible prose, tables or useful equations, with the practical
+  radio meaning first and interpretation limits visible alongside the method.
 - **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:** claim
   classes, supported inference, interpretation limits, reporting and provenance
   requirements, selected public machine-readable configuration/URL/export/data
@@ -1287,7 +1323,7 @@ Use this timing test when placement is unclear:
 - needed to diagnose general run or upstream-data behavior -> Chapter 5;
 - needed to decide whether to enable, inspect or investigate optional Delta-SNR
   outlier reporting -> Section 2.5, with exact controls in Section 4.6 and the
-  complete scientific construction in Section 7.11;
+  scientific overview and qualification conditions in Section 7.6;
 - needed to establish scientific lineage, prior art or positioning -> Chapter 6;
 - needed to audit data construction, an observation or comparison unit,
   analysis target, derived quantity, descriptive summary, conditioning rule,
@@ -1296,6 +1332,12 @@ Use this timing test when placement is unclear:
 - needed to provide consolidated source metadata -> References;
 - needed only for a particular device, platform or calibration procedure ->
   Part IV.
+
+Engineering implementation details belong in `docs/architecture.md`, code and
+tests when they have continuing maintenance value. Removing an implementation
+detail or replacing a formula with an equivalent precise explanation does not
+require a new engineering section or formal methods appendix. Apply the
+relocation ledger and semantic-preservation checks below to the change.
 
 #### Authoritative ownership plus point-of-action reminders
 
@@ -1311,10 +1353,11 @@ must not reproduce the complete mechanics.
 
 Examples:
 
-- define the power-normalization equation in Section 7.5; retain `report actual power` as a warning in the TX A/B playbook;
+- define the power-normalization equation in Section 7.1.2; retain `report actual power` as a warning in the TX A/B playbook;
 - define Delta-SNR outlier controls in Section 4.6, expert practical use and
-  interpretation in Section 2.5, and the complete notation and equations in
-  Section 7.11; cross-reference these sections rather than copying the formulas;
+  interpretation in Section 2.5, and scientific overview, qualification
+  conditions and limits in Section 7.6; cross-reference these sections rather than
+  repeating the method;
 - keep simultaneous-TX device and archive-preflight guidance in Appendix B
   and link to it from the playbook.
 
@@ -1479,8 +1522,9 @@ for that language and audience.
   language.
 - Part III must preserve HamSCI-level scientific distinctions while remaining
   accessible to a technically minded radio amateur: practical meaning first,
-  formal definition and formula second, plain-language explanation and
-  interpretation boundary afterward.
+  precise definitions and rules next, with equations or examples where they
+  improve understanding and an explicit interpretation boundary. Both languages
+  must preserve the same method even when prose replaces symbolic notation.
 - Part IV must use established platform, RF, measurement and amateur-radio
   terminology appropriate to the procedure.
 
@@ -1566,15 +1610,16 @@ For a substantial manual restructuring, verify:
 - every Table of Contents link resolves to exactly one existing anchor;
 - retained compatibility anchors do not create duplicate headings;
 - every defined term is introduced before it is relied upon;
-- formulas have one authoritative home; complex multi-stage methods follow the
-  explicitly documented ownership split and cross-links;
+- scientific definitions and any retained formulas have one authoritative home;
+  complex multi-stage methods follow the explicitly documented ownership split
+  and cross-links;
 - Part 0 is engaging, benefit-led and technically bounded; follows the approved
   sequence from motivation through WSPR background, capabilities/questions,
   run outputs and first demo; and contains no control, selector, parameter or
   button walkthrough;
 - Part I Section 2.5 identifies optional Delta-SNR outlier reporting as an expert
   diagnostic tool, owns its practical use and interpretation, and does not
-  duplicate Section 7.11's formal method;
+  duplicate Section 7.6's scientific overview and qualification conditions;
 - Part II remains an operating reference and does not become an internal state,
   cache or queue specification; Chapter 4 owns controls and configuration,
   including the exact outlier controls in Section 4.6, while Chapter 5 owns
@@ -1582,9 +1627,10 @@ For a substantial manual restructuring, verify:
 - Part III clearly distinguishes reported observations, constructed evidence
   units, derived quantities, descriptive summaries and bounded interpretation;
   defines analysis targets, observation and comparison units, conditioning,
-  missingness, weighting and dependence sufficiently for scientific audit; and
-  explains formal notation and formulas in language accessible to a technically
-  minded radio amateur;
+  missingness, weighting and dependence sufficiently for scientific audit;
+  states exact scientific rules in language accessible to a technically minded
+  radio amateur; and explains any retained notation and formulas without
+  requiring a formula for every method or a separate formal appendix;
 - empirical validation statistics carry reproducible provenance, are isolated
   as dated validation evidence, or are removed from the normative method;
 - display-only transformations are separated from scientific calculations and
@@ -1608,11 +1654,15 @@ For a substantial manual restructuring, verify:
   localization choices are recorded; unresolved one-language-only or conflicting
   content is absent; and any explicitly requested one-language review draft is
   identified as incomplete;
-- formulas, numerical values, units, signs, thresholds, references, URLs,
-  placeholders and supported public-contract identifiers are preserved exactly,
-  while visible UI labels use their approved localized wording;
-- detector-notation changes are confined to Section 7.11; symbols and formulas
-  outside that section remain unchanged;
+- mathematical meaning, denominators, conditioning and weighting are preserved
+  when an approved rewrite changes notation or replaces formulas with precise
+  rules, tables or examples; numerical values, units, signs, thresholds,
+  references, URLs, placeholders and supported public-contract identifiers
+  remain exact, while visible UI labels use their approved localized wording;
+- notation changes remain within the approved scope, retain all scientifically
+  material qualifications in both languages, and are recorded in the relocation
+  ledger where required; changes to explanation must not silently change the
+  underlying calculation or imply a change to runtime behavior;
 - documentation tests assert required meaning and structure rather than obsolete
   incidental prose where practical;
 - README synchronization and web/PDF rendering are completed after authoritative

@@ -1807,11 +1807,17 @@ controller's listeners.
 The optional Delta-SNR diagnostic has four deliberately separate documentation
 homes: Part I Section 2.5 owns practical expert-tool use, report reading and
 investigation; Section 4.6 owns the exact toggle and three controls; Chapter 5
-owns general Troubleshooting and Data Quality; and Section 7.11 owns the exact
-detector method, notation and formulas. Section 2.5 must identify the feature as
-an expert diagnostic rather than routine guidance. This content restructure does
-not change detector or application behavior. Detector-notation changes are
-confined to Section 7.11, leaving every symbol outside that section unchanged.
+owns general Troubleshooting and Data Quality; and Section 7.6 owns a compact
+scientific overview of the experimental detector: purpose, evidence, local
+baseline, principal qualification conditions, boundaries, classes and limits.
+It is not an exhaustive algorithm specification; the exact behavior remains
+defined by the implementation and regression tests. Section 2.5 identifies the
+feature as an optional expert diagnostic. Manual restructuring does not change
+detector or application behavior.
+Chapter 7 follows shared foundations, Benchmark, Performance, scope and views,
+strength of conclusions, and optional experimental analysis. Descriptive anchors
+identify these topics independently of their visible section numbers. Every
+explicit section reference links to its relevant destination.
 English and German keep parallel semantic ownership with natural localized
 prose and equivalent mathematical meaning. Established inbound compatibility
 anchors remain attached to their relocated meaning and resolve once without

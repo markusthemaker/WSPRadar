@@ -61,13 +61,7 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             manual,
         )
 
-        assert len(source_block_formulas) == 30
-        formal_manual = manual.split('<a id="sec-7-11"></a>', 1)[1].split(
-            '<a id="sec-8"></a>', 1
-        )[0]
-        assert len(
-            re.findall(r"\$\$(.*?)\$\$", formal_manual, flags=re.DOTALL)
-        ) == 13
+        assert source_block_formulas
         assert rendered.count('<p class="formula"><b>') == len(
             source_block_formulas
         )
@@ -85,68 +79,16 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
         assert "$$" not in rendered
         assert not re.search(r"(?<!\$)\$[^$\r\n]+\$(?!\$)", rendered)
         assert "&Delta;" not in rendered
-        expected_formula_fragments = (
-            "S<sub>i,c</sub> = T<sub>i,c</sub>",
-            "O<sub>i,c</sub> = T<sub>i,c</sub> &or; E<sub>i,c</sub>",
-            "M<sub>i,c</sub> = E<sub>i,c</sub> &and; &not; T<sub>i,c</sub>",
-            "n<sub>i</sub> = sum<sub>c</sub> O<sub>i,c</sub>",
-            "r<sub>i</sub> = 100% &times; h<sub>i</sub> / n<sub>i</sub>",
-            "R<sub>station</sub>(g) = (1 / |I<sub>g</sub>|)",
-            "R<sub>opportunity</sub>(g) = 100% &times;",
-            "Reach(g) = 100% &times; count(i in I<sub>g</sub>",
-            "SNR<sub>norm</sub> = SNR<sub>measured</sub>",
-            "SNR<sub>R,corr</sub> = SNR<sub>R</sub> + C<sub>R</sub>",
-            f"{translations['pdf_formula_delta_snr']}<sub>i,c</sub>",
-            "m<sub>i</sub> = median<sub>c</sub>(D<sub>i,c</sub>)",
-            "M<sub>g</sub> = median(i in I<sub>g</sub>)(m<sub>i</sub>)",
-            "N<sub>i,b</sub> = T<sub>i,b</sub> + J<sub>i,b</sub>",
-            "v<sub>T,i,b</sub> = T<sub>i,b</sub> / N<sub>i,b</sub>",
-            "v<sub>J,i,b</sub> = J<sub>i,b</sub> / N<sub>i,b</sub>",
-            "v<sub>R,i,b</sub> = R<sub>i,b</sub> / N<sub>i,b</sub>",
-            "JES<sub>station</sub>(b) = 100% &times; mean<sub>i</sub>",
-            "JES<sub>outcome</sub>(b) = 100% &times;",
-            "A<sub>i,c</sub> = SNR<sub>i,c</sub> - median<sub>c&apos;</sub>",
-            "D<sub>relative</sub> = 100 &times; n<sub>cell</sub>",
-            "B<sub>pre</sub> = median(&#8492;<sub>pre</sub>)",
-            "B = (B<sub>pre</sub> + B<sub>post</sub>) / 2",
-            "V = {x - B<sub>pre</sub>: x &isin; &#8492;<sub>pre</sub>}",
-            "S<sub>robust</sub> = MAD(V) [MAD(V) &gt; 0]",
-            "r<sub>i,u</sub> = D<sub>i,u</sub> - B",
-            "z<sub>i,u</sub> = 0.6745 &times; r<sub>i,u</sub>",
-            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) min",
-            "W<sup>P</sup><sub>i</sub> = max(60, 2 C<sub>i</sub>) min",
-            "F = min(1 dB, D<sub>min</sub> - &epsilon;)",
-            "r<sup>P</sup><sub>i,u</sub> = D<sub>i,u</sub>",
-            "W<sup>B</sup><sub>i</sub> = max(10, C<sub>i</sub>) min",
-            "m<sub>E</sub> = median(u &isin; E)(r<sub>i,u</sub>)",
-            "z<sub>E</sub> = 0.6745 &times; m<sub>E</sub>",
-            "agree(E) = |{u &isin; E: sign(r<sub>i,u</sub>)",
-            "|m<sub>E</sub>| &ge; D<sub>min</sub> - &epsilon;",
-            "|r<sub>i,u</sub>| &ge; D<sub>min</sub> - &epsilon;",
-            "|B<sub>pre</sub> - B<sub>post</sub>| &le; H<sub>max</sub> + &epsilon;",
-            "|z<sub>E</sub>| &ge; Z<sub>min</sub>",
-            "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)",
-        )
-        for expected_formula_fragment in expected_formula_fragments:
-            assert expected_formula_fragment in rendered
-        for expected_inline_formula_fragment in (
-            "A<sub>c</sub> = 1",
-            "S<sub>i,c</sub> &le; O<sub>i,c</sub>",
-            "SNR<sub>R,corr,i,c</sub>",
-            "M &plusmn; 60",
-            "n<sub>cell</sub>",
-            "D<sub>i,u</sub>",
-            "D&#771;<sub>i,k</sub>",
-            "B<sup>P</sup><sub>i,k</sub>",
-            "r<sup>P</sup><sub>i,u</sub>",
-            "V, S<sub>robust</sub>",
-            "W<sup>P</sup><sub>i</sub>",
-            "z<sub>E</sub>",
-            "agree(E)",
-            "H<sub>max</sub>",
-            "&epsilon; = 0.01 dB",
+        for expected_formula_fragment in (
+            "SNR<sub>norm</sub> = SNR<sub>reported</sub> - P<sub>reported</sub> + 30",
+            "SNR<sub>Reference,corr</sub> = SNR<sub>Reference,norm</sub> + C<sub>Reference</sub>",
+            "SNR<sub>Target,norm</sub> - SNR<sub>Reference,corr</sub>",
         ):
-            assert expected_inline_formula_fragment in rendered
+            assert expected_formula_fragment in rendered
+        assert all(
+            unescape(re.sub(r"<[^>]+>", "", body)).strip()
+            for body in rendered_formula_bodies
+        )
         for unsupported_latex in (
             r"\(",
             r"\)",
@@ -173,12 +115,12 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
 @pytest.mark.parametrize(
     ("language", "manual"), [("en", DOC_EN), ("de", DOC_DE)], ids=["en", "de"]
 )
-def test_generated_pdf_preserves_outlier_tolerance_equations(monkeypatch, language, manual):
-    """Render the real detector section and retain epsilon and both dB bounds."""
+def test_generated_pdf_preserves_experimental_detector_explanation(monkeypatch, language, manual):
+    """Retain the compact diagnostic's status, sign example and scientific text."""
     from PIL import Image
     from pypdf import PdfReader
 
-    detector_section = manual.split('<a id="sec-7-11"></a>', 1)[1].split(
+    detector_section = manual.split('<a id="sec-7-outliers"></a>', 1)[1].split(
         '<a id="sec-8"></a>', 1
     )[0]
     monkeypatch.setattr(pdf_generator, "get_docs", lambda _lang: detector_section)
@@ -191,11 +133,100 @@ def test_generated_pdf_preserves_outlier_tolerance_equations(monkeypatch, langua
     assert pdf_bytes is not None
     reader = PdfReader(io.BytesIO(pdf_bytes))
     extracted = " ".join(" ".join(page.extract_text().split()) for page in reader.pages)
-    assert "ε = 0.01 dB" in extracted
-    assert "Dmin - ε" in extracted
-    assert "Hmax + ε" in extracted
+    assert ("experimental" if language == "en" else "experimentell") in extracted.casefold()
+    for retained_value in ("+8 dB", "+1 dB", "-7 dB"):
+        assert retained_value in detector_section
+        assert retained_value in extracted
+    assert "ΔSNR" in extracted
     assert r"\varepsilon" not in extracted
     assert "\u25a0" not in extracted
+
+
+@pytest.mark.parametrize(
+    ("language", "manual"), [("en", DOC_EN), ("de", DOC_DE)], ids=["en", "de"]
+)
+def test_scientific_pdf_table_widths_follow_semantic_topic_anchors(language, manual):
+    """Topic-local widths follow the meaning, independently of compatibility aliases."""
+    html = pdf_generator._render_pdf_html(manual, T[language])
+    for start, end, widths in (
+        ("sec-7-spots-identities-cycles", "sec-7-normalization-consolidation", (36, 64)),
+        ("sec-7-activity-eligibility", "sec-7-benchmark", (19, 81)),
+        ("sec-7-benchmark-delta", "sec-7-benchmark-aggregation", (25, 75)),
+        ("sec-7-performance-opportunities", "sec-7-performance-rates", (18, 25, 40, 17)),
+        ("sec-7-benchmark-outcomes", "sec-7-benchmark-delta", (25, 75)),
+        ("sec-7-benchmark-aggregation", "sec-7-benchmark-coverage", (23, 57, 20)),
+        ("sec-7-benchmark-coverage", "sec-7-neighborhood", (34, 66)),
+        ("sec-7-outliers", "sec-8", (34, 66)),
+    ):
+        section = html.split(f'name="{start}"', 1)[1].split(f'name="{end}"', 1)[0]
+        matching_tables = [
+            table for table in re.findall(r"<table\b.*?</table>", section, re.DOTALL)
+            if len(re.findall(r"<th\b", table)) == len(widths)
+        ]
+        assert matching_tables
+        for table in matching_tables:
+            assert 'width="100%"' in table
+            assert 'repeat="1"' in table
+            headers = re.findall(r"<th\b[^>]*>", table)
+            assert all(
+                re.search(rf'\bwidth:\s*{width}%(?:;|\s*")', header)
+                for width, header in zip(widths, headers)
+            )
+
+    # The three-column Performance summary must not inherit four-column widths.
+    performance = html.split('name="sec-7-performance-rates"', 1)[1].split(
+        'name="sec-7-performance-reach"', 1
+    )[0]
+    three_column_tables = [
+        table for table in re.findall(r"<table\b.*?</table>", performance, re.DOTALL)
+        if len(re.findall(r"<th\b", table)) == 3
+    ]
+    assert three_column_tables
+    assert all("width: 18%;" not in table for table in three_column_tables)
+
+
+def test_pdf_wraps_german_detector_labels_without_changing_prose_or_source():
+    """Long compounds wrap in detector labels only; wording remains unchanged."""
+    rendered = pdf_generator._render_pdf_html(DOC_DE, T["de"])
+    source_detector = DOC_DE.split('<a id="sec-7-outliers"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+    rendered_detector = rendered.split('name="sec-7-outliers"', 1)[1].split(
+        'name="sec-8"', 1
+    )[0]
+    first_cells = re.findall(
+        r"<tr\b[^>]*>\s*<td\b[^>]*>(.*?)</td>",
+        rendered_detector,
+        re.DOTALL,
+    )
+    for stem in ("Basislinien", "Vorzeichen"):
+        word = f"{stem}übereinstimmung"
+        wrapped = f"{stem}-<br/>übereinstimmung"
+        source_label_count = source_detector.count(f"| **{word}** |")
+        assert sum(wrapped in cell for cell in first_cells) == source_label_count
+        assert all(word not in cell for cell in first_cells)
+        assert rendered_detector.count(word) == source_detector.count(word) - source_label_count
+        assert rendered.count(wrapped) == source_label_count
+        assert wrapped not in DOC_DE
+
+    # The same word in prose, an explanation cell or another section stays whole.
+    table = (
+        "<table><tr><th>Label</th><th>Explanation</th></tr>"
+        "<tr><td><strong>Basislinienübereinstimmung</strong></td>"
+        "<td><strong>Vorzeichenübereinstimmung</strong></td></tr></table>"
+    )
+    before = '<a name="sec-7-claims"></a>' + table
+    after = '<a name="sec-8"></a>' + table
+    prose = "<p>Basislinienübereinstimmung und Vorzeichenübereinstimmung</p>"
+    html = before + '<a name="sec-7-outliers"></a>' + prose + table + after
+    fitted = pdf_generator._fit_scientific_definition_tables_for_pdf(html)
+    assert fitted.startswith(before)
+    assert fitted.endswith(after)
+    assert prose in fitted
+    assert fitted.count("Basislinien-<br/>übereinstimmung") == 1
+    assert "Vorzeichen-<br/>übereinstimmung" not in fitted
+    english = pdf_generator._render_pdf_html(DOC_EN, T["en"])
+    assert "-<br/>übereinstimmung" not in english
 
 
 def test_generated_pdf_footer_uses_localized_page_label(monkeypatch):
@@ -522,46 +553,44 @@ def test_pdf_html_adds_named_destinations_without_removing_web_ids():
         "sec-outlier",
         "sec-7",
         "sec-7-11",
+        "sec-7-foundations",
+        "sec-7-benchmark",
+        "sec-7-performance",
+        "sec-7-views",
+        "sec-7-claims",
+        "sec-7-outliers",
         "sec-ref",
     ):
         assert f'<a id="{anchor}" name="{anchor}"></a>' in rendered
 
 
-def test_pdf_preprocessing_marks_only_each_chapter_seven_method_matrix():
-    """Only the localized five-column orientation matrices receive print widths."""
-    localized_manuals = (
-        (DOC_EN, T["en"], "Conditioning /<br/> eligibility"),
-        (DOC_DE, T["de"], "Konditionierung /<br/> Zulässigkeit"),
-    )
-    for manual, translations, wrapped_header in localized_manuals:
+def test_pdf_preprocessing_marks_only_source_chapter_seven_method_matrices():
+    """Do not invent an orientation matrix or tag another scientific table."""
+    import markdown
+
+    for manual, translations in ((DOC_EN, T["en"]), (DOC_DE, T["de"])):
+        source_intro = manual.split('<a id="sec-7"></a>', 1)[1].split(
+            '<a id="sec-7-foundations"></a>', 1
+        )[0]
+        source_html = markdown.markdown(
+            source_intro, extensions=pdf_generator.PDF_MARKDOWN_EXTENSIONS
+        )
+        source_matrices = [
+            table for table in re.findall(r"<table\b.*?</table>", source_html, re.DOTALL)
+            if len(re.findall(r"<th\b", table)) == 5
+        ]
+        expected_count = 1 if len(source_matrices) == 1 else 0
         rendered = pdf_generator._render_pdf_html(manual, translations)
         chapter_intro = rendered.split('name="sec-7"', 1)[1].split(
-            'name="sec-7-1"', 1
+            'name="sec-7-foundations"', 1
         )[0]
 
-        assert rendered.count('class="pdf-method-matrix"') == 1
+        assert rendered.count('class="pdf-method-matrix"') == expected_count
+        assert chapter_intro.count('class="pdf-method-matrix"') == expected_count
+        if not source_matrices:
+            assert 'class="pdf-method-matrix-label"' not in rendered
         assert "method_matrix_landscape" not in rendered
         assert '<pdf:nextpage name="body" />' not in rendered
-        assert rendered.index('name="sec-7"') < rendered.index(
-            'class="pdf-method-matrix-label"'
-        )
-        assert chapter_intro.index(
-            'class="pdf-method-matrix-label"'
-        ) < chapter_intro.index('class="pdf-method-matrix"')
-        assert chapter_intro.index('class="pdf-method-matrix"') < len(chapter_intro)
-        assert tuple(
-            int(width)
-            for width in re.findall(
-                r'<th style="width: (\d+)%">',
-                re.search(r'<table class="pdf-method-matrix".*?</table>', chapter_intro, re.DOTALL).group(0),
-            )
-        ) == pdf_generator.PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT
-        assert wrapped_header in chapter_intro
-        assert re.search(r'<table[^>]*class="pdf-method-matrix"[^>]*repeat="1"', chapter_intro)
-
-    german_rendered = pdf_generator._render_pdf_html(DOC_DE, T["de"])
-    assert "Target-/<br/>lokaler-Referenz-<br/>Peer-Zyklus" in german_rendered
-    assert "Target-/<br/>beste-lokale-Station-<br/>Peer-Zyklus" not in german_rendered
 
 
 def test_generated_pdf_keeps_method_matrix_in_portrait(monkeypatch):
@@ -588,11 +617,21 @@ def test_generated_pdf_keeps_method_matrix_in_portrait(monkeypatch):
             separator,
             row,
             "",
-            '<a id="sec-7-1"></a>',
+            '<a id="sec-7-foundations"></a>',
             "#### 7.1 After matrix",
             "Portrait content after the method matrix.",
         )
     )
+    rendered = pdf_generator._render_pdf_html(compact_manual, T["en"])
+    assert rendered.count('class="pdf-method-matrix"') == 1
+    assert 'class="pdf-method-matrix-label"' in rendered
+    matrix = re.search(
+        r'<table class="pdf-method-matrix".*?</table>', rendered, re.DOTALL
+    ).group(0)
+    assert tuple(int(width) for width in re.findall(r'width: (\d+)%', matrix)) == (
+        pdf_generator.PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT
+    )
+    assert 'repeat="1"' in matrix
     monkeypatch.setattr(pdf_generator, "get_docs", lambda _lang: compact_manual)
 
     logo_buffer = io.BytesIO()
@@ -617,27 +656,55 @@ def test_generated_pdf_keeps_method_matrix_in_portrait(monkeypatch):
     assert "Scientific methods" in extracted_text
 
 
-def test_xhtml2pdf_emits_an_internal_link_destination():
-    """The PDF engine requires a name destination for an internal TOC link."""
+def test_xhtml2pdf_internal_links_land_at_the_heading_on_the_target_page():
+    """Semantic and compatibility links must land above the heading, not its end."""
     from pypdf import PdfReader
     from xhtml2pdf import pisa
 
     pdf_bytes = io.BytesIO()
     status = pisa.CreatePDF(
         io.StringIO(
-            '<html><body><a href="#target">Jump</a>'
-            '<p style="page-break-before: always">Second page</p>'
-            '<a id="target" name="target"></a><h1>Target</h1></body></html>'
+            '<html><body><a href="#target-topic">Jump</a> '
+            '<a href="#legacy-target">Compatibility link</a>'
+            '<p style="page-break-before: always">Previous section ends here.</p>'
+            '<p>Another paragraph before the target heading.</p>'
+            '<a id="legacy-target" name="legacy-target"></a>'
+            '<a id="target-topic" name="target-topic"></a>'
+            '<h1>Target Heading</h1>'
+            '<p>First paragraph of the target section.</p>'
+            '<p>Last paragraph of the target section.</p></body></html>'
         ),
         dest=pdf_bytes,
     )
     reader = PdfReader(io.BytesIO(pdf_bytes.getvalue()))
-    annotations = []
-    for page in reader.pages:
-        annotations.extend(page.get("/Annots", []))
-
     assert not status.err
-    assert any("/Dest" in annotation.get_object() for annotation in annotations)
+    assert len(reader.pages) == 2
+    heading_positions = []
+
+    def capture_heading(text, current_matrix, text_matrix, _font, font_size):
+        if text.strip() == "Target Heading":
+            y = (
+                text_matrix[4] * current_matrix[1]
+                + text_matrix[5] * current_matrix[3]
+                + current_matrix[5]
+            )
+            heading_positions.append((y, font_size))
+
+    target_page = reader.pages[1]
+    target_page.extract_text(visitor_text=capture_heading)
+    assert len(heading_positions) == 1
+    heading_y, heading_font_size = heading_positions[0]
+    destinations = [
+        annotation.get_object()["/Dest"]
+        for annotation in reader.pages[0].get("/Annots", [])
+        if "/Dest" in annotation.get_object()
+    ]
+    assert len(destinations) == 2
+    for destination in destinations:
+        assert destination[0] == target_page.indirect_reference
+        assert destination[1] == "/XYZ"
+        assert 0 <= float(destination[3]) - heading_y <= 2 * heading_font_size
+    assert destinations[0] == destinations[1]
 
 
 def test_documentation_pdf_is_not_generated_during_initial_render(monkeypatch):
