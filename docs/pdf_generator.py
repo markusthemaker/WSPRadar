@@ -1007,6 +1007,7 @@ def _fit_scientific_definition_tables_for_pdf(html_content):
     """Give short symbols/counts less width and their explanations more."""
     definitions = (
         ("sec-5-6", "sec-6", (30, 19, 16, 35)),
+        ("sec-d-4", "sec-d-5", (34, 66)),
         ("sec-7", "sec-7-foundations", (24, 76)),
         ("sec-7-spots-identities-cycles", "sec-7-normalization-consolidation", (36, 64)),
         ("sec-7-activity-eligibility", "sec-7-benchmark", (19, 81)),
@@ -1016,6 +1017,7 @@ def _fit_scientific_definition_tables_for_pdf(html_content):
         ("sec-7-benchmark-coverage", "sec-7-neighborhood", (34, 66)),
         ("sec-7-performance-opportunities", "sec-7-performance-rates", (18, 25, 40, 17)),
         ("sec-7-outliers", "sec-8", (34, 66)),
+        ("sec-8-4", "sec-8-5", (26, 74)),
     )
     for start, end, widths in definitions:
         a = html_content.find(f'name="{start}"')
@@ -1030,6 +1032,9 @@ def _fit_scientific_definition_tables_for_pdf(html_content):
                 return table
             remaining = iter(widths)
             table = table.replace("<table>", '<table width="100%">', 1)
+            if start == "sec-8-4":
+                table = table.replace('<table width="100%">', '<table class="pdf-export-guide" width="100%">', 1)
+                table = table.replace("Drill-Down-Fokusabbildungen", "Drill-Down-<br/>Fokusabbildungen")
             if start == "sec-7-performance-opportunities":
                 table = table.replace("Target-Decode", "Target-<br/>Decode")
             if start == "sec-7-outliers":
@@ -1081,6 +1086,9 @@ def _render_pdf_html(md_text, translations, markdown_module=None):
     )
     def wrap_table_identifiers(match):
         table = match.group(0).replace("Ansichtsbedienelemente", "Ansichts-<br/>bedienelemente")
+        # Export filenames sit in the wide description column and fit intact.
+        if 'class="pdf-export-guide"' in table:
+            return table
         def wrap_code(code_match):
             code = code_match.group(1)
             if len(code) <= 24 or "_" not in code or "<" in code:

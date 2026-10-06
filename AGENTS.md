@@ -1005,6 +1005,22 @@ technically correct or already present.
   RX and TX Benchmark each distinguish Reference Setup/Station and Reference
   Neighborhood. Both use same-cycle evidence; experimental intent describes
   controlled setups or independent stations without selecting another method.
+- For controlled simultaneous **TX Benchmark**, recommend two distinct ordinary
+  callsigns both transmitting Type 1, or two compound callsigns both transmitting
+  the same verified Type 2/Type 3 sequence, with synchronized schedules. When
+  sharing a base callsign, give both transmitters different permitted suffixes,
+  such as `CALL/1` and `CALL/2`. Two ordinary callsigns also work in a controlled
+  local setup; callsign structure does not determine whether stations are local
+  or independent. Callsigns alone cannot establish the actual message pattern
+  or synchronization. Preserve the UI distinction: identical exact Target and
+  Reference callsigns are rejected, while one slash-containing and one ordinary
+  callsign trigger a non-blocking message-pattern warning only for TX Reference
+  Setup/Station. This warning also applies when the base callsigns differ; it
+  does not certify matching patterns when absent. **RX reporting identities are
+  separate from transmitted message types**: distinct identities such as `CALL`
+  and `CALL/P` remain valid RX examples when preserved by the reporting software
+  and database. Do not extend the TX warning or message-pattern recommendation
+  to RX, Performance or Reference Neighborhood.
 - Keep Section 2.5 explicitly scoped as an optional expert diagnostic tool for
   finding and reviewing temporary Delta-SNR departures. It owns practical use,
   report reading and investigation guidance, not a recommendation that every
@@ -1302,11 +1318,17 @@ multi-stage-method ownership rule below:
   radio meaning first and interpretation limits visible alongside the method.
 - **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:** claim
   classes, supported inference, interpretation limits, reporting and provenance
-  requirements, selected public machine-readable configuration/URL/export/data
-  contracts and disclaimer. Describe export artifacts by scientific content,
-  scope and stable contract fields; do not turn the export section into an
-  exhaustive field catalog or an inventory of figure titles, axis labels or
-  browser layout.
+  requirements, analysis export contents and disclaimer. Keep Section 8.4
+  centered on one artifact/content table, a short preparation instruction and
+  a closing link to the external experiment record. Describe each artifact's
+  practical use, scientific scope and conditional inclusion; preserve the
+  distinction between saved settings and retained evidence, full-run and
+  selected-scope contents, and absent files versus valid empty results. Retain
+  useful filenames and provenance boundaries without repeating a directory
+  tree, metadata field inventory or configuration/URL contract table. Exact
+  technical contracts remain in the formal schema and engineering guide; a
+  new formal appendix is not required. Do not inventory figure titles, axis
+  labels or browser layout.
 - **References:** the consolidated source list follows Chapter 8 and precedes
   Part IV.
 - **Part IV — Practical Supplements:** Appendix A owns parallel WSJT-X setup;

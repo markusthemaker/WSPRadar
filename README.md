@@ -251,7 +251,7 @@ Begin with one sentence stating what is being tested and what observation would 
 **From WSPR operation to your first own run:**
 
 1. **Create usable WSPR reports.** For RX, configure a WSPR-capable receiver and decoder such as WSJT-X with the correct receiving callsign, locator, band, audio input and synchronized clock. Start receiving and enable spot uploads; a local decode that is never uploaded is unavailable to WSPRadar. For TX, configure a WSPR transmitter with the correct callsign, locator, band, synchronized timing and accurate reported power; remote receiving stations supply its spots. The WSJT-X guide explains its radio/audio setup and WSPR controls <a href="#ref-12">[Ref-12]</a>.
-2. **Check the database before analyzing.** Verify successful reports under the exact receiving callsign for RX or transmitting callsign for TX in WSPRnet, then confirm availability in the database used by WSPRadar. Check the reported locator and UTC times. Allow uploads to arrive and choose a completed window containing the intended operation; no fixed waiting time guarantees completeness. [Section 5.6](#sec-6-6) covers delayed data and source status.
+2. **Check the database before analyzing.** Verify successful reports under the exact receiving callsign for RX or transmitting callsign for TX in WSPRnet, then confirm availability in the database used by WSPRadar. Check the reported locator and UTC times. Allow uploads to arrive and choose a completed window containing the intended operation; no fixed waiting time guarantees completeness. For a step-by-step TX preflight, see [Appendix B.4](#sec-simultaneous-tx-setup-4). [Section 5.6](#sec-6-6) covers delayed data and source status.
 3. **Prepare the comparison, if needed.** Benchmark needs suitable observations of Target and Reference in the same WSPR cycles. Check Reference operation independently; observing the Target does not prove Reference uptime. Use [Chapter 2](#sec-3) to choose the Reference design, [Appendix A](#sec-a) for parallel RX and [Appendix B](#sec-simultaneous-tx-setup) for simultaneous TX. Performance needs no Reference.
 4. **Enter one clear analysis.** In Guided or Classic, select RX/TX and Benchmark/Performance, the exact uploaded Target callsign, Target QTH, one band and the UTC window. For Benchmark, also choose the Reference design and required identity or radius. Review the summary and any Reference correction, then use `Run RX Analysis` or `Run TX Analysis`. [Chapter 4](#sec-5) explains the controls. A run produces only the selected result.
 5. **Inspect and preserve it.** Follow the matching [Chapter 2](#sec-3) guide from Map to individual stations. If evidence is missing or unexpectedly thin, check [Chapter 5](#sec-6) before relaxing thresholds. Save the export and experiment notes as described in [Section 3.4](#sec-4-4).
@@ -787,7 +787,7 @@ WSPRadar distinguishes controls that change the retained scientific evidence fro
 | **View controls** | Change the active inspection scope, selected station, evidence visibility or display aggregation without reclassifying retained evidence. | Supported durable choices only | No |
 | **Temporary interface choices** | Change only the current on-screen arrangement, temporary table filters, documentation visibility or a prepared download. | No | No |
 
-Versioned configurations store the applicable scientific settings and supported durable view choices. Exact calculations are defined in [Chapter 7](#sec-7); [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names. The formal JSON Schema is authoritative for the exhaustive saved-configuration field contract.
+Versioned configurations store the applicable scientific settings and supported durable view choices. Exact calculations are defined in [Chapter 7](#sec-7); [Section 8.4](#sec-8-4) explains how the export preserves settings and evidence. The formal JSON Schema is authoritative for the exhaustive saved-configuration field contract.
 
 <a id="sec-5-1"></a>
 
@@ -811,7 +811,7 @@ After loading a demo in Guided, `Walk me through the setup` opens the setup step
 
 After an accepted Run action, the page moves to the processing-status panel below Review. As soon as the first map image is ready, it moves to that result while Segment Inspector and Drill-Down data continue preparing automatically. The status reaches **`Complete`** only after all result views are ready. Each automatic move occurs once per submission; scrolling or navigating elsewhere while waiting cancels the move to the map. Result-view interactions and redisplaying a completed run do not restart these automatic moves.
 
-**Current configuration format.** Only the current saved-configuration schema and public-URL contract are accepted; retired aliases, fields and earlier input formats are rejected without migration. Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The formal JSON Schema is the authoritative exhaustive saved-configuration contract; [Section 8.4](#sec-8-4) gives a concise operator-facing summary of selected public identifiers. Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
+**Current configuration format.** Only the current saved-configuration schema and public-URL contract are accepted; retired aliases, fields and earlier input formats are rejected without migration. Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The formal JSON Schema (`config/wspradar-config.schema.json`) is the authoritative exhaustive saved-configuration contract; [Section 8.4](#sec-8-4) describes the exported configuration and evidence files. Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
 
 **Demo context lifecycle.** A loaded demo keeps its visible context when only population filters, evidence thresholds, Inspector scope or other result-view controls are changed, so an adapted view can still be interpreted against the example from which it began. Changing the Question or direction, Target callsign or QTH, band, measurement window, Benchmark design or identity, neighborhood radius, or correction intent/value removes the demo metadata and profile identity from later saves because the setup no longer represents that documented experiment. Any scientific edit also ends exact-demo cache identity, even when the explanatory demo context remains visible. A population- or evidence-changing scientific edit clears any preselected Performance and Benchmark Station Insights identity; the path may no longer exist in the new result. Result-view-only controls do not clear that selection.
 
@@ -849,7 +849,7 @@ Guided provides concise help for each Reference choice and separate help for the
 
 Selecting RX or TX Benchmark without an existing design preselects **Reference Setup/Station** in Guided and Classic. An existing Reference Setup/Station or Reference Neighborhood choice is preserved.
 
-Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. The terminal Review panel appears after the shared filters, scope and evidence panel. On Run, invalid or incomplete fields are marked locally with red feedback and corrective guidance; correcting a field clears its issue. Database lookup failure is reported separately from an invalid callsign or an empty report window. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names; it is not an exhaustive field or parameter catalog.
+Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. The terminal Review panel appears after the shared filters, scope and evidence panel. On Run, invalid or incomplete fields are marked locally with red feedback and corrective guidance; correcting a field clears its issue. Database lookup failure is reported separately from an invalid callsign or an empty report window. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. [Section 8.4](#sec-8-4) describes the settings, evidence and figures included in the export.
 
 | UI label | Default / range | Applies to | Scientific effect |
 |---|---|---|---|
@@ -1072,70 +1072,134 @@ Part III explains why the comparisons are reasonable, how the numbers are calcul
 <a id="sec-d"></a>
 ### 6. Literature, Prior Art and Positioning
 
-**Why read this chapter?** The earlier experiments explain three practical choices: compare under common conditions, establish activity before interpreting silence, and check complete signal chains before attributing a difference to an antenna. This is a focused methodological review, not a systematic or exhaustive literature search. Peer-reviewed articles, preprints, amateur technical reports and software documentation provide different kinds of evidence. Their contributions are distinguished below; they do not validate every WSPRadar metric or design choice.
+WSPR research has developed through contributions from radio amateurs, academic researchers, software developers and instrument builders. Their work established ways to compare antennas, diagnose station problems and study propagation using a worldwide reporting network.
+
+This chapter recognizes selected contributions and explains their relevance to WSPRadar. It is a focused methodological review, not an exhaustive history. Published research, preprints, amateur technical reports and software documentation provide different kinds of evidence. Each deserves credit for what it demonstrates.
+
+Three practical lessons connect much of this work: compare under common conditions, establish activity before interpreting silence, and examine the complete station before attributing a difference to an antenna.
 
 <a id="sec-d-1"></a>
 #### 6.1 From reporting network to experimental dataset
 
-Taylor and Walker described the WSPRnet database as an experimental resource: “The WSPRnet database represents a rich source of experimental data for propagation studies.” Their example groups observations by time of day over several weeks, illustrating both the value of accumulated reports and the need to interpret them as observational rather than controlled laboratory data. <a href="#ref-6">[Ref-6]</a>
+**Joe Taylor, K1JT, and Bruce Walker, W1BW: creating the shared experimental resource.** Taylor’s WSPR protocol and software made automated weak-signal measurements accessible to ordinary amateur stations; Walker developed WSPRnet to collect and share their reports. Their 2010 article explicitly identified the database’s value for propagation research. An example combined observations from several weeks by time of day, showing how accumulated reports could reveal patterns beyond an individual contact or operating session. The wider community of station operators and maintainers supplies the observations that make this possible. <a href="#ref-6">[Ref-6]</a>
+
+**Nathaniel Frissell and collaborators: connecting amateur observations to space science.** Their 2019 study used WSPRNet and Reverse Beacon Network observations to investigate HF communication changes during the September 2017 solar activity. A defined quiet-time baseline helped distinguish solar-flare blackouts and geomagnetic-storm effects from ordinary variations in reported activity. <a href="#ref-13">[Ref-13]</a>
+
+Their 2022 work showed that changes in communication distance recorded by WSPRNet, the Reverse Beacon Network and PSKReporter could reveal large-scale traveling ionospheric disturbances. Comparisons with SuperDARN radar and satellite-navigation measurements of ionospheric electron content supported the interpretation. These studies demonstrate how amateur reports can contribute to physical research when sampling, background conditions and independent observations are considered together. <a href="#ref-14">[Ref-14]</a>
 
 Frissell et al. place WSPRNet alongside the Reverse Beacon Network and PSKReporter as established amateur-radio observation networks that provide long-term bottomside-ionosphere observations. They distinguish these networks from purpose-built scientific instruments and recommend cross-calibration between instrument networks. The review supports scientific use of amateur observations; it does not make each contributing receiver a calibrated sensor. <a href="#ref-7">[Ref-7]</a>
 
-The WSPR database offers observations across long periods and many locations, but stations differ, equipment changes, identities and powers are user-supplied, and operating schedules are generally unknown. Only successful decodes are reported. WSPRadar must therefore specify which observations qualify and when silence can be interpreted; a missing spot alone is insufficient.
+The WSPR database is therefore a valuable observational resource whose interpretation depends on the experiment. Equipment, local noise and operating schedules differ; callsigns, locators and powers are supplied by operators; and ordinary spot records contain successful decodes. A missing report needs additional context.
 
 <a id="sec-d-2"></a>
 #### 6.2 Making observational WSPR data interpretable
 
 <a id="sec-d-lo"></a>
-Lo et al. used 7 MHz WSPR reports to study greyline propagation and warned that no authoritative operating schedules exist for WSPR equipment. Before interpreting a missing path, they checked whether a transmitter was heard elsewhere or whether a receiver heard another station, and they emphasized callsign/location consistency and multiple sites. <a href="#ref-9">[Ref-9]</a>
+**Lo and collaborators: establish activity before interpreting silence.** Their 2022 study of 7 MHz greyline propagation examined whether transmitters were heard elsewhere and whether receivers heard other stations before interpreting missing reception. It also considered station identity, location and observations from multiple sites. This turns a practical question — “was the equipment actually operating?” — into part of the scientific method.
 
-This activity check is direct prior art for WSPRadar's Target-Active Gate and confirmed opportunities: first establish operation, then assess an absent report. Lo et al. do not define WSPRadar's asymmetric Target conditioning, Performance analysis target, station balancing, Decode Outcomes or local References. Those are separate WSPRadar choices, defined in [Chapter 7](#sec-7).
+Their contribution extended beyond activity checks. Using a full year of observations between Europe and Australasia, they investigated daily and seasonal reception patterns and found differences between the two transmission directions. They proposed elevated European summer-evening noise as a possible explanation for missing sunset reception. The study connects propagation research with station diagnosis: reception depends on the receiving environment as well as propagation between the stations. <a href="#ref-9">[Ref-9]</a>
+
+**Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, and Glenn Elmore, N6GN, 2019–2020: measure noise alongside WSPR reception.** Their technical report developed noise estimates from the same receiver recordings used for WSPR decoding. They compared measurements in the gaps between transmissions with frequency-domain estimates that could operate during reception, and investigated calibration toward the receiver’s antenna input.
+
+The distinctive contribution is additional measurement evidence for understanding why SNR changes: stronger signals and lower noise can both improve reception. Ordinary WSPR spot records alone cannot separate those causes. This work supported WSPRdaemon’s extended measurements and was subsequently published in QEX in September/October 2020. <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a>
+
+Together, these approaches show why reception analysis needs evidence about station activity and the conditions under which SNR was measured.
 
 <a id="sec-d-3"></a>
 #### 6.3 Antenna and station-comparison lineage
 
+**Patrick Destrem, F6IRF, 2008: automated switching and comparisons by direction and distance.** Destrem documented computer-controlled antenna switching at ten-minute intervals, correction of reports to a common transmit power, and examination of results by receiving station and geographic grouping. These were interleaved measurements: the antennas were tested in alternating periods.
+
+His follow-up showed why an overall result and a result restricted to distant receivers could differ. He extended the approach to receiving antennas on 160 m and comparisons between stations through common remote receivers. These reports provide early practical examples of treating WSPR as an experimental measurement system, with attention to antenna interaction, local noise and limited observations. Their particular value is connecting the comparison to the directions, distances and operating conditions in which an installation performs well. <a href="#ref-17">[Ref-17]</a>
+
+**Charles Preston, then KL7OA and later K7TAA, 2009: simultaneous comparison under shared conditions.** Preston described operating two antennas with separate transmitters or receivers at the same location and comparing simultaneous reports. For TX comparisons, the same distant receiver observes both transmissions, reducing differences caused by changing propagation and receiver conditions. He framed the practical question as which available antenna works better at the operator’s location.
+
+His preliminary report distinguished received SNR from signal strength and acknowledged interaction between nearby antennas. It also examined one-sided reports: a missing counterpart could indicate a weak signal or interference at one transmission frequency. This is early recognition that reports received from only one side contain useful information, but require interpretation. The small initial experiment demonstrated the method while leaving its antenna findings provisional. <a href="#ref-18">[Ref-18]</a>
+
+Preston subsequently published *Antenna Comparisons Using Simultaneous WSPR Measurements* in QEX, July/August 2017. <a href="#ref-19">[Ref-19]</a>
+
 <a id="sec-d-toledo"></a>
-**Toledo (2010): why slow alternation fails.** Sivan Toledo tested one antenna for roughly an hour and then another, finding path-SNR changes comparable with the apparent antenna difference. He concluded that this design could not isolate the antennas and discussed other operators' per-cycle switching and simultaneous-transmission experiments with separate hardware. WSPRadar supports the same-cycle alternative; its analysis does not pair different transmission cycles. <a href="#ref-3">[Ref-3]</a>
+**Sivan Toledo, 2010: a useful negative result about experimental timing.** Toledo tested antennas in roughly hour-long blocks and found that propagation-related SNR variation was comparable with the apparent antenna differences. He checked another receiver’s observations to investigate whether the fluctuations originated at his own station; similar variations were present there.
+
+The experiment demonstrated why that measurement design could not reliably separate the effects. His discussion connected the problem to other operators’ automated switching and simultaneous-transmission approaches. The lesson is practical: more reports do not rescue a comparison if the antennas were tested under materially different conditions. <a href="#ref-3">[Ref-3]</a>
 
 <a id="sec-d-milazzo"></a>
-**Milazzo (2011): compare complete stations through a common receiver.** Carol Milazzo compared two stations 29 km apart through one receiver 1,750 km away, corrected reported SNR for transmit-power differences, compared the trend with VOACAP, noted unequal duty cycles and examined reciprocal RX reports. The case study demonstrates the practical value of common-receiver WSPR comparison while also showing the limits imposed by different QTHs, hardware, local noise, a single selected receiver and no formal uncertainty analysis. <a href="#ref-4">[Ref-4]</a>
+**Carol Milazzo, KP4MD, 2011: compare complete stations and examine both directions.** Milazzo compared stations 29 km apart through a common receiver about 1,750 km away, corrected SNR for transmit-power differences and compared the observed behavior with VOACAP. She also examined reciprocal reception: on 40 m, the transmit and receive comparisons favored different stations.
+
+This makes the study especially useful for understanding the roles of equipment and local noise. A station that produces stronger reports when transmitting can still provide poorer reception. Unequal duty cycles, different sites and the selected common receiver limit how broadly the particular results can be generalized. <a href="#ref-4">[Ref-4]</a>
 
 <a id="sec-d-griffiths-squibb"></a>
-**Griffiths and Squibb (2017): same-signal RX comparison as station diagnosis.** For two receivers at separate QTHs, they retained reports of the same transmitter at the same time and related SNR difference to soil moisture, time, distance and station changes. The work shows how paired WSPR observations can diagnose complete receive systems and reveal structure hidden by spot totals. Because antennas, QTHs, noise and equipment differed, it supports comparative station evidence rather than isolated calibrated antenna gain. <a href="#ref-5">[Ref-5]</a>
+**Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, 2017: use common-signal comparisons to diagnose a station.** They selected reports of the same transmitter at the same time and investigated SNR differences against time, distance, soil moisture and station changes.
+
+Their work went beyond describing patterns. They examined rainfall and used an additional reference receiver to investigate the soil-moisture explanation. After three ground radials were added at G4HZX, the earlier moisture association was absent in the subsequent test period. They also documented improved SNR following a change in computer placement and the audio arrangement.
+
+The distinctive contribution is a practical cycle of observation, hypothesis and intervention. Repeated comparisons, environmental information and recorded station changes made the diagnosis more informative than spot totals alone. The observations concern complete receiving installations; the proposed physical mechanisms remain interpretations supported to different degrees by the accompanying checks. <a href="#ref-5">[Ref-5]</a>
 
 <a id="sec-d-vanhamel"></a>
-**Vanhamel, Machiels and Lamy (2022): check the receive chains first.** Their peer-reviewed 160 m experiment checked the offset between two nominally identical receive chains using a common antenna, then compared antennas through simultaneous reception of common remote transmissions. This is the strongest direct precedent in this review set for controlled RX comparisons and for characterizing receive-chain offsets before interpreting antenna differences. Their propagation results also show that polarization and ionospheric effects remain coupled to reported SNR. <a href="#ref-2">[Ref-2]</a>
+**Vanhamel, Machiels and Lamy, 2022: characterize the receiving equipment before comparing antennas.** Their peer-reviewed 160 m experiment connected two receiving chains to a common antenna to measure their offset before making simultaneous antenna comparisons. Two seven-day calibration periods each produced a mean offset of about 1.2 dB, which they applied to the comparison.
+
+They also investigated reception with identical antennas placed at orthogonal orientations. The measured orientation-dependent SNR prompted discussion of polarization and ionospheric effects as possible explanations. The practical contribution is making the receiving apparatus itself testable before interpreting antenna differences, while distinguishing observed behavior from its proposed causes. <a href="#ref-2">[Ref-2]</a>
 
 <a id="sec-d-zander"></a>
-**Zander (2022): simultaneous same-receiver TX comparison.** Zander models two local antennas driven by separate nominally equal-power transmitters with different callsigns in the same WSPR cycle. A remote receiver contributes only when it reports both signals in the same interval. Under the same-time, common-path and equal-power assumptions, common path loss and receiver noise cancel in the SNR difference; frequency-selective interference, failed decodes, quantization and transmitter-chain differences remain. Because each difference is formed within one remote receiver, receiver calibration is not required for that pair, while equality or correction of the two transmitted powers remains essential. <a href="#ref-1">[Ref-1]</a>
+**Jens Zander, 2022: explain the assumptions and precision of simultaneous TX comparison.** Zander’s preprint develops a mathematical account of two local antennas transmitting simultaneously, with separate callsigns, to common remote receivers. A receiver contributes to the SNR comparison when it reports both transmissions in the same WSPR cycle. Under the model’s assumptions, shared propagation loss and receiver noise cancel in each SNR difference.
 
-Zander reports about 1,000 observations per preliminary experiment, of which roughly 150–200 joint reports from 15–35 receivers were retained, with sample standard deviation near 3 dB. Zander claims sub-dB accuracy. Our reading of the numerical argument is narrower: it estimates the precision of an arithmetic mean under the model and sample assumptions, without establishing traceable total accuracy. Geographic sampling, antenna directivity and unknown elevation angles remain systematic limitations. The study supports simultaneous same-receiver Delta SNR, but not station-balanced medians, Decode Outcomes or neighborhood References.
+Equal or corrected transmit powers remain essential; interference, failed decodes, quantization and differences between transmitting chains still matter. A difference formed within one remote receiver does not require calibration against other receivers.
+
+His preliminary experiments retained approximately 150–200 paired observations from 15–35 receivers out of about 1,000 reports, with sample standard deviation near 3 dB. The analysis explains how averaging can improve precision and discusses geographic sampling, antenna directivity and unknown elevation angles. His distinctive contribution is the mathematical treatment of cancellation, interference and spatial sampling bias. <a href="#ref-1">[Ref-1]</a>
+
+**Thomas Rietdorf, DL2OAH, 2026: bring synchronized comparisons into a practical multiband workflow.** His DARC presentation, based on January 2025 measurements, compares horizontal and vertical installations using synchronized transceivers in separate RX and TX runs on four bands.
+
+It distinguishes Joint Spots from one-sided reports and examines SNR differences by time and direction. The accompanying R workflow, developed with programming assistance from AI tools, illustrates how an amateur can move from downloaded reports to a structured investigation.
+
+Different transceiver models remain part of the compared installations; the results should therefore be read as station comparisons, with the author’s cautions about propagation and the distribution of remote stations. The contribution is a practical example combining synchronized measurements, statistical analysis and several complementary views of antenna use at one location. <a href="#ref-20">[Ref-20]</a>
 
 <a id="sec-d-4"></a>
 #### 6.4 Analysis infrastructure and related tools
 
-Griffiths and Robinett showed how a database can join two receivers' reports of the same transmitter, time and band. Their tools provided SNR-difference plots, medians, quartiles, time heatmaps, distance/azimuth views and export. This established a way to inspect comparisons, rather than WSPRadar's specific rules for eligibility, conditioning and summary statistics. <a href="#ref-13">[Ref-13]</a>
+**Griffiths and Robinett, 2020: make richer database analysis reusable.** Their WSPRdaemon TimescaleDB database and Grafana examples joined reports from the same transmitter, time and band, then displayed SNR differences, medians, quartiles, time patterns, distance and azimuth. They also brought noise measurements alongside spot data and supported exports.
 
-WSPR.Rocks provides rapid SQL-based WSPR exploration, maps, tables, SpotQ and heatmaps. WSPRdaemon emphasizes robust multi-receiver acquisition, scheduling and added noise/Doppler metadata. SOTABEAMS WSPRlite/DXplorer, WSPR-Station-Compare, the Antenna Performance Analysis Tool and WATT provide additional comparison, reporting and visualization workflows <a href="#ref-14">[Ref-14]</a> <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a> <a href="#ref-17">[Ref-17]</a> <a href="#ref-18">[Ref-18]</a>.
+The contribution was an accessible analysis workflow: operators could select stations and periods, inspect temporal and geographic structure, and investigate differences that spot totals concealed. <a href="#ref-21">[Ref-21]</a>
 
-These systems establish substantial prior art in data acquisition, exploration, ranking, comparison, mapping and reporting. WSPRadar combines explicit experiment definitions, rules for including observations, successive station and geographic summaries, Joint Spots and one-sided reception, and a path back to the contributing observations. It does not claim to be the first WSPR analysis tool.
+**Arne and wspr.live: public access to large-scale WSPR analysis.** The wspr.live project uses ClickHouse to make large collections of historical and recent WSPR reports directly queryable. Its documented SQL interface, dashboards and export facilities let researchers select and analyze observations for their own questions.
+
+The engineering contribution combines data collection, database organization and public query access into a service that other applications can use. This makes independent research practical without each project having to collect and maintain its own historical database. The project also credits HB9VQQ for providing computing resources. <a href="#ref-10">[Ref-10]</a>
+
+**Rob Robinett, AI6VN, and the WSPRdaemon community: collection, hosting and continuing operation.** WSPRdaemon contributes reliable reception and reporting, database hosting and public analysis services. Its documentation credits Arne’s ClickHouse database work and WSPRdaemon hosting, illustrating the collaboration behind this infrastructure. The earlier TimescaleDB work and the ClickHouse services are distinct parts of this development. <a href="#ref-11">[Ref-11]</a>
+
+WSPRadar relies directly on these public services: **wspr.live is its primary database, with WSPRdaemon’s WD2 and WD1 as alternatives**. Their development, computing resources, hosting and continuing volunteer maintenance are essential contributions to WSPRadar and the wider research community.
+
+Other tools make complementary parts of WSPR experimentation accessible:
+
+| Contributor or project | Distinctive practical contribution |
+|---|---|
+| **Arne — wspr.live** | The public database and query foundation described above, with dashboards and downloads for research and external applications. <a href="#ref-10">[Ref-10]</a> |
+| **Phil, VK7JJ — WSPR.Rocks** | Interactive queries, maps, tables and charts, including duplicate and passband inspection. Head2Head compares receivers, transmitters or software versions using selectable metrics. SpotQ provides a heuristic ranking based on distance, reported power and SNR. <a href="#ref-22">[Ref-22]</a> |
+| **Rob Robinett, AI6VN, and collaborators — WSPRdaemon** | Multireceiver acquisition, band scheduling, cached reporting and recovery from outages. Additional noise and Doppler information supports investigations beyond conventional spot records. <a href="#ref-11">[Ref-11]</a> |
+| **Richard Newstead and SOTABEAMS — WSPRlite/DXplorer** | Standalone low-power beacons combined with accessible antenna and location comparisons, including the DX10 range indicator. Newstead’s 2017 indoor/outdoor experiment explicitly compared SNR reports received by the same station at the same time. <a href="#ref-23">[Ref-23]</a> <a href="#ref-24">[Ref-24]</a> |
+| **Walter Machiels, ON4AWM — WSPR-Station-Compare** | A dedicated RX-comparison workflow with measured receiver-offset correction, minimum observations per station, callsign filtering and azimuth selection. These controls translate experimental methods into reusable operator software. <a href="#ref-25">[Ref-25]</a> |
+| **Fred, W6BSD — Antenna Performance Analysis Tool** | A report generator organizing reception evidence by time, band and receiving location, making observed station coverage easier to inspect without writing a custom analysis. <a href="#ref-26">[Ref-26]</a> |
+| **Colin Murray, GM4EAU — WATT** | An editable Excel/VBA workflow for querying, filtering, further calculations and map replay through successive time intervals. The animation helps operators inspect changing propagation patterns. <a href="#ref-27">[Ref-27]</a> |
+
+These tools address overlapping questions, but their filters, comparison units and summaries differ. Similar-looking figures should not be assumed to represent identical calculations.
 
 <a id="sec-d-5"></a>
 #### 6.5 What WSPRadar inherits, integrates and adds
 
-WSPRadar inherits accumulated WSPR observations, activity checks, reported-power correction, common-condition pairing, calibrated receive-chain comparison, database joins and geographic/time inspection. It integrates them into one TX/RX workflow with:
+WSPRadar builds on this community’s work: accumulated reports, activity checks, transmit-power correction, common-condition comparisons, receiving-chain calibration, database analysis and geographic interpretation.
 
-* Benchmark with Reference Setup/Station or dynamic Reference Neighborhoods;
-* same-cycle Joint Spots and their ΔSNR, separated from one-sided Decode Outcomes;
-* reported-power normalization and optional Reference-side correction;
-* Performance based on confirmed opportunities;
-* station-balanced and observation-level summaries;
-* map-to-segment-to-station-to-row audit; and
-* versioned configuration, processed evidence and reproducibility export.
+It brings these ideas into a consistent RX and TX workflow:
 
-Within the reviewed sources, WSPRadar's clearest specific additions are the explicit conditional Performance denominator, the paired-versus-one-sided evidence split, dynamic local-median References, hierarchical station-balanced geographic aggregation and an integrated audit path across all supported designs.
+* **Benchmark** compares a Target with a Reference Setup/Station or a dynamic Reference Neighborhood.
+* **Same-cycle Joint Spots** provide ΔSNR, while one-sided Decode Outcomes describe additional reception evidence.
+* Reported-power normalization and optional Reference-side correction make the applied adjustments explicit.
+* **Performance** measures successful decodes within confirmed opportunities.
+* Station-balanced and observation-level summaries distinguish equal station influence from the influence of report volume.
+* Map, segment, station and individual-observation views provide a route back to the supporting evidence.
+* Saved configurations, processed evidence and exports support reproducibility.
 
-This is a bounded integration and methods claim, not a global priority claim. Median aggregation itself is not novel. WSPRadar should be described as a structured experimental and audit layer above a spot browser, not as a substitute for the source databases, other analysis tools or calibrated RF measurement.
+Joint-spot ΔSNR describes only comparisons with qualifying Target and Reference reports for the same remote station and WSPR cycle. Paths seldom heard on one side can therefore be underrepresented; one-sided Decode Outcomes provide complementary evidence. Performance’s Decode Rate describes Target success within confirmed opportunities, established by successful Target decodes or qualifying activity evidence. These results are conditional on the available reports and selected operating conditions; they do not directly establish unconditional reception probability or calibrated antenna efficiency.
+
+Relative to the reviewed literature, WSPRadar’s methodological contribution lies in the particular combination and explicit definitions: which observations qualify, how Target activity conditions the analysis, how opportunities and outcomes are counted, how local References are constructed, and how station and geographic summaries are weighted. These rules connect the experimental question to an inspectable result and are explained in [Chapter 7](#sec-7).
 
 <a id="sec-7"></a>
 ### 7. Scientific Methods
@@ -1235,7 +1299,7 @@ Joint Spots are selected by successful observation of both sides. Weak signals, 
 
 One-sided reports have no missing-side SNR to reconstruct. They receive no artificial ΔSNR and cannot be normalized as an SNR pair. In TX, unequal actual or reported powers can affect one-sided outcomes even though Joint ΔSNR is normalized. Target-active conditioning also makes the two one-sided categories asymmetric; they are not symmetric wins and losses.
 
-**Extended-WSPR identity errors need separate attention.** Type 3 uses a 15-bit callsign hash. An unresolved or colliding hash can leave a decode unidentified or associate it with an incorrect callsign, locator or power, as documented by QRP Labs <a href="#ref-19">[Ref-19]</a>. Isolated affected rows may leave a median almost unchanged, but clustered or unequal effects between Target and Reference can change coverage, one-sided outcomes and station or segment results. A large dataset alone offers no protection.
+**Extended-WSPR identity errors need separate attention.** Type 3 uses a 15-bit callsign hash. An unresolved or colliding hash can leave a decode unidentified or associate it with an incorrect callsign, locator or power, as documented by QRP Labs <a href="#ref-28">[Ref-28]</a>. Isolated affected rows may leave a median almost unchanged, but clustered or unequal effects between Target and Reference can change coverage, one-sided outcomes and station or segment results. A large dataset alone offers no protection.
 
 WSPRadar can check for the configured callsign and locator in the database; it cannot prove every upstream hash association correct. When using compound callsigns, carry out the database preflight and phase-specific audit in [Appendix B](#sec-simultaneous-tx-setup), checking message position, receiver, side and time.
 
@@ -1623,84 +1687,23 @@ Retain the original export package as the evidence record for that run. A later 
 <a id="sec-8-4"></a>
 #### 8.4 Analysis export package
 
-`Prepare All Results for Download` builds a ZIP from the completed run and current inspection selections; `Download Prepared Results` saves it. Before preparing it, select the geographic scope, station or stations, and any focus interval needed to support your conclusion. If those selections change, prepare and download the updated package.
+Before preparing the export, select the geographic scope, stations and any focus interval needed for your conclusion. `Prepare All Results for Download` builds the ZIP; `Download Prepared Results` saves it. Prepare it again after changing those selections.
 
-The following layout lists the available files **inside the named ZIP root folder**. `config/` accompanies the selected result; `benchmark/` and `performance/` are alternative result folders, not two analyses produced by one run:
+Inside the ZIP, `config/` accompanies either `benchmark/` or `performance/`, according to the selected analysis. Figures depend on the available evidence and inspection selections.
 
-```text
-config/
-  wspradar_config.config
-  run_metadata.json
-benchmark/
-  figure_map_highres.png
-  figure_segment_insight.png
-  figure_segment_temporal_evidence.png
-  figure_segment_temporal_coverage.png
-  figure_selected_station_evidence.png
-  figure_selected_station_coverage.png
-  figure_drilldown_zoom_delta_snr_evidence.png
-  figure_drilldown_zoom_coverage.png
-  table_station_insights_current_segment.csv
-  table_drilldown_selected_stations.csv
-  table_drilldown_all_stations_current_segment.csv
-  table_delta_snr_outlier_event_paths.csv
-  table_delta_snr_outlier_paired_evidence.csv
-  analysis_cache.parquet
-performance/
-  figure_map_highres.png
-  figure_segment_insight.png
-  figure_segment_temporal_snr_deviation.png
-  figure_segment_temporal_evidence.png
-  figure_selected_station_snr_evidence.png
-  figure_selected_station_temporal_evidence.png
-  figure_drilldown_zoom_snr_evidence.png
-  figure_drilldown_zoom_temporal_evidence.png
-  table_station_insights_current_segment.csv
-  table_drilldown_selected_stations.csv
-  table_drilldown_all_stations_current_segment.csv
-  analysis_cache.parquet
-```
-
-Optional figures depend on the available result, station selection and focus state. The three ordinary CSV tables are written for the result even when a selection supplies no rows. Outlier CSV files appear only when their reporting is enabled, as described below.
-
-| Artifact | Scientific content and scope |
+| Artifact | Content and use |
 |---|---|
-| `wspradar_config.config` | Versioned runnable definition and durable result-view settings. |
-| `run_metadata.json` | Application/export provenance, database source, Direction, band, time selection, Benchmark/correction definition, filters, thresholds and inspection selections. |
-| `analysis_cache.parquet` | Processed retained evidence for the completed run after its scientific filters and configured geographic scope; not only the active Segment Inspector selection and not an untouched database download. |
-| `table_station_insights_current_segment.csv` | Per-peer summaries for the active Segment Inspector scope. |
-| Drill-Down CSV files | Row-level retained evidence for selected or active-scope identities. |
-| Delta-SNR outlier CSV files | When optional outlier reporting is enabled, qualified path-event summaries and their chronological native paired evidence for the active Segment Inspector scope. |
-| Map and segment figures | Geographic and segment-level descriptive summaries for the completed result. |
-| Temporal figures | Chronological and UTC-folded summaries for the active segment. |
-| Selected-station figures | One exact selected peer identity in normal use; while optional ΔSNR outlier reporting enables an ordered multi-path selection, Benchmark can instead export the corresponding pooled multi-path ΔSNR view. |
-| Drill-Down focus figures | Optional native-time metric and chronological companion figures for the exact selected station and active manual or candidate-linked focus interval; they supplement rather than replace the full-run selected-station figures. |
+| Configuration | `wspradar_config.config` restores the analysis settings and supported view choices for another run, not the original observations. |
+| Run metadata | `run_metadata.json` records software version, database, actual data selection, analysis settings, corrections and inspection scope, including enabled outlier settings. Keep it with the evidence: configuration alone cannot reconstruct every selection. Missing selection metadata remains unknown, not proof that the standard filter was used; see [Section 5.4](#sec-6-4). |
+| Processed evidence | `analysis_cache.parquet` contains retained evidence across the completed analysis's full geographic scope after its scientific filters. It is neither limited to the selected segment nor an untouched database download. |
+| Station Insights CSV | `table_station_insights_current_segment.csv` contains per-peer summaries for the active Segment Inspector scope. It retains its headers when no rows qualify. |
+| Drill-Down CSV files | Row-level evidence for selected stations or all stations in the active segment. The selected-station table can reflect focus and table filters. Both files retain their headers when empty. |
+| Outlier CSV files | `table_delta_snr_outlier_event_paths.csv` summarizes qualifying path events; `table_delta_snr_outlier_paired_evidence.csv` contains their chronological Joint Spots, including corrected Reference SNR. Both cover the active segment and join through IDs valid only within this package. Reporting off: files absent. Reporting on with no findings: headers only. These are candidate findings, not confirmed physical events. |
+| Map, segment and temporal figures | PNGs for presenting the result: the map covers the completed analysis; segment and temporal figures summarize the active segment, including chronological and UTC-hour views. |
+| Selected-station figures | Evidence for one exact selected peer. With outlier reporting enabled, Benchmark can instead show pooled Delta SNR for multiple selected paths. |
+| Drill-Down focus figures | Additional figures for one selected station and its active focus interval, preserving individual observations and their chronological context. They supplement the full-run selected-station figures; candidate guides refer to the focused episode. |
 
-For each result block, `run_metadata.json` records the actual query selection in `result_blocks[].decode_filter_mode`: `strict_code_1` means the query retained the `code = 1` predicate; `legacy_no_code` means the historical fallback omitted that restriction after the strict query returned no Target-side evidence. New fallback executions require the entire selected period to end before 1 January 2022 at 00:00 UTC, as described in [Section 5.4](#sec-6-4); the provenance meaning of earlier exports remains unchanged. The saved configuration alone cannot reconstruct this implicit choice, so retain the metadata when comparing evidence populations. A `null` value means the selection was not recorded and must not be inferred as strict. This field documents the query selection; it does not independently verify that every observation belongs to the same physical transmission mode.
-
-When a Drill-Down focus is active at preparation time, Performance can add `figure_drilldown_zoom_snr_evidence.png` and `figure_drilldown_zoom_temporal_evidence.png`; Benchmark can add `figure_drilldown_zoom_delta_snr_evidence.png` and `figure_drilldown_zoom_coverage.png`. The metric figure preserves the same individual retained native points as the browser focus rather than substituting temporal medians; the companion figure preserves the applicable chronological outcome or coverage recipe. `run_metadata.json` records one `drilldown_zoom` block with its schema version, callsign, locator, exact `start_utc` and `end_utc`, selected focus option, `manual` or `outlier_focus` origin and render contract. When a candidate overlay is present, its registered recipe and signature preserve the focused episode and every individually qualifying candidate unit in the window, the muted focused-episode band, local and pre/post baseline values, robust spread and method, robust-z threshold and absolute-departure threshold used by the exported guides. The guide coordinates remain specific to the focused episode even when another starred candidate in the exported window was assessed against another baseline or spread. No focus block or focus figure is included while focus is off or the one-station requirement is not met.
-
-When ΔSNR outlier reporting is enabled, `table_delta_snr_outlier_event_paths.csv` contains one row per qualified path event. It records the combined review-event class and observed UTC bounds, cross-path context and departure direction, then identifies the exact path, direction, path-event class, paired-evidence timing and count, expected and observed ΔSNR, largest departure, robust score, pre/post baseline diagnostics and nearby Decode Outcome diagnostics. One exact path can occur in more than one row of the same combined review event when it contributes more than one qualifying timeframe. The qualifying-path count remains the number of distinct `callsign + locator` identities.
-
-`table_delta_snr_outlier_paired_evidence.csv` contains one row per retained native paired unit inside those path events, in chronological order. Event ID and Path event ID link it to the summary. For stand-alone readability it repeats the observed event bounds, path, direction and path-event class; the combined event class remains only in the summary because it can differ from an individual path's class. The table includes Target SNR, already-corrected Reference SNR, ΔSNR, expected local ΔSNR, departure from that baseline, per-unit robust score, strong-anchor status and reported-boundary role. Timestamps use ISO UTC and numeric fields remain numeric rather than embedding signs or units in the cells.
-
-The IDs are deterministic joins within one prepared package, not persistent identities across separately prepared analyses and not assertions that a physical event occurred. If reporting is enabled but no path event qualifies, both CSVs remain present with their headers and no invented finding row. `run_metadata.json` records the enabled state, detector version, three-threshold policy, export-schema version, result status, table filenames and event, path and evidence counts once. Applicable exported Benchmark figures retain the same candidate-marker recipe metadata. When reporting is disabled, both CSVs, all outlier metadata and all marker recipes are omitted entirely.
-
-**Selected public machine-readable contract names.** This concise table identifies supported external names useful to operators and downstream consumers; it is not an exhaustive saved-configuration field, URL-parameter or export-metadata catalog. The formal JSON Schema (`config/wspradar-config.schema.json`) is authoritative for saved-configuration fields, while the supported public URL contract is versioned separately. Private implementation identifiers are deliberately omitted. These names are not vocabulary for explaining the scientific method.
-
-| Contract surface | Exact names | Meaning |
-|---|---|---|
-| Configuration format | schema version `1` | Current pre-production `.config` contract; invalid or unsupported files are rejected rather than silently reinterpreted. |
-| Result-type values | `performance`, `benchmark` | Values emitted by new analysis URLs, configurations and exports. |
-| Durable result-view blocks | `results_view.performance`, `results_view.benchmark` | Saved inspection preferences. Their presence does not create or run an additional result. |
-| Result folders | `performance/`, `benchmark/` | Top-level result folders in the export package. |
-| Outlier tables | `table_delta_snr_outlier_event_paths.csv`, `table_delta_snr_outlier_paired_evidence.csv` | Enabled-only Benchmark tables linked by package-local Event ID and Path event ID; absent when Delta-SNR outlier reporting is disabled. |
-| Figure metadata | `selected_evidence_figures`, `benchmark_evidence_figures`, `benchmark_evidence_recipes`, `drilldown_zoom` | Stable mappings and exact transient zoom identity/bounds for applicable exported figures and Benchmark recipes. |
-| Correction metadata | `benchmark_snr_correction_mode`, `benchmark_snr_correction_db` | The semantic correction choice and its numeric dB value. |
-
-Use the PNG figures to present the result, the Station Insights CSV to review station summaries, and Drill-Down CSVs to inspect the supporting rows. The Parquet file preserves processed evidence for further analysis; the `.config` file restores supported settings for another run, not the original reports.
-
-The package preserves the processed evidence and provenance recorded by WSPRadar. It does not contain authoritative external operating logs, physical setup measurements or unchanged database responses. Keep those separately as described in [Section 8.3](#sec-8-3); a later database query need not reproduce the original records exactly.
+Keep the original package as the run's evidence record. Physical setup measurements and external operating logs must be retained separately, as described in [Section 8.3](#sec-8-3). A later database query or rerun may produce different records or results.
 
 <a id="sec-8-5"></a>
 #### 8.5 Disclaimer
@@ -1718,7 +1721,7 @@ WSPRadar is experimental open-source software provided “as is” without warra
 
 * <a id="ref-4"></a><a href="https://www.qsl.net/kp4md/wspr.htm">[Ref-4]</a> **Amateur-radio technical article and club presentation.** Milazzo, C. F. / KP4MD (2011). *Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance*.
 
-* <a id="ref-5"></a><a href="https://www.researchgate.net/publication/319903566_Improving_HF_Band_SNR_from_analysis_of_WSPR_spots">[Ref-5]</a> **Amateur-radio magazine article.** Griffiths, G.; Squibb, N. J. (2017). *Improving HF Band SNR from analysis of WSPR spots*. Practical Wireless, October 2017, 23-26.
+* <a id="ref-5"></a><a href="https://www.researchgate.net/publication/319903566_Improving_HF_Band_SNR_from_analysis_of_WSPR_spots">[Ref-5]</a> **Amateur-radio magazine article.** Griffiths, G.; Squibb, N. J. (2017). *Improving HF Band SNR from analysis of WSPR spots*. Practical Wireless, October 2017, 23-26. <a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf">Author-hosted copy</a>.
 
 * <a id="ref-6"></a><a href="https://www.arrl.org/files/file/History/History%20of%20QST%20Volume%201%20-%20Technology/QS11-2010-Taylor.pdf">[Ref-6]</a> Taylor, J. H.; Walker, B. (2010). *WSPRing Around the World*. QST, 94(11), 30-32.
 
@@ -1728,27 +1731,45 @@ WSPRadar is experimental open-source software provided “as is” without warra
 
 * <a id="ref-9"></a><a href="https://www.mdpi.com/2073-4433/13/8/1340">[Ref-9]</a> **Peer-reviewed article.** Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). *A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals*. Atmosphere, 13(8), 1340. doi:10.3390/atmos13081340.
 
-* <a id="ref-10"></a><a href="https://wspr.live/">[Ref-10]</a> **Official data-service documentation.** WSPR.live, *Welcome to WSPR Live*: database access, schema, mode-code mapping, raw-data and availability disclaimer, and data-update behavior. Accessed 2026-08-06.
+* <a id="ref-10"></a><a href="https://wspr.live/">[Ref-10]</a> **Official data-service documentation.** WSPR.live, *Welcome to WSPR Live*: database access, schema, mode-code mapping, raw-data and availability disclaimer, and data-update behavior. Accessed 2026-08-06. Public ClickHouse SQL access, dashboards, exports and computing-resource credit to HB9VQQ. Accessed 2026-10-06.
 
-* <a id="ref-11"></a><a href="https://www.wsprdaemon.org/">[Ref-11]</a> **Official project website.** WSPRDaemon, *WSPR Daemon*: multi-channel spot acquisition, WSPR/FST4W decoding and reporting, noise estimation, database/Grafana output, and services for third-party applications. Accessed 2026-08-06. **Official operating documentation.** WsprDaemon, <a href="https://wsprdaemon.readthedocs.io/en/master/FAQ.html#how-does-spot-merging-work-with-multiple-receivers">*FAQ: How does spot merging work with multiple receivers?*</a>: best-SNR reporting to WSPRnet when merging receiver reports. Accessed 2026-09-24.
+* <a id="ref-11"></a><a href="https://www.wsprdaemon.org/">[Ref-11]</a> **Official project website.** WSPRDaemon, *WSPR Daemon*: multi-channel spot acquisition, WSPR/FST4W decoding and reporting, noise estimation, database/Grafana output, and services for third-party applications. Accessed 2026-08-06. **Official operating documentation.** WsprDaemon, <a href="https://wsprdaemon.readthedocs.io/en/master/FAQ.html#how-does-spot-merging-work-with-multiple-receivers">*FAQ: How does spot merging work with multiple receivers?*</a>: best-SNR reporting to WSPRnet when merging receiver reports. Accessed 2026-09-24. Additional project documentation: <a href="https://wsprdaemon.readthedocs.io/en/master/results/wspr.html">*WSPR*</a>, <a href="https://www.wsprdaemon.org/grafana">*Grafana*</a> and <a href="https://wsprdaemon.readthedocs.io/en/master/description/how_it_works.html">*How it works*</a>: database access, ClickHouse development and hosting credits, acquisition, reporting, noise and Doppler measurements. Accessed 2026-10-06.
 
 * <a id="ref-12"></a><a href="https://wsjt.sourceforge.io/wsjtx-main_en.html">[Ref-12]</a> **Official operating documentation.** WSJT-X 3.0.1 User Guide: WSPR Type 1, Type 2 and Type 3 message formats; random `Tx Pct` scheduling; Windows `--rig-name` file isolation; Audio settings and file locations. QRP Labs, <a href="https://qrp-labs.com/qmx">*QMX firmware history and manuals*</a> and <a href="https://www.qrp-labs.com/images/qmx/manuals/operation_1_04_004.pdf">*QMX Operating Manual, firmware 1_04_004*</a> and <a href="https://qrp-labs.com/images/qmx/manuals/VirtualU3S_1_04_008a.pdf">*Virtual U3S Manual, firmware 1_04_008a*</a>: model-specific firmware, Virtual U3S operation and scheduling; <a href="https://www.qrp-labs.com/images/ultimate3s/operation3.12a2.pdf">*Ultimate3S Operating Manual, firmware v3.12a2*</a>: WSPR frequency range, global Frame/Start behavior, extended WSPR, sequential mode entries and per-entry `Aux` values; <a href="https://qrp-labs.com/images/appnotes/AN003_A4.pdf">*AN003: Ultimate3/3S relay-switched filters*</a>: filtered relay/driver interfacing and RF-off switching intervals. Accessed 2026-10-03.
 
-* <a id="ref-13"></a><a href="https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf">[Ref-13]</a> **Conference paper.** Griffiths, G.; Robinett, R. (2020). *Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana*. ARRL/TAPR Digital Communications Conference 2020.
+* <a id="ref-13"></a><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2018SW002008">[Ref-13]</a> **Peer-reviewed article.** Frissell, N. A. et al. (2019). *High-Frequency Communications Response to Solar Activity in September 2017 as Observed by Amateur Radio Networks*. Space Weather, 17(1), 118–132. doi:10.1029/2018SW002008.
 
-* <a id="ref-14"></a><a href="https://wspr.rocks/help.html">[Ref-14]</a> **Tool documentation.** WSPR.Rocks, *Help &amp; Documentation*: SpotQ, SQL access, duplicate analysis, maps, charts and heatmaps.
+* <a id="ref-14"></a><a href="https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2022GL097879">[Ref-14]</a> **Peer-reviewed article.** Frissell, N. A. et al. (2022). *First Observations of Large Scale Traveling Ionospheric Disturbances Using Automated Amateur Radio Receiving Networks*. Geophysical Research Letters, 49(5), e2022GL097879. doi:10.1029/2022GL097879.
 
-* <a id="ref-15"></a><a href="https://www.sotabeams.co.uk/wsprlite-classic">[Ref-15]</a> **Product documentation.** SOTABEAMS, *WSPRlite Classic / DXplorer*: WSPR-based antenna-performance analysis and DX10 metric.
+* <a id="ref-15"></a><a href="https://www.researchgate.net/publication/334612025_Estimating_LF-HF_band_noise_while_acquiring_WSPR_spots">[Ref-15]</a> **Technical report.** Griffiths, G.; Robinett, R.; Elmore, G. (2019). *Estimating LF–HF band noise while acquiring Weak Signal Propagation Reporter (WSPR) spots*. Version 12, March–November 2019.
 
-* <a id="ref-16"></a><a href="https://sites.google.com/myuba.be/wspr-station-compare/home">[Ref-16]</a> **Project documentation.** WSPR-Station-Compare, project page referencing Vanhamel et al. and Zander.
+* <a id="ref-16"></a><a href="https://www.arrl.org/files/file/QEX_Next_Issue/SeptOct2020/TOFC.pdf">[Ref-16]</a> **Amateur-radio technical journal article; issue contents.** Griffiths, G.; Robinett, R.; Elmore, G. (2020). *Estimating LF-HF Band Noise While Acquiring WSPR Spots*. QEX, September/October 2020, starting on p. 25.
 
-* <a id="ref-17"></a><a href="https://wspr.bsdworld.org/">[Ref-17]</a> **Tool documentation.** Antenna Performance Analysis Tool, WSPR-based antenna report generator.
+* <a id="ref-17"></a><a href="https://f6irf.blogspot.com/2008/04/">[Ref-17]</a> **Operator technical reports.** Destrem, P. / F6IRF (2008). *A statiscal method to evaluate TX antenna performance using WSPR* (24 April), follow-up TX analysis, 160 m RX comparison and station comparisons (April 2008).
 
-* <a id="ref-18"></a><a href="https://www.gm4eau.com/home-page/wspr/">[Ref-18]</a> **Tool documentation.** GM4EAU, *WATT WSPR Analysis Tool*: Excel/VBA reporting, mapping, filtering and timeline animation.
+* <a id="ref-18"></a><a href="https://www.charlespreston.net/antenna/WSPR-Antenna-Prop-Exp-PR.pdf">[Ref-18]</a> **Preliminary technical report.** Preston, C. / KL7OA (later K7TAA) (2009). *WSPR Antenna and Propagation Experiment: Preliminary Results*. Version 1.0, 31 March 2009; the available copy includes an update dated 25 June 2017.
 
-* <a id="ref-19"></a><a href="https://qrp-labs.com/qmxp/wsprcorruption.html">[Ref-19]</a> **Manufacturer technical investigation.** QRP Labs, *WSPR Type 3 callsign corruption*: observed compound-callsign hash collision or misassociation behavior in large WSPR datasets and its mechanism. Accessed 2026-08-25.
+* <a id="ref-19"></a><a href="https://www.arrl.org/files/file/QEX_Next_Issue/July-August2017/TOFC.pdf">[Ref-19]</a> **Amateur-radio technical journal article; issue contents.** Preston, C. / K7TAA (2017). *Antenna Comparisons Using Simultaneous WSPR Measurements*. QEX, July/August 2017, 8–14.
 
-* <a id="ref-20"></a><a href="https://github.com/HarrydeBug/WSPR-transmitters/blob/1657468ea27052167191a7deda2440a535567ecd/Standard%20Firmware/Release/Hardware_Version_2_ESP8285/WSPR-TX2.19/WSPR-TX2.19.ino">[Ref-20]</a> **Published firmware source, immutable revision.** ZachTek WSPR-TX firmware `2.19` for ESP8285 hardware: `DoWSPR()` frequency selection, centihertz frequency units, product-model selection and build prerequisites. Revision `1657468ea27052167191a7deda2440a535567ecd`. Accessed 2026-08-25.
+* <a id="ref-20"></a><a href="https://www.darc.de/fileadmin/filemounts/distrikte/g/2026/Talk_in_G/Talk-G_Antennenvergleich_synchr_WSPR_T.Rietdorf_DL2OAH_V2.1_17012025.pdf">[Ref-20]</a> **Amateur-radio technical presentation.** Rietdorf, T. / DL2OAH (2026). *Antennenvergleich mit synchronen WSPR-Daten*. DARC OV R10, 2. Talk in G, TH Köln, 17 January 2026, version 2.1; measurements from January 2025.
+
+* <a id="ref-21"></a><a href="https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf">[Ref-21]</a> **Conference paper.** Griffiths, G.; Robinett, R. (2020). *Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana*. ARRL/TAPR Digital Communications Conference 2020.
+
+* <a id="ref-22"></a><a href="https://wspr.rocks/help.html">[Ref-22]</a> **Tool documentation.** WSPR.Rocks, *Help &amp; Documentation*: SpotQ, SQL access, duplicate analysis, maps, charts and heatmaps. <a href="https://wspr.rocks/head2head/">*Head2Head*</a>: comparisons of receivers, transmitters and software versions; passband inspection is also described in the help.
+
+* <a id="ref-23"></a><a href="https://www.sotabeams.co.uk/wsprlite-classic">[Ref-23]</a> **Product documentation.** SOTABEAMS, *WSPRlite Classic / DXplorer*: WSPR-based antenna-performance analysis and DX10 metric.
+
+* <a id="ref-24"></a><a href="https://www.sotabeams.co.uk/blog/indoor-hf-antennas-does-it-make-much-difference/">[Ref-24]</a> **Operator experiment and product application.** Newstead, R. / SOTABEAMS (2017). *Indoor HF antennas - does it make much difference?*. 5 May 2017.
+
+* <a id="ref-25"></a><a href="https://sites.google.com/myuba.be/wspr-station-compare/home">[Ref-25]</a> **Project documentation.** WSPR-Station-Compare, project page referencing Vanhamel et al. and Zander. Machiels, W. / ON4AWM, <a href="https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-station-compare-app">*WSPR Station Compare App*</a>: RX comparison, receiver-offset correction, observation thresholds, callsign filtering and azimuth selection.
+
+* <a id="ref-26"></a><a href="https://wspr.bsdworld.org/">[Ref-26]</a> **Tool documentation.** Antenna Performance Analysis Tool, WSPR-based antenna report generator.
+
+* <a id="ref-27"></a><a href="https://www.gm4eau.com/home-page/wspr/">[Ref-27]</a> **Tool documentation.** GM4EAU, *WATT WSPR Analysis Tool*: Excel/VBA reporting, mapping, filtering and timeline animation.
+
+* <a id="ref-28"></a><a href="https://qrp-labs.com/qmxp/wsprcorruption.html">[Ref-28]</a> **Manufacturer technical investigation.** QRP Labs, *WSPR Type 3 callsign corruption*: observed compound-callsign hash collision or misassociation behavior in large WSPR datasets and its mechanism. Accessed 2026-08-25.
+
+* <a id="ref-29"></a><a href="https://github.com/HarrydeBug/WSPR-transmitters/blob/1657468ea27052167191a7deda2440a535567ecd/Standard%20Firmware/Release/Hardware_Version_2_ESP8285/WSPR-TX2.19/WSPR-TX2.19.ino">[Ref-29]</a> **Published firmware source, immutable revision.** ZachTek WSPR-TX firmware `2.19` for ESP8285 hardware: `DoWSPR()` frequency selection, centihertz frequency units, product-model selection and build prerequisites. Revision `1657468ea27052167191a7deda2440a535567ecd`. Accessed 2026-08-25.
 
 <div style="page-break-before: always;"></div>
 
@@ -1895,7 +1916,7 @@ Here `+50 Hz` and `+150 Hz` are offsets from the lower edge of the selected 200 
 <a id="sec-simultaneous-tx-setup-5-3"></a>
 ##### B.5.3 ZachTek firmware 2.19 randomized split-lane builds
 
-Stock ZachTek firmware `2.19` for the published ESP8285 source selects a new random offset from approximately `-100 Hz` through `+99 Hz` around the nominal WSPR frequency. Two stock units therefore do not retain separate A/B frequency regions and can occasionally transmit close to one another. For a controlled simultaneous pair, prepare two separately labelled custom firmware builds from the source that matches the exact transmitter <a href="#ref-20">[Ref-20]</a>.
+Stock ZachTek firmware `2.19` for the published ESP8285 source selects a new random offset from approximately `-100 Hz` through `+99 Hz` around the nominal WSPR frequency. Two stock units therefore do not retain separate A/B frequency regions and can occasionally transmit close to one another. For a controlled simultaneous pair, prepare two separately labelled custom firmware builds from the source that matches the exact transmitter <a href="#ref-29">[Ref-29]</a>.
 
 Confirm that both units use the same nominal frequency at the center of the selected 200 Hz WSPR transmit sub-band. The custom offsets below then divide that range into separate lower and upper regions.
 

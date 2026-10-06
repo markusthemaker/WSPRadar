@@ -149,6 +149,7 @@ def test_scientific_pdf_table_widths_follow_semantic_topic_anchors(language, man
     """Topic-local widths follow the meaning, independently of compatibility aliases."""
     html = pdf_generator._render_pdf_html(manual, T[language])
     for start, end, widths in (
+        ("sec-d-4", "sec-d-5", (34, 66)),
         ("sec-7-spots-identities-cycles", "sec-7-normalization-consolidation", (36, 64)),
         ("sec-7-activity-eligibility", "sec-7-benchmark", (19, 81)),
         ("sec-7-benchmark-delta", "sec-7-benchmark-aggregation", (25, 75)),
@@ -540,6 +541,22 @@ def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():
     step_one_start = rendered.index('class="pdf-list-marker">1.</td>')
     step_two_start = rendered.index('class="pdf-list-marker">2.</td>')
     assert rendered[step_one_start:step_two_start].count("&bull;") == 3
+
+
+@pytest.mark.parametrize("language,manual", [("en", DOC_EN), ("de", DOC_DE)], ids=("en", "de"))
+def test_pdf_export_guide_gives_descriptions_most_of_the_table_width(language, manual):
+    """Keep the compact export guide readable with short artifact labels."""
+    rendered = pdf_generator._render_pdf_html(manual, T[language])
+    section = rendered.split('name="sec-8-4"', 1)[1].split('name="sec-8-5"', 1)[0]
+    assert section.count('<table ') == 1
+    assert 'style="width: 26%"' in section
+    assert 'style="width: 74%"' in section
+    assert 'repeat="1"' in section
+    assert 'run_metadata.json' in section
+    assert '<code>table_delta_snr_outlier_paired_evidence.csv</code>' in section
+    assert 'href="#sec-8-3"' in section
+    if language == "de":
+        assert 'Drill-Down-<br/>Fokusabbildungen' in section
 
 
 def test_pdf_html_adds_named_destinations_without_removing_web_ids():

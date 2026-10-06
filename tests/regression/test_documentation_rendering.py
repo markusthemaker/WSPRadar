@@ -37,7 +37,6 @@ def test_manuals_describe_only_the_current_configuration_and_url_contract():
     assert "frühere Eingabeformate werden ohne Migration abgelehnt" in DOC_DE
     for manual in (DOC_EN, DOC_DE):
         assert "`5m`" not in manual
-        assert "`legacy_no_code`" in manual
 
 
 def _scientific_section(manual, anchor):
@@ -520,19 +519,80 @@ def test_bilingual_methods_keep_the_approved_plain_language_explanations():
             assert value in methods
         assert "estimand" not in methods.casefold()
 
-def test_bilingual_contract_summary_is_public_concise_and_non_exhaustive():
-    """Keep Chapter 8 useful without presenting it as an exhaustive schema."""
-    for manual in (DOC_EN, DOC_DE):
-        assert "`config/wspradar-config.schema.json`" in manual
-        assert "`results_view.performance`" in manual
-        assert "`results_view.benchmark`" in manual
-        assert "`benchmark_snr_correction_mode`" in manual
-        assert "`benchmark_snr_correction_db`" in manual
-
-    assert "not an exhaustive saved-configuration field, URL-parameter or export-metadata catalog" in DOC_EN
-    assert "kein vollständiger Katalog der Felder gespeicherter Konfigurationen, URL-Parameter oder Exportmetadaten" in DOC_DE
-    assert "as defined in [Section 4.4](#sec-5-4)" in DOC_EN
-    assert "gemäß [Abschnitt 4.4](#sec-5-4)" in DOC_DE
+@pytest.mark.parametrize(
+    ("manual", "required_meanings"),
+    (
+        (DOC_EN, (
+            "again after changing those selections",
+            "not the original observations",
+            "actual data selection",
+            "Missing selection metadata remains unknown",
+            "not proof that the standard filter was used",
+            "full geographic scope after its scientific filters",
+            "neither limited to the selected segment nor an untouched database download",
+            "headers when no rows qualify",
+            "selected stations or all stations in the active segment",
+            "focus and table filters",
+            "corrected Reference SNR",
+            "IDs valid only within this package",
+            "Reporting off: files absent",
+            "Reporting on with no findings: headers only",
+            "candidate findings, not confirmed physical events",
+            "one exact selected peer",
+            "pooled Delta SNR for multiple selected paths",
+            "preserving individual observations",
+            "supplement the full-run selected-station figures",
+            "Physical setup measurements and external operating logs",
+            "may produce different records or results",
+        )),
+        (DOC_DE, (
+            "nach Änderungen dieser Auswahl erneut",
+            "nicht die ursprünglichen Beobachtungen",
+            "tatsächliche Datenauswahl",
+            "Fehlen Angaben zur Datenauswahl, bleibt sie unbekannt",
+            "belegt nicht, dass der Standardfilter verwendet wurde",
+            "nach den wissenschaftlichen Filtern beibehaltene Evidenz",
+            "gesamten geografischen Bereich",
+            "weder auf das ausgewählte Segment beschränkt noch ein unveränderter Datenbankdownload",
+            "Qualifizieren keine Zeilen, bleiben die Kopfzeilen erhalten",
+            "ausgewählte Stationen oder alle Stationen im aktiven Segment",
+            "Fokus und Tabellenfilter",
+            "korrigierten Referenz-SNR",
+            "IDs verknüpft, die nur innerhalb dieses Pakets gelten",
+            "Meldung ausgeschaltet: Dateien fehlen",
+            "Meldung eingeschaltet, aber keine Befunde: nur Kopfzeilen",
+            "Kandidatenbefunde, nicht um bestätigte physische Ereignisse",
+            "genau eine ausgewählte Peer-Identität",
+            "Delta SNR mehrerer ausgewählter Funkwege gemeinsam",
+            "einzelnen Beobachtungen",
+            "ergänzen die Abbildungen der ausgewählten Station über den vollständigen Lauf",
+            "Messungen am physischen Aufbau und externe Betriebsprotokolle",
+            "andere Datensätze oder Ergebnisse liefern",
+        )),
+    ),
+    ids=("en", "de"),
+)
+def test_bilingual_export_summary_preserves_operator_scope_and_provenance(manual, required_meanings):
+    """Keep one usable artifact table without losing scope or missingness rules."""
+    export_section = _scientific_section(manual, "sec-8-4")
+    assert "```" not in export_section
+    assert len(re.findall(r"(?m)^\|\s*:?-{3,}[^\n]*$", export_section)) == 1
+    table_lines = [line for line in export_section.splitlines() if line.startswith("|")]
+    assert all(line.count("|") == 3 for line in table_lines)
+    for artifact in (
+        "wspradar_config.config",
+        "run_metadata.json",
+        "analysis_cache.parquet",
+        "table_station_insights_current_segment.csv",
+        "table_delta_snr_outlier_event_paths.csv",
+        "table_delta_snr_outlier_paired_evidence.csv",
+    ):
+        assert any(artifact in line for line in table_lines), artifact
+    for meaning in required_meanings:
+        assert meaning.casefold() in export_section.casefold(), meaning
+    for link in ("(#sec-6-4)", "(#sec-8-3)"):
+        assert link in export_section
+    assert "`config/wspradar-config.schema.json`" in manual
 
 
 @pytest.mark.parametrize("manual", (DOC_EN, DOC_DE), ids=("en", "de"))
@@ -623,7 +683,7 @@ def test_bilingual_introductions_name_databases_and_relocate_routing_to_troubles
 
 
 def test_bilingual_reference_entries_use_current_project_landing_pages():
-    """Keep the two early archive references on their approved public pages."""
+    """Keep database landing pages and their supporting infrastructure sources."""
     approved_merging_reference = (
         "https://wsprdaemon.readthedocs.io/en/master/FAQ.html"
         "#how-does-spot-merging-work-with-multiple-receivers"
@@ -644,9 +704,12 @@ def test_bilingual_reference_entries_use_current_project_landing_pages():
         )[0]
         assert f'href="{approved_merging_reference}"' in reference_entry
         assert manual.count(approved_merging_reference) == 1
-        assert "wsprdaemon.readthedocs.io" not in manual.replace(
-            approved_merging_reference, ""
-        )
+        for infrastructure_source in (
+            "https://wsprdaemon.readthedocs.io/en/master/results/wspr.html",
+            "https://www.wsprdaemon.org/grafana",
+            "https://wsprdaemon.readthedocs.io/en/master/description/how_it_works.html",
+        ):
+            assert f'href="{infrastructure_source}"' in reference_entry
 
 
 def test_load_and_hide_controls_have_english_and_german_labels():
@@ -1386,9 +1449,6 @@ def test_bilingual_manuals_document_explicit_snr_correction_modes():
         assert required_text in DOC_DE
     assert "A positive correction increases corrected Reference SNR" in DOC_EN
     assert "Eine positive Korrektur erhöht das korrigierte Referenz-SNR" in DOC_DE
-    for manual in (DOC_EN, DOC_DE):
-        assert "`benchmark_snr_correction_mode`" in manual
-        assert "`benchmark_snr_correction_db`" in manual
 
 
 def test_results_chapter_is_question_led_and_uses_the_shared_evidence_path():
@@ -1479,8 +1539,8 @@ def test_bilingual_manuals_define_performance_opportunities_and_weighting():
             assert value in performance.replace(" %", "%")
         assert "opportunity-v3" not in performance
 
-def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
-    """Keep one selected peer and its public export artifacts explicit."""
+def test_bilingual_manuals_define_performance_selected_singleton_view_scope():
+    """Keep one selected peer, its summaries and view-only selection explicit."""
     english_contract = (
         "Exact `callsign + locator` identities: normally at most one per result type",
         "restricts the active retained scope to one exact remote identity",
@@ -1509,64 +1569,6 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         assert required_text in DOC_EN
     for required_text in german_contract:
         assert required_text in DOC_DE
-
-    selected_performance_filenames = (
-        "figure_selected_station_snr_evidence.png",
-        "figure_selected_station_temporal_evidence.png",
-    )
-    benchmark_evidence_filenames = (
-        "figure_segment_temporal_evidence.png",
-        "figure_segment_temporal_coverage.png",
-        "figure_selected_station_evidence.png",
-        "figure_selected_station_coverage.png",
-    )
-    retired_benchmark_evidence_filenames = (
-        "figure_segment_temporal_delta_change.png",
-        "figure_path_agreement_consistency.png",
-    )
-    obsolete_performance_filenames = (
-        "figure_selected_station_chronological.png",
-        "figure_selected_station_utc_hour_profile.png",
-        "figure_selected_station_snr_distribution.png",
-        "figure_selected_station_similar_stations.png",
-    )
-    metadata_fields = (
-        "`selected_evidence_figures`",
-        "`benchmark_evidence_figures`",
-        "`benchmark_evidence_recipes`",
-    )
-    for manual in (DOC_EN, DOC_DE):
-        export_listing = manual.split(
-            "  run_metadata.json\nbenchmark/",
-            1,
-        )[1].split("```", 1)[0]
-        benchmark_export_listing = export_listing.split(
-            "performance/",
-            1,
-        )[0]
-        performance_export_listing = export_listing.split(
-            "performance/",
-            1,
-        )[1]
-        for filename in selected_performance_filenames:
-            assert filename in performance_export_listing
-            assert filename in manual
-        for filename in obsolete_performance_filenames:
-            assert filename not in performance_export_listing
-            assert filename not in manual
-        for filename in benchmark_evidence_filenames:
-            assert filename in benchmark_export_listing
-            assert filename in manual
-        for filename in retired_benchmark_evidence_filenames:
-            assert filename not in benchmark_export_listing
-            assert filename not in manual
-        assert "figure_selected_station_evidence.png" in benchmark_export_listing
-        assert (
-            "figure_selected_station_evidence.png"
-            not in performance_export_listing
-        )
-        for metadata_field in metadata_fields:
-            assert metadata_field in manual
 
 
 def test_bilingual_manuals_define_benchmark_evidence_science_and_limits():
@@ -1700,7 +1702,13 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
             )
         )
 
-        assert first_use_order == list(range(1, 21))
+        bibliography = references_and_appendices.split('<a id="part-iv"></a>', 1)[0]
+        reference_numbers = [
+            int(number)
+            for number in re.findall(r'<a id="ref-(\d+)"></a>', bibliography)
+        ]
+        assert reference_numbers == list(range(1, len(reference_numbers) + 1))
+        assert first_use_order == reference_numbers
         assert '<strong class="defined-term">Stability</strong>' not in manual
         assert "90% stability" not in manual.lower()
         assert "90-%-stability" not in manual.lower()
@@ -1837,7 +1845,7 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
         "not untouched provider rows",
         "No bin median, IQR, density background, colorbar, full-run median",
         "Segment and full-window Selected Station Evidence remain density-based aggregated views",
-        "exact `start_utc` and `end_utc`",
+        "one selected station and its active focus interval",
         "robust-z guides at 1, 2 and 3 plus the configured qualifying threshold",
         "detector guides, not confidence intervals",
         "crossing one line alone cannot qualify a candidate",
@@ -1866,7 +1874,7 @@ def test_bilingual_manuals_define_centered_native_drilldown_focus():
         "keine unveränderten Provider-Zeilen",
         "Binmedian, IQR, Dichtehintergrund, Farbskala, Median des vollständigen Laufs",
         "Segmentansicht und Evidenz der ausgewählten Station über das vollständige Fenster bleiben dichtebasierte aggregierte Ansichten",
-        "exaktem `start_utc` und `end_utc`",
+        "eine ausgewählte Station und ihr aktives Fokusintervall",
         "robuste-z-Hilfslinien bei 1, 2 und 3 sowie an der konfigurierten Qualifikationsschwelle",
         "Detektorhilfen und keine Konfidenzintervalle",
         "Überschreiten einer einzelnen Linie kann keinen Kandidaten allein qualifizieren",
