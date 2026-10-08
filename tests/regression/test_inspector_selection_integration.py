@@ -1,9 +1,12 @@
 """Streamlit rerun coverage for canonical Inspector state and candidate focus."""
 
 import ast
+import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
+from streamlit.proto.WidgetStates_pb2 import WidgetStates
 from streamlit.testing.v1 import AppTest
 
 from ui.inspector.drilldown_focus import DRILLDOWN_OUTLIER_FOCUS_OPTION
@@ -72,6 +75,351 @@ if st.toggle("Show Drill-Down", key="show_drilldown"):
     )
     st.session_state["observed_focus_time_bin"] = focus_time_bin
 '''
+
+
+_STATION_INSIGHTS_APP = r'''
+from functools import partial
+from types import SimpleNamespace
+
+import pandas as pd
+import streamlit as st
+
+from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
+from core.presentation_context import PresentationContext
+from i18n import T
+from ui.components.inspector_stations import (
+    render_benchmark_station_insights,
+    render_performance_station_insights,
+)
+from ui.inspector.contracts import InspectorContext, InspectorScope
+from ui.inspector.selection import StationIdentity
+from ui.inspector.selection_state import (
+    read_inspector_selection,
+    select_outlier_episode_paths,
+)
+
+
+is_compare = st.session_state["fixture_is_compare"]
+report_outliers = st.session_state["fixture_report_outliers"]
+analysis_id = "RX_COMP" if is_compare else "RX"
+translations = T["en"]
+station_column = translations["tbl_col_tx"]
+locator_column = translations["tbl_col_loc"]
+distance_column = translations["tbl_col_km"]
+azimuth_column = translations["tbl_col_az"]
+joint_column = translations["tbl_col_joint"]
+station_identities = st.session_state["fixture_station_identities"]
+station_table = pd.DataFrame({
+    station_column: [identity[0] for identity in station_identities],
+    locator_column: [identity[1] for identity in station_identities],
+    distance_column: [598, 141, 127],
+    azimuth_column: [291.2, 59.7, 42.1],
+    joint_column: [1441, 357, 341],
+})
+scope = InspectorScope(
+    selected_ranges=(),
+    selected_directions=(),
+    range_summary="Full Range",
+    direction_summary="All Directions",
+    selected_segment="All",
+    active_scope_summary="Full Range; All Directions",
+    scope_token="rall_dall",
+)
+context = InspectorContext(
+    analysis_id=analysis_id,
+    title="Station selection integration",
+    is_compare=is_compare,
+    parquet_path=None,
+    line1_str="",
+    translations=translations,
+    max_peer_distance_km=5000,
+    analysis_context=AnalysisContext(
+        callsign="ON4AWM0",
+        reference_callsign="ON4AWM1",
+        comparison_mode=COMPARISON_REFERENCE_STATION if is_compare else "none",
+    ),
+    presentation_context=PresentationContext(solar_label="All", labels=translations),
+    analysis_kind="comparison" if is_compare else "opportunity",
+    run_id=7,
+)
+if report_outliers:
+    report_entry = SimpleNamespace(station_identities=(
+        StationIdentity("DF2JP", "JO31FP"),
+        StationIdentity("DC0DX", "JO31LK"),
+    ))
+    st.button(
+        "Show all qualifying paths in Station Insights",
+        key="show_report_paths",
+        on_click=partial(
+            select_outlier_episode_paths,
+            report_entry,
+            st.session_state,
+            analysis_id=analysis_id,
+            run_id=7,
+            scope_token=scope.scope_token,
+        ),
+    )
+current_selection = read_inspector_selection(
+    st.session_state,
+    run_id=7,
+    analysis_id=analysis_id,
+    scope_token=scope.scope_token,
+    is_compare=is_compare,
+    selected_ranges=scope.selected_ranges,
+    selected_directions=scope.selected_directions,
+    is_outlier_reporting_enabled=report_outliers,
+)
+if is_compare:
+    prepared_segment = SimpleNamespace(
+        scope_rows=pd.DataFrame({
+            "spot_count": [1], "count_only_u": [0], "count_only_r": [0],
+        }),
+        bundle={"view_model": SimpleNamespace(
+            station_table=station_table,
+            station_column=station_column,
+            joint_column=joint_column,
+        )},
+    )
+    renderer = render_benchmark_station_insights
+else:
+    prepared_segment = SimpleNamespace(bundle={"display_model": {
+        "station_column": station_column,
+        "locator_column": locator_column,
+        "distance_column": distance_column,
+        "azimuth_column": azimuth_column,
+        "hit_column": joint_column,
+        "full_station_table": station_table,
+    }})
+    renderer = render_performance_station_insights
+view = renderer(
+    context, scope, current_selection, prepared_segment,
+    session_state=st.session_state,
+)
+st.session_state["observed_evidence_identities"] = list(
+    view.selected_station_table.iloc[list(view.selected_rows)][
+        [station_column, locator_column]
+    ].itertuples(index=False, name=None)
+)
+st.session_state["observed_source_order"] = station_table[station_column].tolist()
+'''
+
+
+def _station_insights_application(
+    *, is_compare, report_outliers=False, selected=None, station_identities=None,
+):
+    application = AppTest.from_string(_STATION_INSIGHTS_APP, default_timeout=30)
+    application.session_state["fixture_is_compare"] = is_compare
+    application.session_state["fixture_report_outliers"] = report_outliers
+    application.session_state["fixture_station_identities"] = station_identities or [
+        ("M7AEO", "IO82"), ("DC0DX", "JO31LK"), ("DF2JP", "JO31FP"),
+    ]
+    state_key = (
+        "val_results_selected_stations_compare"
+        if is_compare else "val_results_selected_stations_absolute"
+    )
+    application.session_state[state_key] = selected
+    application.run()
+    assert application.exception.values == []
+    return application, state_key
+
+
+def _select_station_dataframe_rows(application, rows):
+    """Deliver native dataframe events because AppTest has no row-click API."""
+    widget_states = WidgetStates()
+    widget_states.CopyFrom(application._tree.get_widget_states())
+    widget_states.widgets.add(
+        id=application.dataframe[0].proto.id,
+        string_value=json.dumps({
+            "selection": {"rows": rows, "columns": [], "cells": []},
+        }),
+    )
+    application._run(widget_states)
+    assert application.exception.values == []
+
+
+def _assert_station_insights_selection(
+    application, expected_order, expected_identities, *, expected_evidence=None,
+):
+    dataframe = application.dataframe[0]
+    assert dataframe.value.iloc[:, 0].tolist() == expected_order
+    selected_rows = application.session_state[dataframe.key]["selection"]["rows"]
+    checked_identities = list(
+        dataframe.value.iloc[selected_rows, :2].itertuples(index=False, name=None)
+    )
+    assert set(checked_identities) == set(expected_identities)
+    assert set(application.session_state["observed_evidence_identities"]) == set(
+        expected_identities if expected_evidence is None else expected_evidence
+    )
+    assert application.session_state["observed_source_order"] == [
+        identity[0] for identity in application.session_state["fixture_station_identities"]
+    ]
+
+
+def test_report_path_deselection_keeps_remaining_identity_after_table_reordering():
+    """The reported DF2JP deselection must retain DC0DX, never row-zero M7AEO."""
+    application, state_key = _station_insights_application(
+        is_compare=True,
+        report_outliers=True,
+        selected=[{"callsign": "M7AEO", "locator": "IO82"}],
+    )
+    application.button("show_report_paths").click().run()
+    assert application.exception.values == []
+    _assert_station_insights_selection(
+        application, ["DC0DX", "DF2JP", "M7AEO"],
+        [("DC0DX", "JO31LK"), ("DF2JP", "JO31FP")],
+    )
+
+    _select_station_dataframe_rows(application, [0])
+    _assert_station_insights_selection(
+        application, ["DC0DX", "M7AEO", "DF2JP"], [("DC0DX", "JO31LK")],
+    )
+    assert application.session_state[state_key] == [
+        {"callsign": "DC0DX", "locator": "JO31LK"},
+    ]
+    application.run()
+    assert application.exception.values == []
+    _assert_station_insights_selection(
+        application, ["DC0DX", "M7AEO", "DF2JP"], [("DC0DX", "JO31LK")],
+    )
+
+    # Add a lower row manually, then remove the other selected station.
+    _select_station_dataframe_rows(application, [0, 2])
+    _assert_station_insights_selection(
+        application, ["DC0DX", "DF2JP", "M7AEO"],
+        [("DC0DX", "JO31LK"), ("DF2JP", "JO31FP")],
+    )
+    _select_station_dataframe_rows(application, [1])
+    _assert_station_insights_selection(
+        application, ["DF2JP", "M7AEO", "DC0DX"], [("DF2JP", "JO31FP")],
+    )
+    assert application.session_state[state_key] == [
+        {"callsign": "DF2JP", "locator": "JO31FP"},
+    ]
+    _select_station_dataframe_rows(application, [])
+    application.run()
+    assert application.exception.values == []
+    assert application.session_state[state_key] == []
+    _assert_station_insights_selection(application, ["M7AEO", "DC0DX", "DF2JP"], [])
+
+
+@pytest.mark.parametrize("is_compare", [False, True], ids=["performance", "benchmark"])
+def test_manual_single_station_selection_moves_to_top_and_can_be_cleared(is_compare):
+    application, state_key = _station_insights_application(is_compare=is_compare)
+    _select_station_dataframe_rows(application, [2])
+    _assert_station_insights_selection(
+        application, ["DF2JP", "M7AEO", "DC0DX"], [("DF2JP", "JO31FP")],
+    )
+    assert application.session_state[state_key] == [
+        {"callsign": "DF2JP", "locator": "JO31FP"},
+    ]
+    _select_station_dataframe_rows(application, [2])
+    _assert_station_insights_selection(
+        application, ["DC0DX", "M7AEO", "DF2JP"], [("DC0DX", "JO31LK")],
+    )
+    assert application.session_state[state_key] == [
+        {"callsign": "DC0DX", "locator": "JO31LK"},
+    ]
+    _select_station_dataframe_rows(application, [])
+    application.run()
+    assert application.exception.values == []
+    assert application.session_state[state_key] == []
+    _assert_station_insights_selection(application, ["M7AEO", "DC0DX", "DF2JP"], [])
+
+
+@pytest.mark.parametrize(
+    ("is_compare", "report_outliers", "selected", "expected_order"),
+    [
+        (False, False, [("DF2JP", "JO31FP")], ["DF2JP", "M7AEO", "DC0DX"]),
+        (True, False, [("DF2JP", "JO31FP")], ["DF2JP", "M7AEO", "DC0DX"]),
+        (
+            True, True, [("DF2JP", "JO31FP"), ("DC0DX", "JO31LK")],
+            ["DC0DX", "DF2JP", "M7AEO"],
+        ),
+    ],
+    ids=["performance", "benchmark-single", "benchmark-multiple"],
+)
+def test_restored_station_identities_start_at_top_without_report_focus(
+    is_compare, report_outliers, selected, expected_order,
+):
+    saved_records = [
+        {"callsign": callsign, "locator": locator} for callsign, locator in selected
+    ]
+    application, state_key = _station_insights_application(
+        is_compare=is_compare, report_outliers=report_outliers, selected=saved_records,
+    )
+    _assert_station_insights_selection(application, expected_order, selected)
+    application.run()
+    assert application.exception.values == []
+    _assert_station_insights_selection(application, expected_order, selected)
+    assert application.session_state[state_key] == saved_records
+
+
+@pytest.mark.parametrize(
+    ("is_compare", "report_outliers"),
+    [(False, False), (True, False), (True, True)],
+    ids=["performance", "benchmark-single", "benchmark-multiple"],
+)
+def test_station_filter_hide_and_restore_preserves_identity_and_selected_first_order(
+    is_compare, report_outliers,
+):
+    selected = [{"callsign": "DF2JP", "locator": "JO31FP"}]
+    application, state_key = _station_insights_application(
+        is_compare=is_compare, report_outliers=report_outliers, selected=selected,
+    )
+    _assert_station_insights_selection(
+        application, ["DF2JP", "M7AEO", "DC0DX"], [("DF2JP", "JO31FP")],
+    )
+    application.multiselect[0].set_value(["km"]).run()
+    assert application.exception.values == []
+    application.slider[0].set_range(141.0, 598.0).run()
+    assert application.exception.values == []
+    assert application.session_state[state_key] == selected
+    assert application.warning
+    _assert_station_insights_selection(
+        application, ["M7AEO", "DC0DX"], [],
+        expected_evidence=[("DF2JP", "JO31FP")] if report_outliers else [],
+    )
+    application.run()
+    assert application.exception.values == []
+    assert application.session_state[state_key] == selected
+    application.multiselect[0].set_value([]).run()
+    assert application.exception.values == []
+    assert not application.warning
+    assert application.session_state[state_key] == selected
+    _assert_station_insights_selection(
+        application, ["DF2JP", "M7AEO", "DC0DX"], [("DF2JP", "JO31FP")],
+    )
+
+
+@pytest.mark.parametrize("is_compare", [False, True], ids=["performance", "benchmark"])
+def test_station_reordering_keeps_same_callsign_at_distinct_locators_separate(is_compare):
+    application, state_key = _station_insights_application(
+        is_compare=is_compare,
+        station_identities=[
+            ("DF2JP", "IO82"), ("DC0DX", "JO31LK"), ("DF2JP", "JO31FP"),
+        ],
+        selected=[{"callsign": "DF2JP", "locator": "JO31FP"}],
+    )
+    _assert_station_insights_selection(
+        application, ["DF2JP", "DF2JP", "DC0DX"], [("DF2JP", "JO31FP")],
+    )
+    assert application.dataframe[0].value.iloc[:, 1].tolist() == [
+        "JO31FP", "IO82", "JO31LK",
+    ]
+    _select_station_dataframe_rows(application, [1])
+    _assert_station_insights_selection(
+        application, ["DF2JP", "DC0DX", "DF2JP"], [("DF2JP", "IO82")],
+    )
+    assert application.session_state[state_key] == [
+        {"callsign": "DF2JP", "locator": "IO82"},
+    ]
+    _select_station_dataframe_rows(application, [2])
+    _assert_station_insights_selection(
+        application, ["DF2JP", "DF2JP", "DC0DX"], [("DF2JP", "JO31FP")],
+    )
+    assert application.session_state[state_key] == [
+        {"callsign": "DF2JP", "locator": "JO31FP"},
+    ]
 
 
 def _candidate_context():

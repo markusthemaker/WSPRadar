@@ -35,7 +35,6 @@ RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY = "val_results_segment_time_bin_abso
 RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = "val_results_selected_stations_compare"
 RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY = "val_results_selected_stations_absolute"
 RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY = "results_station_selection_revision_compare"
-RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY = "results_station_insights_focus_compare"
 RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY = "results_drilldown_focus_compare"
 RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY = "val_report_delta_snr_outlier_candidates"
 
@@ -242,133 +241,77 @@ def station_selection_default_rows(
     return selected_rows, missing_identities
 
 
-def focused_station_identities_for_scope(
-    session_state,
-    *,
-    analysis_id,
-    run_id,
-    scope_token,
-):
-    """Return one report-driven table focus only in its originating scope."""
-    focus_record = session_state.get(
-        RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-    )
-    if not isinstance(focus_record, dict):
-        return None
-    expected_scope = {
-        "analysis_id": analysis_id,
-        "run_id": run_id,
-        "scope_token": scope_token,
-    }
-    if any(
-        focus_record.get(field_name) != expected_value
-        for field_name, expected_value in expected_scope.items()
-    ):
-        return None
-    station_identities = focus_record.get("station_identities")
-    if not isinstance(station_identities, list):
-        return None
-    return station_identities
+def station_table_identity_rows(station_table, station_column, locator_column):
+    """Capture immutable exact identities in the displayed table's row order.
 
-
-def station_identity_records_for_rows(
-    station_table,
-    selected_rows,
-    station_column,
-    locator_column,
-    *,
-    allow_multiple=False,
-):
-    """Return ordered exact identities for valid selected station rows."""
-    valid_rows = [
-        row_position
-        for row_position in selected_rows
-        if isinstance(row_position, Integral)
-        and 0 <= row_position < len(station_table)
-    ]
-    if not allow_multiple and len(valid_rows) > 1:
-        raise ValueError("Station selection must contain at most one row.")
-    if not valid_rows:
-        return []
-
-    selected_identity_records = []
-    for row_position in valid_rows:
-        row = station_table.iloc[row_position]
-        identity_record = station_identity_record(
-            row[station_column],
-            row[locator_column],
-        )
-        if identity_record is None:
-            raise ValueError(
-                "Selected station row must contain a callsign and locator."
-            )
-        selected_identity_records.append(identity_record)
-    if allow_multiple:
-        return validate_multiple_station_identity_records(
-            selected_identity_records
-        )
-    return validate_single_station_identity_records(
-        selected_identity_records
-    )
-
-
-def sync_selected_station_state(
-    session_state,
-    persistent_key,
-    station_table,
-    selected_rows,
-    station_column,
-    locator_column,
-    *,
-    allow_multiple=False,
-):
-    """Persist an explicit empty, single, or Benchmark multi-selection."""
-    selected_identities = station_identity_records_for_rows(
-        station_table,
-        selected_rows,
-        station_column,
-        locator_column,
-        allow_multiple=allow_multiple,
-    )
-    session_state[persistent_key] = selected_identities
-    return selected_identities
-
-
-def mark_station_selection_changed(session_state, selection_changed_key):
-    """Record that a user, rather than a table default, changed selection."""
-    session_state[selection_changed_key] = True
-    clear_inspector_focus(session_state)
-
-
-def sync_selected_station_state_if_changed(
-    session_state,
-    selection_changed_key,
-    persistent_key,
-    station_table,
-    selected_rows,
-    station_column,
-    locator_column,
-    *,
-    allow_multiple=False,
-):
-    """Persist visible rows only after a user-generated selection event.
-
-    Applying a saved default, changing transient segment scope, or rendering a
-    table that does not contain every saved identity must not rewrite the
-    canonical config state. A real selection event replaces it exactly,
-    including a deliberate empty selection.
+    Callbacks retain only these identity pairs, never the table or its evidence.
+    A blank identity retains its position but cannot become a valid selection.
     """
-    if not session_state.pop(selection_changed_key, False):
-        return session_state.get(persistent_key)
-    return sync_selected_station_state(
-        session_state,
-        persistent_key,
-        station_table,
-        selected_rows,
-        station_column,
-        locator_column,
-        allow_multiple=allow_multiple,
+    identity_rows = []
+    for callsign, locator in zip(station_table[station_column], station_table[locator_column]):
+        identity = station_identity_record(callsign, locator)
+        identity_rows.append(
+            None if identity is None else (identity["callsign"], identity["locator"])
+        )
+    return tuple(identity_rows)
+
+
+def station_table_widget_key(base_key, identity_rows, selected_rows):
+    """Bind native positional selection to one display order and initial selection.
+
+    A keyed dataframe otherwise retains stale row indexes when its data or
+    selection default changes. A new key rehydrates the exact current identities
+    after filtering, reordering, configuration restoration, or deselection.
+    """
+    selection_signature = sha256(json.dumps(
+        (identity_rows, selected_rows), separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    return f"{base_key}_selection_{selection_signature}"
+
+
+def sync_station_table_selection(
+    session_state,
+    widget_key,
+    persistent_key,
+    identity_rows,
+    *,
+    allow_multiple=False,
+):
+    """Resolve a user event against its originating display before any rerender.
+
+    The callback receives immutable identity rows captured by the previous
+    render. It validates the complete event before replacing durable station
+    intent and clearing candidate focus. An empty event is deliberate
+    deselection, never automatic first-row selection.
+    """
+    widget_state = session_state.get(widget_key)
+    if not isinstance(widget_state, Mapping):
+        raise ValueError("Station table selection must be a selection record.")
+    selection = widget_state.get("selection")
+    if not isinstance(selection, Mapping) or not isinstance(selection.get("rows"), list):
+        raise ValueError("Station table selection must contain a list of row positions.")
+    selected_identities = []
+    for row_position in selection["rows"]:
+        if (
+            isinstance(row_position, bool)
+            or not isinstance(row_position, Integral)
+            or not 0 <= row_position < len(identity_rows)
+        ):
+            raise ValueError("Station table selection contains an invalid row position.")
+        identity_pair = identity_rows[row_position]
+        if identity_pair is None:
+            raise ValueError("Selected station row must contain a callsign and locator.")
+        selected_identities.append({
+            "callsign": identity_pair[0], "locator": identity_pair[1],
+        })
+    validator = (
+        validate_multiple_station_identity_records
+        if allow_multiple else validate_single_station_identity_records
     )
+    validated_identities = validator(selected_identities)
+    session_state[persistent_key] = validated_identities
+    clear_inspector_focus(session_state)
+    return validated_identities
 
 
 def resolve_explicit_all_selection(current, previous, all_option, specific_options):
@@ -734,14 +677,6 @@ def _publish_outlier_station_selection(
     session_state[
         RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
     ] = get_station_selection_revision(session_state) + 1
-    session_state[
-        RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-    ] = {
-        "analysis_id": analysis_id,
-        "run_id": run_id,
-        "scope_token": scope_token,
-        "station_identities": selected_identities,
-    }
     request_page_navigation(
         session_state,
         navigation_anchor_id,
@@ -923,8 +858,7 @@ def seed_inspector_selection_state(
 
 
 def clear_inspector_focus(session_state: MutableMapping[str, Any]) -> None:
-    """Release both transient report/navigation focus records in bounded work."""
-    session_state.pop(RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY, None)
+    """Release the transient candidate Drill-Down focus in bounded work."""
     session_state.pop(RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY, None)
 
 

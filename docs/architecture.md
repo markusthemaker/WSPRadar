@@ -843,6 +843,17 @@ selection callbacks replace saved station intent; rendering a default does not.
 Benchmark enables multiple exact identities only while outlier reporting is
 enabled and retains the first identity when reporting is disabled.
 
+Both Performance and Benchmark Station Insights tables place selected exact
+identities first, whether selection comes from a table interaction, a loaded
+configuration or URL, or an Outlier Report action. This ordering follows active
+table filters and retains the existing relative order within the selected and
+unselected groups; it does not restore filtered-out identities. Selection
+callbacks resolve row positions against the displayed identity order that
+produced the event before the table is reordered. Clearing report focus or
+removing one selected row therefore cannot reinterpret a surviving row position
+as a different station. Explicitly clearing all rows remains deliberate
+deselection and does not reinstate the automatic first-row default.
+
 The adapter reads a compact typed selection once per nonempty rendered scope;
 it owns no evidence frame. Station lookup reads existing identity columns
 directly without constructing an intermediate two-column DataFrame. Its module

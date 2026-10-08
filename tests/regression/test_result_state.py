@@ -28,14 +28,6 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
             "schema_version": result_state.COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
             "run_id": 42,
         },
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
-            "analysis_id": "RX_COMP",
-            "run_id": 42,
-            "scope_token": "rall_dall",
-            "station_identities": [
-                {"callsign": "A1AAA", "locator": "AA00"}
-            ],
-        },
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
@@ -54,10 +46,6 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
     assert result_state.INSPECTOR_CACHE_STATE_KEY not in session_state
     assert result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY not in session_state
     assert result_state.COMPLETED_RUN_SNAPSHOT_KEY not in session_state
-    assert (
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-        not in session_state
-    )
     assert inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
     assert session_state["unrelated"] == "preserved"
 
@@ -94,14 +82,6 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         result_state.INSPECTOR_CACHE_STATE_KEY: object(),
         result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY: source_binding,
         result_state.COMPLETED_RUN_SNAPSHOT_KEY: completed_snapshot,
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
-            "analysis_id": "RX_COMP",
-            "run_id": 42,
-            "scope_token": "rall_dall",
-            "station_identities": [
-                {"callsign": "A1AAA", "locator": "AA00"}
-            ],
-        },
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
@@ -119,29 +99,17 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         session_state[result_state.COMPLETED_RUN_SNAPSHOT_KEY]
         is completed_snapshot
     )
-    assert (
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-        not in session_state
-    )
     assert inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
 
 
-def test_completed_rerender_preserves_inspector_cache_and_station_focus():
-    """Keep same-result cache and focus through a navigation rerender."""
+def test_completed_rerender_preserves_inspector_cache_and_drilldown_focus():
+    """Keep same-result cache and Drill-Down focus through a navigation rerender."""
     inspector_cache = object()
     session_state = {
         "run_id": 42,
         result_state.EXPORT_STATE_KEY: {"old": "recipe"},
         result_state.EXPORT_ZIP_BYTES_KEY: b"zip",
         result_state.INSPECTOR_CACHE_STATE_KEY: inspector_cache,
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
-            "analysis_id": "RX_COMP",
-            "run_id": 42,
-            "scope_token": "rall_dall",
-            "station_identities": [
-                {"callsign": "A1AAA", "locator": "AA00"}
-            ],
-        },
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
@@ -160,17 +128,12 @@ def test_completed_rerender_preserves_inspector_cache_and_station_focus():
         is inspector_cache
     )
     assert session_state[
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-    ]["station_identities"] == [
-        {"callsign": "A1AAA", "locator": "AA00"}
-    ]
-    assert session_state[
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ]["run_id"] == 42
 
 
-def test_outlier_opt_out_always_clears_station_insights_focus():
-    """Do not retain report-only navigation semantics after the opt-in is off."""
+def test_outlier_opt_out_always_clears_drilldown_focus():
+    """Do not retain report-only Drill-Down focus after the opt-in is off."""
     focus_record = {
         "analysis_id": "RX_COMP",
         "run_id": 42,
@@ -186,9 +149,6 @@ def test_outlier_opt_out_always_clears_station_insights_focus():
         inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
             {"callsign": "A1AAA", "locator": "AA00"}
         ],
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
-            focus_record
-        ),
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
     }
 
@@ -199,15 +159,11 @@ def test_outlier_opt_out_always_clears_station_insights_focus():
     )
 
     assert selection_changed is False
-    assert (
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-        not in session_state
-    )
     assert inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
 
 
-def test_enabled_outlier_reporting_preserves_station_insights_focus():
-    """Keep a queued focus record intact until its enabled report consumes it."""
+def test_enabled_outlier_reporting_preserves_drilldown_focus():
+    """Keep a queued Drill-Down focus record while reporting remains enabled."""
     focus_record = {
         "analysis_id": "RX_COMP",
         "run_id": 42,
@@ -220,9 +176,6 @@ def test_enabled_outlier_reporting_preserves_station_insights_focus():
         inspector_selection.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
             True
         ),
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
-            focus_record
-        ),
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
     }
 
@@ -233,9 +186,6 @@ def test_enabled_outlier_reporting_preserves_station_insights_focus():
     )
 
     assert selection_changed is False
-    assert session_state[
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-    ] is focus_record
     assert session_state[
         inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ] is focus_record

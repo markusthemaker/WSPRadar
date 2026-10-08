@@ -34,34 +34,36 @@ STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (5, 4, 3)
 SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (9, 2)
 
 
-def prioritize_focused_station_identities(
+def prioritize_selected_station_identities(
     station_table,
     station_column,
     locator_column,
-    focused_identities,
+    selected_identities,
 ):
-    """Move exact focused identities to the top of a display-only table.
+    """Move exact selected identities to the top of a display-only table.
 
     Matching and non-matching rows each retain their existing relative order.
-    The supplied table is never mutated, and a focus hidden by an active table
+    The supplied table is never mutated, and a selection hidden by an active table
     filter remains absent rather than bypassing that filter.
     """
-    normalized_identities = inspector_selection.validate_multiple_station_identity_records(
-        focused_identities
-    )
-    if not normalized_identities or station_table.empty:
+    if isinstance(selected_identities, InspectorSelection):
+        selected_pairs = {
+            identity.pair for identity in (selected_identities.selected_stations or ())
+        }
+    else:
+        normalized_identities = inspector_selection.validate_multiple_station_identity_records(
+            selected_identities
+        )
+        selected_pairs = {
+            (identity["callsign"], identity["locator"])
+            for identity in (normalized_identities or ())
+        }
+    if not selected_pairs or station_table.empty:
         return station_table
-    focused_pairs = {
-        (identity["callsign"], identity["locator"])
-        for identity in normalized_identities
-    }
-    focused_positions = []
+    selected_positions = []
     remaining_positions = []
     for row_position, (callsign, locator) in enumerate(
-        station_table[[station_column, locator_column]].itertuples(
-            index=False,
-            name=None,
-        )
+        zip(station_table[station_column], station_table[locator_column])
     ):
         identity_record = inspector_selection.station_identity_record(callsign, locator)
         identity_pair = (
@@ -73,15 +75,15 @@ def prioritize_focused_station_identities(
             else None
         )
         destination = (
-            focused_positions
-            if identity_pair in focused_pairs
+            selected_positions
+            if identity_pair in selected_pairs
             else remaining_positions
         )
         destination.append(row_position)
-    if not focused_positions:
+    if not selected_positions:
         return station_table
     return station_table.iloc[
-        focused_positions + remaining_positions
+        selected_positions + remaining_positions
     ].reset_index(drop=True)
 
 
@@ -288,20 +290,10 @@ def render_performance_station_insights(
                             pd.to_numeric(disp_df[column], errors="coerce").between(selected[0], selected[1])
                         ]
 
-    table_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"
-    selection_changed_key = f"{table_key}_selection_changed"
-    dataframe_kwargs = {
-        "width": "stretch",
-        "hide_index": True,
-        "selection_mode": "single-row",
-        "on_select": partial(
-            inspector_selection.mark_station_selection_changed,
-            session_state,
-            selection_changed_key,
-        ),
-        "key": table_key,
-        "column_config": snr_column_config(disp_df),
-    }
+    export_station_table = disp_df
+    disp_df = prioritize_selected_station_identities(
+        disp_df, station_col, loc_col, configured_station_identities,
+    )
     selection_default_rows, missing_station_identities = (
         inspector_selection.station_selection_default_rows(
             disp_df,
@@ -310,6 +302,28 @@ def render_performance_station_insights(
             configured_station_identities,
         )
     )
+    identity_rows = inspector_selection.station_table_identity_rows(
+        disp_df, station_col, loc_col,
+    )
+    table_key = inspector_selection.station_table_widget_key(
+        f"tbl_{analysis_id}_{run_id}_{scope_token}",
+        identity_rows,
+        selection_default_rows,
+    )
+    dataframe_kwargs = {
+        "width": "stretch",
+        "hide_index": True,
+        "selection_mode": "single-row",
+        "on_select": partial(
+            inspector_selection.sync_station_table_selection,
+            session_state,
+            table_key,
+            inspector_selection.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY,
+            identity_rows,
+        ),
+        "key": table_key,
+        "column_config": snr_column_config(disp_df),
+    }
     with level_three_container:
         warn_missing_station_identities(missing_station_identities, t)
     if supports_dataframe_selection_default():
@@ -328,19 +342,9 @@ def render_performance_station_insights(
         for row in (table_event.selection.rows or [])
         if 0 <= row < len(disp_df)
     ][:1]
-    inspector_selection.sync_selected_station_state_if_changed(
-        session_state,
-        selection_changed_key,
-        inspector_selection.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY,
-        disp_df,
-        selected_rows,
-        station_col,
-        loc_col,
-    )
-
     return StationInsightsView(
         displayed_table=disp_df,
-        export_station_table=disp_df,
+        export_station_table=export_station_table,
         full_station_table=full_segment_disp_df,
         selected_station_table=disp_df,
         selected_rows=tuple(selected_rows),
@@ -502,24 +506,9 @@ def render_benchmark_station_insights(
 
     # --- END FILTER ---
 
-    station_insights_display_df = sorted_disp_df
-    if is_outlier_reporting_enabled:
-        focused_station_identities = (
-            inspector_selection.focused_station_identities_for_scope(
-                session_state,
-                analysis_id=analysis_id,
-                run_id=run_id,
-                scope_token=scope_token,
-            )
-        )
-        station_insights_display_df = (
-            prioritize_focused_station_identities(
-                sorted_disp_df,
-                station_col,
-                t['tbl_col_loc'],
-                focused_station_identities,
-            )
-        )
+    station_insights_display_df = prioritize_selected_station_identities(
+        sorted_disp_df, station_col, t['tbl_col_loc'], current_selection,
+    )
 
     with level_three_container:
         render_reference_correction_notice(
@@ -540,25 +529,6 @@ def render_benchmark_station_insights(
     )
     allow_multiple_station_selection = current_selection.is_outlier_reporting_enabled
     configured_station_identities = current_selection
-    selection_changed_key = f"{tbl_key}_selection_changed"
-    dataframe_kwargs = {
-        "width": "stretch",
-        "hide_index": True,
-        "selection_mode": (
-            "multi-row"
-            if allow_multiple_station_selection
-            else "single-row"
-        ),
-        "on_select": partial(
-            inspector_selection.mark_station_selection_changed,
-            session_state,
-            selection_changed_key,
-        ),
-        "key": tbl_key,
-        "column_config": snr_column_config(
-            station_insights_display_df
-        ),
-    }
     selection_default_rows, missing_station_identities = (
         inspector_selection.station_selection_default_rows(
             station_insights_display_df,
@@ -568,6 +538,33 @@ def render_benchmark_station_insights(
             allow_multiple=allow_multiple_station_selection,
         )
     )
+    identity_rows = inspector_selection.station_table_identity_rows(
+        station_insights_display_df, station_col, t['tbl_col_loc'],
+    )
+    tbl_key = inspector_selection.station_table_widget_key(
+        tbl_key, identity_rows, selection_default_rows,
+    )
+    dataframe_kwargs = {
+        "width": "stretch",
+        "hide_index": True,
+        "selection_mode": (
+            "multi-row"
+            if allow_multiple_station_selection
+            else "single-row"
+        ),
+        "on_select": partial(
+            inspector_selection.sync_station_table_selection,
+            session_state,
+            tbl_key,
+            selected_stations_state_key,
+            identity_rows,
+            allow_multiple=allow_multiple_station_selection,
+        ),
+        "key": tbl_key,
+        "column_config": snr_column_config(
+            station_insights_display_df
+        ),
+    }
     with level_three_container:
         warn_missing_station_identities(missing_station_identities, t)
     if supports_dataframe_selection_default():
@@ -585,8 +582,8 @@ def render_benchmark_station_insights(
     # ----------------------------------------------------
     # Render Raw Drill-Down Data (if user clicks a row)
     # ----------------------------------------------------
-    # Streamlit selection remains user-driven after saved identities establish
-    # the first render; deliberate deselection is persisted as an empty list.
+    # The callback has already resolved the originating table's positions to
+    # identities. These positions belong to the newly rendered display only.
     raw_sel_rows = tbl_event.selection.rows or []
     sel_rows = [
         row
@@ -595,16 +592,6 @@ def render_benchmark_station_insights(
     ]
     if not allow_multiple_station_selection:
         sel_rows = sel_rows[:1]
-    inspector_selection.sync_selected_station_state_if_changed(
-        session_state,
-        selection_changed_key,
-        selected_stations_state_key,
-        station_insights_display_df,
-        sel_rows,
-        station_col,
-        t['tbl_col_loc'],
-        allow_multiple=allow_multiple_station_selection,
-    )
     selected_station_table = station_insights_display_df
     selected_rows_for_evidence = sel_rows
     if allow_multiple_station_selection:

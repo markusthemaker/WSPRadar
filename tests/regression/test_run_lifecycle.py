@@ -248,10 +248,6 @@ def test_result_render_preserves_exports_only_for_completed_rerenders(
     session_state[SESSION_ARTIFACT_PATHS_KEY] = registered_artifact_paths
     session_state[result_state.EXPORT_ZIP_FILENAME_KEY] = "results.zip"
     session_state[result_state.EXPORT_ZIP_SIGNATURE_KEY] = "prepared-signature"
-    session_state[inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY] = {
-        "run_id": 71,
-        "scope_token": "retained-scope",
-    }
     session_state[inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY] = {
         "run_id": 71,
         "request_token": "retained-request",
@@ -260,7 +256,6 @@ def test_result_render_preserves_exports_only_for_completed_rerenders(
         state_key: session_state[state_key]
         for state_key in (
             result_state.INSPECTOR_CACHE_STATE_KEY,
-            inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
             inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
         )
     }

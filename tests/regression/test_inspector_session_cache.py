@@ -1145,7 +1145,7 @@ def test_station_insights_has_no_retired_path_consistency_plot():
     )
 
     assert "tbl_event = render_compact_dataframe(" in function_source
-    assert "inspector_selection.sync_selected_station_state_if_changed(" in function_source
+    assert "inspector_selection.sync_station_table_selection," in function_source
     assert "path_consistency" not in function_source
     assert (
         "render_compare_path_consistency_export_figure"
@@ -2293,8 +2293,8 @@ def test_station_selection_defaults_distinguish_unset_from_explicit_empty():
     ) == ([], [])
 
 
-def test_focused_station_identities_are_stably_prioritized_without_mutation():
-    """Bring exact report-selected paths into view without changing row content."""
+def test_selected_station_identities_are_stably_prioritized_without_mutation():
+    """Bring exact selected paths into view without changing row content."""
     station_table = pd.DataFrame(
         {
             "Station": ["A1AAA", "B2BBB", "A1AAA", "C3CCC", "D4DDD"],
@@ -2305,7 +2305,7 @@ def test_focused_station_identities_are_stably_prioritized_without_mutation():
     )
     source_snapshot = station_table.copy(deep=True)
 
-    prioritized = inspector_stations.prioritize_focused_station_identities(
+    prioritized = inspector_stations.prioritize_selected_station_identities(
         station_table,
         "Station",
         "Locator",
@@ -2352,7 +2352,7 @@ def test_station_focus_leaves_unmatched_display_order_intact(
     )
     source_snapshot = station_table.copy(deep=True)
 
-    prioritized = inspector_stations.prioritize_focused_station_identities(
+    prioritized = inspector_stations.prioritize_selected_station_identities(
         station_table,
         "Station",
         "Locator",
@@ -2361,47 +2361,6 @@ def test_station_focus_leaves_unmatched_display_order_intact(
 
     pd.testing.assert_frame_equal(station_table, source_snapshot)
     pd.testing.assert_frame_equal(prioritized, source_snapshot)
-
-
-def test_station_focus_is_resolved_only_in_its_originating_scope():
-    """Prevent a report action from reordering another run or segment table."""
-    focused_identities = [
-        {"callsign": "A1AAA", "locator": "AA00"},
-        {"callsign": "B2BBB", "locator": "BB11"},
-    ]
-    session_state = {
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
-            "analysis_id": "RX_COMP",
-            "run_id": 42,
-            "scope_token": "rall_dall",
-            "station_identities": focused_identities,
-        }
-    }
-
-    assert inspector_selection.focused_station_identities_for_scope(
-        session_state,
-        analysis_id="RX_COMP",
-        run_id=42,
-        scope_token="rall_dall",
-    ) is focused_identities
-    assert inspector_selection.focused_station_identities_for_scope(
-        session_state,
-        analysis_id="TX_COMP",
-        run_id=42,
-        scope_token="rall_dall",
-    ) is None
-    assert inspector_selection.focused_station_identities_for_scope(
-        session_state,
-        analysis_id="RX_COMP",
-        run_id=43,
-        scope_token="rall_dall",
-    ) is None
-    assert inspector_selection.focused_station_identities_for_scope(
-        session_state,
-        analysis_id="RX_COMP",
-        run_id=42,
-        scope_token="r0_dall",
-    ) is None
 
 
 def test_station_selection_matches_one_identity_and_reports_missing():
@@ -2515,150 +2474,71 @@ def test_station_selection_rejects_noncanonical_or_multiple_state(
         )
 
 
-def test_station_selection_sync_replaces_then_clears_identity(monkeypatch):
+def test_station_selection_sync_replaces_then_clears_identity():
     """Persist A, replace it with B, then preserve explicit deselection."""
     persistent_key = inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     session_state = {}
-    station_table = pd.DataFrame(
-        {
-            "Station": ["A1AAA", "B2BBB"],
-            "Locator": ["AA00", "BB11"],
-        }
+    station_table = pd.DataFrame({
+        "Station": ["A1AAA", "B2BBB"], "Locator": ["AA00", "BB11"],
+    })
+    identity_rows = inspector_selection.station_table_identity_rows(
+        station_table, "Station", "Locator",
     )
-    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
-
-    assert inspector_selection.sync_selected_station_state(
-        inspector_selected.st.session_state,
-        persistent_key,
-        station_table,
-        [0],
-        "Station",
-        "Locator",
-    ) == [
-        {"callsign": "A1AAA", "locator": "AA00"}
-    ]
-    assert inspector_selection.sync_selected_station_state(
-        inspector_selected.st.session_state,
-        persistent_key,
-        station_table,
-        [1],
-        "Station",
-        "Locator",
-    ) == [
-        {"callsign": "B2BBB", "locator": "BB11"},
-    ]
-    assert inspector_selection.sync_selected_station_state(
-        inspector_selected.st.session_state,
-        persistent_key,
-        station_table,
-        [],
-        "Station",
-        "Locator",
-    ) == []
-    assert (
-        session_state[persistent_key]
-        == []
-    )
+    for selected_rows, expected in (
+        ([0], [{"callsign": "A1AAA", "locator": "AA00"}]),
+        ([1], [{"callsign": "B2BBB", "locator": "BB11"}]),
+        ([], []),
+    ):
+        session_state["table"] = {"selection": {"rows": selected_rows}}
+        assert inspector_selection.sync_station_table_selection(
+            session_state, "table", persistent_key, identity_rows,
+        ) == expected
+        assert session_state[persistent_key] == expected
 
 
-def test_station_selection_writer_rejects_multiple_rows_atomically(monkeypatch):
-    """Reject multiple rows without overwriting the prior identity."""
+def test_station_selection_writer_rejects_multiple_rows_atomically():
+    """Reject multiple rows or invalid identities without overwriting intent."""
     previous_selection = [{"callsign": "A1AAA", "locator": "AA00"}]
-    session_state = {"selected": previous_selection}
-    station_table = pd.DataFrame(
-        {
-            "Station": ["A1AAA", "B2BBB"],
-            "Locator": ["AA00", "BB11"],
-        }
-    )
-    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
-
-    inspector_selection.mark_station_selection_changed(
-        inspector_selected.st.session_state,
-        "table_selection_changed"
-    )
-    with pytest.raises(ValueError, match="at most one row"):
-        inspector_selection.sync_selected_station_state_if_changed(
-            inspector_selected.st.session_state,
-            "table_selection_changed",
-            "selected",
-            station_table,
-            [0, 1],
-            "Station",
-            "Locator",
+    session_state = {
+        "selected": previous_selection,
+        "table": {"selection": {"rows": [0, 1]}},
+    }
+    with pytest.raises(ValueError, match="at most one"):
+        inspector_selection.sync_station_table_selection(
+            session_state, "table", "selected", (("A1AAA", "AA00"), ("B2BBB", "BB11")),
         )
     assert session_state["selected"] is previous_selection
 
-    malformed_station_table = pd.DataFrame(
-        {"Station": ["123"], "Locator": ["AA00"]}
-    )
-    inspector_selection.mark_station_selection_changed(
-        inspector_selected.st.session_state,
-        "table_selection_changed"
-    )
+    session_state["table"] = {"selection": {"rows": [0]}}
     with pytest.raises(ValueError, match="callsign"):
-        inspector_selection.sync_selected_station_state_if_changed(
-            inspector_selected.st.session_state,
-            "table_selection_changed",
-            "selected",
-            malformed_station_table,
-            [0],
-            "Station",
-            "Locator",
+        inspector_selection.sync_station_table_selection(
+            session_state, "table", "selected", (("123", "AA00"),),
         )
     assert session_state["selected"] is previous_selection
 
 
-def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
-    """Keep loaded state until an event replaces or clears the identity."""
-    station_table = pd.DataFrame(
-        {
-            "Station": ["M7AEO", "F4WBN"],
-            "Locator": ["IO82", "JN18"],
-        }
-    )
-    configured_identities = [
-        {"callsign": "M7AEO", "locator": "IO82"},
-    ]
+def test_station_selection_state_changes_only_after_user_selection():
+    """Resolving table defaults cannot overwrite a loaded or hidden identity."""
+    station_table = pd.DataFrame({
+        "Station": ["M7AEO", "F4WBN"], "Locator": ["IO82", "JN18"],
+    })
+    configured_identities = [{"callsign": "M7AEO", "locator": "IO82"}]
     session_state = {"selected": configured_identities}
-    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
+    identity_rows = inspector_selection.station_table_identity_rows(
+        station_table, "Station", "Locator",
+    )
+    assert inspector_selection.station_selection_default_rows(
+        station_table, "Station", "Locator", configured_identities,
+    ) == ([0], [])
+    assert session_state["selected"] is configured_identities
 
-    assert inspector_selection.sync_selected_station_state_if_changed(
-        inspector_selected.st.session_state,
-        "table_selection_changed",
-        "selected",
-        station_table,
-        [0],
-        "Station",
-        "Locator",
-    ) == configured_identities
-    assert session_state["selected"] == configured_identities
-
-    inspector_selection.mark_station_selection_changed(inspector_selected.st.session_state, "table_selection_changed")
-    assert inspector_selection.sync_selected_station_state_if_changed(
-        inspector_selected.st.session_state,
-        "table_selection_changed",
-        "selected",
-        station_table,
-        [1],
-        "Station",
-        "Locator",
-    ) == [
-        {"callsign": "F4WBN", "locator": "JN18"},
-    ]
-    assert session_state["selected"] == [
-        {"callsign": "F4WBN", "locator": "JN18"},
-    ]
-
-    inspector_selection.mark_station_selection_changed(inspector_selected.st.session_state, "table_selection_changed")
-    assert inspector_selection.sync_selected_station_state_if_changed(
-        inspector_selected.st.session_state,
-        "table_selection_changed",
-        "selected",
-        station_table,
-        [],
-        "Station",
-        "Locator",
+    session_state["table"] = {"selection": {"rows": [1]}}
+    assert inspector_selection.sync_station_table_selection(
+        session_state, "table", "selected", identity_rows,
+    ) == [{"callsign": "F4WBN", "locator": "JN18"}]
+    session_state["table"] = {"selection": {"rows": []}}
+    assert inspector_selection.sync_station_table_selection(
+        session_state, "table", "selected", identity_rows,
     ) == []
     assert session_state["selected"] == []
 

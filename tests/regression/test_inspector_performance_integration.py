@@ -274,12 +274,12 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
 
         def dataframe(self, *_args, **kwargs):
             self.fake_streamlit.dataframe_calls.append(dict(kwargs))
-            on_select = kwargs.get("on_select")
-            if callable(on_select):
-                on_select()
+            widget_state = self.fake_streamlit.session_state.setdefault(
+                kwargs["key"], kwargs["selection_default"],
+            )
             return SimpleNamespace(
                 selection=SimpleNamespace(
-                    rows=list(self.fake_streamlit.selected_rows)
+                    rows=list(widget_state["selection"]["rows"])
                 )
             )
 
@@ -288,7 +288,6 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
 
         def __init__(self):
             self.session_state = {}
-            self.selected_rows = [0]
             self.markdown_calls = []
             self.column_calls = []
             self.dataframe_calls = []
@@ -323,6 +322,9 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     fake_streamlit.session_state[
         inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
     ] = "2h"
+    fake_streamlit.session_state[
+        inspector_selection.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+    ] = [{"callsign": "A1AAA", "locator": "AA00"}]
     _set_component_streamlit(monkeypatch, fake_streamlit)
 
     provider_requests = []
@@ -344,7 +346,7 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     monkeypatch.setattr(
         inspector_stations,
         "supports_dataframe_selection_default",
-        lambda: False,
+        lambda: True,
     )
     _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     selected_render_calls = []
@@ -742,8 +744,15 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     )
 
     persisted_success_selections = []
-    for selected_rows in ([0], [1], []):
-        fake_streamlit.selected_rows = list(selected_rows)
+    for selected_rows in (None, [1], []):
+        if selected_rows is not None:
+            # Browser events update the registered widget, then its callback
+            # resolves the previous display's rows before the next render.
+            previous_table = fake_streamlit.dataframe_calls[-1]
+            fake_streamlit.session_state[previous_table["key"]] = {
+                "selection": {"rows": list(selected_rows)},
+            }
+            previous_table["on_select"]()
         segment_inspector.render_inspector_page(
             context, scope_rows, session_state=fake_streamlit.session_state,
         )

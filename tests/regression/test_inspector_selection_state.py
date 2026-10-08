@@ -210,25 +210,155 @@ def test_default_station_rows_preserve_identity_order_without_dataframe_projecti
     assert station_table["Locator"].tolist() == ["FN42", "JO62QM", "FN42AA"]
 
 
-def test_table_default_and_real_deselection_have_distinct_persistence():
+@pytest.mark.parametrize("saved_identity, expected_rows", [
+    (None, [0]),
+    ([{"callsign": "W1XYZ", "locator": "FN31"}], []),
+])
+def test_table_default_and_real_deselection_have_distinct_persistence(saved_identity, expected_rows):
     station_table = pd.DataFrame({"Station": ["K1ABC"], "Locator": ["FN42"]})
-    saved_identity = [{"callsign": "W1XYZ", "locator": "FN31"}]
     persistent_key = selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     session_state = {persistent_key: saved_identity}
 
-    selection_state.sync_selected_station_state_if_changed(
-        session_state, "selection_changed", persistent_key,
-        station_table, [], "Station", "Locator",
+    default_rows, _ = selection_state.station_selection_default_rows(
+        station_table, "Station", "Locator", session_state[persistent_key],
     )
+    assert default_rows == expected_rows
     assert session_state[persistent_key] is saved_identity
 
-    selection_state.mark_station_selection_changed(session_state, "selection_changed")
-    selection_state.sync_selected_station_state_if_changed(
-        session_state, "selection_changed", persistent_key,
-        station_table, [], "Station", "Locator",
+    session_state["station_widget"] = {"selection": {"rows": []}}
+    selection_state.sync_station_table_selection(
+        session_state, "station_widget", persistent_key,
+        selection_state.station_table_identity_rows(station_table, "Station", "Locator"),
     )
     assert session_state[persistent_key] == []
-    assert "selection_changed" not in session_state
+    assert selection_state.station_selection_default_rows(
+        station_table, "Station", "Locator", session_state[persistent_key],
+    ) == ([], [])
+
+
+@pytest.mark.parametrize("remaining_rows, expected_selection", [
+    ([0], [{"callsign": "DC0DX", "locator": "JO31LK"}]),
+    ([], []),
+])
+def test_report_deselection_uses_originating_identity_order_before_focus_is_cleared(
+    remaining_rows, expected_selection,
+):
+    station_table = pd.DataFrame({
+        "Station": ["DC0DX", "DF2JP", "M7AEO"],
+        "Locator": ["JO31LK", "JO31FP", "IO82"],
+    })
+    identity_rows = selection_state.station_table_identity_rows(station_table, "Station", "Locator")
+    persistent_key = selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+    session_state = {
+        persistent_key: [
+            {"callsign": "DC0DX", "locator": "JO31LK"},
+            {"callsign": "DF2JP", "locator": "JO31FP"},
+        ],
+        "station_widget": {"selection": {"rows": remaining_rows}},
+        selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {"prior": "candidate"},
+        "completed_run_snapshot": object(),
+    }
+    completed_run = session_state["completed_run_snapshot"]
+    # The event belongs to the former report order even if a new render's
+    # ordinary metric ordering places M7AEO at row zero.
+    station_table.iloc[:] = station_table.iloc[[2, 0, 1]].to_numpy()
+
+    selected = selection_state.sync_station_table_selection(
+        session_state, "station_widget", persistent_key, identity_rows,
+        allow_multiple=True,
+    )
+
+    assert selected == expected_selection
+    assert session_state[persistent_key] == selected
+    assert identity_rows == (("DC0DX", "JO31LK"), ("DF2JP", "JO31FP"), ("M7AEO", "IO82"))
+    assert selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
+    assert session_state["completed_run_snapshot"] is completed_run
+    selected_rows, missing = selection_state.station_selection_default_rows(
+        station_table, "Station", "Locator", session_state[persistent_key],
+        allow_multiple=True,
+    )
+    assert selected_rows == ([1] if remaining_rows else [])
+    assert missing == []
+
+
+def test_table_callback_preserves_exact_locator_and_deduplicates_in_event_order():
+    station_table = pd.DataFrame({
+        "Station": ["m7aeo", "M7AEO", "M7AEO"],
+        "Locator": ["io82", "IO82AA", "RK76"],
+    })
+    persistent_key = selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+    session_state = {"station_widget": {"selection": {"rows": [1, 0, 1]}}}
+
+    selected = selection_state.sync_station_table_selection(
+        session_state, "station_widget", persistent_key,
+        selection_state.station_table_identity_rows(station_table, "Station", "Locator"),
+        allow_multiple=True,
+    )
+
+    assert selected == [
+        {"callsign": "M7AEO", "locator": "IO82AA"},
+        {"callsign": "M7AEO", "locator": "IO82"},
+    ]
+    assert session_state[persistent_key] == selected
+
+
+@pytest.mark.parametrize("widget_state, identity_rows, allow_multiple", [
+    (None, (("DC0DX", "JO31LK"),), True),
+    ({}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": []}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": (0,)}}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": [0, True]}}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": [0, "0"]}}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": [0, 0.0]}}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": [0, -1]}}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": [0, 1]}}, (("DC0DX", "JO31LK"),), True),
+    ({"selection": {"rows": [0, 1]}}, (("DC0DX", "JO31LK"), None), True),
+    ({"selection": {"rows": [0, 1]}}, (("DC0DX", "JO31LK"), ("invalid call", "IO82")), True),
+    ({"selection": {"rows": [0, 1]}}, (("DC0DX", "JO31LK"), ("M7AEO", "invalid")), True),
+    ({"selection": {"rows": [0, 1]}}, (("DC0DX", "JO31LK"), ("DF2JP", "JO31FP")), False),
+])
+def test_invalid_table_event_rejects_all_changes_atomically(widget_state, identity_rows, allow_multiple):
+    persistent_key = selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+    session_state = {
+        persistent_key: [{"callsign": "M7AEO", "locator": "IO82"}],
+        "station_widget": widget_state,
+        selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {"prior": "candidate"},
+        "completed_run_snapshot": {"run_id": 42},
+    }
+    unchanged_state = deepcopy(session_state)
+
+    with pytest.raises(ValueError):
+        selection_state.sync_station_table_selection(
+            session_state, "station_widget", persistent_key, identity_rows,
+            allow_multiple=allow_multiple,
+        )
+
+    assert session_state == unchanged_state
+
+
+def test_table_widget_identity_changes_with_order_filter_or_default_but_not_metrics():
+    class IdentityColumnsOnlyFrame(pd.DataFrame):
+        def __getitem__(self, column):
+            if isinstance(column, list):
+                raise AssertionError("Selection snapshot must not build a projected DataFrame")
+            return super().__getitem__(column)
+
+    station_table = IdentityColumnsOnlyFrame({
+        "Station": ["DC0DX", "DF2JP", "M7AEO"],
+        "Locator": ["JO31LK", "JO31FP", "IO82"],
+        "Joint Spots": [357, 341, 1441],
+    })
+    identity_rows = selection_state.station_table_identity_rows(station_table, "Station", "Locator")
+    widget_key = selection_state.station_table_widget_key("station_widget", identity_rows, [0, 1])
+    station_table["Joint Spots"] += 10
+    changed_metrics_rows = selection_state.station_table_identity_rows(station_table, "Station", "Locator")
+
+    assert selection_state.station_table_widget_key("station_widget", changed_metrics_rows, [0, 1]) == widget_key
+    assert selection_state.station_table_widget_key("station_widget", identity_rows[::-1], [0, 1]) != widget_key
+    assert selection_state.station_table_widget_key("station_widget", identity_rows[:2], [0, 1]) != widget_key
+    assert selection_state.station_table_widget_key("station_widget", identity_rows, [0]) != widget_key
+    assert selection_state.station_table_widget_key("station_widget", identity_rows, []) != widget_key
+    assert selection_state.station_table_widget_key("other_scope", identity_rows, [0, 1]) != widget_key
 
 
 def test_ui_multi_selection_retains_first_normalized_identity_once():
@@ -271,7 +401,6 @@ def test_report_opt_out_clears_focus_and_truncates_multi_without_resetting_other
     session_state = {
         selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: configured_stations,
         selection_state.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: False,
-        selection_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {},
         selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {},
         selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "10m",
         "completed_run_snapshot": object(),
@@ -281,7 +410,6 @@ def test_report_opt_out_clears_focus_and_truncates_multi_without_resetting_other
     assert selection_state.normalize_compare_station_selection_for_outlier_reporting(session_state)
 
     assert session_state[selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] == configured_stations[:1]
-    assert selection_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY not in session_state
     assert selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
     assert session_state[selection_state.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "10m"
     assert session_state["completed_run_snapshot"] is completed_run
@@ -317,7 +445,6 @@ def test_invalid_outlier_identity_fails_before_any_action_state_is_changed(
         "run_id": 42,
         selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [],
         selection_state.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 8,
-        selection_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {"prior": "station"},
         selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {"prior": "candidate"},
         "_application_page_navigation_request": {"prior": "navigation"},
         "prior_applied_outlier_request": "retained",
@@ -385,7 +512,6 @@ def test_outlier_action_normalizes_and_deduplicates_exact_paths_through_shared_p
     ]
     assert len(parsed_identity_records) == 4
     assert session_state[selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] == selected_records
-    assert session_state[selection_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY]["station_identities"] == selected_records
     assert session_state[selection_state.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY] == 9
     assert selection_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
     assert navigation_requests == [(page_navigation.STATION_INSIGHTS_ANCHOR_ID, {"should_scroll": True})]
@@ -422,7 +548,11 @@ import sys
 from ui.inspector import selection_state
 state = {}
 selection_state.seed_inspector_selection_state(state)
-selection_state.mark_station_selection_changed(state, "changed")
+state["station_widget"] = {"selection": {"rows": [0]}}
+selection_state.sync_station_table_selection(
+    state, "station_widget", selection_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY,
+    (("K1ABC", "FN42"),),
+)
 selection_state.normalize_compare_station_selection_for_outlier_reporting(state)
 selection_state.release_selected_station_state(state)
 forbidden = (

@@ -1277,14 +1277,6 @@ def test_station_insights_actions_select_the_requested_paths(
     assert session_state[
         inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
     ] == 5
-    assert session_state[
-        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
-    ] == {
-        "analysis_id": "RX_COMP",
-        "run_id": 9,
-        "scope_token": "active",
-        "station_identities": expected_selection,
-    }
     assert len(render_state.navigation_calls) == 1
     navigation_state, anchor_id, should_scroll = render_state.navigation_calls[0]
     assert navigation_state is session_state
