@@ -7,8 +7,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 16122,
-      "sha256": "38b2a8becb21f78f2c273ade0ce6bb8b59a0b1569434570676852d4c25673e8b"
+      "bytes": 26603,
+      "sha256": "34d2f8303b3da6290b6cf8be28068d989132705b0a589405e8de259cfa46e631"
     },
     {
       "path": "comparison_policy.json",
@@ -32,23 +32,23 @@
     },
     {
       "path": "paper_points.json",
-      "bytes": 3114,
-      "sha256": "bd806ddbc012eb0f1a8149cf37858c1822b0b6ff7cb28376578e9a3d166f3078"
+      "bytes": 8001,
+      "sha256": "0fb7a34e566a692c5453560eb5e762f1589b5bf8791dd2b5adbc3605d09ad634"
     },
     {
       "path": "figure6_evidence_comparison.png",
-      "bytes": 1644925,
-      "sha256": "30b668a59f9c1c515392349a00ff419e256f05a6ffc2be05dd5d8bc6f84fcf4a"
+      "bytes": 1570765,
+      "sha256": "bdc59145837a00189455a9002a791771ad81e95654c5aa45c6b80ee48d384e71"
     },
     {
       "path": "WSPRadar_Demo_Griffiths_Figure6.pdf",
-      "bytes": 458807,
-      "sha256": "5f2cdd6900430118561e8243274b926702eac9a0d0b5ab41c8914b90d772e5f2"
+      "bytes": 459922,
+      "sha256": "8fb1a164e2e04cf25d3a93630ca4e33ebdc27d1a235a3cfb0b5e156dba9e6bce"
     },
     {
       "path": "render_checks.json",
-      "bytes": 4339,
-      "sha256": "89dcc6781f93949c568df96d3665973c8fcbbb8bf957a95a96b6f1855b06c29f"
+      "bytes": 12177,
+      "sha256": "a306831dc2c4b51efbcf1f3c542021d750e1da8604403dd03469732c43b6d58b"
     }
   ]
 }

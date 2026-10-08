@@ -780,6 +780,22 @@ Three isolated extreme dots independently extracted from the paper also match
 native paired Delta SNR and folded UTC time within fixed pixel-derived
 tolerances. These are plotted-point witnesses, not author-supplied station/date
 identities or validation of the optional outlier-candidate detector.
+The Figure 6 presentation revision of 2026-10-08 retains those three checks and
+adds two source-image witnesses: a negative point at the lower plotting boundary
+near 08:33 UTC and an isolated positive point near 15:52 UTC. Four witnesses are
+displayed as P1-P4, with two of each sign; the former P3 remains an undisplayed
+regression witness. Source-readout tolerances and production calculations remain
+unchanged, and the lower-boundary point's clipped appearance is documented.
+The second Figure 6 iteration on the same date moves displayed P3 to a complete
+source dot near 08:45 UTC / -14 dB. Both earlier P3 witnesses remain hidden
+regression checks, bringing the preserved source-witness total to six. A separate
+Panel B overlay identifies additional weaker-report combinations from the same
+production-selected cycle/callsign/full-locator identities: 17 combinations in
+total, eight within the displayed -15 to +25 dB range. Red dots share the native
+dot size and opacity and do not enter density or native Panel C calculations.
+The Panel B note links Figure 3's pairing diagnostic without asserting a
+physical cause for Figure 6. The overall median stays in Panel C but leaves its
+legend; reconstruction entries now sit beneath Panel B.
 
 The additional `reference_fixtures/griffiths_fig3_paper_v1` freezes original
 Figure 3 occupied-region annotations and the paper's first-half daily-average

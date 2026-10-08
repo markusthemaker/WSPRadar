@@ -734,7 +734,76 @@ def test_fig6_density_time_ordering_matches_paper_text(fig6_reference_run, fig6_
     assert totals["evening"] > totals["midday"], totals
 
 
-@pytest.mark.parametrize("point_id", ["isolated_negative_1", "isolated_positive_1", "isolated_negative_2"])
+def test_fig6_displayed_paper_points_preserve_source_provenance(fig6_paper_reference):
+    """Displayed witnesses may change without moving or deleting source evidence."""
+    from PIL import Image
+
+    source = _read_reference_json("paper_points.json", FIG6_PAPER_DIRECTORY)
+    points = source["points"]
+    by_id = {point["id"]: point for point in points}
+    assert len(by_id) == len(points)
+    assert {point_id: point["comparison_label"] for point_id, point in by_id.items()} == {
+        "isolated_negative_1": "P1",
+        "isolated_positive_1": "P2",
+        "isolated_negative_2": None,
+        "clipped_negative_1": None,
+        "isolated_positive_2": "P4",
+        "isolated_negative_3": "P3",
+    }
+    displayed = [point for point in points if point["comparison_label"] is not None]
+    assert len({point["comparison_label"] for point in displayed}) == 4
+    assert sum(point["delta_snr_db"] < 0 for point in displayed) == 2
+    assert sum(point["delta_snr_db"] > 0 for point in displayed) == 2
+    for point_id, coordinates in {
+        "isolated_negative_1": (1.75675, -12.91631),
+        "isolated_positive_1": (6.82108, 22.08480),
+        "isolated_negative_2": (7.71238, -12.91631),
+        "clipped_negative_1": (8.54958567, -14.87301587),
+        "isolated_positive_2": (15.87018256, 24.07104660),
+    }.items():
+        point = by_id[point_id]
+        assert (point["utc_hour"], point["delta_snr_db"]) == coordinates
+    assert by_id["isolated_negative_3"]["source_component"]["clipped_at_plot_boundary"] is False
+    tolerance = source["recommended_comparison_tolerance"]
+    assert tolerance["utc_hour"] == 0.08
+    assert tolerance["delta_snr_db"] == 0.21
+    revision = source["display_revision"]
+    image_path = FIG6_PAPER_DIRECTORY / revision["source_image"]
+    assert hashlib.sha256(image_path.read_bytes()).hexdigest() == revision["source_image_sha256"]
+    with Image.open(image_path) as raster:
+        pixels = np.asarray(raster.convert("RGB"))
+    calibration = source["axis_calibration"]
+    for point in points:
+        x, y = point["centroid_px"]
+        hour = 24 * (x - calibration["left_x_px"]) / (
+            calibration["right_x_px"] - calibration["left_x_px"]
+        )
+        snr = 25 - 40 * (y - calibration["top_y_px"]) / (
+            calibration["bottom_y_px"] - calibration["top_y_px"]
+        )
+        assert point["utc_hour"] == pytest.approx(hour, abs=0.0001)
+        assert point["delta_snr_db"] == pytest.approx(snr, abs=0.0001)
+        if "source_component" not in point:
+            continue
+        component = point["source_component"]
+        box = component["pixel_box"]
+        crop = pixels[box["y_min"]:box["y_max"] + 1, box["x_min"]:box["x_max"] + 1]
+        rows, columns = np.where((crop < 80).all(axis=2))
+        assert len(rows) == component["dark_pixel_count"]
+        np.testing.assert_allclose(
+            [columns.mean() + box["x_min"], rows.mean() + box["y_min"]],
+            point["centroid_px"], rtol=0, atol=0.000001,
+        )
+        if component["clipped_at_plot_boundary"]:
+            axis_row = component["excluded_axis_start_y_px"]
+            assert box["y_max"] + 1 == axis_row
+            assert (pixels[axis_row, box["x_min"]:box["x_max"] + 1] < 80).all()
+
+
+@pytest.mark.parametrize("point_id", [
+    "isolated_negative_1", "isolated_positive_1", "isolated_negative_2",
+    "clipped_negative_1", "isolated_positive_2", "isolated_negative_3",
+])
 def test_fig6_isolated_paper_points_have_matching_native_pairs(
     fig6_reference_run, fig6_paper_reference, point_id,
 ):
@@ -742,6 +811,7 @@ def test_fig6_isolated_paper_points_have_matching_native_pairs(
     source = _read_reference_json("paper_points.json", FIG6_PAPER_DIRECTORY)
     assert {point["id"] for point in source["points"]} == {
         "isolated_negative_1", "isolated_positive_1", "isolated_negative_2",
+        "clipped_negative_1", "isolated_positive_2", "isolated_negative_3",
     }
     point = next(point for point in source["points"] if point["id"] == point_id)
     tolerance = source["recommended_comparison_tolerance"]
@@ -758,6 +828,79 @@ def test_fig6_isolated_paper_points_have_matching_native_pairs(
         f"No native pair matches independently digitized paper point {point} "
         f"within the fixed source-readout tolerance {tolerance}"
     )
+
+
+def test_fig6_additional_report_combinations_explain_selected_paper_difference(fig6_reference_run):
+    """Raw-report alternatives explain the missing tail without changing native pairs."""
+    from scripts.internal.build_griffiths_fig6_comparison import additional_report_combinations
+
+    reports = pd.read_parquet(FIG6_REFERENCE_DIRECTORY / "source_rows.parquet")
+    pairs = _canonical_paired_rows(fig6_reference_run)
+    additional = additional_report_combinations(reports, pairs, "G3ZIL", "G4HZX")
+    assert len(additional) == 17
+    assert int(additional["delta_snr_db"].between(-15, 25).sum()) == 8
+    native_keys = set(zip(pairs["time_slot"], pairs["peer_sign"], pairs["peer_grid"]))
+    assert set(zip(additional["time_slot"], additional["tx_sign"], additional["tx_loc"])) <= native_keys
+    np.testing.assert_array_equal(
+        additional["delta_snr_db"],
+        additional["normalized_snr_target"] - additional["normalized_snr_reference"],
+    )
+    assert (
+        additional["normalized_snr_target"].lt(additional["target_snr_db"])
+        | additional["normalized_snr_reference"].lt(additional["reference_snr_db"])
+    ).all()
+    for minute, source_ids in ((26, (766002421, 766001569)), (30, (766005910, 766005260))):
+        timestamp = pd.Timestamp(f"2017-04-07T18:{minute}:00Z")
+        native = pairs.loc[
+            pairs["evidence_utc"].eq(timestamp)
+            & pairs["peer_sign"].eq("DK3RU") & pairs["peer_grid"].eq("JO31ws")
+        ]
+        assert native["delta_snr_db"].tolist() == [11.0]
+        alternative = additional.loc[
+            additional["evidence_utc"].eq(timestamp) & additional["delta_snr_db"].eq(-13)
+        ]
+        assert list(zip(alternative["id_target"], alternative["id_reference"])) == [source_ids]
+    # Two weaker reports can yield the same Delta SNR as the retained strongest
+    # pair. Provenance, not a difference in numeric coordinates, defines this overlay.
+    coincident = additional.loc[
+        additional["id_target"].eq(766002421) & additional["id_reference"].eq(766001526)
+    ]
+    assert coincident["delta_snr_db"].tolist() == [11.0]
+
+
+def test_fig6_additional_report_combinations_preserve_cycle_identity_and_normalization():
+    """One hand-calculated cycle excludes other full locators and neighboring cycles."""
+    from scripts.internal.build_griffiths_fig6_comparison import additional_report_combinations
+
+    timestamp = pd.Timestamp("2017-04-07T18:26:00Z")
+    rows = [
+        (1, 2, "G3ZIL", "JO31ws", 10, 40),
+        (2, 22, "G3ZIL", "JO31ws", 5, 30),
+        (3, 12, "G4HZX", "JO31ws", 2, 30),
+        (4, 42, "G4HZX", "JO31ws", -5, 20),
+        (5, 2, "G3ZIL", "JO31xx", -25, 30),
+        (6, 12, "G4HZX", "JO31xx", -10, 30),
+        (7, 122, "G3ZIL", "JO31ws", -22, 30),
+        (8, 132, "G4HZX", "JO31ws", -8, 30),
+    ]
+    reports = pd.DataFrame([
+        {
+            "id": report_id, "time": timestamp + pd.Timedelta(seconds=offset),
+            "rx_sign": receiver, "tx_sign": "DK3RU", "tx_loc": locator,
+            "snr": snr, "power": power,
+        }
+        for report_id, offset, receiver, locator, snr, power in rows
+    ])
+    pairs = pd.DataFrame([{
+        "time_slot": int(timestamp.timestamp() // 120), "evidence_utc": timestamp,
+        "peer_sign": "DK3RU", "peer_grid": "JO31ws", "target_snr_db": 5.0,
+        "reference_snr_db": 5.0, "delta_snr_db": 0.0,
+    }])
+    additional = additional_report_combinations(reports, pairs, "G3ZIL", "G4HZX")
+    assert set(zip(additional["id_target"], additional["id_reference"])) == {(1, 3), (1, 4), (2, 3)}
+    assert sorted(additional["delta_snr_db"].tolist()) == [-5.0, -2.0, 3.0]
+    assert additional["evidence_utc"].eq(timestamp).all()
+    np.testing.assert_allclose(additional["utc_hour"], 18 + 26 / 60)
 
 
 @pytest.fixture(scope="module")

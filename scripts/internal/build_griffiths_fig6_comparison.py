@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import sys
+from textwrap import fill
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -14,14 +15,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.collections import QuadMesh
 from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
-from matplotlib import patheffects
+from matplotlib.colors import PowerNorm
 import numpy as np
 import pandas as pd
 from PIL import Image
 
 from config.demo_pdf_headers import DEMO_PDF_HEADERS
 from core.matplotlib_runtime import matplotlib_operation_lock, dispose_agg_figure
+from core.opportunity_engine import OPPORTUNITY_SLOT_SECONDS
 from i18n import T
 from scripts.internal.demo_pdf_footer import add_demo_pdf_footer, DEMO_PDF_FOOTER_TEXT
 from scripts.internal.demo_pdf_header import add_demo_pdf_header, demo_pdf_metadata
@@ -39,7 +40,13 @@ OUTPUT = ROOT / "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
 PAPER = ROOT / "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
 ARCHIVE = ROOT / "tests/regression/reference_fixtures/griffiths_fig6_diurnal_v1"
 INK, MUTED, TEAL = "#172B3A", "#526572", "#008F8C"
-MAGENTA, ORANGE, BACKGROUND = "#B5366F", "#C86612", "white"
+MAGENTA, BACKGROUND = "#B5366F", "white"
+DENSITY_COLOR_GAMMA = 0.7
+OBSERVATION_ALPHA = 0.45
+OBSERVATION_MARKER_AREA = 3.3
+OBSERVATION_LEGEND_MARKER_DIAMETER = 6
+DUPLICATE_COLOR = "#C43C39"
+DIAGNOSTIC_PDF_URL = "../griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3_diagnostic.pdf"
 PAPER_URL = "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf"
 
 
@@ -78,6 +85,47 @@ def vertical_modes(density, hours, snr_centers):
                 modes.append((float(hour), float((snr_centers[row] + snr_centers[last]) / 2)))
             row = last + 1
     return modes
+
+
+def additional_report_combinations(reports, pairs, target_callsign, reference_callsign):
+    """Build a diagnostic overlay without adding observations to production.
+
+    Retain only identities selected by the production replay. A combination is
+    additional when it uses a weaker report at either receiver, even when its
+    difference equals the retained difference. Report IDs preserve provenance.
+    The frozen archive already scopes the band, interval and local endpoints;
+    this diagnostic helper does not replace production eligibility filtering.
+    """
+    reports = reports.copy()
+    reports["time_slot"] = (
+        pd.to_datetime(reports["time"], utc=True).dt.as_unit("s").astype("int64")
+        // OPPORTUNITY_SLOT_SECONDS
+    )
+    reports["normalized_snr"] = reports["snr"].astype(int) - reports["power"].astype(int) + 30
+    keys = ["time_slot", "tx_sign", "tx_loc"]
+    target = reports.loc[reports["rx_sign"].eq(target_callsign)]
+    reference = reports.loc[reports["rx_sign"].eq(reference_callsign)]
+    expanded = target.merge(reference, on=keys, suffixes=("_target", "_reference"))
+    selected = pairs.rename(columns={"peer_sign": "tx_sign", "peer_grid": "tx_loc"})
+    expanded = expanded.merge(
+        selected[keys + ["evidence_utc", "target_snr_db", "reference_snr_db"]],
+        on=keys, how="inner", validate="many_to_one",
+    )
+    maxima = expanded.groupby(keys, observed=True)[
+        ["normalized_snr_target", "normalized_snr_reference"]
+    ].max().reset_index()
+    checked = selected.merge(maxima, on=keys, how="left", validate="one_to_one")
+    np.testing.assert_array_equal(checked["target_snr_db"], checked["normalized_snr_target"])
+    np.testing.assert_array_equal(checked["reference_snr_db"], checked["normalized_snr_reference"])
+    weaker = (
+        expanded["normalized_snr_target"].lt(expanded["target_snr_db"])
+        | expanded["normalized_snr_reference"].lt(expanded["reference_snr_db"])
+    )
+    additional = expanded.loc[weaker].copy()
+    additional["delta_snr_db"] = additional["normalized_snr_target"] - additional["normalized_snr_reference"]
+    times = pd.to_datetime(additional["evidence_utc"], utc=True)
+    additional["utc_hour"] = times.dt.hour + times.dt.minute / 60 + times.dt.second / 3600
+    return additional.sort_values(keys + ["id_target", "id_reference"]).reset_index(drop=True)
 
 
 def main():
@@ -132,6 +180,12 @@ def main():
     utc_hours = utc_times.dt.hour + utc_times.dt.minute / 60 + utc_times.dt.second / 3600
     deltas = pairs["delta_snr_db"]
     assert float(deltas.median()) == 5.0
+    additional = additional_report_combinations(
+        pd.read_parquet(ARCHIVE / "source_rows.parquet"), pairs,
+        config["settings"]["core_parameters"]["callsign"],
+        config["settings"]["comparison_parameters"]["reference_callsign"],
+    )
+    displayed_additional = additional.loc[additional["delta_snr_db"].between(-15, 25)]
 
     # C retains the actual production artists and nonlinear transform. Only
     # layout, export theme and font sizes change to accommodate the triptych.
@@ -197,25 +251,25 @@ def main():
     left.imshow(source_image, origin="upper", interpolation="nearest", aspect="auto", extent=(
         hour_from_pixel(-.5), hour_from_pixel(image_width - .5),
         snr_from_pixel(image_height - .5), snr_from_pixel(-.5)))
-    density_artist = right.pcolormesh(hour_edges, snr_edges, relative_density, cmap="Blues",
-                                     vmin=0, vmax=1, shading="flat", rasterized=True)
-    right.scatter(utc_hours, deltas, s=3.3, color="#233842", alpha=.23, linewidths=0, zorder=2)
-    right.scatter(*np.asarray(modes).T, marker="x", s=17, linewidths=.75, color="#546772", alpha=.65, zorder=3)
+    density_artist = right.pcolormesh(
+        hour_edges, snr_edges, relative_density, cmap="Blues",
+        norm=PowerNorm(gamma=DENSITY_COLOR_GAMMA, vmin=0, vmax=1),
+        shading="flat", rasterized=True,
+    )
+    right.scatter(utc_hours, deltas, s=OBSERVATION_MARKER_AREA, color="#233842", alpha=OBSERVATION_ALPHA,
+                  linewidths=0, zorder=2)
+    right.scatter(
+        displayed_additional["utc_hour"], displayed_additional["delta_snr_db"],
+        s=OBSERVATION_MARKER_AREA, color=DUPLICATE_COLOR, alpha=OBSERVATION_ALPHA,
+        linewidths=0, zorder=2.1,
+    )
     matches = []
-    feature_names = ["Early-night negative branch", "Morning positive branch",
-                     "Strongest evening island", "Late-night negative branch"]
     for index, feature in enumerate(features["features"]):
         box = feature["pixel_box"]
         xmin, xmax = hour_from_pixel(box["x_min"]), hour_from_pixel(box["x_max"])
         ymin, ymax = snr_from_pixel(box["y_max"]), snr_from_pixel(box["y_min"])
         label = f"R{index + 1}"
         for axis in (*axes, app_axis):
-            region_box = Rectangle((xmin, ymin), xmax-xmin, ymax-ymin, fill=False,
-                                   edgecolor=TEAL, linewidth=1.8, linestyle=(0, (4, 2)), zorder=5)
-            if axis is app_axis:
-                region_box.set_path_effects([patheffects.Stroke(linewidth=3.8, foreground="white", alpha=.8),
-                                            patheffects.Normal()])
-            axis.add_patch(region_box)
             axis.text((xmin+xmax)/2, ymax+.72, label, color=TEAL, fontsize=13, weight="bold",
                       ha="center", va="bottom", zorder=7,
                       bbox={"facecolor": "white", "alpha": .95, "edgecolor": "none", "pad": 1.4})
@@ -227,26 +281,28 @@ def main():
                     and xmin-margin_hour <= hour <= xmax+margin_hour
                     and ymin-margin_snr <= snr <= ymax+margin_snr]
         assert matching, feature["id"]
-        right.scatter(*np.asarray(matching).T, marker="x", s=65, linewidths=2, color=ORANGE, zorder=8)
         matches.append({"id": feature["id"], "modes": matching})
-        text_x = .048 + index * .230
-        figure.text(text_x, .225, label, color=TEAL, fontsize=13, weight="bold")
-        figure.text(text_x+.022, .225, feature_names[index], fontsize=14, weight="bold")
 
     maximum_rows, maximum_columns = np.where(density == density.max())
     right.scatter(hours[maximum_columns], snr_centers[maximum_rows], marker="*", s=155,
                   facecolor="white", edgecolor=INK, linewidths=1.4, zorder=9)
     witness_matches = []
     tolerance = point_annotations["recommended_comparison_tolerance"]
-    for index, point in enumerate(point_annotations["points"]):
-        label = f"P{index+1}"
+    for point in point_annotations["points"]:
+        label = point["comparison_label"]
         close = (((utc_hours-point["utc_hour"]+12) % 24 - 12).abs() <= tolerance["utc_hour"]) & (
             (deltas-point["delta_snr_db"]).abs() <= tolerance["delta_snr_db"])
         assert close.any(), point["id"]
         matching_positions = sorted(set(zip(utc_hours[close], deltas[close])))
+        witness_matches.append({"id": point["id"], "comparison_label": label,
+                                "matching_pairs": int(close.sum()),
+                                "distinct_folded_coordinates": matching_positions})
+        if label is None:
+            continue
         for axis, positions in ((left, [(point["utc_hour"], point["delta_snr_db"])]),
                                 (right, matching_positions), (app_axis, matching_positions)):
-            axis.scatter(*np.asarray(positions).T, s=110, facecolors="none", edgecolors=MAGENTA, linewidths=1.7, zorder=8)
+            axis.scatter(*np.asarray(positions).T, s=110, facecolors="none", edgecolors=MAGENTA,
+                         linewidths=1.7, zorder=8, clip_on=False)
             if axis is app_axis:
                 anchor_hour, anchor_snr = matching_positions[0]
                 axis.annotate(label, (anchor_hour, anchor_snr), xytext=(0, 11 if anchor_snr < 0 else -11),
@@ -258,8 +314,6 @@ def main():
             axis.text(point["utc_hour"], label_y, label, color=MAGENTA, fontsize=12, weight="bold",
                       ha="center", va="bottom" if point["delta_snr_db"] < 0 else "top", zorder=9,
                       bbox={"facecolor": "white", "alpha": .95, "edgecolor": "none", "pad": 1.2})
-        witness_matches.append({"id": point["id"], "matching_pairs": int(close.sum()),
-                                "distinct_folded_coordinates": matching_positions})
     for axis in axes:
         axis.set(xlim=(0, 24), ylim=(-15, 25), xticks=np.arange(0, 25, 3),
                  yticks=np.arange(-15, 26, 5), xlabel="Time of day (UTC hour)")
@@ -270,50 +324,59 @@ def main():
     right.set_ylabel("Δ SNR (dB)", labelpad=10)
     right.axhline(0, color=INK, linewidth=.6, alpha=.45)
     colorbar_axis = figure.add_axes([.480, .340, .140, .010])
-    colorbar = figure.colorbar(density_artist, cax=colorbar_axis, orientation="horizontal", ticks=[0, .5, 1])
+    colorbar = figure.colorbar(density_artist, cax=colorbar_axis, orientation="horizontal",
+                              ticks=[0, .1, .25, .5, 1])
     colorbar.ax.tick_params(labelsize=11, length=2)
     figure.text(.365, .340, "Density / maximum (B)", fontsize=12)
 
-    # One key spans the three panels. The scope of each symbol is explicit;
-    # smoothed B and unsmoothed C keep their own density color scales.
-    handles = [
-        Line2D([], [], color=TEAL, linestyle="--", linewidth=2,
-               label="R1–R4: paper contour regions (A–C)"),
+    # Group shared annotations, reconstruction diagnostics and native summaries
+    # under A, B and C respectively, without changing the native C artists.
+    shared_handles = [
+        Line2D([], [], color=TEAL, marker="$R$", linestyle="none", markersize=10,
+               label="R1–R4: paper regions (A–C)"),
         Line2D([], [], color=MAGENTA, marker="o", markerfacecolor="none", linestyle="none", markersize=9,
-               label="P1–P3: selected point matches (A–C)"),
-        Line2D([], [], color="#233842", marker=".", linestyle="none", markersize=7, alpha=.45,
+               label="P1–P4: verification examples only (A–C)"),
+    ]
+    reconstruction_handles = [
+        Line2D([], [], color="#233842", marker="o", linestyle="none",
+               markersize=OBSERVATION_LEGEND_MARKER_DIAMETER, markeredgewidth=0,
                label="Individual paired observations (B)"),
-        Line2D([], [], color=ORANGE, marker="x", linestyle="none", markersize=9, markeredgewidth=2,
-               label="Matching density peaks (B)"),
-        Line2D([], [], color="#546772", marker="x", linestyle="none", markersize=8,
-               label="Other local density peaks (B)"),
+        Line2D([], [], color=DUPLICATE_COLOR, marker="o", linestyle="none",
+               markersize=OBSERVATION_LEGEND_MARKER_DIAMETER, markeredgewidth=0,
+               label="Additional weaker-report combinations (B)"),
         Line2D([], [], marker="*", linestyle="none", markerfacecolor="white", markeredgecolor=INK,
                markersize=13, label="Highest reconstructed density (B)"),
-        *app_legend_handles,
     ]
-    legend_labels = [handle.get_label() for handle in handles[:6]] + [
-        "Overall median: +5 dB (C)", "Median for each UTC hour (C)",
-        "Middle 50% for each UTC hour (C)",
+    legend_groups = [
+        (lefts[0], shared_handles, [handle.get_label() for handle in shared_handles]),
+        (lefts[1], reconstruction_handles, [handle.get_label() for handle in reconstruction_handles]),
+        (lefts[2], app_legend_handles[1:],
+         ["Median for each UTC hour (C)", "Middle 50% for each UTC hour (C)"]),
     ]
-    figure.legend(handles=handles, labels=legend_labels, loc="upper left",
-                  bbox_to_anchor=(.043, .251, .910, .073), mode="expand", ncol=3,
-                  frameon=False, fontsize=14, columnspacing=2, handlelength=2.4,
-                  labelspacing=.55, borderaxespad=0)
+    for x, handles, legend_labels in legend_groups:
+        figure.legend(handles=handles, labels=legend_labels, loc="upper left",
+                      bbox_to_anchor=(x-.005, .324), ncol=1,
+                      frameon=False, fontsize=14, handlelength=2.4,
+                      labelspacing=.55, borderaxespad=0)
 
-    figure.text(.048, .194, "Panel C: Same observations, native WSPRadar presentation. R1–R4 map the same paper bounds onto the app’s axis. P1–P3 mark matched native spots within hourly cells.",
-                fontsize=14, color=INK)
-    figure.text(.048, .174, "Unsmoothed 1-hour × 1-dB cells; pooled median +5 dB. Markers: hourly medians. Band: hourly middle 50% (IQR). C uses the app’s median-centered nonlinear dB axis.",
-                fontsize=14, color=INK)
-    figure.text(.048, .154, "Read the dB labels; vertical pixel positions differ from A/B. Medians and IQRs use freshly recalculated pairs; they are not measurements extracted from the paper.",
-                fontsize=14, color=INK)
-    figure.text(.048, .125, "A/B alignment: printed-axis calibration, with no fitted shift or scale. R1–R4 are contour regions, not confidence intervals.",
-                fontsize=14, color=MUTED)
-    figure.text(.048, .105, "Matching peaks use the fixed ±4-pixel readout + half-cell allowances; boxes show the source regions alone. P1–P3 match folded time/SNR, not identified dates or stations.",
-                fontsize=14, color=MUTED)
-    figure.text(.048, .076, "B: database reports → WSPRadar SQL and paired evidence → 1-hour × 1-dB grid → fixed comparison smoother (σ = 1 hour, 1 dB; UTC wraps).",
-                fontsize=14, color=MUTED)
-    figure.text(.048, .056, "A/B display −15 to +25 dB. Faint points are native pairs; gray × mark other density peaks. C retains the full app view.",
-                fontsize=14, color=MUTED)
+    panel_notes = (
+        "Panel A: Original publication image, calibrated using its printed axes. R1–R4 locate the paper’s regions.",
+        "Panel B: Paired observations recalculated through WSPRadar. Dark dots show retained pairs; red dots show additional* weaker-report combinations, excluded from density. WSPRadar retains the strongest report from each receiver per cycle/path. Shading shows the retained pairs’ density with fixed smoothing.",
+        "Panel C: The same retained pairs in unsmoothed 1-hour × 1-dB cells, with hourly medians and the middle 50% (IQR). Read the native nonlinear dB axis carefully.",
+    )
+    for x, note in zip(lefts, panel_notes):
+        figure.text(x, .228, fill(note, width=58, break_long_words=False, break_on_hyphens=False),
+                    fontsize=13, color=INK, va="top", linespacing=1.35)
+    figure.text(lefts[0], .143, fill(
+        "P1–P4: Verification examples only, checking selected time-of-day and ΔSNR matches.",
+        width=58, break_long_words=False, break_on_hyphens=False,
+    ), fontsize=13, color=MUTED, va="top", linespacing=1.35)
+    diagnostic_prefix = figure.text(lefts[1], .068, "*see Figure 3 ",
+                                    fontsize=13, color=TEAL, url=DIAGNOSTIC_PDF_URL)
+    figure.canvas.draw()
+    diagnostic_title_x = diagnostic_prefix.get_window_extent(figure.canvas.get_renderer()).x1 / figure.bbox.width
+    figure.text(diagnostic_title_x, .068, "Pairing and duplicate reports",
+                fontsize=13, weight="bold", color=TEAL, url=DIAGNOSTIC_PDF_URL)
     figure.text(.048, .023, "Original figure: p. 25, Figure 6. Selection: 5 April 00:00-7 April 23:45 UTC; distance <10,000 km.",
                 fontsize=13, color=MUTED, url=PAPER_URL)
     add_demo_pdf_footer(figure, right=.96, bottom=.023)
@@ -338,7 +401,30 @@ def main():
     metadata = {
         "footer_text": DEMO_PDF_FOOTER_TEXT,
         "output": output_path.name, "pdf_output": pdf_path.name, "source_rows": len(pairs), "count_grid_shape": list(counts.shape),
-        "method": "A: calibrated source raster; B: existing fixed Gaussian policy; C: production temporal renderer and paper export theme, with identical R1-R4 paper bounds and matched native P1-P3 coordinates transformed by the native axis",
+        "method": "A: calibrated source raster; B: existing fixed Gaussian policy with a global power color scale; C: production temporal renderer and paper export theme, with R1-R4 region labels and matched native P1-P4 coordinates transformed by the native axis",
+        "presentation": {"density_color_gamma": DENSITY_COLOR_GAMMA,
+                         "observation_alpha": OBSERVATION_ALPHA,
+                         "observation_marker_area_points2": OBSERVATION_MARKER_AREA,
+                         "additional_report_marker_area_points2": OBSERVATION_MARKER_AREA,
+                         "additional_report_alpha": OBSERVATION_ALPHA,
+                         "additional_report_color": DUPLICATE_COLOR,
+                         "observation_legend_marker_diameter_points": OBSERVATION_LEGEND_MARKER_DIAMETER,
+                         "observation_legend_alpha": 1.0,
+                         "overall_median_in_legend": False,
+                         "duplicate_report_explanation": "Panel B note and legend",
+                         "region_description_row": False,
+                         "panel_notes_order": ["A", "B", "C"],
+                         "region_boxes": False, "local_mode_markers": False},
+        "additional_report_combinations": {
+            "total": len(additional), "displayed": len(displayed_additional),
+            "display_range_db": [-15, 25], "included_in_density": False,
+            "scope": "Raw weaker-report combinations for production-selected cycle/callsign/full-locator identities only",
+            "records": json.loads(additional[[
+                "evidence_utc", "tx_sign", "tx_loc", "id_target", "id_reference",
+                "normalized_snr_target", "normalized_snr_reference", "delta_snr_db",
+                "target_snr_db", "reference_snr_db",
+            ]].to_json(orient="records", date_format="iso")),
+        },
         "verified": "All 24 hourly counts, medians, Q1, Q3 and all 1392 density cells equal the existing frozen CSVs; C artist medians/IQR verified",
         "source_feature_matches": matches, "scatter_witnesses": witness_matches,
         "sample_range_db": [float(deltas.min()), float(deltas.max())],

@@ -124,3 +124,165 @@ hash. The approved beginner-oriented description is installed in the `griffiths_
 ### WSPRadar header revision (2026-09-27)
 
 The Figure 6 PDF now begins with **WSPRadar.org reconstruction & comparison**, followed by the descriptive title **SNR difference by time of day**. Explicit **Referenced publication:** and **Source figure:** lines attach the authors, publication title and Figure 6 reference to their source; a **Demo:** line retains the comparison context. Presentation-only records in `config/demo_pdf_headers.py` and the shared `scripts/demo_pdf_header.py` helper own this hierarchy and identify WSPRadar as the comparison author in PDF metadata. This supersedes the earlier paper-title-first header description while preserving its review history. Source evidence, numerical expectations, scientific calculations and all body coordinates remain unchanged.
+
+## Figure 6 region and point review (8 October 2026)
+
+The revised comparison retains R1-R4 as labels in all three panels and removes
+their visible rectangles. The original paper-derived bounds remain unchanged
+in `paper_features.json` and continue to constrain the external density checks.
+Both orange and gray hourly local-mode crosses are removed from Panel B; their
+position-only matches remain recorded in `render_checks.json`. The maximum-density
+star remains. Labels locate paper regions without claiming that every original
+contour island has been reproduced. R4 continues toward R1 across midnight.
+
+Panel B applies one global power color mapping with gamma 0.7 to the existing
+density divided by its maximum. The colorbar reports the actual relative density,
+not its transformed color coordinate. This improves visibility of weaker
+concentrations without changing counts, smoothing, per-hour weighting or the
+underlying paired observations. Native dot opacity increases from 0.23 to 0.45.
+Panel C retains the production color scale, nonlinear axis, medians and IQR.
+The PDF now explains that a density concentration can lie outside the hourly
+middle 50%; an IQR is not a boundary around every local mode.
+
+P1-P4 are selected plotted-point verification witnesses, with no additional
+scientific classification. P1 and P2 retain their original source coordinates.
+The new displayed P3 selects the rightmost bottom-boundary dot near 08-09 UTC,
+approximately 0.84 hour after the former P3. P4 supplies a later positive
+witness. The former P3 remains in the annotation file and regression checks
+without a displayed label, preserving all earlier coverage.
+
+| Displayed witness | Source pixel readout x/y | Digitized UTC hour | Digitized Delta SNR |
+| --- | --- | ---: | ---: |
+| P1 | 210.278 / 751.889 | 1.75675 | -12.91631 dB |
+| P2 | 473.412 / 78.118 | 6.82108 | +22.08480 dB |
+| P3 | 563.222222 / 789.555556 | 8.549586 | -14.873016 dB |
+| P4 | 943.588235 / 39.882353 | 15.870183 | +24.071047 dB |
+
+The new selection is retrospective and user-directed, with prior familiarity
+with the comparison. Source-image coordinates were fixed before checking the
+new native matches. P3's visible upper marker cap merges into the bottom axis;
+its readout is not a recovered centroid of an unclipped dot. This limitation
+is explicit in `paper_points.json`. The existing +/-0.08-hour and +/-0.21-dB
+tolerances are unchanged. Neither annotation is moved to fit native results.
+The regression now checks all five paper witnesses; four are displayed, with
+two negative and two positive examples. All matching remains a check of folded
+time/SNR positions, not author-confirmed date or station identity.
+
+The generator remains `scripts/internal/build_griffiths_fig6_comparison.py`.
+It reconstructs observations from database reports through the production
+processing pipeline and asserts unchanged paired rows, 24 hourly summaries and
+all 1,392 density cells. The original source raster, region annotations,
+comparison smoother and numerical archive expectations are preserved.
+
+Verification for this revision: the complete Griffiths temporal-reference and
+demo-PDF-header modules passed with **75 passed and 3 existing expected
+failures**. The run emitted the existing Matplotlib pending-deprecation warning
+and a non-fatal permission warning while writing pytest's node-ID cache.
+Changed-file compilation, patch whitespace, all seven linked PDF synchronization
+checks, input and manifest hashes, embedded fonts, retained page dimensions,
+PDF text checks and Poppler visual review passed. The generator also confirmed
+unchanged scientific metadata and all three original point matches. This is an
+offline production replay; no live-provider or full regression-suite claim is
+made.
+
+### Second iteration: point placement and duplicate-report overlay (8 October 2026)
+
+This iteration supersedes the displayed P3 selection above while preserving
+its annotation and regression coverage. P3 now labels the complete 18-pixel
+source dot centered at (573.5, 771.222222), corresponding to 8.747394 UTC hours
+and -13.920635 dB. Its bounding box is x=572-575, y=769-773; unlike the prior
+selection, it is clear of the plotting boundary. The source-image readout was
+fixed before native comparison and matches the retained 08:46 UTC / -14 dB
+coordinate. These are folded-coordinate checks, not identification of the
+paper's observation date or transmitter. Both earlier P3 witnesses remain
+hidden checks, so all six source witnesses are tested and four are displayed.
+The established +/-0.08-hour and +/-0.21-dB tolerances are unchanged.
+
+The overall-median legend entry is removed; Panel C's native median line and
+the explanatory pooled-median value remain. Shared R/P keys sit below A,
+individual paired observations and the highest-density star below B, and hourly
+median/IQR keys below C. A small box at the right of the reading notes contains
+the red-dot key, duplicate-report explanation and linked Figure 3 reference.
+
+Panel B now overlays additional combinations involving a weaker report at one
+or both receivers, using the same 3.3-point-squared area and 0.45 opacity as
+its retained-pair dots. Color alone distinguishes them. The diagnostic joins
+the frozen raw reports by canonical 120-second cycle, transmitter callsign
+and full locator, restricts them to production-selected identities, and checks
+the retained normalized endpoint SNR values against independently calculated
+raw maxima. The archive already scopes the band, interval and local endpoints.
+The resulting 17 additional combinations include eight within the -15 to +25 dB
+display range. They do not contribute to density, medians, IQR or Panel C.
+The complete report-ID provenance is retained in `render_checks.json`.
+
+This explains two negative differences near the apparent missing source dot:
+DK3RU/JO31ws on 7 April at 18:26 and 18:30 UTC produces -13 dB when a weaker
+G3ZIL report is paired with the stronger G4HZX report, whereas production
+retains +11 dB at both cycles. One weaker/weaker combination at 18:26 also
+equals +11 dB; it remains additional by report provenance even though it
+coincides with the retained coordinate. Consequently these are additional
+report combinations, not a classification of statistical outliers. Their
+agreement with folded source positions does not establish the authors' exact
+join or report identities. The Figure 3 reference mentions related pairing
+effects and possible spurs without claiming a physical cause for Figure 6.
+
+Verification for the second iteration: the complete Griffiths temporal-reference
+and demo-PDF-header modules passed with **78 passed and 3 existing expected
+failures**. The same Matplotlib pending-deprecation and non-fatal pytest node-ID
+cache permission warnings remain. Focused coverage includes the new P3 source
+witness, both prior P3 witnesses, raw combination counts, report-ID provenance,
+power normalization, canonical cycles and full-locator separation. Changed-file
+compilation, patch whitespace, final manifest/input/builder hashes, all seven
+linked PDF synchronization checks, embedded fonts, page dimensions, PDF text
+and relative links, and final Poppler visual inspection passed. Paired rows,
+all hourly summary values and all 1,392 density cells remain unchanged. No live
+provider or complete regression-suite verification is claimed.
+
+### Third iteration: concise panel notes and integrated legend (8 October 2026)
+
+The approved revision replaces the long reading notes with short explanations
+under Panels A, B and C, in that order. The detailed R1-R4 description row is
+removed while the region labels and shared key remain. P1-P4 are labeled
+"verification examples only" and described as checks of selected time-of-day
+and Delta SNR matches. All six source witnesses and their coordinates remain
+unchanged, including the two undisplayed earlier P3 selections.
+
+Panel B's note now explains the additional weaker-report combinations and
+their exclusion from density, specifies strongest-report selection at each
+receiver per cycle/path, describes fixed smoothing and links the Figure 3
+pairing diagnostic. This supersedes the separate right-hand box introduced
+in the second iteration. The legend beneath B lists retained paired
+observations, additional weaker-report combinations and highest reconstructed
+density, in that order. Its dark and red dot symbols both use a readable
+6-point diameter at full opacity; the actual plotted points retain their
+3.3-point-squared area and 0.45 opacity.
+
+The numerical color adjustment and detailed pipeline explanation leave the
+reader-facing notes, with the existing method and validation details retained
+in this document, `comparison_policy.json` and `render_checks.json`. The
+underlying color mapping, smoothing, selected observations and native Panel C
+presentation are unchanged. The notes retain the nonlinear-axis and IQR
+interpretation needed to read Panel C.
+
+Verification for the third iteration: **3 focused checks passed** (the two
+Figure 6 PDF-header contracts and the displayed-source-provenance check), with
+78 unrelated cases deselected. The same two existing warnings remain. The
+generator again confirmed all 6,459 pairs, hourly summaries, 1,392 density cells
+and six source witnesses. A direct comparison with the second iteration found
+unchanged scientific/provenance metadata and input hashes, and pixel-identical
+header and chart regions. Changed-builder compilation, patch whitespace,
+manifest integrity, seven linked PDF synchronization checks, extracted caption
+order and wording, embedded fonts, retained page dimensions, Figure 3 link and
+Poppler visual review passed. This is a presentation-only verification; no
+runtime, live-provider or complete-suite verification is claimed.
+
+Final copy edit on 8 October 2026: the sentence about density concentrations
+outside the IQR is removed from Panel C. Panel B's prose now marks
+"additional* weaker-report combinations" and the corresponding note reads
+"*see Figure 3 Pairing and duplicate reports", with the diagnostic title in
+bold and the existing PDF link retained. The legend and all plot content are
+unchanged.
+The same three focused checks passed, with the two existing warnings. Poppler
+review, exact caption and bold-link checks, compilation, whitespace and PDF
+synchronization passed. Header, plots and legends are pixel-identical to the
+preceding revision; scientific metadata and input provenance are unchanged.

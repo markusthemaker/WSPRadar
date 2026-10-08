@@ -4,6 +4,26 @@
   "independence": "Only the source paper raster was read. No WSPRadar outputs or implementation files were inspected. Source-only zooms and dark-pixel component centroids were used.",
   "selection_rule": "Scan chronologically, selecting the first eligible negative extreme, then the first eligible positive extreme after it, then the first eligible negative extreme after that. Eligibility requires the full +/-2 pixel vertical interval to lie below -10 dB or above +20 dB, at least 20 pixels to another identified black-dot centroid, and more than 10 pixels to colored contours and axes. This alternating-sign rule addresses the incompatibility between literal first-three selection and distinct signs: the literal first three extremes are all negative. No comparison with computed outputs informed selection.",
   "selection_limit": "The chronological rule takes precedence over the preference for wide coverage of the day. All three selected points occur before 08 UTC.",
+  "original_annotation_scope": "The independence, selection_rule and selection_limit fields above describe the original three-point extraction. All three original witnesses and their coordinates remain unchanged; comparison_label selects the current displayed subset independently of regression coverage.",
+  "display_revision": {
+    "date": "2026-10-08",
+    "source_image": "paper_figure6.png",
+    "source_image_sha256": "bae3aebcaa32e7d4b926234216beded5db10923acca7303a8bcb562014aa4c2c",
+    "selection_request": "Keep displayed P1 and P2, move displayed P3 to the later source points at the -15 dB plot boundary, and add a clear later-day positive point as P4. Retain the former displayed P3 as an undisplayed regression witness.",
+    "selection_basis": "P3 is the right-hand one of the two visible black-dot caps at the lower plot boundary near 08-09 UTC. P4 is the isolated positive dot near 16 UTC and +24 dB. Both were selected from the original raster and their source pixel coordinates recorded before checking their correspondence with native pairs. Earlier reconstruction review had already occurred; this is retrospective source-guided annotation, not a blinded selection.",
+    "clipped_point_method": "The new P3 dot merges with the horizontal axis at raster rows 791-792. Its recorded centroid uses only its visible 9-pixel upper cap at rows 789-790, excluding the axis. This is not the centroid of a fully resolved dot; its calibrated ordinate is a visible-cap readout near -15 dB. No correction toward a native observation was applied.",
+    "tolerance_policy": "The existing 0.08-hour and 0.21-dB comparison tolerances are unchanged. The new P3 is an explicitly axis-clipped witness and does not satisfy the original isolated-dot clearance rule. P4 extends the displayed time coverage beyond the original chronological selection."
+  },
+  "display_revision_history": [
+    {
+      "date": "2026-10-08",
+      "supersedes": "The P3 display selection recorded in display_revision; all earlier source witnesses remain in points for regression coverage.",
+      "selection_request": "Move displayed P3 to the complete source dot just above the previous lower-boundary witness, near 09 UTC and -14 dB. Keep P1, P2 and P4 unchanged.",
+      "selection_basis": "The requested source dot is the complete 18-pixel dark component with centroid (573.5, 771.222222), selected and calibrated from the original raster before checking its native-pair correspondence. This is a retrospective user-directed selection with prior familiarity with the reconstruction, not a blinded selection.",
+      "display_change": "isolated_negative_3 now carries P3. clipped_negative_1 retains its original coordinates, clipping caveat and regression check with comparison_label null.",
+      "tolerance_policy": "The existing 0.08-hour and 0.21-dB comparison tolerances and source calibration remain unchanged. No marker coordinate was adjusted toward a native observation."
+    }
+  ],
   "axis_calibration": {
     "left_x_px": 119,
     "right_x_px": 1366,
@@ -28,6 +48,7 @@
   "points": [
     {
       "id": "isolated_negative_1",
+      "comparison_label": "P1",
       "centroid_px": [210.278, 751.889],
       "utc_hour": 1.75675,
       "delta_snr_db": -12.91631,
@@ -37,6 +58,7 @@
     },
     {
       "id": "isolated_positive_1",
+      "comparison_label": "P2",
       "centroid_px": [473.412, 78.118],
       "utc_hour": 6.82108,
       "delta_snr_db": 22.08480,
@@ -46,12 +68,53 @@
     },
     {
       "id": "isolated_negative_2",
+      "comparison_label": null,
       "centroid_px": [519.722, 751.889],
       "utc_hour": 7.71238,
       "delta_snr_db": -12.91631,
       "nearest_other_dot_centroid_px": 21.02,
       "nearest_colored_pixel_px": 72.89,
       "nearest_axis_px": 40.11
+    },
+    {
+      "id": "clipped_negative_1",
+      "comparison_label": null,
+      "centroid_px": [563.222222, 789.555556],
+      "utc_hour": 8.54958567,
+      "delta_snr_db": -14.87301587,
+      "source_component": {
+        "pixel_box": {"x_min": 561, "x_max": 565, "y_min": 789, "y_max": 790},
+        "dark_pixel_count": 9,
+        "clipped_at_plot_boundary": true,
+        "excluded_axis_start_y_px": 791
+      },
+      "interpretation": "Visible upper cap of the right-hand lower-boundary dot near 08:30 UTC; the dot merges with the -15 dB axis. The source readout is preserved rather than moved to an exact native SNR value."
+    },
+    {
+      "id": "isolated_positive_2",
+      "comparison_label": "P4",
+      "centroid_px": [943.588235, 39.882353],
+      "utc_hour": 15.87018256,
+      "delta_snr_db": 24.07104660,
+      "source_component": {
+        "pixel_box": {"x_min": 942, "x_max": 945, "y_min": 38, "y_max": 42},
+        "dark_pixel_count": 17,
+        "clipped_at_plot_boundary": false
+      },
+      "interpretation": "An isolated positive source dot near 16 UTC extends the displayed witnesses into the later part of the day without inferring its date or station identity from the paper."
+    },
+    {
+      "id": "isolated_negative_3",
+      "comparison_label": "P3",
+      "centroid_px": [573.5, 771.222222],
+      "utc_hour": 8.74739374,
+      "delta_snr_db": -13.92063492,
+      "source_component": {
+        "pixel_box": {"x_min": 572, "x_max": 575, "y_min": 769, "y_max": 773},
+        "dark_pixel_count": 18,
+        "clipped_at_plot_boundary": false
+      },
+      "interpretation": "Complete negative source dot near 08:45 UTC, above the lower plot boundary; selected for displayed P3 without changing the earlier witnesses or inferring its date or station identity from the paper."
     }
   ],
   "interpretation_limit": "These annotations test existence of a plotted UTC-hour and Delta-SNR combination within declared tolerances. The figure does not identify the date or complete station-path evidence for an individual point. Agreement cannot establish complete identity, pairing provenance, or correctness of the full distribution."

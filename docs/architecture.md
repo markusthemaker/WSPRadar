@@ -2331,6 +2331,22 @@ capabilities.
    Three independently digitized isolated scatter points additionally constrain
    native paired Delta SNR and UTC time-of-day, without supplying full source
    identities or labels for the optional outlier-candidate detector.
+   The 2026-10-08 Figure 6 presentation revision preserves those three witnesses
+   and adds a source point at the lower plotting boundary plus a later positive
+   point. Explicit annotation labels select four displayed witnesses (P1-P4)
+   from the five regression checks; the original P3 remains checked without a
+   displayed label. The clipped source-point geometry is recorded separately
+   from native paired evidence, with unchanged readout tolerances.
+   A second iteration on that date moves displayed P3 to a complete source dot
+   near 08:45 UTC / -14 dB while retaining both earlier P3 checks without labels;
+   six source witnesses remain checked. A builder-local diagnostic independently
+   joins weaker endpoint reports for the production-selected cycle/callsign/full-
+   locator identities and verifies retained normalized SNR against raw maxima.
+   Seventeen additional report combinations result; eight lie in Panel B's
+   display range. Their red overlay does not contribute to density, summaries or
+   Panel C. Report IDs distinguish combinations even when their differences
+   coincide with retained pairs. This helper assumes the frozen archive's scoped
+   band, interval and local endpoints; it is not a runtime input filter.
    The additional `griffiths_fig3_paper_v1` supplies source-only chronological
    occupied regions, a first-half daily-mean trend and Figure 4 numerical mean
    anchors. Initial comparison exposed duplicate-weighting differences: a raw
