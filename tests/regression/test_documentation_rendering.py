@@ -2150,19 +2150,23 @@ def test_bilingual_manuals_document_shared_review_and_open_panel_contract():
 
 def test_bilingual_manuals_document_always_visible_scope_and_classic_order():
     """Describe one visible shared panel without changing default semantics."""
-    assert "**`Filters, scope and evidence`**" in DOC_EN
+    assert "**`Optional Filters, scope and evidence`**" in DOC_EN
+    assert "**`Filters, scope and evidence`**" not in DOC_EN
     assert "Optional filters, analysis scope, and evidence requirements" not in DOC_EN
     assert "Guided always shows the applicable fields inside that step" in DOC_EN
     assert "there is no separate preset-choice gate" in DOC_EN
     assert "loaded configurations and demos populate the same visible fields" in DOC_EN
+    assert "Adjusting these settings is optional; their displayed values still apply" in DOC_EN
     assert "The displayed filter, scope and evidence settings apply even if you leave this panel unchanged" in DOC_EN
     assert "Performance has four Classic panels and Benchmark has five" in DOC_EN
 
-    assert "**`Filter, Analyseumfang und Evidenz`**" in DOC_DE
+    assert "**`Optionale Filter, Analyseumfang und Evidenz`**" in DOC_DE
+    assert "**`Filter, Analyseumfang und Evidenz`**" not in DOC_DE
     assert "Optionale Filter, Analyseumfang und Evidenzanforderungen" not in DOC_DE
     assert "zeigt die geführte Eingabe stets die zutreffenden Felder" in DOC_DE
     assert "eine getrennte vorgeschaltete Auswahl entfällt" in DOC_DE
     assert "geladene Konfigurationen und Demos" in DOC_DE
+    assert "Das Anpassen dieser Einstellungen ist optional; ihre angezeigten Werte gelten weiterhin" in DOC_DE
     assert "Die angezeigten Einstellungen für Filter, Analyseumfang und Evidenz gelten auch dann, wenn du diesen Bereich unverändert lässt" in DOC_DE
     assert "Performance besitzt damit vier und Benchmark fünf klassische Bereiche" in DOC_DE
 

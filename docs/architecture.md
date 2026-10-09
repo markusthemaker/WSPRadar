@@ -240,7 +240,7 @@ and Guided navigation keys are transient presentation state outside
 `AnalysisContext` and the version-1 saved configuration. Classic renders that
 Question first, followed by Target/window fields and, only for Benchmark, a
 required Benchmark-design panel. Both result types then render the shared
-**Filters, scope and evidence** panel and a
+**Optional Filters, scope and evidence** panel and a
 terminal Review panel. Guided renders every applicable filter, scope, and
 evidence control when that step is available; it has no general-purpose versus
 customize selector. Result-family defaults, loaded configurations, and demos
@@ -248,9 +248,15 @@ populate those canonical visible fields directly. Rendering a loaded value is
 not an edit and therefore does not by itself retire demo provenance. Selecting
 RX/TX Benchmark without an existing design initializes canonical `val_comp_mode`
 to `reference_station`; an existing Reference Setup/Station or Reference
-Neighborhood choice is preserved. Run remains available to report incomplete or
-invalid fields, while submission requires valid inputs and resolved Reference
-discovery when applicable. Save Config and public-URL synchronization require a
+Neighborhood choice is preserved. Guided Continue validates the current setup
+panel before advancing and scopes corrective field feedback to that attempted
+panel. Corrected field errors disappear, the panel's error summary clears when
+the panel becomes valid, and earlier attempts do not mark later unattempted
+panels invalid. Guided Run is shown only when the applicable setup steps are
+valid and terminal Review is available; Classic Run remains available to report
+incomplete or invalid fields. Every submission still requires full input
+validation and resolved Reference discovery when applicable, including valid
+Guided demo shortcuts. Save Config and public-URL synchronization require a
 valid canonical configuration. The advanced panel routes Benchmark thresholds
 for Benchmark intent. Correction mode is
 different: it is durable operator provenance
@@ -266,6 +272,26 @@ composition surface for Target/window, Reference, scope, station-population,
 offset, and evidence-threshold controls; its established implementations remain
 in `ui/components/config_panel.py` so both editors retain the same widget keys,
 normalization, and callbacks.
+
+`ui/input_keyboard.py` owns the shared Guided/Classic help adapter for the
+configuration controls. The `?` help icons remain mouse-only and are never tab
+stops; input focus does not create a help overlay. The Guided boundary adapter
+in `ui/guided_inputs/keyboard.py` preserves native keyboard behavior within
+widgets and backward Shift+Tab navigation. Its pure `keyboard_state.py` helper
+acknowledges the native committed value before consuming a one-shot navigation
+intent, without copying browser values into scientific state. Forward Tab at the
+active Guided panel boundary commits the current edit and invokes the same
+panel validation as Continue. Valid inputs open the next panel and transfer
+focus to its first input; invalid inputs retain the current panel and focus its
+first invalid field. At the terminal Review, focus lands on the heading, then
+on Run with the next Tab, without automatic submission. Explicit Continue and
+Run validation failures likewise focus the first invalid field. The optional
+panel title describes optional adjustment: the displayed filter, scope, and
+evidence values remain active. This is presentation behavior outside scientific
+state and request identity. Its Streamlit DOM selectors are a browser integration
+boundary: after a Streamlit upgrade, verify forward and reverse tab order,
+native widget operation, mouse-only help, committed-edit validation, and focus
+transfer through rerenders in both editors.
 
 The terminal Review composition is shared between the two editors. It reads the
 canonical configuration once, exposes one action placeholder, and keeps the

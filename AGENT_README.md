@@ -263,8 +263,14 @@ contract. Classic asks RX/TX Performance or RX/TX Benchmark first, then reuses
 the shared Target/window fields and adds the Benchmark design when applicable.
 Selecting RX/TX Benchmark without an existing design initializes `reference_station`;
 an existing Reference Setup/Station or Reference Neighborhood choice is preserved.
-Run reports incomplete or invalid fields locally before submission; Save Config
-and public-URL synchronization require a valid canonical configuration. The advanced
+Guided Continue validates only the current setup panel before advancing. Corrected
+field errors clear locally, the panel's error summary clears when it becomes valid,
+and later panels are not marked invalid by an earlier attempt. Guided Run appears
+only when the applicable setup steps are valid and terminal Review is available.
+Classic Run remains available to report incomplete or invalid fields locally.
+Every Run retains full validation before submission; valid Guided demo shortcuts
+remain available. Save Config and public-URL synchronization require a valid
+canonical configuration. The advanced
 panel uses Benchmark thresholds for Benchmark intent. Correction
 mode is durable
 operator/configuration provenance rather than navigation state: both editors
@@ -619,12 +625,12 @@ and final focused follow-up are recorded in the
 
 Focused regression testing is the default for incremental work, including
 bounded scientific, cache and export corrections. Trace the affected contracts
-and callers, then pass the relevant modules or nodes directly to the repository
-interpreter. For example, the detector and export portions of an outlier-policy
+and callers, then pass the relevant modules or nodes to the foreground runner
+with `-Focused` on Windows. For example, the detector and export portions of an outlier-policy
 fix can be checked with:
 
 ```powershell
-.\.venv\Scripts\python.exe -u -m pytest tests/regression/test_delta_snr_outlier_candidates.py tests/regression/test_delta_snr_outlier_export_tables.py -q
+.\scripts\run_regression.cmd -Focused tests/regression/test_delta_snr_outlier_candidates.py tests/regression/test_delta_snr_outlier_export_tables.py
 ```
 
 Add documentation, cache, marker or other integration modules only when their
@@ -654,10 +660,17 @@ or a `PYTHONPATH` workaround, and returns pytest's exit code. Use
 `.\scripts\run_regression.cmd -ValidateChunks` to validate the partition and
 `.\scripts\run_regression.cmd -Durations 30` to profile a canonical serial run.
 If one complete foreground session cannot be retained, run `-Chunk 1` through
-`-Chunk 5` serially; do not run chunks concurrently because they share the
-`.test` workspace.
-For a focused module selection, use the direct Python command above. Appending
-module paths to the full runner does not replace its complete-suite target.
+`-Chunk 5` serially. Separate per-run temporary/cache directories do not establish
+isolation for shared application caches, ports, Streamlit, Matplotlib, or process
+state, so do not run chunks concurrently.
+For a focused selection, use `-Focused` as shown above and put every regression
+file or node ID before forwarded pytest options such as `-k expression` or `-x`.
+Use long pytest options when a short form overlaps PowerShell common parameters:
+`--override-ini=cache_dir=...` instead of `-o`, and `--verbose` instead of `-v`.
+Targets must name existing Python files under `tests/regression/`; node IDs may
+follow a file path with `::`. `-Focused` cannot be combined with `-Chunk` or
+`-ValidateChunks`. Without `-Focused`, appending module paths to the full runner
+does not replace its complete-suite target.
 
 On Linux or macOS, invoke pytest directly:
 
@@ -681,10 +694,22 @@ focused runs; select their affected contracts and routes when their implementati
 or direct callers change. Do not add every test in a subsystem merely because
 one of its files changed. Complete runs still include every regression module.
 
-Pytest stores its disposable per-run files and cache under the ignored `.test/`
-directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
-session, preventing separately named root-level test directories from
-accumulating across runs.
+The Windows runner creates a fresh `.test/runs/<run-id>/` workspace for every
+executing invocation, with `temp/` for pytest temporary files and `cache/` for
+pytest's cache. It prints that path for diagnostics and leaves previous run
+directories untouched. Explicit pytest `--basetemp` and `--override-ini=cache_dir=...`
+arguments override these defaults. `-ValidateChunks` creates no workspace.
+Retained runs consume disk space; after preserving useful evidence and checking
+for active users, remove only the exact completed run directory owned by the
+task. Do not remove unrelated `.test/` data. Fresh per-run caches also mean that
+cache-based pytest options such as `--last-failed` require an explicit reused
+cache directory to carry information between runs.
+
+Direct pytest invocations, including Linux/macOS commands, retain the
+`pytest.ini` defaults `.test/pytest-temp/` and `.test/pytest-cache/`. Pytest clears
+that fixed temporary tree at session startup. Both invocation styles keep test
+scratch under the ignored `.test/` directory rather than creating separately
+named root-level test directories.
 
 [Regression and performance records, 2026-08-17 through 2026-09-25](docs/verification-history.md#regression-and-performance-records-2026-08-17-to-09-25).
 

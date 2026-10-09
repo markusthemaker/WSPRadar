@@ -43,6 +43,7 @@ from ui.callbacks import (
 from ui.classic_inputs import render_classic_inputs
 from ui.components.config_panel import render_metadata_expander
 from ui.guided_inputs.renderer import render_guided_demo_run_action, render_guided_inputs
+from ui.input_keyboard import begin_input_keyboard, render_input_keyboard_controller
 from ui.page_navigation import (
     PAGE_TOP_ANCHOR_ID,
     PARAMETER_SETTINGS_ANCHOR_ID,
@@ -69,7 +70,7 @@ from ui.analysis_submission_state import (
     finish_analysis_submission,
     get_analysis_submission,
 )
-from ui.input_validation_state import attempt_input_validation, validation_message, validation_focus_key
+from ui.input_validation_state import attempt_input_validation, get_visible_input_errors, validation_message, validation_focus_key
 from ui.reference_location import resolve_reference_before_analysis
 from ui.run_lifecycle import fail_analysis_run, initialize_analysis_run
 from ui.state_manager import init_session_state
@@ -320,6 +321,7 @@ results_region = st.container(key="application_results")
 documentation_region = st.container(key="application_documentation")
 
 with configuration_region:
+    begin_input_keyboard()
     if st.session_state.get("show_demo_launcher", False):
         render_demo_launcher()
 
@@ -346,6 +348,8 @@ with configuration_region:
     if st.session_state.get("_collapse_config_panels_once", False):
         st.session_state.config_panels_expanded = True
         st.session_state._collapse_config_panels_once = False
+
+    render_input_keyboard_controller()
 
 with results_region:
     render_page_anchor(RESULTS_INSPECTION_ANCHOR_ID)
@@ -500,6 +504,7 @@ with results_region:
     should_render_actions = (
         st.session_state.input_view == "classic" or guided_actions_available
     )
+    run_analysis_button_slot = None
     if should_render_actions:
         action_context = (
             guided_render_result.review_actions_slot.container()
@@ -516,15 +521,9 @@ with results_region:
                     popover_key="config_save_top_trigger",
                     is_configuration_ready=input_configuration_ready,
                 )
-    else:
-        with configuration_region:
-            run_analysis_button_slot = st.empty()
-            render_run_analysis_button(is_busy=submission_snapshot is not None)
 
-    if st.session_state.get("_input_validation_attempted"):
-        from ui.input_validation_state import validate_input_fields
-        if validate_input_fields(st.session_state, t):
-            result_feedback_region.error(validation_message(st.session_state, "summary"))
+    if get_visible_input_errors(st.session_state, t):
+        result_feedback_region.error(validation_message(st.session_state, "summary"))
 
     is_new_analysis_submission = bool(
         submission_request is not None
@@ -612,8 +611,9 @@ with results_region:
         if finish_analysis_submission(st.session_state, submission_token):
             if st.session_state.get(analysis_navigation_state_key) == submission_token:
                 st.session_state.pop(analysis_navigation_state_key, None)
-            run_analysis_button_slot.empty()
-            render_run_analysis_button(is_busy=False)
+            if run_analysis_button_slot is not None:
+                run_analysis_button_slot.empty()
+                render_run_analysis_button(is_busy=False)
             if (
                 guided_render_result is not None
                 and guided_render_result.demo_run_action_slot is not None

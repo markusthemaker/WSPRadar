@@ -48,6 +48,16 @@ def derive_analysis_question(state: Mapping) -> str | None:
     return f"{analysis_direction}_{result_type}"
 
 
+def reset_reference_correction_entry(state: MutableMapping) -> None:
+    """Rebuild correction entry from canonical state after a reset or load."""
+    for key in (
+        "_val_benchmark_offset_db_text",
+        "_val_benchmark_offset_db_text_synced_value",
+        "_val_benchmark_offset_db_text_error",
+    ):
+        state.pop(key, None)
+
+
 def apply_analysis_question_choice(
     state: MutableMapping,
     question: object,
@@ -85,6 +95,7 @@ def apply_analysis_question_choice(
         # correction established for one direction is not valid for the other.
         state["val_benchmark_offset_db"] = 0.0
         state["val_snr_correction_mode"] = "no_offset"
+        reset_reference_correction_entry(state)
 
     if did_change_direction:
         state["val_ref_qth"] = ""

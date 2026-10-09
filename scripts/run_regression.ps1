@@ -5,7 +5,8 @@ Runs WSPRadar regression tests in one foreground Windows terminal.
 .DESCRIPTION
 Validates the checked-in five-chunk fallback partition, invokes the repository
 virtual environment with unbuffered Python, rejects parallel pytest workers,
-and propagates pytest's native exit code. The complete suite is the default.
+uses a fresh per-run temporary/cache workspace, and propagates pytest's native
+exit code. The complete suite is the default.
 
 .PARAMETER Chunk
 Runs one fixed serial fallback chunk, numbered 1 through 5.
@@ -13,21 +14,32 @@ Runs one fixed serial fallback chunk, numbered 1 through 5.
 .PARAMETER ValidateChunks
 Validates exact, disjoint test-module coverage without starting pytest.
 
+.PARAMETER Focused
+Runs the explicit regression files or node IDs supplied before pytest options.
+Requires at least one target and cannot be combined with Chunk or ValidateChunks.
+
 .PARAMETER Durations
 Passes pytest's --durations count. Supplying zero reports every test duration.
 
 .PARAMETER PytestArguments
 Passes additional serial pytest arguments after the selected test targets.
+Use long pytest options where short forms overlap PowerShell common parameters,
+for example --override-ini=cache_dir=chosen-cache instead of -o.
 
 .EXAMPLE
 .\scripts\run_regression.cmd -Durations 30
+
+.EXAMPLE
+.\scripts\run_regression.cmd -Focused tests/regression/test_input_validation_state.py -x
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [ValidateRange(1, 5)]
     [int]$Chunk,
 
     [switch]$ValidateChunks,
+
+    [switch]$Focused,
 
     [ValidateRange(0, 1000)]
     [int]$Durations,
@@ -45,6 +57,9 @@ $manifestPath = Join-Path $PSScriptRoot "regression_test_chunks.json"
 $pythonPath = Join-Path $repoRoot ".venv\Scripts\python.exe"
 $expectedChunkIds = @(1, 2, 3, 4, 5)
 
+if ($Focused -and ($ValidateChunks -or $PSBoundParameters.ContainsKey("Chunk"))) {
+    throw "-Focused cannot be combined with -Chunk or -ValidateChunks."
+}
 if ($ValidateChunks -and $PSBoundParameters.ContainsKey("Chunk")) {
     throw "-ValidateChunks and -Chunk cannot be used together."
 }
@@ -170,7 +185,32 @@ try {
             throw "Repository Python interpreter not found: $pythonPath"
         }
 
-        if ($PSBoundParameters.ContainsKey("Chunk")) {
+        if ($Focused) {
+            $focusedTargets = [System.Collections.Generic.List[string]]::new()
+            $firstOptionIndex = $PytestArguments.Count
+            for ($argumentIndex = 0; $argumentIndex -lt $PytestArguments.Count; $argumentIndex++) {
+                $target = $PytestArguments[$argumentIndex]
+                if ($target.StartsWith("-", [System.StringComparison]::Ordinal)) {
+                    $firstOptionIndex = $argumentIndex
+                    break
+                }
+                $targetFile = ($target -split "::", 2)[0]
+                $candidatePath = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $targetFile))
+                if (-not $candidatePath.StartsWith($testRootPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+                    -not $candidatePath.EndsWith(".py", [System.StringComparison]::OrdinalIgnoreCase) -or
+                    -not (Test-Path -LiteralPath $candidatePath -PathType Leaf)) {
+                    throw "Focused target must name an existing Python test file inside tests/regression, optionally followed by ::node: $target"
+                }
+                $focusedTargets.Add($target)
+            }
+            if ($focusedTargets.Count -eq 0) {
+                throw "-Focused requires regression file or node targets before pytest options."
+            }
+            $pytestTargets = @($focusedTargets)
+            $PytestArguments = @($PytestArguments | Select-Object -Skip $firstOptionIndex)
+            Write-Host "Running focused regression targets in one foreground pytest session:"
+            $pytestTargets | ForEach-Object { Write-Host "  $_" }
+        } elseif ($PSBoundParameters.ContainsKey("Chunk")) {
             $selectedChunk = $manifestChunks |
                 Where-Object { [int]$_.id -eq $Chunk } |
                 Select-Object -First 1
@@ -188,11 +228,26 @@ try {
         }
 
         $pythonArguments = @("-u", "-m", "pytest", "-q")
+        $runId = "{0}-{1}" -f [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssfffZ"), [Guid]::NewGuid().ToString("N")
+        $runWorkspace = Join-Path $repoRoot ".test\runs\$runId"
+        [System.IO.Directory]::CreateDirectory($runWorkspace) | Out-Null
+        $cacheDirectory = Join-Path $runWorkspace 'cache'
+        # Precreate the owned cache path so pytest need not rename a bootstrap
+        # directory, which Windows can deny even in a writable run workspace.
+        [System.IO.Directory]::CreateDirectory($cacheDirectory) | Out-Null
+        $pythonArguments += "--basetemp=$(Join-Path $runWorkspace 'temp')"
+        $pythonArguments += @("-o", "cache_dir=$cacheDirectory")
+        Write-Host "Pytest workspace: $runWorkspace (explicit pytest path options take precedence)."
         if ($PSBoundParameters.ContainsKey("Durations")) {
             $pythonArguments += "--durations=$Durations"
         }
         $pythonArguments += $pytestTargets
         $pythonArguments += $PytestArguments
+        if ($PSBoundParameters.ContainsKey("Verbose") -and $PSBoundParameters["Verbose"]) {
+            # PowerShell consumes both -v and --verbose as its common switch.
+            # This runner has no separate verbose stream; preserve pytest intent.
+            $pythonArguments += "--verbose"
+        }
 
         $savedErrorActionPreference = $ErrorActionPreference
         try {

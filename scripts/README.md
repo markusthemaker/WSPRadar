@@ -28,8 +28,26 @@ For example:
 
 ```powershell
 .\scripts\run_regression.cmd
+.\scripts\run_regression.cmd -Focused tests/regression/test_input_validation_state.py -x
 python scripts/sync_readme_from_doc_en.py
 ```
+
+`-Focused` accepts existing Python regression files and `::node` selections;
+place every target before forwarded pytest options. For pytest short options
+that overlap PowerShell common parameters, use their long forms: for example,
+`--override-ini=cache_dir=...` instead of `-o`, and `--verbose` instead of `-v`.
+It cannot be combined with
+`-Chunk` or `-ValidateChunks`. Without `-Focused` or `-Chunk`, the runner still
+selects the complete regression suite.
+
+Each executing Windows invocation prints and uses a fresh
+`.test/runs/<run-id>/temp` and `cache` workspace. Explicit pytest `--basetemp`
+or `--override-ini=cache_dir=...` options override those defaults. `-ValidateChunks` creates
+no directories. Previous runs remain available for diagnosis and use disk space;
+after preserving needed evidence and checking for active users, clean only the
+exact completed run directory owned by the task. A fresh cache does not carry
+`--last-failed` history; pass an explicit reused cache directory when needed.
+Separate pytest paths do not make the application tests safe to run concurrently.
 
 On Linux or macOS, use `python -m pytest tests/regression -q` when a complete
 regression run is required. The Windows regression scripts remain together with

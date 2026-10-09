@@ -15,12 +15,14 @@ from config.delta_snr_outlier import (
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
 )
 from ui.documentation_state import collapse_documentation
+from ui.input_validation_state import clear_input_validation
 from ui.analysis_question_state import (
     ANALYSIS_QUESTION_CHOICES,
     BENCHMARK_MODES,
     analysis_question_result_type,
     apply_analysis_question_choice,
     canonicalize_analysis_question,
+    reset_reference_correction_entry,
 )
 from ui.classic_input_state import (
     CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
@@ -167,6 +169,7 @@ def handle_reference_correction_context_change():
     if active_mode in comparison_modes or retained_mode in comparison_modes:
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
+        reset_reference_correction_entry(st.session_state)
     reset_experiment_definition()
 
 
@@ -317,6 +320,7 @@ def handle_comp_mode_change():
     clear_reference_location_resolution()
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
+    reset_reference_correction_entry(st.session_state)
     reset_experiment_definition()
 
 
@@ -372,11 +376,11 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
+    reset_reference_correction_entry(st.session_state)
     st.session_state.val_local_benchmark = "local_median"
     st.session_state.val_ref_callsign = ""
     st.session_state.val_ref_qth = ""
-    st.session_state.pop("_input_field_errors", None)
-    st.session_state.pop("_input_validation_attempted", None)
+    clear_input_validation(st.session_state)
     st.session_state.pop("_reference_location_resolution", None)
     st.session_state.val_max_peer_distance_km = 22000
     reset_population_exclusion_state(st.session_state)

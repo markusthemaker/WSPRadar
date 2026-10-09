@@ -19,6 +19,7 @@ from config import (
     SNR_CORRECTION_MODES,
 )
 from ui.input_validation_state import get_field_error, tx_message_pattern_warning
+from ui.input_keyboard import keyboard_help
 from config.demo_profiles import prepare_demo_description_markdown
 from config.delta_snr_outlier import (
     DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
@@ -167,11 +168,10 @@ def _normalize_reference_correction_state(
                 float(st.session_state.get("val_benchmark_offset_db", 0.0)),
                 1,
             )
-            st.session_state[_REFERENCE_CORRECTION_TEXT_KEY] = (
-                ""
-                if retained_correction_db == 0.0
-                else f"{retained_correction_db:.1f}"
-            )
+            # Keep the rejected edit visible until it is corrected. Restoring
+            # the old text would hide the error and could suppress on_change
+            # when the user re-enters that same previously valid value.
+            st.session_state[_REFERENCE_CORRECTION_TEXT_KEY] = normalized_text
             st.session_state[_REFERENCE_CORRECTION_SYNCED_VALUE_KEY] = (
                 retained_correction_db
             )
@@ -286,6 +286,11 @@ def render_reference_design_selector(t, *, widget_key, on_change, descriptions=N
     with st.container(key=widget_key):
         for benchmark_mode in _benchmark_mode_options(t):
             choice_label = _format_benchmark_mode(t, benchmark_mode)
+            keyboard_help(
+                f"{widget_key}_{benchmark_mode}",
+                f"**{choice_label}**\n\n{t[help_keys[benchmark_mode]]}",
+                mouse_help_key=f"{widget_key}_{benchmark_mode}_help",
+            )
             is_selected = st.session_state.get(widget_key) == benchmark_mode
             selection_column, help_column = st.columns(
                 [0.9, 0.1], gap="small", vertical_alignment="center"
@@ -356,7 +361,7 @@ def _render_reference_identity(
     text_input_no_autocomplete(
         t["lbl_reference_callsign"], key="val_ref_callsign",
         placeholder=t["ph_reference_callsign"],
-        help=t["hlp_reference_callsign"],
+        help=keyboard_help("val_ref_callsign", t["hlp_reference_callsign"]),
         max_chars=15, normalize_uppercase=True, on_change=on_change,
         args=on_change_args,
     )
@@ -429,7 +434,7 @@ def render_target_and_window_fields(
             callsign_label,
             key="val_callsign",
             placeholder=t["ph_target_callsign"],
-            help=t["hlp_callsign_entry"],
+            help=keyboard_help("val_callsign", t["hlp_callsign_entry"]),
             max_chars=15,
             normalize_uppercase=True,
             on_change=correction_context_on_change,
@@ -443,7 +448,7 @@ def render_target_and_window_fields(
         text_input_no_autocomplete(
             t["lbl_qth"],
             key="val_qth",
-            help=t["hlp_target_qth"],
+            help=keyboard_help("val_qth", t["hlp_target_qth"]),
             max_chars=6,
             normalize_uppercase=True,
             on_change=correction_context_on_change,
@@ -458,7 +463,7 @@ def render_target_and_window_fields(
             t["lbl_band"],
             list(BAND_MAP.keys()),
             key="val_band",
-            help=t["hlp_band"],
+            help=keyboard_help("val_band", t["hlp_band"]),
             on_change=correction_context_on_change,
             args=correction_context_on_change_args,
         )
@@ -479,7 +484,7 @@ def render_target_and_window_fields(
             st.date_input(
                 t["lbl_start_d"],
                 key="val_start_d",
-                help=t["hlp_time_window"],
+                help=keyboard_help("val_start_d", t["hlp_time_window"]),
                 min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
                 max_value=today_utc,
                 on_change=handle_start_date_change,
@@ -491,7 +496,7 @@ def render_target_and_window_fields(
             st.date_input(
                 t["lbl_end_d"],
                 key="val_end_d",
-                help=t["hlp_time_window"],
+                help=keyboard_help("val_end_d", t["hlp_time_window"]),
                 min_value=minimum_end_date,
                 max_value=maximum_end_date,
                 on_change=handle_time_window_change,
@@ -590,7 +595,7 @@ def render_reference_correction_field(
         key=_REFERENCE_CORRECTION_TEXT_KEY,
         placeholder="0.0",
         autocomplete="off",
-        help=t["hlp_benchmark_offset_db"],
+        help=keyboard_help(_REFERENCE_CORRECTION_TEXT_KEY, t["hlp_benchmark_offset_db"]),
         on_change=_normalize_reference_correction_state,
         args=(
             on_change,
@@ -598,8 +603,8 @@ def render_reference_correction_field(
             {},
         ),
     )
-    _render_field_error(_REFERENCE_CORRECTION_TEXT_KEY)
-    if st.session_state.pop(_REFERENCE_CORRECTION_ERROR_KEY, False):
+    field_error_shown = _render_field_error(_REFERENCE_CORRECTION_TEXT_KEY)
+    if st.session_state.get(_REFERENCE_CORRECTION_ERROR_KEY, False) and not field_error_shown:
         st.error(t["err_benchmark_offset_db"])
 
 
@@ -620,7 +625,7 @@ def render_reference_design_fields(
             MAX_DYNAMIC_RADIUS_KM,
             step=10,
             key="val_ref_radius_km",
-            help=t["hlp_reference_radius"],
+            help=keyboard_help("val_ref_radius_km", t["hlp_reference_radius"]),
             on_change=on_change,
             args=on_change_args,
         )
@@ -668,7 +673,7 @@ def render_benchmark_expander(t, *, step_number=None):
                 key=CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
                 index=None,
                 label_visibility="visible",
-                help=_classic_reference_design_help(t),
+                help=keyboard_help(CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY, _classic_reference_design_help(t)),
                 on_change=handle_classic_benchmark_design_change,
                 format_func=lambda benchmark_mode: _format_benchmark_mode(
                     t, benchmark_mode
@@ -695,7 +700,7 @@ def render_station_population_fields(
         key=population_exclusion_widget_key(
             "val_exclude_special_callsigns"
         ),
-        help=t["tt_exclude_special"],
+        help=keyboard_help(population_exclusion_widget_key("val_exclude_special_callsigns"), t["tt_exclude_special"]),
         on_change=handle_population_exclusion_change,
         args=(
             "val_exclude_special_callsigns",
@@ -706,7 +711,7 @@ def render_station_population_fields(
     st.toggle(
         t["lbl_filter_moving"],
         key=population_exclusion_widget_key("val_filter_moving"),
-        help=t["tt_filter_moving"],
+        help=keyboard_help(population_exclusion_widget_key("val_filter_moving"), t["tt_filter_moving"]),
         on_change=handle_population_exclusion_change,
         args=(
             "val_filter_moving",
@@ -734,7 +739,7 @@ def render_scope_fields(
             t["lbl_solar"],
             ["all", "day", "night", "greyline"],
             key="val_solar",
-            help=t["hlp_solar"],
+            help=keyboard_help("val_solar", t["hlp_solar"]),
             on_change=on_change,
             args=on_change_args,
             format_func=lambda solar_state: t[
@@ -751,7 +756,7 @@ def render_scope_fields(
             t["lbl_max_dist"],
             MAP_SCOPE_OPTIONS,
             key="val_max_peer_distance_km",
-            help=t["hlp_max_dist"],
+            help=keyboard_help("val_max_peer_distance_km", t["hlp_max_dist"]),
             on_change=on_change,
             args=on_change_args,
         )
@@ -818,7 +823,7 @@ def render_evidence_threshold_fields(
                 1,
                 50,
                 key="val_min_spots",
-                help=min_spots_help,
+                help=keyboard_help("val_min_spots", min_spots_help),
                 on_change=on_change,
                 args=on_change_args,
             )
@@ -829,7 +834,7 @@ def render_evidence_threshold_fields(
                 1,
                 100,
                 key="val_min_opportunities",
-                help=minimum_opportunities_help,
+                help=keyboard_help("val_min_opportunities", minimum_opportunities_help),
                 on_change=on_change,
                 args=on_change_args,
             )
@@ -840,7 +845,7 @@ def render_evidence_threshold_fields(
             1,
             10,
             key="val_min_stations",
-            help=minimum_stations_help,
+            help=keyboard_help("val_min_stations", minimum_stations_help),
             on_change=on_change,
             args=on_change_args,
         )
@@ -857,7 +862,7 @@ def render_delta_snr_outlier_reporting_field(
     owner_on_change = reset_audit if on_change is None else on_change
     toggle_kwargs = {
         "key": "val_report_delta_snr_outlier_candidates",
-        "help": t["tt_report_delta_snr_outlier_candidates"],
+        "help": keyboard_help("val_report_delta_snr_outlier_candidates", t["tt_report_delta_snr_outlier_candidates"]),
         "on_change": handle_delta_snr_outlier_reporting_change,
         "args": (owner_on_change, on_change_args),
     }
@@ -881,7 +886,7 @@ def render_delta_snr_outlier_reporting_field(
         max_value=DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
         step=0.1,
         key="val_delta_snr_outlier_minimum_departure_db",
-        help=t["tt_delta_snr_outlier_minimum_departure_db"],
+        help=keyboard_help("val_delta_snr_outlier_minimum_departure_db", t["tt_delta_snr_outlier_minimum_departure_db"]),
         **input_change_kwargs,
     )
     _render_field_error('val_delta_snr_outlier_minimum_departure_db')
@@ -891,7 +896,7 @@ def render_delta_snr_outlier_reporting_field(
         max_value=DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
         step=0.1,
         key="val_delta_snr_outlier_minimum_robust_z",
-        help=t["tt_delta_snr_outlier_minimum_robust_z"],
+        help=keyboard_help("val_delta_snr_outlier_minimum_robust_z", t["tt_delta_snr_outlier_minimum_robust_z"]),
         **input_change_kwargs,
     )
     _render_field_error('val_delta_snr_outlier_minimum_robust_z')
@@ -901,7 +906,7 @@ def render_delta_snr_outlier_reporting_field(
         max_value=DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
         step=0.1,
         key="val_delta_snr_outlier_maximum_baseline_difference_db",
-        help=t["tt_delta_snr_outlier_maximum_baseline_difference_db"],
+        help=keyboard_help("val_delta_snr_outlier_maximum_baseline_difference_db", t["tt_delta_snr_outlier_maximum_baseline_difference_db"]),
         **input_change_kwargs,
     )
     _render_field_error('val_delta_snr_outlier_maximum_baseline_difference_db')

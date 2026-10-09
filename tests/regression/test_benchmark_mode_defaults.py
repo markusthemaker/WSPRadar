@@ -341,7 +341,7 @@ def test_classic_question_selector_is_four_way_and_bilingual(
             "Question",
             "Target and measurement window",
             "Benchmark design",
-            "Filters, scope and evidence",
+            "Optional Filters, scope and evidence",
             "Target callsign (receiver under test)",
             "Target callsign (transmitter under test)",
             "Target QTH (4 or 6 characters)",
@@ -351,7 +351,7 @@ def test_classic_question_selector_is_four_way_and_bilingual(
             "Frage",
             "Target und Messzeitraum",
             "Benchmark-Design",
-            "Filter, Analyseumfang und Evidenz",
+            "Optionale Filter, Analyseumfang und Evidenz",
             "Target-Rufzeichen (Empfänger im Test)",
             "Target-Rufzeichen (Sender im Test)",
             "Target-QTH (4 oder 6 Zeichen)",
@@ -434,9 +434,15 @@ def test_classic_compact_control_labels_are_bilingual(language, expected_labels)
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    ("result_type", "step_number"),
+    [(None, None), ("performance", 3), ("benchmark", 4)],
+)
 def test_classic_advanced_panel_groups_filters_scope_and_evidence(
     monkeypatch,
     language,
+    result_type,
+    step_number,
 ):
     """Expose the three scientific control groups without Guided explanations."""
     render_events = []
@@ -466,9 +472,25 @@ def test_classic_advanced_panel_groups_filters_scope_and_evidence(
         "render_evidence_threshold_fields",
         evidence_threshold_fields,
     )
+    outlier_reporting_field = Mock()
+    monkeypatch.setattr(
+        config_panel, "render_delta_snr_outlier_reporting_field", outlier_reporting_field,
+    )
 
     labels = T[language]
-    config_panel.render_advanced_expander(labels)
+    config_panel.render_advanced_expander(
+        labels, result_type=result_type, step_number=step_number,
+    )
+
+    expected_title = (
+        "Optional Filters, scope and evidence" if language == "en"
+        else "Optionale Filter, Analyseumfang und Evidenz"
+    )
+    expected_heading = (
+        f"{step_number} · {expected_title}" if step_number is not None
+        else expected_title
+    )
+    config_panel.st.expander.assert_called_once_with(expected_heading, expanded=True)
 
     assert [call.args[0] for call in markdown.call_args_list] == [
         f"**{labels['hdr_analysis_scope']}**",
@@ -485,7 +507,11 @@ def test_classic_advanced_panel_groups_filters_scope_and_evidence(
     ]
     station_population_fields.assert_called_once_with(labels)
     scope_fields.assert_called_once_with(labels)
-    evidence_threshold_fields.assert_called_once_with(labels, result_type=None)
+    evidence_threshold_fields.assert_called_once_with(labels, result_type=result_type)
+    if result_type == "benchmark":
+        outlier_reporting_field.assert_called_once_with(labels)
+    else:
+        outlier_reporting_field.assert_not_called()
 
 
 def test_population_toggles_register_explicit_edits_before_owner_callback(
@@ -1821,9 +1847,17 @@ def test_reference_correction_text_rejects_non_point_or_out_of_range_values(
     config_panel._normalize_reference_correction_state(callback)
 
     assert session_state.val_benchmark_offset_db == 1.2
-    assert session_state[config_panel._REFERENCE_CORRECTION_TEXT_KEY] == "1.2"
+    assert session_state[config_panel._REFERENCE_CORRECTION_TEXT_KEY] == correction_text
     assert session_state[config_panel._REFERENCE_CORRECTION_ERROR_KEY] is True
     callback.assert_not_called()
+
+    # The original valid value remains an actual edit after rejection, so the
+    # user can recover without inventing a different scientific correction.
+    session_state[config_panel._REFERENCE_CORRECTION_TEXT_KEY] = "1.2"
+    config_panel._normalize_reference_correction_state(callback)
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert config_panel._REFERENCE_CORRECTION_ERROR_KEY not in session_state
+    callback.assert_called_once_with()
 
 
 def test_classic_zero_correction_preserves_explicit_established_mode(monkeypatch):

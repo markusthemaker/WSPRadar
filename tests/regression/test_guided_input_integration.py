@@ -48,6 +48,7 @@ from i18n import T
 project_root = Path(sys.argv[1]).resolve()
 initial_state = json.loads(sys.argv[2])
 click_run = initial_state.pop("_probe_click_run", False)
+continue_node = initial_state.pop("_probe_click_continue", None)
 time_edits = initial_state.pop("_probe_time_edits", [])
 application = AppTest.from_file(
     str(project_root / "app.py"),
@@ -67,6 +68,8 @@ if time_edits:
     application.run()
 if click_run:
     application.button(key="run_analysis_button").click().run()
+if continue_node:
+    application.button(key=f"guided_continue_{continue_node}").click().run()
 result = {
     "field_errors": dict(application.session_state["_input_field_errors"]) if "_input_field_errors" in application.session_state else {},
     "field_error_styles": [item.value for item in application.markdown if item.value.startswith("<style>.st-key-")],
@@ -684,8 +687,8 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch, i
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_reference_intro_avoids_repeated_metric_definitions_preserved_in_results(language):
-    """Keep Reference selection concise and define metrics beside the results."""
+def test_reference_intro_keeps_metric_definitions_in_offset_guidance(language):
+    """Keep Reference selection concise and define SNR where correction is chosen."""
     reference_body = GUIDED_INPUTS[language]["steps"]["reference_design"]["body_md"]
     options = GUIDED_INPUTS[language]["options"]["reference_design"]
     assert all(option["label"] not in reference_body for option in options.values())
@@ -693,10 +696,18 @@ def test_reference_intro_avoids_repeated_metric_definitions_preserved_in_results
     assert not any(line.startswith("- ") for line in reference_body.splitlines())
     assert '<strong class="defined-term">SNR</strong>' not in reference_body
     assert '<strong class="defined-term">ΔSNR</strong>' not in reference_body
-    for section in ("context_rx_compare", "context_tx_compare"):
-        guidance = RESULT_GUIDANCE[language]["sections"][section]["read"]
-        assert '<strong class="defined-term">SNR</strong>' in guidance
-        assert '<strong class="defined-term">Delta SNR (ΔSNR)</strong>' in guidance
+    offset_body = GUIDED_INPUTS[language]["steps"]["offset_calibration"]["body_md"]
+    for metric in ("SNR", "ΔSNR"):
+        assert f'<strong class="defined-term">{metric}</strong>' in offset_body
+    for direction in ("rx", "tx"):
+        guidance = RESULT_GUIDANCE[language]["sections"][f"context_{direction}_compare"]["read"]
+        view_name = (
+            f"{direction.upper()} Benchmark Results" if language == "en"
+            else f"{direction.upper()}-Benchmark-Ergebnisse"
+        )
+        assert guidance.startswith(f'<strong class="defined-term">{view_name}</strong>')
+        for metric in ("SNR", "ΔSNR", "Delta SNR (ΔSNR)"):
+            assert f'<strong class="defined-term">{metric}</strong>' not in guidance
 
 
 @pytest.mark.parametrize("is_ready,is_busy", [(True, False), (False, False), (True, True)])
@@ -920,11 +931,12 @@ def test_guided_demo_shortcut_rechecks_readiness_before_submission(
 
 @pytest.mark.parametrize("next_node", ["target_and_window", "reference_design", "offset_calibration", "scope_and_evidence", "review_and_run"])
 def test_guided_continue_requests_the_next_panel_heading(monkeypatch, next_node):
-    """Every Continue opens and targets the next panel, preserving science values."""
+    """Continue requests the next input or terminal heading without editing science."""
     session_state = _canonical_state(
         guided_active_node="use_case",
         guided_collapse_all=True,
     )
+    scientific_values = {key: deepcopy(value) for key, value in session_state.items() if key.startswith("val_")}
     monkeypatch.setattr(
         renderer,
         "st",
@@ -944,6 +956,324 @@ def test_guided_continue_requests_the_next_panel_heading(monkeypatch, next_node)
     )
     assert navigation_request["should_scroll"] is True
     assert navigation_request["panel_key"] == f"guided_step_{next_node}"
+    assert navigation_request["focus_target"] == (
+        "panel_header" if next_node == "review_and_run" else "first_input"
+    )
+    assert "focus_field" not in navigation_request
+    assert {key: value for key, value in session_state.items() if key.startswith("val_")} == scientific_values
+
+
+@pytest.mark.parametrize("node_id,field,invalid_values", [
+    ("use_case", "guided_use_case", {"guided_use_case": None, "val_analysis_direction": None}),
+    ("target_and_window", "val_callsign", {"val_callsign": ""}),
+    ("target_and_window", "val_qth", {"val_qth": ""}),
+])
+def test_guided_continue_focuses_first_invalid_field_without_editing_science(
+    monkeypatch, node_id, field, invalid_values,
+):
+    state = _canonical_state(guided_active_node=node_id, **invalid_values)
+    scientific_values = {key: deepcopy(value) for key, value in state.items() if key.startswith("val_")}
+    monkeypatch.setattr(renderer, "st", SimpleNamespace(session_state=state))
+    renderer._continue_from(node_id)
+    request = page_navigation.consume_page_navigation_request(state)
+    assert state.guided_active_node == node_id
+    assert request["panel_key"] == f"guided_step_{node_id}"
+    assert request["focus_field"] == field
+    assert "focus_target" not in request
+    assert {key: value for key, value in state.items() if key.startswith("val_")} == scientific_values
+
+
+def test_guided_scope_continue_focuses_review_heading(monkeypatch):
+    state = _canonical_state(guided_active_node="scope_and_evidence")
+    monkeypatch.setattr(renderer, "st", SimpleNamespace(session_state=state))
+    renderer._continue_from("scope_and_evidence")
+    request = page_navigation.consume_page_navigation_request(state)
+    assert state.guided_active_node == "review_and_run"
+    assert request["panel_key"] == "guided_step_review_and_run"
+    assert request["focus_target"] == "panel_header"
+
+
+def _acknowledge_guided_keyboard_values(session_state):
+    """Use the renderer's current branch and native committed-value descriptors."""
+    return renderer.guided_keyboard_ack(
+        session_state, renderer._keyboard_values(), renderer._keyboard_available_nodes(),
+    )
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_guided_keyboard_continue_waits_for_native_time_commit_and_advances_once(
+    monkeypatch, language,
+):
+    """A boundary Tab must consume the actual last-field edit before Continue."""
+    session_state = _canonical_state(
+        lang=language, guided_active_node="target_and_window",
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    session_state["guided_keyboard_controller"] = {
+        "prepare": {
+            "token": "native-time-edit", "node": "target_and_window",
+            "expected": {"key": "val_end_t", "kind": "time", "value": "00:30"},
+        },
+    }
+    renderer._prepare_keyboard_continue()
+    pending_ack = _acknowledge_guided_keyboard_values(session_state)
+    assert pending_ack["ready"] is False
+    assert pending_ack["fingerprint"] is None
+    assert session_state.val_end_t == time(0, 0)
+
+    assert session_state.guided_active_node == "target_and_window"
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+
+    # This is the native time widget's committed state and ordinary callback;
+    # the browser handshake must never write its text into scientific state.
+    session_state.val_end_t = time(0, 30)
+    renderer._guided_experiment_definition_change("target_and_window")
+    ready_ack = _acknowledge_guided_keyboard_values(session_state)
+    assert ready_ack["ready"] is True
+    scientific_values = {
+        key: deepcopy(value) for key, value in session_state.items()
+        if key.startswith("val_")
+    }
+    session_state["guided_keyboard_controller"] = {
+        "advance": {
+            "token": ready_ack["token"], "fingerprint": ready_ack["fingerprint"],
+        },
+    }
+    renderer._advance_keyboard_continue()
+    request = page_navigation.consume_page_navigation_request(session_state)
+    assert session_state.guided_active_node == "scope_and_evidence"
+    assert request["panel_key"] == "guided_step_scope_and_evidence"
+    assert request["focus_target"] == "first_input"
+    assert {
+        key: value for key, value in session_state.items() if key.startswith("val_")
+    } == scientific_values
+    assert session_state.run_mode is None
+    assert get_analysis_submission(session_state) is None
+    renderer._advance_keyboard_continue()
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+    assert session_state.guided_active_node == "scope_and_evidence"
+
+
+def test_guided_keyboard_continue_keeps_invalid_target_local_and_focuses_error(monkeypatch):
+    """An acknowledged commit still passes through the existing panel validator."""
+    session_state = _canonical_state(
+        guided_active_node="target_and_window", val_qth="",
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    session_state["guided_keyboard_controller"] = {
+        "prepare": {"token": "invalid-target", "node": "target_and_window", "expected": None},
+    }
+    renderer._prepare_keyboard_continue()
+    acknowledgement = _acknowledge_guided_keyboard_values(session_state)
+    assert acknowledgement["ready"] is True
+    session_state["guided_keyboard_controller"] = {
+        "advance": {
+            "token": acknowledgement["token"],
+            "fingerprint": acknowledgement["fingerprint"],
+        },
+    }
+    renderer._advance_keyboard_continue()
+    request = page_navigation.consume_page_navigation_request(session_state)
+    assert session_state.guided_active_node == "target_and_window"
+    assert set(session_state["_input_field_errors"]) == {"val_qth"}
+    assert request["panel_key"] == "guided_step_target_and_window"
+    assert request["focus_field"] == "val_qth"
+    assert get_analysis_submission(session_state) is None
+    renderer._advance_keyboard_continue()
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+
+
+def test_guided_keyboard_rejected_correction_recovers_to_the_previous_valid_value(monkeypatch):
+    """Keep rejected text visible, then allow a corrected boundary Tab to advance."""
+    from ui.components import config_panel
+
+    session_state = _canonical_state(
+        guided_use_case="rx_benchmark",
+        guided_active_node="offset_calibration",
+        guided_reference_design="reference_station",
+        val_comp_mode="reference_station",
+        val_ref_callsign="G1XYZ",
+        val_ref_qth="JO01",
+        val_snr_correction_mode="established_offset",
+        val_benchmark_offset_db=1.2,
+        _val_benchmark_offset_db_text="abc",
+        _val_benchmark_offset_db_text_synced_value=1.2,
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    monkeypatch.setattr(config_panel, "st", SimpleNamespace(session_state=session_state))
+
+    # The native callback preserves the last scientific value while leaving the
+    # rejected text visible before the boundary request reaches the server.
+    config_panel._normalize_reference_correction_state(
+        renderer._guided_experiment_definition_change, ("offset_calibration",),
+    )
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert session_state["_val_benchmark_offset_db_text"] == "abc"
+    assert session_state["_val_benchmark_offset_db_text_error"] is True
+    session_state["guided_keyboard_controller"] = {
+        "prepare": {
+            "token": "rejected-correction", "node": "offset_calibration",
+            "expected": {
+                "key": "_val_benchmark_offset_db_text", "kind": "text", "value": "abc",
+            },
+        },
+    }
+    renderer._prepare_keyboard_continue()
+    acknowledgement = _acknowledge_guided_keyboard_values(session_state)
+    assert acknowledgement["ready"] is True
+    session_state["guided_keyboard_controller"] = {
+        "advance": {
+            "token": acknowledgement["token"],
+            "fingerprint": acknowledgement["fingerprint"],
+        },
+    }
+    renderer._advance_keyboard_continue()
+    request = page_navigation.consume_page_navigation_request(session_state)
+    assert session_state.guided_active_node == "offset_calibration"
+    assert set(session_state["_input_field_errors"]) == {"_val_benchmark_offset_db_text"}
+    assert request["panel_key"] == "guided_step_offset_calibration"
+    assert request["focus_field"] == "_val_benchmark_offset_db_text"
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert session_state.run_mode is None
+    assert get_analysis_submission(session_state) is None
+    renderer._advance_keyboard_continue()
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+
+    # Re-entering the unchanged scientific value must still clear the rejected
+    # edit and its validation state; a different number is not required.
+    session_state["_val_benchmark_offset_db_text"] = "1.2"
+    config_panel._normalize_reference_correction_state(
+        renderer._guided_experiment_definition_change, ("offset_calibration",),
+    )
+    assert not session_state.get("_val_benchmark_offset_db_text_error", False)
+    assert session_state.val_benchmark_offset_db == 1.2
+    session_state["guided_keyboard_controller"] = {
+        "prepare": {
+            "token": "corrected-offset", "node": "offset_calibration",
+            "expected": {
+                "key": "_val_benchmark_offset_db_text", "kind": "text", "value": "1.2",
+            },
+        },
+    }
+    renderer._prepare_keyboard_continue()
+    acknowledgement = _acknowledge_guided_keyboard_values(session_state)
+    assert acknowledgement["ready"] is True
+    session_state["guided_keyboard_controller"] = {
+        "advance": {
+            "token": acknowledgement["token"],
+            "fingerprint": acknowledgement["fingerprint"],
+        },
+    }
+    renderer._advance_keyboard_continue()
+    request = page_navigation.consume_page_navigation_request(session_state)
+    assert session_state.guided_active_node == "scope_and_evidence"
+    assert request["panel_key"] == "guided_step_scope_and_evidence"
+    assert request["focus_target"] == "first_input"
+    assert not session_state.get("_input_field_errors")
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert session_state.run_mode is None
+    assert get_analysis_submission(session_state) is None
+
+
+@pytest.mark.parametrize("invalidator", ["cancel", "changed_value"])
+def test_guided_keyboard_continue_rejects_canceled_or_outdated_acknowledgement(
+    monkeypatch, invalidator,
+):
+    """A delayed browser event cannot navigate after cancel or a newer edit."""
+    session_state = _canonical_state(guided_active_node="target_and_window")
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    session_state["guided_keyboard_controller"] = {
+        "prepare": {"token": "old-request", "node": "target_and_window", "expected": None},
+    }
+    renderer._prepare_keyboard_continue()
+    acknowledgement = _acknowledge_guided_keyboard_values(session_state)
+    assert acknowledgement["ready"] is True
+    if invalidator == "cancel":
+        session_state["guided_keyboard_controller"] = {"cancel": "old-request"}
+        renderer._cancel_keyboard_continue()
+    else:
+        session_state.val_band = "20m"
+        renderer._guided_experiment_definition_change("target_and_window")
+    session_state["guided_keyboard_controller"] = {
+        "advance": {
+            "token": acknowledgement["token"],
+            "fingerprint": acknowledgement["fingerprint"],
+        },
+    }
+    renderer._advance_keyboard_continue()
+    assert session_state.guided_active_node == "target_and_window"
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+    assert get_analysis_submission(session_state) is None
+
+
+def test_guided_keyboard_boundary_cannot_submit_terminal_review(monkeypatch):
+    """The keyboard continuation protocol never substitutes for an explicit Run."""
+    session_state = _canonical_state(guided_active_node="review_and_run")
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    session_state["guided_keyboard_controller"] = {
+        "prepare": {"token": "terminal-attempt", "node": "review_and_run", "expected": None},
+    }
+    renderer._prepare_keyboard_continue()
+    assert _acknowledge_guided_keyboard_values(session_state) is None
+    session_state["guided_keyboard_controller"] = {
+        "advance": {"token": "terminal-attempt", "fingerprint": "0" * 64},
+    }
+    renderer._advance_keyboard_continue()
+    assert session_state.guided_active_node == "review_and_run"
+    assert session_state.run_mode is None
+    assert get_analysis_submission(session_state) is None
+    assert page_navigation.consume_page_navigation_request(session_state) is None
+
+
+def test_guided_keyboard_mount_precedes_variable_panels_and_retains_its_slot(monkeypatch):
+    """A completed Reference edit must update controller data without remounting it."""
+    session_state = _canonical_state(
+        guided_use_case="rx_benchmark", val_comp_mode="reference_station",
+        guided_reference_design="reference_station", val_ref_callsign="",
+        guided_active_node="reference_design",
+    )
+    events = []
+    active_slots = []
+
+    class KeyboardSlot(_NullContext):
+        def __enter__(self):
+            active_slots.append("guided_keyboard_slot")
+            return self
+
+        def __exit__(self, *_args):
+            active_slots.pop()
+
+    def container(*, key):
+        events.append(("container", key))
+        return KeyboardSlot()
+
+    def expander(*_args, **_kwargs):
+        events.append(("panel", None))
+        return _NullContext()
+
+    def controller(**_kwargs):
+        assert active_slots == ["guided_keyboard_slot"]
+        events.append(("controller", None))
+
+    monkeypatch.setattr(renderer, "st", SimpleNamespace(
+        session_state=session_state, container=container, expander=expander,
+        markdown=Mock(), button=Mock(), warning=Mock(), info=Mock(),
+    ))
+    monkeypatch.setattr(renderer, "_render_demo_metadata", Mock())
+    monkeypatch.setattr(renderer, "render_guided_keyboard_controller", controller)
+    for name in renderer.CONTROL_RENDERERS:
+        monkeypatch.setitem(renderer.CONTROL_RENDERERS, name, Mock(return_value="review-slot"))
+
+    counts = []
+    for callsign in ("", "DL2XYZ"):
+        session_state.val_ref_callsign = callsign
+        events.clear()
+        result = renderer.render_guided_inputs(T["en"])
+        counts.append(len(result.available_nodes))
+        assert events[0] == ("container", "guided_keyboard_slot")
+        assert events[-1] == ("controller", None)
+        assert sum(kind == "container" for kind, _ in events) == 1
+    assert counts[1] > counts[0]
 
 
 def test_demo_metadata_precedes_steps_but_ready_review_remains_open(monkeypatch):
@@ -954,6 +1284,7 @@ def test_demo_metadata_precedes_steps_but_ready_review_remains_open(monkeypatch)
         guided_demo_metadata_open=True,
         guided_active_node="review_and_run",
     )
+    monkeypatch.setattr(renderer, "render_guided_keyboard_controller", Mock())
     events = []
 
     def fake_expander(label, *, expanded, icon):
@@ -966,6 +1297,7 @@ def test_demo_metadata_precedes_steps_but_ready_review_remains_open(monkeypatch)
         SimpleNamespace(
             session_state=session_state,
             expander=fake_expander,
+            container=Mock(return_value=_NullContext()),
             markdown=Mock(),
             button=Mock(),
             info=Mock(),
@@ -1011,6 +1343,7 @@ def test_completed_active_step_stays_open_until_continue_then_opens_next(
     monkeypatch,
 ):
     """Let Continue, rather than field validity, govern accordion progression."""
+    monkeypatch.setattr(renderer, "render_guided_keyboard_controller", Mock())
     session_state = _canonical_state(
         guided_active_node="use_case",
         guided_demo_metadata_open=False,
@@ -1033,6 +1366,7 @@ def test_completed_active_step_stays_open_until_continue_then_opens_next(
         SimpleNamespace(
             session_state=session_state,
             expander=fake_expander,
+            container=Mock(return_value=_NullContext()),
             markdown=Mock(),
             button=fake_button,
             info=Mock(),
@@ -1083,6 +1417,7 @@ def test_stale_ready_configuration_also_opens_review_and_rerun_actions(
     monkeypatch,
 ):
     """Expose rerun actions without closing the complete panel being edited."""
+    monkeypatch.setattr(renderer, "render_guided_keyboard_controller", Mock())
     session_state = _canonical_state(
         guided_active_node="target_and_window",
         guided_demo_metadata_open=False,
@@ -1101,6 +1436,7 @@ def test_stale_ready_configuration_also_opens_review_and_rerun_actions(
         SimpleNamespace(
             session_state=session_state,
             expander=fake_expander,
+            container=Mock(return_value=_NullContext()),
             markdown=Mock(),
             button=Mock(),
             info=Mock(),
@@ -1134,6 +1470,7 @@ def test_stale_incomplete_configuration_does_not_expose_unready_review(
     monkeypatch,
 ):
     """Keep guiding through required fields when a changed request is incomplete."""
+    monkeypatch.setattr(renderer, "render_guided_keyboard_controller", Mock())
     session_state = _canonical_state(
         val_callsign="",
         guided_active_node="target_and_window",
@@ -1151,6 +1488,7 @@ def test_stale_incomplete_configuration_does_not_expose_unready_review(
         SimpleNamespace(
             session_state=session_state,
             expander=fake_expander,
+            container=Mock(return_value=_NullContext()),
             markdown=Mock(),
             button=Mock(),
             warning=Mock(),
@@ -1848,8 +2186,9 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_loaded_demo_reference_design_round_trip_retains_station_and_later_steps(language):
+def test_loaded_demo_reference_design_round_trip_retains_station_and_later_steps(language, monkeypatch):
     """A temporary neighbourhood choice must not erase the demo's station input."""
+    monkeypatch.setattr(renderer, "render_guided_keyboard_controller", Mock())
     script = '''
 import streamlit as st
 from config import DEMO_PROFILES
@@ -1923,6 +2262,76 @@ def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
     renderer._handle_offset_intent_change()
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.guided_active_node == "offset_calibration"
+
+
+@pytest.mark.parametrize("reset_path", [
+    "no_offset", "establish_offset", "guided_context", "guided_design",
+    "guided_direction", "classic_context", "classic_design",
+    "classic_direction", "classic_question", "reset_configuration",
+])
+def test_explicit_zero_correction_resets_retire_rejected_widget_state(monkeypatch, reset_path):
+    session_state = _canonical_state(
+        guided_use_case="rx_benchmark",
+        guided_reference_design="reference_station",
+        guided_last_benchmark_mode="reference_station",
+        classic_question="rx_benchmark",
+        val_comp_mode="reference_station",
+        val_snr_correction_mode="established_offset",
+        val_ref_callsign="DL2XYZ",
+        val_benchmark_offset_db=1.2,
+        _val_benchmark_offset_db_text="invalid",
+        _val_benchmark_offset_db_text_synced_value=1.2,
+        _val_benchmark_offset_db_text_error=True,
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    if reset_path in {"no_offset", "establish_offset"}:
+        session_state.val_snr_correction_mode = reset_path
+        renderer._handle_offset_intent_change()
+    elif reset_path == "guided_context":
+        renderer._guided_correction_context_change("target_and_window")
+    elif reset_path == "guided_design":
+        session_state.guided_reference_design = "local_neighborhood"
+        renderer._handle_reference_design_change()
+    elif reset_path == "guided_direction":
+        session_state.guided_use_case = "tx_benchmark"
+        renderer._handle_use_case_change()
+    elif reset_path == "classic_context":
+        callbacks.handle_reference_correction_context_change()
+    elif reset_path == "classic_design":
+        session_state[CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY] = "local_neighborhood"
+        callbacks.handle_classic_benchmark_design_change()
+    elif reset_path == "classic_direction":
+        callbacks.handle_analysis_direction_change()
+    elif reset_path == "classic_question":
+        session_state[CLASSIC_QUESTION_KEY] = "tx_benchmark"
+        callbacks.handle_classic_question_change()
+    else:
+        callbacks.set_reset_config(reset_time_window=False)
+
+    assert session_state.val_benchmark_offset_db == 0.0
+    assert session_state.val_snr_correction_mode == (
+        "establish_offset" if reset_path == "establish_offset" else "no_offset"
+    )
+    assert "_val_benchmark_offset_db_text" not in session_state
+    assert "_val_benchmark_offset_db_text_synced_value" not in session_state
+    assert "_val_benchmark_offset_db_text_error" not in session_state
+
+
+def test_established_correction_intent_preserves_an_unresolved_rejection(monkeypatch):
+    session_state = _canonical_state(
+        guided_use_case="rx_benchmark",
+        val_comp_mode="reference_station",
+        val_snr_correction_mode="established_offset",
+        val_benchmark_offset_db=1.2,
+        _val_benchmark_offset_db_text="invalid",
+        _val_benchmark_offset_db_text_synced_value=1.2,
+        _val_benchmark_offset_db_text_error=True,
+    )
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    renderer._handle_offset_intent_change()
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert session_state["_val_benchmark_offset_db_text"] == "invalid"
+    assert session_state["_val_benchmark_offset_db_text_error"] is True
 
 
 def test_guided_identity_edit_clears_established_pair_correction(monkeypatch):
@@ -2294,19 +2703,18 @@ def _run_application_with_state(initial_state):
     return result
 
 
-def test_guided_run_validates_incomplete_inputs_and_save_requires_readiness():
-    """Keep Run available to reveal required fields without submitting invalid data."""
+def test_guided_continue_validates_incomplete_step_and_run_requires_readiness():
+    """An incomplete step exposes local errors without offering a premature Run."""
     incomplete_application = _run_application_with_state(
         {
             "lang": "en",
             "input_view": "guided",
-            "_probe_click_run": True,
+            "_probe_click_continue": "use_case",
         }
     )
 
-    assert len(incomplete_application["run_actions"]) == 1
-    assert incomplete_application["run_actions"][0]["disabled"] is False
-    assert "guided_use_case" in incomplete_application["field_errors"]
+    assert incomplete_application["run_actions"] == []
+    assert set(incomplete_application["field_errors"]) == {"guided_use_case"}
     assert incomplete_application["run_mode"] is None
     assert incomplete_application["save_actions"] == []
     assert GUIDED_INPUTS["en"]["validation"]["use_case"] in incomplete_application["warnings"]
@@ -2452,7 +2860,11 @@ def test_invalid_windows_are_reported_and_blocked_before_submission(input_view):
                 val_end_d=end_date,
                 val_end_t=end_time,
                 _absolute_time_window_initialized=True,
-                _probe_click_run=True,
+                guided_active_node="target_and_window",
+                _probe_click_run=input_view == "classic",
+                _probe_click_continue=(
+                    "target_and_window" if input_view == "guided" else None
+                ),
             )
         )
 
@@ -2462,13 +2874,13 @@ def test_invalid_windows_are_reported_and_blocked_before_submission(input_view):
             assert field in invalid_application["field_errors"]
             assert any(f".st-key-{field}" in style for style in invalid_application["field_error_styles"])
         assert invalid_application["run_mode"] is None
-        assert invalid_application["run_actions"] == [
+        assert invalid_application["run_actions"] == ([
             {
                 "label": "Run RX Analysis",
                 "disabled": False,
                 "type": "primary",
             }
-        ]
+        ] if input_view == "classic" else [])
 
 
 def test_letter_only_archive_identity_is_valid_in_guided_and_classic_inputs():
@@ -2549,12 +2961,15 @@ def _application_page_region_paths(application):
 def page_region_application(monkeypatch):
     """Run the real shell with tiny slot-owned maps and no scientific work."""
     import streamlit as st
-    from ui import documentation_scroll_trigger, run_controller, url_synchronizer
+    from ui import documentation_scroll_trigger, input_keyboard, run_controller, url_synchronizer
+    from ui.guided_inputs import keyboard
 
     # Component JavaScript has independent behavioral coverage. Its cached
     # declarations are not registered in every AppTest runtime in this suite.
     for component_module, component_attribute in (
         (page_navigation, "_PAGE_NAVIGATION_CONTROLLER"),
+        (input_keyboard, "_INPUT_KEYBOARD_CONTROLLER"),
+        (keyboard, "_GUIDED_KEYBOARD_CONTROLLER"),
         (url_synchronizer, "_URL_QUERY_SYNCHRONIZER"),
         (documentation_scroll_trigger, "_DOCUMENTATION_SCROLL_TRIGGER"),
     ):
@@ -2611,6 +3026,141 @@ def page_region_application(monkeypatch):
         return application, rendered_slot_paths
 
     return create
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("result_family", ["performance", "benchmark"])
+def test_guided_missing_choice_recovers_without_errors_on_unattempted_steps(
+    page_region_application, monkeypatch, language, direction, result_family,
+):
+    """Continue validates its own panel and committed corrections restore the flow."""
+    from core import reference_location
+
+    discovery_requests = []
+    rendered_slot_paths = []
+
+    def discover_locations(**request):
+        # Retain the real submission and automatic location-selection paths;
+        # replace only the external archive discovery with known observations.
+        assert rendered_slot_paths == []
+        assert request["direction"] == direction
+        assert request["target_callsign"] == "DL1ABC"
+        assert request["target_qth"] == "JO62QM"
+        assert request["reference_callsign"] == "G1XYZ"
+        assert request["band"] == "40m"
+        assert request["start_utc"].isoformat() == "2026-07-01T00:00:00+00:00"
+        assert request["end_utc"].isoformat() == "2026-07-02T00:00:00+00:00"
+        discovery_requests.append(request)
+
+        def candidate(grid, locator):
+            return reference_location.LocationCandidate(
+                grid, (locator,), 1,
+                request["start_utc"].isoformat(),
+                request["start_utc"].isoformat(),
+            )
+
+        return reference_location.LocationDiscovery(
+            "wd2", "strict_code_1",
+            (candidate("JO62", "JO62QM"),),
+            (candidate("JO01", "JO01AA"),),
+        )
+
+    monkeypatch.setattr(
+        reference_location, "discover_reference_locations", discover_locations,
+    )
+    application, rendered_slot_paths = page_region_application(
+        "guided",
+        lang=language,
+        run_mode=None,
+        guided_use_case=None,
+        val_analysis_direction=None,
+        val_callsign="",
+        val_qth="",
+        _absolute_time_window_initialized=True,
+    )
+
+    def assert_feedback(expected_fields=(), *, run_available=False):
+        assert list(application.exception) == []
+        field_errors = (
+            dict(application.session_state["_input_field_errors"])
+            if "_input_field_errors" in application.session_state else {}
+        )
+        assert set(field_errors) == set(expected_fields)
+        if expected_fields:
+            assert set(field_errors.values()).issubset(
+                {error.value for error in application.error}
+            )
+        else:
+            assert list(application.error) == []
+            assert not any(
+                element.value.startswith("<style>.st-key-")
+                for element in application.markdown
+            )
+        assert bool([
+            button for button in application.button
+            if button.key == "run_analysis_button"
+        ]) is run_available
+        assert application.session_state["run_mode"] is None
+        assert rendered_slot_paths == []
+        assert discovery_requests == []
+
+    def continue_from(node):
+        button = application.button(key=f"guided_continue_{node}")
+        assert button.label == GUIDED_INPUTS[language]["messages"]["continue"]
+        assert button.disabled is False
+        button.click().run()
+
+    assert_feedback()
+    continue_from("use_case")
+    assert application.session_state["guided_active_node"] == "use_case"
+    assert_feedback(("guided_use_case",))
+
+    application.radio(key="guided_use_case").set_value(
+        f"{direction}_{result_family}"
+    ).run()
+    assert_feedback()
+    continue_from("use_case")
+    assert application.session_state["guided_active_node"] == "target_and_window"
+    assert_feedback()
+
+    # A fresh attempt may flag this panel, but must not flag missing Reference
+    # inputs in the Benchmark path before that panel has been attempted.
+    continue_from("target_and_window")
+    assert_feedback(("val_callsign", "val_qth"))
+    application.text_input(key="val_callsign").input("DL1ABC").run()
+    assert_feedback(("val_qth",))
+    application.text_input(key="val_qth").input("JO62QM").run()
+    assert_feedback(run_available=result_family == "performance")
+    continue_from("target_and_window")
+
+    if result_family == "benchmark":
+        assert application.session_state["guided_active_node"] == "reference_design"
+        assert_feedback()
+        continue_from("reference_design")
+        assert_feedback(("val_ref_callsign",))
+        application.text_input(key="val_ref_callsign").input("G1XYZ").run()
+        assert_feedback(run_available=True)
+        continue_from("reference_design")
+        assert application.session_state["guided_active_node"] == "offset_calibration"
+        assert_feedback(run_available=True)
+        continue_from("offset_calibration")
+
+    assert application.session_state["guided_active_node"] == "scope_and_evidence"
+    assert_feedback(run_available=True)
+    continue_from("scope_and_evidence")
+    assert application.session_state["guided_active_node"] == "review_and_run"
+    assert_feedback(run_available=True)
+
+    application.button(key="run_analysis_button").click().run()
+    assert list(application.exception) == []
+    assert list(application.error) == []
+    assert application.session_state["run_mode"] == direction.upper()
+    assert len(rendered_slot_paths) == 1
+    assert len(discovery_requests) == (1 if result_family == "benchmark" else 0)
+    if result_family == "benchmark":
+        assert application.session_state["val_ref_qth"] == "JO01"
+        assert application.session_state["_reference_location_resolution"]["selected_grid"] == "JO01"
 
 
 @pytest.mark.parametrize("language", ["en", "de"])

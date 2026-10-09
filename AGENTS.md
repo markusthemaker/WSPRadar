@@ -115,6 +115,13 @@ suite on Windows through the checked-in foreground runner:
 .\scripts\run_regression.cmd
 ```
 
+For focused Windows checks, use the same runner with explicit regression files
+or node IDs before any pytest options:
+
+```powershell
+.\scripts\run_regression.cmd -Focused tests/regression/test_input_validation_state.py -x
+```
+
 On Linux or macOS, invoke pytest directly:
 
 ```bash
@@ -123,7 +130,12 @@ python -m pytest tests/regression -q
 
 The Windows runner invokes `.\.venv\Scripts\python.exe -u -m pytest` directly,
 keeps pytest attached to the foreground terminal, validates the fixed serial
-fallback chunks, and propagates pytest's exit code. The dated complete-run
+fallback chunks, and propagates pytest's exit code. Each executing invocation
+uses a fresh `.test/runs/<run-id>/temp` and `cache` workspace and prints its path;
+explicit pytest path overrides take precedence. Validation-only invocations
+create no workspace. Prior runs are retained; after preserving needed evidence
+and checking for active users, remove only the exact completed run directory
+owned by the task. The dated complete-run
 record is maintained in `AGENT_README.md`. Prepared-export integrity coverage
 requires the committed Milazzo fixture under `tests/regression/fixtures/`; a
 missing fixture fails its availability check. One
@@ -179,7 +191,12 @@ lifetime.
 
 - invoke the repository interpreter directly and keep each pytest, compilation,
   or documentation check in the foreground;
-- use `.\scripts\run_regression.cmd` for the complete Windows regression suite.
+- use `.\scripts\run_regression.cmd` for the complete Windows regression suite
+  and `-Focused` followed by regression files or node IDs for focused checks;
+  put all targets before forwarded pytest options such as `-k` or `-x`.
+  Use long pytest options where short forms overlap PowerShell common parameters,
+  for example `--override-ini=cache_dir=...` instead of `-o` and `--verbose`
+  instead of `-v`.
   The launcher applies a process-local execution-policy bypass only to the
   checked-in PowerShell runner, which invokes the repository venv directly with
   unbuffered Python and propagates pytest's exit code;
@@ -201,7 +218,8 @@ lifetime.
   `.\scripts\run_regression.cmd -Chunk 1` through `-Chunk 5` serially. The
   checked-in manifest is validated before every invocation and fails if a test
   module is unassigned, duplicated, renamed, or removed. Never run these chunks
-  concurrently because pytest clears and reuses the same `.test` workspace;
+  concurrently: separate pytest temporary/cache paths do not establish isolation
+  of shared application caches, ports, Streamlit, Matplotlib, or process state;
 - use `.\scripts\run_regression.cmd -ValidateChunks` to check the fixed fallback
   partition without running pytest. Use
   `.\scripts\run_regression.cmd -Durations 30` to report the slowest tests in a

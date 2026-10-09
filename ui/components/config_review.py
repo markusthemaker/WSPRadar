@@ -198,6 +198,8 @@ def render_configuration_review(
         streamlit_api.warning(message_pattern_warning)
     if state.get("val_snr_correction_mode") == "establish_offset":
         streamlit_api.warning(messages["calibration_run_notice"])
+    # Keep Run first in the Review tab sequence after its focused heading.
+    actions_slot = streamlit_api.empty()
     if on_open_classic is not None:
         streamlit_api.button(
             messages["open_classic"],
@@ -206,4 +208,4 @@ def render_configuration_review(
             on_click=on_open_classic,
             width="stretch",
         )
-    return streamlit_api.empty()
+    return actions_slot

@@ -18,7 +18,10 @@ from ui.analysis_submission_state import (
     get_analysis_submission,
 )
 from ui.run_lifecycle import handoff_input_view_submission
-from ui.analysis_question_state import apply_analysis_question_choice
+from ui.analysis_question_state import (
+    apply_analysis_question_choice,
+    reset_reference_correction_entry,
+)
 from ui.callbacks import clear_reference_location_resolution, reset_audit, reset_experiment_definition
 from ui.classic_input_state import (
     classic_result_type,
@@ -44,6 +47,13 @@ from ui.components.config_review import (
     render_configuration_review,
 )
 from ui.config_io import validate_config_document
+from ui.input_validation_state import (
+    attempt_input_validation,
+    clear_input_validation,
+    refresh_guided_input_validation,
+    validate_input_fields,
+    validation_focus_key,
+)
 from ui.page_navigation import (
     PARAMETER_SETTINGS_ANCHOR_ID,
     page_navigation_marker_html,
@@ -56,6 +66,15 @@ from ui.population_exclusion_state import (
 )
 
 from .flow_engine import available_flow_nodes, matching_next_node
+from .keyboard import GUIDED_KEYBOARD_CONTROLLER_KEY, render_guided_keyboard_controller
+from .keyboard_state import (
+    GUIDED_KEYBOARD_PENDING_KEY,
+    cancel_guided_keyboard,
+    consume_guided_keyboard,
+    guided_keyboard_ack,
+    guided_keyboard_values,
+    prepare_guided_keyboard,
+)
 from .flow_loader import (
     CONTROL_RENDERER_NAMES,
     GuidedFlowError,
@@ -111,6 +130,7 @@ def _guided_correction_context_change(node_id: str) -> None:
     if active_mode in COMPARISON_MODES or retained_mode in COMPARISON_MODES:
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
+        reset_reference_correction_entry(st.session_state)
     _guided_experiment_definition_change(node_id)
 
 
@@ -144,6 +164,7 @@ def _handle_reference_design_change() -> None:
         clear_reference_location_resolution()
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
+        reset_reference_correction_entry(st.session_state)
     _guided_experiment_definition_change("reference_design")
 
 
@@ -154,6 +175,7 @@ def _handle_offset_intent_change() -> None:
         return
     if intent in {"no_offset", "establish_offset"}:
         st.session_state.val_benchmark_offset_db = 0.0
+        reset_reference_correction_entry(st.session_state)
     _guided_experiment_definition_change("offset_calibration")
 
 
@@ -212,6 +234,7 @@ def _loaded_demo_scope_matches_current_state() -> bool:
 
 def _continue_to(next_node: str) -> None:
     """Open and navigate to the next panel without changing scientific state."""
+    clear_input_validation(st.session_state)
     st.session_state.guided_active_node = next_node
     st.session_state.guided_collapse_all = False
     request_page_navigation(
@@ -219,6 +242,81 @@ def _continue_to(next_node: str) -> None:
         PARAMETER_SETTINGS_ANCHOR_ID,
         should_scroll=True,
         panel_key=f"guided_step_{next_node}",
+        focus_target=(
+            "panel_header"
+            if next_node == load_guided_input_flow()["terminal_node"]
+            else "first_input"
+        ),
+    )
+
+
+def _continue_from(node_id: str) -> None:
+    """Check only the attempted panel before advancing along the current branch."""
+    errors = attempt_input_validation(st.session_state, guided_node=node_id)
+    if errors or not is_guided_node_complete(node_id, st.session_state):
+        request_page_navigation(
+            st.session_state,
+            PARAMETER_SETTINGS_ANCHOR_ID,
+            should_scroll=True,
+            panel_key=f"guided_step_{node_id}",
+            focus_field=(
+                validation_focus_key(st.session_state, next(iter(errors)))
+                if errors else None
+            ),
+        )
+        return
+    flow = load_guided_input_flow()
+    next_node = matching_next_node(flow["nodes"][node_id], guided_facts(st.session_state))
+    if next_node is not None:
+        _continue_to(next_node)
+
+
+def _keyboard_available_nodes():
+    flow = load_guided_input_flow()
+    return available_flow_nodes(
+        flow, guided_facts(st.session_state),
+        lambda node: is_guided_node_complete(node, st.session_state),
+    )
+
+
+def _keyboard_values():
+    options = GUIDED_INPUTS[st.session_state.get("lang", "en")]["options"]
+    return guided_keyboard_values(st.session_state, {
+        "guided_use_case": tuple(options["use_cases"]),
+        "val_snr_correction_mode": tuple(options["offset_intent"]),
+    })
+
+
+def _prepare_keyboard_continue() -> None:
+    """Wait for the native field commit before attempting the existing Continue."""
+    if get_analysis_submission(st.session_state) is not None:
+        return
+    payload = st.session_state.get(GUIDED_KEYBOARD_CONTROLLER_KEY, {}).get("prepare")
+    prepare_guided_keyboard(
+        st.session_state, payload, _keyboard_available_nodes(),
+        load_guided_input_flow()["terminal_node"],
+    )
+    pending = st.session_state.get(GUIDED_KEYBOARD_PENDING_KEY)
+    if pending and isinstance(payload, dict) and pending["token"] == payload.get("token"):
+        _activate_step(pending["node"])
+
+
+def _advance_keyboard_continue() -> None:
+    """Recheck the acknowledged snapshot and run ordinary panel validation once."""
+    if get_analysis_submission(st.session_state) is not None:
+        return
+    payload = st.session_state.get(GUIDED_KEYBOARD_CONTROLLER_KEY, {}).get("advance")
+    node = consume_guided_keyboard(
+        st.session_state, payload, _keyboard_values(), _keyboard_available_nodes(),
+    )
+    if node is not None:
+        _continue_from(node)
+
+
+def _cancel_keyboard_continue() -> None:
+    cancel_guided_keyboard(
+        st.session_state,
+        st.session_state.get(GUIDED_KEYBOARD_CONTROLLER_KEY, {}).get("cancel"),
     )
 
 
@@ -243,6 +341,7 @@ def _guided_run_is_ready(available_nodes: tuple[str, ...], review_node: str) -> 
             is_guided_node_complete(node_id, st.session_state)
             for node_id in available_nodes[:-1]
         )
+        and not validate_input_fields(st.session_state)
     )
 
 
@@ -518,6 +617,10 @@ def render_guided_inputs(t) -> GuidedRenderResult:
     if set(CONTROL_RENDERERS) != set(CONTROL_RENDERER_NAMES):
         raise GuidedFlowError("Guided Input control registry does not match the flow whitelist.")
 
+    # Keep the browser controller's mount stable when a committed edit makes
+    # additional panels available. Its data is filled after native rendering.
+    keyboard_slot = st.container(key="guided_keyboard_slot")
+
     if st.session_state.get("guided_reconstruct_requested", False):
         reconstruct_guided_transients(
             st.session_state,
@@ -526,6 +629,7 @@ def render_guided_inputs(t) -> GuidedRenderResult:
         st.session_state.guided_reconstruct_requested = False
         st.session_state.guided_active_node = flow["terminal_node"]
 
+    refresh_guided_input_validation(st.session_state)
     facts = guided_facts(st.session_state)
     available_nodes = available_flow_nodes(
         flow,
@@ -597,7 +701,8 @@ def render_guided_inputs(t) -> GuidedRenderResult:
             icon=":material/route:",
         ):
             st.markdown(
-                page_navigation_marker_html(st.session_state, panel_key) + content["body_md"],
+                f'<span data-wspradar-guided-node="{node_id}"></span>'
+                + page_navigation_marker_html(st.session_state, panel_key) + content["body_md"],
                 unsafe_allow_html=True,
             )
             renderer_result = CONTROL_RENDERERS[node["renderer"]](
@@ -611,21 +716,27 @@ def render_guided_inputs(t) -> GuidedRenderResult:
 
         if (
             node_id != flow["terminal_node"]
-            and is_complete
             and active_node == node_id
             and not force_collapsed
         ):
-            next_node = matching_next_node(node, guided_facts(st.session_state))
-            if next_node is not None:
-                st.button(
-                    guided_content["messages"]["continue"],
-                    key=f"guided_continue_{node_id}",
-                    type="primary",
-                    on_click=_continue_to,
-                    args=(next_node,),
-                    width="stretch",
-                )
+            st.button(
+                guided_content["messages"]["continue"],
+                key=f"guided_continue_{node_id}",
+                type="primary",
+                on_click=_continue_from,
+                args=(node_id,),
+                width="stretch",
+            )
 
+    values = _keyboard_values()
+    with keyboard_slot:
+        render_guided_keyboard_controller(
+            nodes=available_nodes, terminal=flow["terminal_node"], values=values,
+            ack=guided_keyboard_ack(st.session_state, values, available_nodes),
+            on_prepare=_prepare_keyboard_continue,
+            on_advance=_advance_keyboard_continue,
+            on_cancel=_cancel_keyboard_continue,
+        )
     return GuidedRenderResult(
         available_nodes, is_ready, review_actions_slot, demo_run_action_slot,
     )

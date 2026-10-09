@@ -10,6 +10,7 @@ from ui.time_window import TIME_WINDOW_STATE_KEYS, utc_window_from_state, time_w
 
 INPUT_VALIDATION_ATTEMPTED_KEY = "_input_validation_attempted"
 INPUT_FIELD_ERRORS_KEY = "_input_field_errors"
+INPUT_VALIDATION_GUIDED_NODE_KEY = "_input_validation_guided_node"
 
 _MESSAGES = {
     "en": {
@@ -147,35 +148,96 @@ def validate_input_fields(state: Mapping, labels=None) -> dict[str, str]:
     return errors
 
 
-def get_field_error(state, key):
+def _field_guided_node(state, field):
+    """Locate field feedback in the same Guided panel used for error navigation."""
+    if field in {"guided_use_case", "classic_question"}:
+        return "use_case"
+    if field == "_val_benchmark_offset_db_text":
+        return (
+            "offset_calibration"
+            if state.get("input_view") == "guided" and state.get("val_comp_mode") == "reference_station"
+            else "reference_design"
+        )
+    if field in {"val_ref_callsign", "val_ref_qth", "val_comp_mode", "val_ref_radius_km"}:
+        return "reference_design"
+    if "correction" in field or "offset" in field:
+        return "offset_calibration"
+    if field.startswith("val_min") or field in {
+        "val_solar", "val_max_peer_distance_km", "val_exclude_special_callsigns",
+        "val_filter_moving", "val_report_delta_snr_outlier_candidates",
+    }:
+        return "scope_and_evidence"
+    return "target_and_window"
+
+
+def clear_input_validation(state):
+    """Retire feedback without changing any scientific input."""
+    for key in (
+        INPUT_VALIDATION_ATTEMPTED_KEY, INPUT_FIELD_ERRORS_KEY,
+        INPUT_VALIDATION_GUIDED_NODE_KEY,
+    ):
+        state.pop(key, None)
+
+
+def get_visible_input_errors(state, labels=None):
+    """Keep Guided feedback local; Classic continues to show all active errors."""
     if not state.get(INPUT_VALIDATION_ATTEMPTED_KEY):
-        return None
-    return validate_input_fields(state).get(key)
+        return {}
+    errors = validate_input_fields(state, labels)
+    if state.get("input_view") != "guided":
+        return errors
+    node = state.get(INPUT_VALIDATION_GUIDED_NODE_KEY)
+    if node is None:
+        # Existing sessions may retain the former whole-form attempted flag.
+        # Anchor their feedback to the original failure, not the next blank step.
+        previous_errors = state.get(INPUT_FIELD_ERRORS_KEY, {})
+        node = (
+            _field_guided_node(state, next(iter(previous_errors)))
+            if previous_errors else state.get("guided_active_node")
+        )
+    return {
+        field: message for field, message in errors.items()
+        if _field_guided_node(state, field) == node
+    }
 
 
-def attempt_input_validation(state, labels=None):
+def refresh_guided_input_validation(state):
+    """Drop resolved attempts before rendering newly available Guided panels."""
+    if state.get(INPUT_VALIDATION_ATTEMPTED_KEY):
+        errors = get_visible_input_errors(state)
+        if errors:
+            state[INPUT_VALIDATION_GUIDED_NODE_KEY] = _field_guided_node(
+                state, next(iter(errors)),
+            )
+            state[INPUT_FIELD_ERRORS_KEY] = errors
+        else:
+            clear_input_validation(state)
+
+
+def get_field_error(state, key):
+    return get_visible_input_errors(state).get(key)
+
+
+def attempt_input_validation(state, labels=None, *, guided_node=None):
+    """Validate a Continue panel or, by default, the entire Run submission."""
     state[INPUT_VALIDATION_ATTEMPTED_KEY] = True
     errors = validate_input_fields(state, labels)
+    if guided_node is not None:
+        errors = {
+            field: message for field, message in errors.items()
+            if _field_guided_node(state, field) == guided_node
+        }
+    state.pop(INPUT_VALIDATION_GUIDED_NODE_KEY, None)
+    if state.get("input_view") == "guided":
+        if guided_node is not None:
+            state[INPUT_VALIDATION_GUIDED_NODE_KEY] = guided_node
+        elif errors:
+            state[INPUT_VALIDATION_GUIDED_NODE_KEY] = _field_guided_node(
+                state, next(iter(errors)),
+            )
     state[INPUT_FIELD_ERRORS_KEY] = errors
     if errors:
-        first = next(iter(errors))
-        if first in {"guided_use_case", "classic_question"}:
-            node = "use_case"
-        elif first == "_val_benchmark_offset_db_text":
-            node = (
-                "offset_calibration"
-                if state.get("input_view") == "guided" and state.get("val_comp_mode") == "reference_station"
-                else "reference_design"
-            )
-        elif first in {"val_ref_callsign", "val_ref_qth", "val_comp_mode", "val_ref_radius_km"}:
-            node = "reference_design"
-        elif "correction" in first or "offset" in first:
-            node = "offset_calibration"
-        elif first.startswith("val_min"):
-            node = "scope_and_evidence"
-        else:
-            node = "target_and_window"
-        state["guided_active_node"] = node
+        state["guided_active_node"] = _field_guided_node(state, next(iter(errors)))
         state["guided_collapse_all"] = False
         state["config_panels_expanded"] = True
         state["_collapse_config_panels_once"] = False

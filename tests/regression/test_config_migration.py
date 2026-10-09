@@ -1126,6 +1126,29 @@ def test_config_writer_and_reader_preserve_entered_minute_window():
     assert reloaded["end_utc"].isoformat() == "2026-07-17T10:44:00+00:00"
 
 
+def test_loading_same_canonical_correction_retires_rejected_entry():
+    settings = _valid_settings()
+    settings["comparison_parameters"].update(
+        snr_correction_mode="established_offset", snr_correction_db=1.2,
+    )
+    normalized = config_io.validate_config_document(_config_document(settings))
+    session_state = {
+        "lang": "en",
+        "val_benchmark_offset_db": 1.2,
+        "_val_benchmark_offset_db_text": "invalid",
+        "_val_benchmark_offset_db_text_synced_value": 1.2,
+        "_val_benchmark_offset_db_text_error": True,
+    }
+
+    config_io.apply_config_state_values(normalized, session_state)
+
+    assert session_state["val_benchmark_offset_db"] == 1.2
+    assert session_state["val_snr_correction_mode"] == "established_offset"
+    assert "_val_benchmark_offset_db_text" not in session_state
+    assert "_val_benchmark_offset_db_text_synced_value" not in session_state
+    assert "_val_benchmark_offset_db_text_error" not in session_state
+
+
 def test_loading_active_only_config_resets_inactive_widget_state():
     """Prevent hidden values from the preceding session leaking into later modes."""
     normalized = config_io.validate_config_document(

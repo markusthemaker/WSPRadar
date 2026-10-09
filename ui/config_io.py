@@ -53,6 +53,8 @@ from core.time_utils import (
     resolve_default_utc_window,
 )
 from ui.classic_input_state import synchronize_classic_input_state
+from ui.analysis_question_state import reset_reference_correction_entry
+from ui.input_validation_state import clear_input_validation
 from ui.inspector.selection import (
     parse_segment_selection,
     parse_station_identities,
@@ -1287,8 +1289,8 @@ def apply_config_state_values(config, session_state):
     """Apply active values, loaded metadata, and canonical inactive defaults."""
     defaults = _default_config()
     session_state.pop("_reference_location_resolution", None)
-    session_state.pop("_input_field_errors", None)
-    session_state.pop("_input_validation_attempted", None)
+    clear_input_validation(session_state)
+    reset_reference_correction_entry(session_state)
     session_state.update(
         {
             "val_analysis_direction": config["analysis_direction"],

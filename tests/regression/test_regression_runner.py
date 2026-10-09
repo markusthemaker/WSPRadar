@@ -7,6 +7,7 @@ import os
 from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -176,6 +177,138 @@ def test_windows_manifest_validation_needs_no_venv_and_propagates_failures(
         assert validation.returncode != 0, validation_output
         assert expected_error in validation_output
     assert "Repository Python interpreter not found" not in validation_output
+    assert not (checkout_root / ".test").exists()
+
+
+def _isolated_executing_runner(tmp_path):
+    """Use the native launcher with a pytest argument probe in a tiny checkout."""
+    checkout_root = tmp_path / "runner checkout with spaces"
+    scripts_root = checkout_root / "scripts"
+    scripts_root.mkdir(parents=True)
+    runner_source = RUNNER_PATH.read_text(encoding="utf-8")
+    original_python_assignment = '$pythonPath = Join-Path $repoRoot ".venv\\Scripts\\python.exe"'
+    assert runner_source.count(original_python_assignment) == 1
+    python_literal = str(Path(sys.executable)).replace("'", "''")
+    (scripts_root / RUNNER_PATH.name).write_text(
+        runner_source.replace(original_python_assignment, f"$pythonPath = '{python_literal}'"),
+        encoding="utf-8",
+    )
+    shutil.copy2(WINDOWS_LAUNCHER_PATH, scripts_root / WINDOWS_LAUNCHER_PATH.name)
+    shutil.copy2(REPOSITORY_ROOT / "pytest.ini", checkout_root / "pytest.ini")
+    chunks = []
+    for chunk_id in EXPECTED_CHUNK_IDS:
+        relative_path = f"tests/regression/test_probe_{chunk_id}.py"
+        test_path = checkout_root / relative_path
+        test_path.parent.mkdir(parents=True, exist_ok=True)
+        test_path.touch()
+        chunks.append({"id": chunk_id, "tests": [relative_path]})
+    (scripts_root / MANIFEST_PATH.name).write_text(
+        json.dumps({"schema_version": 1, "chunk_count": 5, "chunks": chunks}),
+        encoding="utf-8",
+    )
+    # Parse pytest's real options without collecting or executing another suite.
+    (checkout_root / "pytest.py").write_text(
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "sys.path = [entry for entry in sys.path if Path(entry or '.').resolve() != Path.cwd()]\n"
+        "from _pytest.config import get_config\n"
+        "config = get_config()\n"
+        "config.parse(sys.argv[1:])\n"
+        "probe = {'arguments': sys.argv[1:], 'targets': config.args, "
+        "'basetemp': str(config.getoption('basetemp')), "
+        "'cache_dir': str(config.getini('cache_dir')), "
+        "'cache_precreated': Path(config.getini('cache_dir')).is_dir(), "
+        "'keyword': config.getoption('keyword')}\n"
+        "Path('runner-probe.json').write_text(json.dumps(probe), encoding='utf-8')\n"
+        "raise SystemExit(int(os.environ.get('WSPRADAR_RUNNER_PROBE_EXIT', '0')))\n",
+        encoding="utf-8",
+    )
+    return checkout_root
+
+
+def _invoke_isolated_runner(checkout_root, *arguments, exit_code=0):
+    environment = os.environ.copy()
+    environment["WSPRADAR_RUNNER_PROBE_EXIT"] = str(exit_code)
+    result = subprocess.run(
+        [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c",
+         r"scripts\run_regression.cmd", *arguments],
+        cwd=checkout_root, env=environment, capture_output=True,
+        text=True, timeout=30, check=False,
+    )
+    output = result.stdout + result.stderr
+    probe_path = checkout_root / "runner-probe.json"
+    probe = json.loads(probe_path.read_text(encoding="utf-8")) if probe_path.exists() else None
+    return result.returncode, output, probe
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Exercises the native Windows launcher")
+def test_windows_runner_uses_fresh_retained_workspaces_and_preserves_full_default(tmp_path):
+    checkout_root = _isolated_executing_runner(tmp_path)
+    workspaces = []
+    for _ in range(2):
+        returncode, output, probe = _invoke_isolated_runner(checkout_root)
+        assert returncode == 0, output
+        assert probe["targets"] == ["tests\\regression"]
+        workspace = Path(probe["basetemp"]).parent
+        assert workspace.parent == checkout_root / ".test" / "runs"
+        assert Path(probe["cache_dir"]) == workspace / "cache"
+        assert probe["cache_precreated"] is True
+        assert Path(probe["basetemp"]) == workspace / "temp"
+        assert str(workspace) in output
+        assert workspace.is_dir()
+        (workspace / "retained-evidence.txt").write_text("keep", encoding="utf-8")
+        workspaces.append(workspace)
+    assert workspaces[0] != workspaces[1]
+    assert all((path / "retained-evidence.txt").read_text(encoding="utf-8") == "keep" for path in workspaces)
+    assert not (checkout_root / ".test" / "pytest-temp").exists()
+    assert not (checkout_root / ".test" / "pytest-cache").exists()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Exercises the native Windows launcher")
+def test_windows_runner_focuses_native_targets_preserves_options_and_exit_code(tmp_path):
+    checkout_root = _isolated_executing_runner(tmp_path)
+    targets = ["tests/regression/test_probe_1.py", "tests/regression/test_probe_2.py::test_example[value]"]
+    returncode, output, probe = _invoke_isolated_runner(
+        checkout_root, "-Focused", *targets, "-k", "example and not skipped", "--tb=short",
+        exit_code=7,
+    )
+    assert returncode == 7, output
+    assert probe["targets"] == targets
+    assert probe["keyword"] == "example and not skipped"
+    assert "--tb=short" in probe["arguments"]
+    assert "pytest exited with code 7." in output
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Exercises the native Windows launcher")
+def test_windows_runner_explicit_pytest_paths_override_run_defaults(tmp_path):
+    checkout_root = _isolated_executing_runner(tmp_path)
+    returncode, output, probe = _invoke_isolated_runner(
+        checkout_root, "-Focused", "tests/regression/test_probe_1.py",
+        "--basetemp=chosen-temp", "--override-ini=cache_dir=chosen-cache", "--verbose",
+    )
+    assert returncode == 0, output
+    assert Path(probe["basetemp"]).name == "chosen-temp"
+    assert probe["cache_dir"] == "chosen-cache"
+    assert "--verbose" in probe["arguments"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Exercises the native Windows launcher")
+@pytest.mark.parametrize("arguments", [
+    ("-Focused",),
+    ("-Focused", "-k", "probe"),
+    ("-Focused", "missing.py"),
+    ("-Focused", "pytest.py"),
+    ("-Focused", "tests/regression/../../pytest.py"),
+    ("-Focused", "-Chunk", "1", "tests/regression/test_probe_1.py"),
+    ("-Focused", "-ValidateChunks"),
+    ("-Focused", "tests/regression/test_probe_1.py", "-n", "2"),
+])
+def test_windows_runner_rejects_invalid_focused_requests_before_execution(tmp_path, arguments):
+    checkout_root = _isolated_executing_runner(tmp_path)
+    returncode, output, probe = _invoke_isolated_runner(checkout_root, *arguments)
+    assert returncode != 0, output
+    assert probe is None
+    assert not (checkout_root / ".test").exists()
 
 
 def test_contributor_guidance_uses_foreground_and_scopes_costly_tests():

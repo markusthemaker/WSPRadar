@@ -255,23 +255,61 @@ export default function(component) {
         }
     }
 
-    function scrollWhenPanelOpens(panelKey, requestToken) {
+    function visibleEnabledInput(scope) {
+        const controls = Array.from(scope.querySelectorAll(
+            'input,select,textarea,button,[role="combobox"],[role="radio"],[role="switch"],[role="slider"],[role="spinbutton"]'
+        )).filter(control => {
+            const style = window.getComputedStyle(control);
+            const nativeControl = ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(control.tagName);
+            return (nativeControl || control.getAttribute('tabindex') !== null)
+                && control.getAttribute('type') !== 'hidden'
+                && !control.disabled
+                && control.getAttribute('aria-disabled') !== 'true'
+                && !control.closest('[hidden],[inert],fieldset[disabled],[aria-hidden="true"],[aria-disabled="true"],[data-stale="true"],[data-testid="stTooltipIcon"],[data-testid="stPopover"]')
+                && style.display !== 'none'
+                && style.visibility !== 'hidden'
+                && control.getBoundingClientRect().height > 0;
+        });
+        return controls.find(control => (
+            control.getAttribute('type') !== 'radio'
+            || control.checked
+            || !controls.some(peer => (
+                peer.getAttribute('type') === 'radio'
+                && peer.getAttribute('name') === control.getAttribute('name')
+                && peer.checked
+            ))
+        ));
+    }
+
+    function currentField(scope, fieldKey) {
+        return Array.from(scope.querySelectorAll('.st-key-' + fieldKey)).find(
+            field => !field.closest('[data-stale="true"]')
+        );
+    }
+
+    function scrollWhenPanelOpens(panelKey, requestToken, fieldKey, focusTarget) {
         panelRequestToken = requestToken;
         let previousTop = null;
         let stableFrames = 0;
         const advance = () => {
             panelScrollFrame = null;
-            const marker = Array.from(document.querySelectorAll(
+            const marker = panelKey ? Array.from(document.querySelectorAll(
                 '[data-page-navigation-token]'
             )).find(element => (
                 element.getAttribute('data-page-navigation-token') === requestToken
                 && element.getAttribute('data-page-navigation-panel') === panelKey
                 && !element.closest('[data-stale="true"]')
-            ));
-            const panel = marker?.closest('[data-testid="stExpander"]');
+            )) : null;
+            const field = fieldKey ? currentField(document, fieldKey) : null;
+            const panel = (marker ?? (!panelKey ? field : null))?.closest('[data-testid="stExpander"]');
             const details = panel?.querySelector('details');
-            const header = details?.querySelector('summary');
-            if (!details?.open || !header || panel.closest('[data-stale="true"]')) {
+            if (!panelKey && field) {
+                for (let ancestor = field.parentElement; ancestor; ancestor = ancestor.parentElement) {
+                    if (ancestor.tagName === 'DETAILS' && !ancestor.open) ancestor.open = true;
+                }
+            }
+            const header = details?.querySelector('summary') ?? (!panelKey ? field : null);
+            if (!header || (details && !details.open) || panel?.closest('[data-stale="true"]')) {
                 previousTop = null;
                 stableFrames = 0;
                 return;
@@ -280,16 +318,23 @@ export default function(component) {
             if (bounds.height <= 0) return;
             const accordionAnimating = (document.getAnimations?.() ?? []).some(animation => (
                 animation.playState === 'running'
-                && animation.effect?.target?.tagName === 'DETAILS'
-                && animation.effect?.target?.closest('[data-testid="stExpander"]')
+                && animation.effect?.target === details
             ));
             stableFrames = !accordionAnimating && previousTop !== null && Math.abs(bounds.top - previousTop) < 0.5
                 ? stableFrames + 1 : 0;
             previousTop = bounds.top;
             if (stableFrames >= 2) {
+                const focusScope = fieldKey ? currentField(panel ?? document, fieldKey) : panel;
+                const control = focusTarget === 'panel_header' ? header
+                    : ((fieldKey || focusTarget === 'first_input') && focusScope
+                        ? visibleEnabledInput(focusScope) : null);
+                if ((fieldKey || focusTarget) && !control) return;
                 window[processedRequestTokenProperty] = requestToken;
                 cancelPanelNavigation();
-                header.scrollIntoView({ behavior: 'auto', block: 'start' });
+                if (data?.shouldScrollRequest) {
+                    header.scrollIntoView({ behavior: 'auto', block: 'start' });
+                }
+                control?.focus({ preventScroll: true });
             } else {
                 panelScrollFrame = window.requestAnimationFrame(advance);
             }
@@ -302,7 +347,7 @@ export default function(component) {
         panelObserver = new MutationObserver(schedule);
         panelObserver.observe(document.body, {
             childList: true, subtree: true, attributes: true,
-            attributeFilter: ['open', 'data-stale', 'style'],
+            attributeFilter: ['open', 'data-stale', 'style', 'class', 'hidden', 'disabled', 'aria-hidden', 'aria-disabled'],
         });
         schedule();
     }
@@ -319,38 +364,23 @@ export default function(component) {
         }
 
         const panelKey = data?.panelKey;
-        const panelRequest = data?.shouldScrollRequest && typeof panelKey === 'string'
+        const panelRequest = (data?.shouldScrollRequest || ['first_input', 'panel_header'].includes(data?.focusTarget))
+            && typeof panelKey === 'string'
             && /^[A-Za-z0-9_-]{1,160}$/.test(panelKey);
-        if (!panelRequest) window[processedRequestTokenProperty] = requestToken;
+        const fieldKey = data?.focusFieldKey;
+        const fieldRequest = typeof fieldKey === 'string'
+            && /^[A-Za-z0-9_-]{1,160}$/.test(fieldKey);
+        const focusTarget = ['first_input', 'panel_header'].includes(data?.focusTarget)
+            ? data.focusTarget : null;
+        if (!panelRequest && !fieldRequest) window[processedRequestTokenProperty] = requestToken;
         window[processedInitialAnchorProperty] = anchorId;
         clearPendingDocumentationNavigation();
         replaceCurrentFragment(anchorId);
-        if (panelRequest) {
-            scrollWhenPanelOpens(panelKey, requestToken);
+        if (panelRequest || fieldRequest) {
+            scrollWhenPanelOpens(panelRequest ? panelKey : null, requestToken,
+                fieldRequest ? fieldKey : null, focusTarget);
         } else if (data?.shouldScrollRequest) {
             scrollWhenApplicationAnchorMounts(anchorId);
-        }
-        const fieldKey = data?.focusFieldKey;
-        if (typeof fieldKey === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(fieldKey)) {
-            let attempts = 0;
-            const focusField = () => {
-                const field = document.querySelector('.st-key-' + CSS.escape(fieldKey));
-                if (!field && attempts++ < 30) {
-                    window.setTimeout(focusField, 100);
-                    return;
-                }
-                if (!field) return;
-                let parent = field.parentElement;
-                while (parent) {
-                    if (parent.tagName === 'DETAILS') parent.open = true;
-                    parent = parent.parentElement;
-                }
-                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                const control = field.querySelector('input,select,textarea,[role="combobox"]')
-                    ?? field.querySelector('button');
-                control?.focus({ preventScroll: true });
-            };
-            window.setTimeout(focusField, 150);
         }
         return true;
     }
@@ -515,6 +545,7 @@ export default function(component) {
         if (event.button !== 0) {
             return;
         }
+        cancelPanelNavigation(true);
         const element = scrollContainer === window ? document.documentElement : scrollContainer;
         const gutterWidth = element.offsetWidth - element.clientWidth;
         const bounds = element.getBoundingClientRect();
@@ -536,6 +567,11 @@ export default function(component) {
             cancelAnalysisNavigation();
             cancelPanelNavigation(true);
         }
+    }
+
+    function handleFocusNavigation() {
+        // Native Tab or another focus move owns the destination from this point.
+        cancelPanelNavigation(true);
     }
 
     if (analysisNavigationIsActive()) {
@@ -560,6 +596,7 @@ export default function(component) {
     document.addEventListener('keydown', handleDeliberateNavigation);
     document.addEventListener('click', handleAnchorNavigation, true);
     document.addEventListener('pointerdown', handleScrollbarNavigation, true);
+    document.addEventListener('focusin', handleFocusNavigation);
     window.addEventListener('resize', scheduleAnalysisNavigation);
 
     scrollContainer.addEventListener(
@@ -597,6 +634,7 @@ export default function(component) {
         document.removeEventListener('keydown', handleDeliberateNavigation);
         document.removeEventListener('click', handleAnchorNavigation, true);
         document.removeEventListener('pointerdown', handleScrollbarNavigation, true);
+        document.removeEventListener('focusin', handleFocusNavigation);
         window.removeEventListener('resize', scheduleAnalysisNavigation);
         scrollContainer.removeEventListener(
             'scroll',
@@ -639,6 +677,7 @@ def request_page_navigation(
     should_scroll: bool,
     focus_field: str | None = None,
     panel_key: str | None = None,
+    focus_target: str | None = None,
 ) -> None:
     """Queue one browser location update to an allowlisted application anchor."""
     if anchor_id not in APPLICATION_ANCHOR_IDS:
@@ -647,6 +686,11 @@ def request_page_navigation(
         _validate_navigation_attribute(focus_field, "input field")
     if panel_key is not None:
         _validate_navigation_attribute(panel_key, "panel key")
+    if focus_target is not None and (
+        not isinstance(focus_target, str) or focus_target not in {"first_input", "panel_header"}
+        or panel_key is None or focus_field is not None
+    ):
+        raise ValueError("Panel focus target requires a panel key and no field focus.")
     session_state[PAGE_NAVIGATION_REQUEST_KEY] = {
         "anchor_id": anchor_id,
         "request_token": uuid4().hex,
@@ -656,6 +700,8 @@ def request_page_navigation(
         session_state[PAGE_NAVIGATION_REQUEST_KEY]["focus_field"] = focus_field
     if panel_key is not None:
         session_state[PAGE_NAVIGATION_REQUEST_KEY]["panel_key"] = panel_key
+    if focus_target is not None:
+        session_state[PAGE_NAVIGATION_REQUEST_KEY]["focus_target"] = focus_target
 
 
 def consume_page_navigation_request(
@@ -684,6 +730,12 @@ def consume_page_navigation_request(
     panel_key = request.get("panel_key")
     if isinstance(panel_key, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,160}", panel_key):
         validated_request["panel_key"] = panel_key
+    focus_target = request.get("focus_target")
+    if (
+        isinstance(focus_target, str) and focus_target in {"first_input", "panel_header"}
+        and "panel_key" in validated_request and "focus_field" not in validated_request
+    ):
+        validated_request["focus_target"] = focus_target
     return validated_request
 
 
@@ -733,6 +785,7 @@ def render_page_navigation_controller(
             "analysisSubmissionToken": analysis_submission_token,
             "focusFieldKey": request.get("focus_field") if request else None,
             "panelKey": request.get("panel_key") if request else None,
+            "focusTarget": request.get("focus_target") if request else None,
             "analysisStatusAnchorId": RESULTS_INSPECTION_ANCHOR_ID,
             "analysisMapAnchorId": MAP_RESULTS_ANCHOR_ID,
         },

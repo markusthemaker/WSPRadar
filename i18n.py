@@ -435,7 +435,7 @@ Choose **Download Evidence** to share the retained observations, tables, and fig
         "comp_title_ref": "{callsign} (Reference)",
         "comp_title_local_median": "Local Median Neighborhood (≤{radius} km)",
         "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> | License: <a href='https://github.com/markusthemaker/WSPRadar/blob/main/LICENSE' target='_blank' style='color:#39ff14; text-decoration:none;'>AGPLv3</a><br>Developed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>) ",
-        "exp_adv": "Filters, scope and evidence",
+        "exp_adv": "Optional Filters, scope and evidence",
         "exp_comp": "Benchmark design",
         "exp_core": "Target and measurement window",
         "exp_question": "Question",
@@ -1097,7 +1097,7 @@ Wähle **Evidenz herunterladen**, um die beibehaltenen Beobachtungen, Tabellen u
         "comp_title_ref": "{callsign} (Referenz)",
         "comp_title_local_median": "Lokaler Nachbarschafts-Median (≤{radius} km)",
         "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> | License: <a href='https://github.com/markusthemaker/WSPRadar/blob/main/LICENSE' target='_blank' style='color:#39ff14; text-decoration:none;'>AGPLv3</a><br>Developed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>) ",
-        "exp_adv": "Filter, Analyseumfang und Evidenz",
+        "exp_adv": "Optionale Filter, Analyseumfang und Evidenz",
         "exp_comp": "Benchmark-Design",
         "exp_core": "Target und Messzeitraum",
         "exp_question": "Frage",
@@ -2179,7 +2179,7 @@ The <strong class="defined-term">Target</strong> is your station or signal path 
 An <strong class="defined-term">offset</strong> is a repeatable Target–Reference difference that is already present before the effect you want to study. A Reference-side correction adjusts the Reference SNR before ΔSNR is calculated. Leave the correction at **0.0 dB** unless the offset was established and documented for the same identities or paths, band, hardware and comparison method. The correction shifts every comparison result; it cannot compensate for uncontrolled differences that vary with time, station or radio path.""",
             },
             "scope_and_evidence": {
-                "title": "Filters, scope and evidence",
+                "title": "Optional Filters, scope and evidence",
                 "body_md": """Choose which remote stations and observations contribute to your results, and how much evidence is required for station and map summaries. Review the displayed settings and change them where your question requires it. These values apply even if you leave this panel unchanged.""",
             },
             "review_and_run": {
@@ -2247,7 +2247,7 @@ An <strong class="defined-term">offset</strong> is a repeatable Target–Referen
             "offset_none": "{step} · Reference correction — 0.0 dB ✓",
             "offset_established": "{step} · Reference correction — {offset:+.1f} dB ✓",
             "offset_establish": "{step} · Baseline run — 0.0 dB correction ✓",
-            "scope": "{step} · Filters, scope and evidence — max {distance} km · {solar} ✓",
+            "scope": "{step} · Optional Filters, scope and evidence — max {distance} km · {solar} ✓",
             "review_ready": "{step} · Review — ready to run ✓",
         },
         "messages": {
@@ -2355,7 +2355,7 @@ Deine Station oder dein Signalpfad ist das <strong class="defined-term">Target</
 Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target–Referenz-Differenz, die bereits vorhanden ist, bevor der eigentliche untersuchte Effekt hinzukommt. Eine referenzseitige Korrektur verändert das Referenz-SNR, bevor ΔSNR berechnet wird. Belasse die Korrektur bei **0,0 dB**, sofern der Offset nicht für dieselben Kennungen oder Pfade, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt und dokumentiert wurde. Die Korrektur verschiebt jedes Vergleichsergebnis; sie kann keine unkontrollierten Unterschiede ausgleichen, die sich mit Zeit, Station oder Funkweg ändern.""",
             },
             "scope_and_evidence": {
-                "title": "Filter, Analyseumfang und Evidenz",
+                "title": "Optionale Filter, Analyseumfang und Evidenz",
                 "body_md": """Wähle, welche Gegenstationen und Beobachtungen zu deinen Ergebnissen beitragen und wie viel Evidenz für Stations- und Kartenzusammenfassungen erforderlich ist. Prüfe die angezeigten Einstellungen und ändere sie dort, wo deine Fragestellung es erfordert. Diese Werte gelten auch dann, wenn du diesen Bereich unverändert lässt.""",
             },
             "review_and_run": {
@@ -2423,7 +2423,7 @@ Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target�
             "offset_none": "{step} · Referenzkorrektur — 0,0 dB ✓",
             "offset_established": "{step} · Referenzkorrektur — {offset:+.1f} dB ✓",
             "offset_establish": "{step} · Basislinienlauf — 0,0 dB Korrektur ✓",
-            "scope": "{step} · Filter, Analyseumfang und Evidenz — max. {distance} km · {solar} ✓",
+            "scope": "{step} · Optionale Filter, Analyseumfang und Evidenz — max. {distance} km · {solar} ✓",
             "review_ready": "{step} · Prüfung — startbereit ✓",
         },
         "messages": {

@@ -153,6 +153,46 @@ def test_guided_panel_navigation_preserves_validated_key_and_coarse_anchor(monke
     assert data["requestToken"] == request["request_token"]
 
 
+@pytest.mark.parametrize("focus_target", ["first_input", "panel_header"])
+def test_guided_focus_target_survives_one_shot_navigation(monkeypatch, focus_target):
+    state = {}
+    page_navigation.request_page_navigation(
+        state, page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        should_scroll=True, panel_key="guided_step_reference_design", focus_target=focus_target,
+    )
+    request = page_navigation.consume_page_navigation_request(state)
+    component = Mock()
+    monkeypatch.setattr(page_navigation, "_PAGE_NAVIGATION_CONTROLLER", component)
+    page_navigation.render_page_navigation_controller(request)
+    assert component.call_args.kwargs["data"]["focusTarget"] == focus_target
+    assert page_navigation.consume_page_navigation_request(state) is None
+
+
+@pytest.mark.parametrize("focus_target", ["", "button", "<input>", [], 1])
+def test_guided_focus_target_rejects_invalid_or_tampered_values(focus_target):
+    state = {}
+    with pytest.raises(ValueError):
+        page_navigation.request_page_navigation(
+            state, page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+            should_scroll=True, panel_key="guided_step_use_case", focus_target=focus_target,
+        )
+    state[page_navigation.PAGE_NAVIGATION_REQUEST_KEY] = {
+        "anchor_id": page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        "request_token": "focus-request", "should_scroll": True,
+        "panel_key": "guided_step_use_case", "focus_target": focus_target,
+    }
+    assert "focus_target" not in page_navigation.consume_page_navigation_request(state)
+
+
+def test_panel_focus_requires_panel_key_and_does_not_compete_with_field_focus():
+    for extra in ({}, {"panel_key": "guided_step_use_case", "focus_field": "guided_use_case"}):
+        with pytest.raises(ValueError):
+            page_navigation.request_page_navigation(
+                {}, page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+                should_scroll=True, focus_target="first_input", **extra,
+            )
+
+
 @pytest.mark.parametrize("panel_key", ["", "<details>", 'panel" onclick="alert(1)', "x" * 161, 1])
 def test_guided_panel_navigation_rejects_invalid_keys_and_drops_tampered_keys(panel_key):
     """Do not expose unchecked HTML or selector fragments to the browser."""
@@ -253,6 +293,7 @@ def test_page_navigation_controller_passes_stable_anchor_and_request_contract(
                 "analysisSubmissionToken": None,
                 "focusFieldKey": None,
                 "panelKey": None,
+                "focusTarget": None,
                 "analysisStatusAnchorId": page_navigation.RESULTS_INSPECTION_ANCHOR_ID,
                 "analysisMapAnchorId": page_navigation.MAP_RESULTS_ANCHOR_ID,
             },
@@ -518,20 +559,42 @@ const observers = [];
 const frames = new Map();
 const scrolls = [];
 const scrolledElements = [];
+const focusedElements = [];
+const elements = [];
 let nextFrame = 1;
 class Element extends Events {
     constructor(id, attributes = {}) {
         super(); this.id = id; this.attributes = attributes;
         this.height = 100; this.top = 500;
+        elements.push(this);
     }
     getAttribute(name) { return this.attributes[name] ?? null; }
     getBoundingClientRect() { return { top: this.top, height: this.height, right: 1000, bottom: this.top + this.height }; }
     scrollIntoView() { scrolls.push(this.id); scrolledElements.push(this); }
+    focus() { focusedElements.push(this); document.activeElement = this; document.emit('focusin', {target: this}); }
+    querySelectorAll(selector) {
+        return elements.filter(element => {
+            let ancestor = element.parentElement;
+            while (ancestor && ancestor !== this) ancestor = ancestor.parentElement;
+            if (!ancestor) return false;
+            if (selector.startsWith('.st-key-')) return element.className === selector.slice(1);
+            return ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(element.tagName)
+                || ['combobox', 'radio', 'switch', 'slider', 'spinbutton'].includes(element.getAttribute('role'));
+        });
+    }
     closest(selector) {
         for (let element = this; element; element = element.parentElement) {
             if (selector === '[data-stale="true"]' && element.getAttribute('data-stale') === 'true') return element;
             if (selector === '[data-testid="stExpander"]' && element.getAttribute('data-testid') === 'stExpander') return element;
             if (selector.startsWith('.st-key-') && element.className === selector.slice(1)) return element;
+            if (selector.includes(',')) {
+                for (const part of selector.split(',')) {
+                    if (['[hidden]', '[inert]'].includes(part) && element.getAttribute(part.slice(1, -1)) !== null) return element;
+                    if (part === 'fieldset[disabled]' && element.tagName === 'FIELDSET' && element.getAttribute('disabled') !== null) return element;
+                    const attribute = part.match(/^\[([^=]+)="([^"]+)"\]$/);
+                    if (attribute && element.getAttribute(attribute[1]) === attribute[2]) return element;
+                }
+            }
         }
         return null;
     }
@@ -543,6 +606,7 @@ document.body = new Element('body');
 document.getElementById = id => precedingAnchors.find(element => element.id === id) ?? anchors.get(id) ?? null;
 document.querySelector = selector => selector === '[data-testid="stMain"]' ? main : null;
 document.querySelectorAll = selector => {
+    if (selector.startsWith('.st-key-')) return elements.filter(element => element.className === selector.slice(1));
     if (selector === '[data-analysis-submission-token]') {
         return [...precedingAnchors, ...anchors.values()].filter(element => element.getAttribute('data-analysis-submission-token') !== null);
     }
@@ -775,12 +839,13 @@ const requestToken = 'continue-1';
 const animations = [];
 document.getAnimations = () => animations;
 anchors.set(parameterId, new Element(parameterId));
-function mountPanel(token = requestToken) {
+function mountPanel(token = requestToken, focusOptions = {}) {
     return mount(null, {
         requestAnchorId: parameterId,
         requestToken: token,
         shouldScrollRequest: true,
         panelKey,
+        ...focusOptions,
     });
 }
 function addPanel({token = requestToken, key = panelKey, open = true, stale = false} = {}) {
@@ -881,6 +946,12 @@ if (scenario === 'delayed_marker_and_open') {
     animations.push({playState: 'running', effect: {target: spinner}});
     flush();
     assert.deepEqual(scrolledElements, [current.header]);
+} else if (scenario === 'unrelated_accordion_does_not_delay_panel_landing') {
+    const current = addPanel();
+    const unrelated = addPanel({token: 'unrelated-panel'});
+    animations.push({playState: 'running', effect: {target: unrelated.details}});
+    flush();
+    assert.deepEqual(scrolledElements, [current.header]);
 } else if (scenario === 'new_request_waits_for_its_own_marker') {
     const first = addPanel(); flush();
     cleanup(); cleanup = mountPanel('continue-2'); flush();
@@ -932,6 +1003,7 @@ process.stdout.write('ok');
     "pending_request_resumes_after_remount",
     "accordion_animation_delays_stable_header",
     "status_spinner_does_not_delay_panel_landing",
+    "unrelated_accordion_does_not_delay_panel_landing",
     "new_request_waits_for_its_own_marker",
     "user_navigation_cancels_pending_landing",
     "navigation_key_cancels_pending_landing",
@@ -941,6 +1013,123 @@ process.stdout.write('ok');
 def test_guided_panel_navigation_browser_waits_for_current_stable_header(scenario):
     """Exercise Continue against delayed, stale, moving and rerendered panels."""
     _run_navigation_browser_harness(_GUIDED_PANEL_NAVIGATION_BROWSER_HARNESS, scenario)
+
+
+_GUIDED_FOCUS_NAVIGATION_BROWSER_HARNESS = (
+    _GUIDED_PANEL_NAVIGATION_BROWSER_HARNESS.split("let cleanup = mountPanel();", 1)[0]
+    + r"""
+function addControl(parent, id, {tag = 'INPUT', attributes = {}, disabled = false, checked = false} = {}) {
+    const control = new Element(id, attributes);
+    control.tagName = tag;
+    control.parentElement = parent;
+    control.disabled = disabled;
+    control.checked = checked;
+    return control;
+}
+function addField(parent, key) {
+    const field = new Element(key);
+    field.className = 'st-key-' + key;
+    field.parentElement = parent;
+    return field;
+}
+const scenario = input.scenario;
+const focusOptions = scenario === 'review_header'
+    ? {focusTarget: 'panel_header'}
+    : scenario.startsWith('invalid_')
+        ? {focusFieldKey: scenario === 'invalid_date_spinbutton' ? 'val_start_d' : 'val_qth', ...(scenario === 'invalid_without_panel_key' ? {panelKey: null} : {})}
+        : {focusTarget: 'first_input'};
+let cleanup = mountPanel(requestToken, focusOptions);
+const current = addPanel({open: scenario !== 'invalid_without_panel_key'});
+let expected;
+if (scenario === 'review_header') {
+    addControl(current.details, 'run-action', {tag: 'BUTTON'});
+    expected = current.header;
+} else if (scenario === 'first_visible_enabled_input') {
+    addControl(current.details, 'disabled', {disabled: true});
+    addControl(current.details, 'hidden', {attributes: {type: 'hidden'}});
+    const help = new Element('help', {'data-testid': 'stTooltipIcon'});
+    help.parentElement = current.details;
+    addControl(help, 'help-button', {tag: 'BUTTON'});
+    const popover = new Element('help-popover', {'data-testid': 'stPopover'});
+    popover.parentElement = current.details;
+    addControl(popover, 'popover-trigger', {tag: 'BUTTON'});
+    const invisible = new Element('invisible', {hidden: ''});
+    invisible.parentElement = current.details;
+    addControl(invisible, 'invisible-input');
+    const disabledGroup = new Element('disabled-group', {disabled: ''});
+    disabledGroup.tagName = 'FIELDSET'; disabledGroup.parentElement = current.details;
+    addControl(disabledGroup, 'fieldset-disabled');
+    expected = addControl(current.details, 'callsign');
+} else if (scenario === 'choice_button') {
+    expected = addControl(current.details, 'reference-station-choice', {tag: 'BUTTON'});
+    addControl(current.details, 'reference-callsign');
+} else if (scenario === 'selected_radio') {
+    addControl(current.details, 'first-radio', {attributes: {type: 'radio', name: 'choice'}});
+    expected = addControl(current.details, 'selected-radio', {attributes: {type: 'radio', name: 'choice'}, checked: true});
+} else if (scenario === 'slider') {
+    expected = addControl(current.details, 'radius-slider', {tag: 'DIV', attributes: {role: 'slider', tabindex: '0'}});
+} else if (scenario === 'invalid_date_spinbutton') {
+    addControl(current.details, 'unrelated-valid-input');
+    const field = addField(current.details, 'val_start_d');
+    addControl(field, 'clipped-native-date', {attributes: {type: 'date', 'aria-hidden': 'true', tabindex: '-1'}});
+    expected = addControl(field, 'date-day', {tag: 'SPAN', attributes: {role: 'spinbutton', contenteditable: 'true', tabindex: '0'}});
+    addControl(field, 'date-month', {tag: 'SPAN', attributes: {role: 'spinbutton', contenteditable: 'true', tabindex: '0'}});
+} else if (scenario.startsWith('invalid_')) {
+    addControl(current.details, 'unrelated-valid-input');
+    const stale = addField(current.details, 'val_qth');
+    stale.attributes['data-stale'] = 'true';
+    addControl(stale, 'stale-invalid-input');
+    const field = addField(current.details, 'val_qth');
+    expected = addControl(field, 'actual-invalid-input');
+} else if (scenario === 'delayed_input') {
+    flush();
+    assert.deepEqual(focusedElements, []);
+    assert.deepEqual(scrolledElements, []);
+    expected = addControl(current.details, 'delayed-input');
+    mutate();
+} else if (scenario === 'focus_move_cancels' || scenario === 'pointer_cancels') {
+    expected = addControl(current.details, 'pending-input');
+    document.emit(scenario === 'pointer_cancels' ? 'pointerdown' : 'focusin', {button: 0});
+    flush(); mutate(); flush();
+    cleanup(); cleanup = mountPanel(requestToken, focusOptions); flush();
+    assert.deepEqual(focusedElements, []);
+    assert.deepEqual(scrolledElements, []);
+    expected = null;
+} else if (scenario === 'settled_once_after_remount') {
+    expected = addControl(current.details, 'first-input');
+    flushFrame();
+    assert.deepEqual(focusedElements, []);
+    cleanup(); cleanup = mountPanel(requestToken, focusOptions);
+} else {
+    throw new Error('Unknown focus scenario: ' + scenario);
+}
+flush();
+if (expected) {
+    assert.deepEqual(focusedElements, [expected]);
+    assert.deepEqual(scrolledElements, [current.header]);
+    mutate(); flush();
+    cleanup(); cleanup = mountPanel(requestToken, focusOptions); flush();
+    assert.deepEqual(focusedElements, [expected]);
+    assert.deepEqual(scrolledElements, [current.header]);
+}
+cleanup();
+assert.equal(document.listenerCount(), 0);
+assert.equal(window.listenerCount(), 0);
+assert.equal(main.listenerCount(), 0);
+assert.equal(frames.size, 0);
+assert.equal(observers.filter(observer => observer.active).length, 0);
+process.stdout.write('ok');
+"""
+)
+
+
+@pytest.mark.parametrize("scenario", [
+    "first_visible_enabled_input", "choice_button", "selected_radio", "slider", "invalid_date_spinbutton",
+    "review_header", "invalid_field", "invalid_without_panel_key", "delayed_input",
+    "focus_move_cancels", "pointer_cancels", "settled_once_after_remount",
+])
+def test_guided_panel_focus_uses_actual_controls_after_settled_navigation(scenario):
+    _run_navigation_browser_harness(_GUIDED_FOCUS_NAVIGATION_BROWSER_HARNESS, scenario)
 
 
 @pytest.mark.parametrize("scenario", [

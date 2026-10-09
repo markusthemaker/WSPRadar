@@ -8,7 +8,8 @@ import pytest
 
 from ui.input_validation_state import (
     attempt_input_validation, get_field_error, tx_message_pattern_warning,
-    validate_input_fields,
+    validate_input_fields, clear_input_validation, get_visible_input_errors,
+    refresh_guided_input_validation,
 )
 
 
@@ -44,6 +45,71 @@ def test_each_corrected_field_clears_without_hiding_other_errors():
     assert get_field_error(state, "val_qth")
     state["val_qth"] = "JN37AA"
     assert not validate_input_fields(state)
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_guided_question_recovery_does_not_activate_future_panel_errors(language):
+    state = valid_state(
+        lang=language, guided_use_case=None, val_analysis_direction=None,
+        val_callsign="", val_qth="", val_ref_callsign="",
+    )
+    errors = attempt_input_validation(state, guided_node="use_case")
+    assert set(errors) == {"guided_use_case"}
+    assert get_field_error(state, "guided_use_case")
+    assert get_field_error(state, "val_qth") is None
+    state.update(guided_use_case="rx_benchmark", val_analysis_direction="rx")
+    assert not get_visible_input_errors(state)
+    refresh_guided_input_validation(state)
+    assert "_input_validation_attempted" not in state
+    assert "_input_validation_guided_node" not in state
+    assert "_input_field_errors" not in state
+    assert {"val_callsign", "val_qth", "val_ref_callsign"} <= validate_input_fields(state).keys()
+
+
+def test_guided_panel_retains_other_errors_until_all_its_fields_are_corrected():
+    state = valid_state(val_callsign="", val_qth="", val_ref_callsign="")
+    errors = attempt_input_validation(state, guided_node="target_and_window")
+    assert set(errors) == {"val_callsign", "val_qth"}
+    state["val_callsign"] = "DL1MKS"
+    refresh_guided_input_validation(state)
+    assert set(get_visible_input_errors(state)) == {"val_qth"}
+    assert get_field_error(state, "val_ref_callsign") is None
+    state["val_qth"] = "JN37AA"
+    refresh_guided_input_validation(state)
+    assert not get_visible_input_errors(state)
+    assert not state.get("_input_validation_attempted")
+    # Final Run still rejects every unfinished field, regardless of display scope.
+    assert set(attempt_input_validation(state)) == {"val_ref_callsign"}
+
+
+def test_existing_whole_form_attempt_is_retired_after_original_panel_is_fixed():
+    state = valid_state(val_callsign="", val_qth="", val_ref_callsign="")
+    state.update(
+        _input_validation_attempted=True,
+        _input_field_errors={"guided_use_case": "old question error", "val_qth": "old QTH error"},
+        guided_active_node="use_case",
+    )
+    refresh_guided_input_validation(state)
+    assert not get_visible_input_errors(state)
+    assert "_input_field_errors" not in state
+
+
+def test_classic_whole_form_feedback_and_final_validation_are_preserved():
+    state = valid_state(input_view="classic", val_callsign="", val_qth="", val_ref_callsign="")
+    errors = attempt_input_validation(state)
+    assert {"val_callsign", "val_qth", "val_ref_callsign"} <= errors.keys()
+    assert get_visible_input_errors(state) == errors
+    state["val_callsign"] = "DL1MKS"
+    assert set(get_visible_input_errors(state)) == {"val_qth", "val_ref_callsign"}
+
+
+def test_clearing_validation_preserves_all_scientific_values():
+    state = valid_state(val_callsign="")
+    before = deepcopy(state)
+    attempt_input_validation(state, guided_node="target_and_window")
+    clear_input_validation(state)
+    assert all(state[key] == value for key, value in before.items())
+    assert not any(key.startswith("_input_") for key in state)
 
 
 @pytest.mark.parametrize("view,key", [("guided", "guided_use_case"), ("classic", "classic_question")])
