@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: General questions and experiment-design help
+    url: https://github.com/markusthemaker/WSPRadar/issues/new
+    about: Open a blank issue for usage questions, experiment-design help, result interpretation, or an early idea.
+  - name: WSPRadar documentation and demos
+    url: https://wspradar.streamlit.app/
+    about: Open the application to review its documentation, limitations, references, and maintained demo analyses.
