@@ -1,0 +1,617 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "archive_filename": "WSPRadar_export_2026_10_15__10_39.zip",
+    "archive_sha256": "a69366ae97a0b4ad612385f0b711bcd9a7510c3baa6872d359fcb99bd6843aef",
+    "archive_bytes": 5425501,
+    "exported_utc": "2026-10-15T10:39:59Z",
+    "app_version": "v1.0 RC2",
+    "database_source": "wspr_live",
+    "decode_filter_mode": "legacy_no_code",
+    "method": "Offline arithmetic over the supplied exported CSV rows. No provider query, application analysis, or figure generation. Station identity is callsign plus case-normalized reported locator.",
+    "boundaries": "Figures retain their exported pixels. Counts and medians describe this supplied export; they do not establish antenna gain, a physical cause, or current provider state. Rounded exported distance/azimuth values select the two illustrated sectors.",
+    "files": {
+      "benchmark/analysis_cache.parquet": {
+        "sha256": "b51fa5054404eabab8f9b473ab9dca34492828a9af7332862ed1360e04bdb4e9",
+        "bytes": 1246789,
+        "extracted": false
+      },
+      "benchmark/figure_map_highres.png": {
+        "sha256": "0b3e390c0731524d89cf457604ad6313b0c84ec30b7a7b025121139247a5d3c6",
+        "bytes": 1513590,
+        "extracted": true,
+        "width": 3498,
+        "height": 3632,
+        "top_left_pixel_rgba": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "benchmark/figure_segment_insight.png": {
+        "sha256": "ea76deecb0e35b6519dd4ba40fea0f4a46c0dba6d113c3b04d6936f8ecab0914",
+        "bytes": 312098,
+        "extracted": true,
+        "width": 3885,
+        "height": 1654,
+        "top_left_pixel_rgba": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "benchmark/figure_segment_temporal_coverage.png": {
+        "sha256": "73bd4f105178d3c5d96b92e6393471418de293c475bc0d59512f7e76e44a6965",
+        "bytes": 484262,
+        "extracted": true,
+        "width": 3807,
+        "height": 1692,
+        "top_left_pixel_rgba": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "benchmark/figure_segment_temporal_evidence.png": {
+        "sha256": "370b7a65733ff1db5a6d04ffd4dfa923017f91cec74e9fa7d1dcd64059a67a4a",
+        "bytes": 442017,
+        "extracted": true,
+        "width": 3815,
+        "height": 1639,
+        "top_left_pixel_rgba": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "benchmark/figure_selected_station_coverage.png": {
+        "sha256": "e41c206f12459857a204b22c499bbf529124bf5c2f8a073226ddf6e93c5b9fd6",
+        "bytes": 404948,
+        "extracted": true,
+        "width": 3780,
+        "height": 1692,
+        "top_left_pixel_rgba": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "benchmark/figure_selected_station_evidence.png": {
+        "sha256": "9577870a0b0f395e4458cc63d46bad2317538338b29799f81cf4aa1a58390ec4",
+        "bytes": 552396,
+        "extracted": true,
+        "width": 3815,
+        "height": 1639,
+        "top_left_pixel_rgba": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "benchmark/table_drilldown_all_stations_current_segment.csv": {
+        "sha256": "4745a69b81852f5d5d312c5dfb5564f61fbfa9499079620b9d51600b7f58ac32",
+        "bytes": 8438672,
+        "extracted": true
+      },
+      "benchmark/table_drilldown_selected_stations.csv": {
+        "sha256": "197a342fbc4e2e7ab817607625732b505cf6064b93a60cc1ff0c870161ae15ed",
+        "bytes": 161186,
+        "extracted": true
+      },
+      "benchmark/table_station_insights_current_segment.csv": {
+        "sha256": "873f7d6a7d8b5ae5762bedab08379b00fb71cc21ad142e52c995b06406b2e172",
+        "bytes": 27762,
+        "extracted": true
+      },
+      "config/run_metadata.json": {
+        "sha256": "506496cf0042a3f59479a01e207cf1a998ce0ada4533d1a8debd5d765e403349",
+        "bytes": 2256,
+        "extracted": true
+      },
+      "config/wspradar_config.config": {
+        "sha256": "353eb8d9ea5a409abcb94a973b8e6be88cdc4197f9258b6f3ee2f559ef0f66c0",
+        "bytes": 6517,
+        "extracted": true
+      },
+      "disclaimer.txt": {
+        "sha256": "4d425b26f22d9c4d4d6faf098de16905b0a7ff298c204f2083b98ddb73145c25",
+        "bytes": 1430,
+        "extracted": false
+      }
+    }
+  },
+  "settings": {
+    "core_parameters": {
+      "analysis_direction": "rx",
+      "callsign": "G3ZIL",
+      "qth": "IO90HW",
+      "band": "40m",
+      "time_selection": {
+        "start_utc": "2017-04-01T00:00Z",
+        "end_utc": "2017-05-01T00:00Z"
+      }
+    },
+    "comparison_parameters": {
+      "mode": "reference_station",
+      "snr_correction_mode": "no_offset",
+      "snr_correction_db": 0.0,
+      "reference_callsign": "G4HZX",
+      "reference_qth": "IO91"
+    },
+    "advanced_parameters": {
+      "solar_state": "all",
+      "max_peer_distance_km": 10000,
+      "exclude_special_callsigns": false,
+      "exclude_moving_stations": false,
+      "min_confirmed_opportunities_per_peer": 3,
+      "min_joint_stations_per_map_segment": 1,
+      "min_joint_spots_per_station": 1,
+      "report_delta_snr_outlier_candidates": false
+    },
+    "results_view": {
+      "performance": {
+        "selected_ranges": "all",
+        "selected_directions": "all",
+        "show_zero_target": false,
+        "segment_evidence_time_bin": "auto",
+        "station_evidence_time_bin": "24h",
+        "selected_stations": null
+      },
+      "benchmark": {
+        "selected_ranges": "all",
+        "selected_directions": "all",
+        "show_non_joint": false,
+        "segment_evidence_time_bin": "24h",
+        "station_evidence_time_bin": "12h",
+        "selected_stations": [
+          {
+            "callsign": "DJ0ABR",
+            "locator": "JN68NT"
+          }
+        ]
+      }
+    }
+  },
+  "overall": {
+    "retained_observations": 124622,
+    "joint_spots": 57767,
+    "joint_observation_share_percent": 46.35377381200751,
+    "station_entries": 1130,
+    "joint_station_entries": 792,
+    "joint_station_share_percent": 70.08849557522124,
+    "station_categories": {
+      "both_async": 33,
+      "joint": 792,
+      "reference_only": 47,
+      "target_only": 258
+    },
+    "station_balanced_median_delta_snr_db": 6.5,
+    "joint_spot_median_delta_snr_db": 7.0
+  },
+  "geographic_scopes": [
+    {
+      "direction": "E",
+      "distance_km": [
+        0,
+        2500
+      ],
+      "azimuth_degrees_half_open": [
+        78.75,
+        101.25
+      ],
+      "station_entries": 172,
+      "station_balanced_median_delta_snr_db": 8.0
+    },
+    {
+      "direction": "WNW",
+      "distance_km": [
+        5000,
+        10000
+      ],
+      "azimuth_degrees_half_open": [
+        281.25,
+        303.75
+      ],
+      "station_entries": 113,
+      "station_balanced_median_delta_snr_db": 0.0
+    }
+  ],
+  "daily_joint_evidence": [
+    {
+      "date_utc": "2017-04-01",
+      "joint_spots": 1557,
+      "median_delta_snr_db": 2.0
+    },
+    {
+      "date_utc": "2017-04-02",
+      "joint_spots": 1745,
+      "median_delta_snr_db": 4.0
+    },
+    {
+      "date_utc": "2017-04-03",
+      "joint_spots": 2092,
+      "median_delta_snr_db": 3.0
+    },
+    {
+      "date_utc": "2017-04-04",
+      "joint_spots": 1536,
+      "median_delta_snr_db": 4.0
+    },
+    {
+      "date_utc": "2017-04-05",
+      "joint_spots": 2073,
+      "median_delta_snr_db": 5.0
+    },
+    {
+      "date_utc": "2017-04-06",
+      "joint_spots": 2274,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-07",
+      "joint_spots": 2116,
+      "median_delta_snr_db": 5.0
+    },
+    {
+      "date_utc": "2017-04-08",
+      "joint_spots": 2018,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-09",
+      "joint_spots": 1541,
+      "median_delta_snr_db": 5.0
+    },
+    {
+      "date_utc": "2017-04-10",
+      "joint_spots": 2289,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "date_utc": "2017-04-11",
+      "joint_spots": 2903,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-12",
+      "joint_spots": 1943,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-13",
+      "joint_spots": 1949,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-14",
+      "joint_spots": 2034,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-15",
+      "joint_spots": 1905,
+      "median_delta_snr_db": 9.0
+    },
+    {
+      "date_utc": "2017-04-16",
+      "joint_spots": 2176,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-17",
+      "joint_spots": 2229,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-18",
+      "joint_spots": 1951,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-19",
+      "joint_spots": 1957,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-20",
+      "joint_spots": 860,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-21",
+      "joint_spots": 2174,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-22",
+      "joint_spots": 1312,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-23",
+      "joint_spots": 2002,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "date_utc": "2017-04-24",
+      "joint_spots": 1575,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "date_utc": "2017-04-25",
+      "joint_spots": 1482,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-26",
+      "joint_spots": 1919,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "date_utc": "2017-04-27",
+      "joint_spots": 2136,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "date_utc": "2017-04-28",
+      "joint_spots": 1961,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "date_utc": "2017-04-29",
+      "joint_spots": 2092,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "date_utc": "2017-04-30",
+      "joint_spots": 1966,
+      "median_delta_snr_db": 7.0
+    }
+  ],
+  "utc_hour_joint_evidence": [
+    {
+      "utc_hour": 0,
+      "joint_spots": 981,
+      "median_delta_snr_db": 2.0
+    },
+    {
+      "utc_hour": 1,
+      "joint_spots": 814,
+      "median_delta_snr_db": 1.0
+    },
+    {
+      "utc_hour": 2,
+      "joint_spots": 651,
+      "median_delta_snr_db": 1.0
+    },
+    {
+      "utc_hour": 3,
+      "joint_spots": 490,
+      "median_delta_snr_db": 1.0
+    },
+    {
+      "utc_hour": 4,
+      "joint_spots": 706,
+      "median_delta_snr_db": 2.0
+    },
+    {
+      "utc_hour": 5,
+      "joint_spots": 1960,
+      "median_delta_snr_db": 5.0
+    },
+    {
+      "utc_hour": 6,
+      "joint_spots": 2617,
+      "median_delta_snr_db": 5.0
+    },
+    {
+      "utc_hour": 7,
+      "joint_spots": 2483,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "utc_hour": 8,
+      "joint_spots": 2368,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 9,
+      "joint_spots": 2328,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 10,
+      "joint_spots": 2289,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 11,
+      "joint_spots": 2324,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "utc_hour": 12,
+      "joint_spots": 2104,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "utc_hour": 13,
+      "joint_spots": 2097,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "utc_hour": 14,
+      "joint_spots": 2173,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 15,
+      "joint_spots": 2603,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "utc_hour": 16,
+      "joint_spots": 3333,
+      "median_delta_snr_db": 8.0
+    },
+    {
+      "utc_hour": 17,
+      "joint_spots": 4171,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 18,
+      "joint_spots": 4988,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 19,
+      "joint_spots": 5655,
+      "median_delta_snr_db": 7.0
+    },
+    {
+      "utc_hour": 20,
+      "joint_spots": 4701,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "utc_hour": 21,
+      "joint_spots": 2887,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "utc_hour": 22,
+      "joint_spots": 1702,
+      "median_delta_snr_db": 6.0
+    },
+    {
+      "utc_hour": 23,
+      "joint_spots": 1342,
+      "median_delta_snr_db": 4.0
+    }
+  ],
+  "first_four_station_rows": [
+    {
+      "TX Station": "OK1FCX",
+      "Locator": "JN79",
+      "km": "1171",
+      "Azimuth": "91.6",
+      "Joint Spots": "2763",
+      "Only G3ZIL": "3440",
+      "Only G4HZX": "434",
+      "Median Δ SNR (dB)": "6.0"
+    },
+    {
+      "TX Station": "DJ0ABR",
+      "Locator": "JN68nt",
+      "km": "1064",
+      "Azimuth": "97.2",
+      "Joint Spots": "2334",
+      "Only G3ZIL": "247",
+      "Only G4HZX": "6",
+      "Median Δ SNR (dB)": "5.0"
+    },
+    {
+      "TX Station": "EA4URA",
+      "Locator": "IN80ci",
+      "km": "1192",
+      "Azimuth": "190.0",
+      "Joint Spots": "2140",
+      "Only G3ZIL": "1324",
+      "Only G4HZX": "441",
+      "Median Δ SNR (dB)": "7.0"
+    },
+    {
+      "TX Station": "DL5RBD",
+      "Locator": "JN69kb",
+      "km": "1038",
+      "Azimuth": "96.0",
+      "Joint Spots": "2005",
+      "Only G3ZIL": "158",
+      "Only G4HZX": "29",
+      "Median Δ SNR (dB)": "6.0"
+    }
+  ],
+  "selected_station": {
+    "callsign": "DJ0ABR",
+    "reported_locator": "JN68nt",
+    "distance_km": 1064.0,
+    "azimuth_degrees": 97.2,
+    "joint_spots": 2334,
+    "target_only_observations": 247,
+    "reference_only_observations": 6,
+    "median_delta_snr_db": 5.0,
+    "peak_interval_utc": {
+      "start": "2017-04-20T12:00:00Z",
+      "end_exclusive": "2017-04-21T00:00:00Z",
+      "joint_spots": 1,
+      "target_only_observations": 3,
+      "rows": [
+        {
+          "utc": "2017-04-20T17:56:00Z",
+          "callsign": "DJ0ABR",
+          "reported_locator": "JN68nt",
+          "target_snr_db": -7.0,
+          "reference_snr_db": -32.0,
+          "delta_snr_db": 25.0
+        },
+        {
+          "utc": "2017-04-20T18:08:00Z",
+          "callsign": "DJ0ABR",
+          "reported_locator": "JN68nt",
+          "target_snr_db": 6.0,
+          "reference_snr_db": null,
+          "delta_snr_db": null
+        },
+        {
+          "utc": "2017-04-20T18:20:00Z",
+          "callsign": "DJ0ABR",
+          "reported_locator": "JN68nt",
+          "target_snr_db": 3.0,
+          "reference_snr_db": null,
+          "delta_snr_db": null
+        },
+        {
+          "utc": "2017-04-20T18:32:00Z",
+          "callsign": "DJ0ABR",
+          "reported_locator": "JN68nt",
+          "target_snr_db": -3.0,
+          "reference_snr_db": null,
+          "delta_snr_db": null
+        }
+      ]
+    },
+    "worked_examples": [
+      {
+        "utc": "2017-04-01T06:14:00Z",
+        "callsign": "DJ0ABR",
+        "reported_locator": "JN68nt",
+        "target_snr_db": 1.0,
+        "reference_snr_db": 6.0,
+        "delta_snr_db": -5.0
+      },
+      {
+        "utc": "2017-04-01T10:40:00Z",
+        "callsign": "DJ0ABR",
+        "reported_locator": "JN68nt",
+        "target_snr_db": -22.0,
+        "reference_snr_db": -29.0,
+        "delta_snr_db": 7.0
+      },
+      {
+        "utc": "2017-04-20T17:56:00Z",
+        "callsign": "DJ0ABR",
+        "reported_locator": "JN68nt",
+        "target_snr_db": -7.0,
+        "reference_snr_db": -32.0,
+        "delta_snr_db": 25.0
+      }
+    ]
+  }
+}

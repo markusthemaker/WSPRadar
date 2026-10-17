@@ -1,0 +1,126 @@
+{
+  "languages": {
+    "en": {
+      "eyebrow": "Demo walkthrough / #1",
+      "title": "#1 Low Dipole vs Radial-Free Vertical",
+      "period": "April 2017",
+      "mode": "RX Benchmark",
+      "intro": "A low dipole versus a vertical on 40 m — a real-world comparison using WSPR data.",
+      "publication": "Original paper",
+      "nav_setup": "Setup",
+      "nav_takeaways": "Takeaways",
+      "nav_details": "Details & sources",
+      "setup_title": "The experiment",
+      "setup_body": "How did G3ZIL and G4HZX compare when receiving the same transmissions? G3ZIL used a low horizontal dipole; G4HZX used a vertical antenna without radials.\n\nWSPRadar pairs reports of the same transmitter in the same two-minute WSPR cycle. In this example, positive SNR differences favor G3ZIL. Follow the comparison from the map to the evidence behind it.",
+      "placeholder_title": "Setup illustration to follow",
+      "placeholder_detail": "A verified illustration or photograph of the two receiving installations will appear here.",
+      "glance_title": "At a glance",
+      "metric_note": "The median across all paired observations is +7 dB. The +6.5 dB result gives each transmitting-station entry equal weight. These are different summaries of the same evidence.",
+      "evidence_title": "Explore the evidence",
+      "evidence_intro": "The same comparison, from geography to individual observations.",
+      "takeaways_title": "What can we conclude?",
+      "takeaways_body": "The station-balanced comparison favors G3ZIL in this April 2017 sample. Read the overall result together with the geographic pattern, changes over time, and the evidence behind each interval.\n\nFor individual paths and the original paper comparison, continue with the complete walkthrough and supporting figures below.",
+      "limits": "This compares two complete receiving installations, including their locations, equipment, and local noise. It does not establish that dipoles generally outperform verticals or explain the cause of the difference.",
+      "original_title": "Complete experiment description & publication links",
+      "supplements_title": "Complete walkthrough, station details & supporting figures"
+    },
+    "de": {
+      "eyebrow": "Demo-Anleitung / #1",
+      "title": "#1 Niedriger Dipol gegen Vertikalantenne ohne Radials",
+      "period": "April 2017",
+      "mode": "RX Benchmark",
+      "intro": "Ein niedriger Dipol im Vergleich mit einer Vertikalantenne auf 40 m — ein Praxisvergleich mit WSPR-Daten.",
+      "publication": "Originalpublikation",
+      "nav_setup": "Aufbau",
+      "nav_takeaways": "Erkenntnisse",
+      "nav_details": "Details & Quellen",
+      "setup_title": "Das Experiment",
+      "setup_body": "Wie schnitten G3ZIL und G4HZX beim Empfang derselben Aussendungen ab? G3ZIL verwendete einen niedrig aufgehängten horizontalen Dipol, G4HZX eine Vertikalantenne ohne Radials.\n\nWSPRadar paart Berichte desselben Senders aus demselben zweiminütigen WSPR-Zyklus. Positive SNR-Differenzen sprechen in diesem Beispiel für G3ZIL. Verfolge den Vergleich von der Karte bis zu den zugrunde liegenden Beobachtungen.",
+      "placeholder_title": "Aufbauabbildung folgt",
+      "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie der beiden Empfangsanlagen.",
+      "glance_title": "Auf einen Blick",
+      "metric_note": "Der Median aller gepaarten Beobachtungen beträgt +7 dB. Beim Ergebnis von +6,5 dB erhält jeder Sendestationseintrag dasselbe Gewicht. Das sind unterschiedliche Zusammenfassungen derselben Evidenz.",
+      "evidence_title": "Die Evidenz erkunden",
+      "evidence_intro": "Derselbe Vergleich — von der Geografie bis zur einzelnen Beobachtung.",
+      "takeaways_title": "Was lässt sich daraus schließen?",
+      "takeaways_body": "Der stationsgleichgewichtete Vergleich spricht in dieser Stichprobe aus April 2017 für G3ZIL. Lies das Gesamtergebnis zusammen mit dem geografischen Muster, den Veränderungen im Zeitverlauf und den Beobachtungen hinter jedem Intervall.\n\nEinzelne Funkwege und den Vergleich mit der Originalpublikation findest du in der vollständigen Anleitung und den ergänzenden Abbildungen unten.",
+      "limits": "Verglichen werden zwei vollständige Empfangsanlagen mit ihren Standorten, Geräten und örtlichen Störpegeln. Das belegt weder eine generelle Überlegenheit von Dipolen gegenüber Vertikalantennen noch die Ursache des Unterschieds.",
+      "original_title": "Vollständige Experimentbeschreibung & Publikationslinks",
+      "supplements_title": "Vollständige Anleitung, Stationsdetails & ergänzende Abbildungen"
+    }
+  },
+  "evidence": [
+    {
+      "id": "map",
+      "nav_label": {
+        "en": "Map",
+        "de": "Karte"
+      },
+      "heading": {
+        "en": "Where does the difference appear?",
+        "de": "Wo zeigt sich der Unterschied?"
+      },
+      "body": {
+        "en": "Read the map by direction and distance. Sector colors show **station-balanced median ΔSNR**: G3ZIL minus G4HZX. Positive values favor G3ZIL; negative values favor G4HZX.\n\nThe map describes the sampled radio paths. Use the full-size view to inspect the scale, decode outcomes, and evidence counts.",
+        "de": "Lies die Karte nach Richtung und Entfernung. Die Sektorfarben zeigen das **stationsgleichgewichtete mediane ΔSNR**: G3ZIL minus G4HZX. Positive Werte sprechen für G3ZIL, negative für G4HZX.\n\nDie Karte beschreibt die erfassten Funkwege. Prüfe in der vergrößerten Ansicht die Skala, Empfangskategorien und Beobachtungszahlen."
+      },
+      "media_keys": [
+        "landing-demo1-map"
+      ]
+    },
+    {
+      "id": "difference",
+      "nav_label": {
+        "en": "Difference",
+        "de": "Unterschied"
+      },
+      "heading": {
+        "en": "How strong is the difference?",
+        "de": "Wie groß ist der Unterschied?"
+      },
+      "body": {
+        "en": "The three panels separate decode outcomes, station medians, and Joint-Spot differences. In both difference histograms, values to the right of zero favor G3ZIL.\n\nThe **+6.5 dB station-balanced median** and **+7.0 dB Joint-Spot median** summarize the same evidence with different weights. The spread shows how much the observations vary.",
+        "de": "Die drei Diagramme unterscheiden Empfangskategorien, Stationsmediane und Joint-Spot-Differenzen. In beiden Differenzhistogrammen sprechen Werte rechts von null für G3ZIL.\n\nDer **stationsgleichgewichtete Median von +6,5 dB** und der **Joint-Spot-Median von +7,0 dB** fassen dieselbe Evidenz mit unterschiedlicher Gewichtung zusammen. Die Streuung zeigt, wie stark die Beobachtungen variieren."
+      },
+      "media_keys": [
+        "landing-demo1-snr"
+      ]
+    },
+    {
+      "id": "time",
+      "nav_label": {
+        "en": "Time",
+        "de": "Zeit"
+      },
+      "heading": {
+        "en": "How did it change over time?",
+        "de": "Wie änderte sich der Vergleich im Zeitverlauf?"
+      },
+      "body": {
+        "en": "Follow the daily median markers through April, then read the middle-50% band and density colors. The **first-half upward shift** is an important feature of this example.\n\nThe chronological view uses **24-hour bins**. The UTC-hour view combines different dates, so it answers a different question. A pooled change need not occur equally on every path.",
+        "de": "Verfolge die täglichen Medianmarkierungen durch den April und lies anschließend das Band der mittleren 50 % und die Dichtefarben. Die **Verschiebung nach oben in der ersten Monatshälfte** ist ein wesentliches Merkmal dieses Beispiels.\n\nDie chronologische Ansicht verwendet **24-Stunden-Intervalle**. Die Ansicht nach UTC-Stunde fasst verschiedene Tage zusammen und beantwortet eine andere Frage. Eine Veränderung im Gesamtbild muss nicht auf jedem Funkweg gleich ausfallen."
+      },
+      "media_keys": [
+        "landing-demo1-temporal"
+      ]
+    },
+    {
+      "id": "coverage",
+      "nav_label": {
+        "en": "Evidence",
+        "de": "Evidenz"
+      },
+      "heading": {
+        "en": "How much evidence supports the pattern?",
+        "de": "Wie viel Evidenz stützt das Muster?"
+      },
+      "body": {
+        "en": "Read station and transmitter-cycle counts alongside the SNR curves. They show how much evidence contributes to each interval. **Joint Evidence Share is not a receiver success rate.**\n\nTo move from the pooled pattern to one path, inspect the preselected **DJ0ABR (JN68NT)** identity in Station Insights. The complete walkthrough below includes its capture and the pairing diagnostic.",
+        "de": "Lies Stations- und Senderzykluszahlen zusammen mit den SNR-Kurven. Sie zeigen, wie viele Beobachtungen zu jedem Intervall beitragen. **Joint Evidence Share ist keine Empfangserfolgsquote.**\n\nWechsle vom Gesamtbild zu einem einzelnen Funkweg und untersuche die vorausgewählte Identität **DJ0ABR (JN68NT)** in Station Insights. Die vollständige Anleitung unten enthält die Aufnahme dieses Funkwegs und die Paarbildungsdiagnose."
+      },
+      "media_keys": [
+        "landing-demo1-coverage"
+      ]
+    }
+  ]
+}

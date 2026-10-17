@@ -1,0 +1,760 @@
+{
+  "schema_version": 2,
+  "demos": {
+    "griffiths_squibb_fig3": {
+      "publication_url": "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf",
+      "languages": {
+        "en": {
+          "eyebrow": "Demo walkthrough / #1",
+          "period": "April 2017",
+          "mode": "RX Benchmark",
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "placeholder_detail": "A verified illustration or photograph of the two receiving installations will appear here.",
+          "glance_title": "At a glance",
+          "metric_note": "The median across all paired observations is +7 dB. The +6.5 dB result gives each transmitting-station entry equal weight. These are different summaries of the same evidence.",
+          "evidence_title": "Explore the evidence",
+          "evidence_intro": "The same comparison, from geography to individual observations."
+        },
+        "de": {
+          "eyebrow": "Demo-Anleitung / #1",
+          "period": "April 2017",
+          "mode": "RX Benchmark",
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie der beiden Empfangsanlagen.",
+          "glance_title": "Auf einen Blick",
+          "metric_note": "Der Median aller gepaarten Beobachtungen beträgt +7 dB. Beim Ergebnis von +6,5 dB erhält jeder Sendestationseintrag dasselbe Gewicht. Das sind unterschiedliche Zusammenfassungen derselben Evidenz.",
+          "evidence_title": "Die Evidenz erkunden",
+          "evidence_intro": "Derselbe Vergleich — von der Geografie bis zur einzelnen Beobachtung."
+        }
+      },
+      "metrics": [
+        {
+          "en": {
+            "value": "+6.5 dB",
+            "label": "Station-balanced median ΔSNR",
+            "detail": "Each transmitting-station identity contributes one median. Positive values favor G3ZIL."
+          },
+          "de": {
+            "value": "+6,5 dB",
+            "label": "Stationsgleichgewichtetes medianes ΔSNR",
+            "detail": "Jede Sendestationsidentität trägt einen Median bei. Positive Werte sprechen für G3ZIL."
+          }
+        },
+        {
+          "en": {
+            "value": "57 767",
+            "label": "Joint Spots",
+            "detail": "Paired observations of the same transmitter in the same two-minute WSPR cycle."
+          },
+          "de": {
+            "value": "57 767",
+            "label": "Joint Spots",
+            "detail": "Gepaarte Beobachtungen desselben Senders im selben zweiminütigen WSPR-Zyklus."
+          }
+        },
+        {
+          "en": {
+            "value": "792",
+            "label": "Transmitting-station identities",
+            "detail": "Callsign plus reported locator; contributing stations within 10 000 km."
+          },
+          "de": {
+            "value": "792",
+            "label": "Sendestationsidentitäten",
+            "detail": "Rufzeichen und gemeldeter Locator; beitragende Stationen innerhalb von 10 000 km."
+          }
+        }
+      ],
+      "markdown_paths": {
+        "en": "griffiths_squibb_fig3/walkthrough.en.md",
+        "de": "griffiths_squibb_fig3/walkthrough.de.md"
+      },
+      "resource_manifest": "griffiths_squibb_fig3/resources/manifest.json",
+      "sections": [
+        {
+          "id": "load",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "map",
+          "nav_label": {
+            "en": "Map View",
+            "de": "Kartenansicht"
+          },
+          "media_keys": [
+            "fresh-demo1-map"
+          ]
+        },
+        {
+          "id": "difference",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "fresh-demo1-difference"
+          ]
+        },
+        {
+          "id": "time",
+          "nav_label": {
+            "en": "Time",
+            "de": "Zeit"
+          },
+          "media_keys": [
+            "fresh-demo1-time"
+          ],
+          "subsections": [
+            {
+              "id": "published-figure3",
+              "media_keys": [
+                "griffiths-figure3-comparison"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "coverage",
+          "nav_label": {
+            "en": "Evidence",
+            "de": "Evidenz"
+          },
+          "media_keys": [
+            "fresh-demo1-coverage"
+          ]
+        },
+        {
+          "id": "stations",
+          "nav_label": {
+            "en": "Stations",
+            "de": "Stationen"
+          },
+          "media_keys": [
+            "fresh-demo1-station",
+            "fresh-demo1-station-coverage"
+          ]
+        },
+        {
+          "id": "drilldown",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "takeaways",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Erkenntnisse"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "excluded_media_keys": [
+        "griffiths-figure3-pairing-diagnostic"
+      ],
+      "inverted_media_keys": [
+        "griffiths-figure3-comparison"
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_opportunities=3&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT#wspradar-results-inspection",
+      "preserved_color_regions": {
+        "griffiths-figure3-comparison": {
+          "image_px": [
+            3060,
+            3060
+          ],
+          "rectangles_px": [
+            [
+              353,
+              2161,
+              2339,
+              549
+            ],
+            [
+              2752,
+              2161,
+              32,
+              549
+            ]
+          ],
+          "label_rectangles_px": [
+            [
+              2372,
+              2161,
+              320,
+              106
+            ]
+          ]
+        }
+      },
+      "setup_media_key": "demo1-setup-network-schematic",
+      "setup_media_position": "left",
+      "show_setup_summary": false
+    },
+    "griffiths_squibb_fig6": {
+      "publication_url": "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Demo walkthrough / #2",
+          "period": "5 April 2017, 00:00 – 7 April 2017, 23:45 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": ""
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Demo-Anleitung / #2",
+          "period": "5. April 2017, 00:00 – 7. April 2017, 23:45 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": ""
+        }
+      },
+      "markdown_paths": {
+        "en": "griffiths_squibb_fig6/walkthrough.en.md",
+        "de": "griffiths_squibb_fig6/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Keep the comparison direction fixed",
+            "de": "Die Vergleichsrichtung beibehalten"
+          },
+          "media_keys": [
+            "demo-2-map"
+          ]
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Read the daily pattern by UTC hour",
+            "de": "Das Tagesmuster nach UTC-Stunde lesen"
+          },
+          "media_keys": [
+            "demo-2-temporal"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Compare folding with chronological time",
+            "de": "UTC-Stunden und zeitlichen Verlauf vergleichen"
+          },
+          "media_keys": []
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Read the comparison panels with their limits",
+            "de": "Die Vergleichspanels mit ihren Grenzen lesen"
+          },
+          "media_keys": [
+            "griffiths-figure6-comparison"
+          ]
+        }
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-05T00%3A00Z&to=2017-04-07T23%3A45Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_opportunities=3&station_bin=6h#wspradar-results-inspection"
+    },
+    "griffiths_squibb_rx_performance": {
+      "publication_url": "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Demo walkthrough / #3",
+          "period": "1 April 2017, 00:00 – 1 May 2017, 00:00 UTC",
+          "mode": "RX Performance",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": ""
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Demo-Anleitung / #3",
+          "period": "1. April 2017, 00:00 – 1. Mai 2017, 00:00 UTC",
+          "mode": "RX Performance",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": ""
+        }
+      },
+      "markdown_paths": {
+        "en": "griffiths_squibb_rx_performance/walkthrough.en.md",
+        "de": "griffiths_squibb_rx_performance/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Change the question from comparison to reception",
+            "de": "Vom Vergleich zur Empfangsleistung wechseln"
+          },
+          "media_keys": []
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Separate reach from Decode Rate",
+            "de": "Reichweite und Dekodierrate unterscheiden"
+          },
+          "media_keys": []
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Follow the selected EA4URA path",
+            "de": "Den ausgewählten Funkweg von EA4URA verfolgen"
+          },
+          "media_keys": []
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Keep successful SNR and reception consistency together",
+            "de": "Erfolgreiches SNR und Empfangskonsistenz zusammen lesen"
+          },
+          "media_keys": []
+        }
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=performance&max_distance_km=10000&min_opportunities=3&segment_bin=6h&station_bin=6h&selected_station=EA4URA%40IN80CI#wspradar-results-inspection"
+    },
+    "vanhamel_rx_calibration": {
+      "publication_url": "https://doi.org/10.1155/2022/4809313",
+      "show_hero_period": false,
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Demo walkthrough",
+          "period": "6 February 2021, 06:00 – 13 February 2021, 06:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": "Find the receiver offset, check its support, and prepare for an antenna comparison."
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Demo-Anleitung",
+          "period": "6. Februar 2021, 06:00 – 13. Februar 2021, 06:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": "Den Empfängeroffset bestimmen, seine Grundlage prüfen und den Antennenvergleich vorbereiten."
+        }
+      },
+      "markdown_paths": {
+        "en": "vanhamel_rx_calibration/walkthrough.en.md",
+        "de": "vanhamel_rx_calibration/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "vanhamel-calibration-benchmark"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Takeaway",
+            "de": "Fazit"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=rx&callsign=ON4AWM0&qth=JO20OT&band=160m&from=2021-02-06T06%3A00Z&to=2021-02-13T06%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=ON4AWM1&reference_qth=JO20&snr_correction_mode=establish_offset&snr_correction_db=0&max_distance_km=2500&min_joint_spots=50&station_bin=6h#wspradar-results-inspection",
+      "show_setup_summary": false,
+      "resource_manifest": "vanhamel_rx_calibration/resources/manifest.json",
+      "setup_media_key": "vanhamel-calibration-setup"
+    },
+    "vanhamel_rx_buddy": {
+      "publication_url": "https://doi.org/10.1155/2022/4809313",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Demo walkthrough",
+          "period": "May 2021",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": "Start with the overall picture, then follow the change on one well-observed path."
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Demo-Anleitung",
+          "period": "Mai 2021",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": "Beginne mit dem Gesamtbild und verfolge die Veränderung anschließend auf einem gut belegten Funkweg."
+        }
+      },
+      "markdown_paths": {
+        "en": "vanhamel_rx_buddy/walkthrough.en.md",
+        "de": "vanhamel_rx_buddy/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Map View",
+            "de": "Kartenansicht"
+          },
+          "media_keys": [
+            "rotation-map"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "rotation-benchmark"
+          ]
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Time",
+            "de": "Zeitverlauf"
+          },
+          "media_keys": [
+            "rotation-temporal"
+          ]
+        },
+        {
+          "id": "step-5",
+          "nav_label": {
+            "en": "Evidence",
+            "de": "Datengrundlage"
+          },
+          "media_keys": [
+            "rotation-coverage"
+          ]
+        },
+        {
+          "id": "step-6",
+          "nav_label": {
+            "en": "Stations",
+            "de": "Stationen"
+          },
+          "media_keys": [
+            "rotation-selected-evidence"
+          ],
+          "subsections": [
+            {
+              "id": "step-6-coverage",
+              "media_keys": [
+                "rotation-selected-coverage"
+              ]
+            },
+            {
+              "id": "step-6-publication",
+              "media_keys": [],
+              "layout": "full"
+            }
+          ]
+        },
+        {
+          "id": "step-7",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-8",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Fazit"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=rx&callsign=ON4AWM0&qth=JO20OT&band=160m&from=2021-05-01T17%3A15Z&to=2021-05-15T07%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=ON4AWM1&reference_qth=JO20&snr_correction_mode=established_offset&snr_correction_db=1.6&max_distance_km=5000&segment_bin=12h&station_bin=12h&selected_station=M7AEO%40IO82#wspradar-results-inspection",
+      "show_setup_summary": false,
+      "show_setup_media": false,
+      "resource_manifest": "vanhamel_rx_buddy/resources/manifest.json",
+      "excluded_media_keys": [
+        "demo-5-selected-evidence",
+        "vanhamel-figure6-comparison"
+      ]
+    },
+    "zander_tx_buddy": {
+      "publication_url": "https://arxiv.org/abs/2209.08989",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Demo walkthrough / #6 · Zander experiment",
+          "period": "21 May 2022, 09:45 – 21 May 2022, 10:30 UTC",
+          "mode": "TX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": "Follow a transmitting-antenna comparison from the world map to individual reception reports."
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Demo-Anleitung / #6 · Zander-Experiment",
+          "period": "21. Mai 2022, 09:45 – 21. Mai 2022, 10:30 UTC",
+          "mode": "TX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": "Verfolge einen Sendeantennenvergleich von der Weltkarte bis zu einzelnen Empfangsmeldungen."
+        }
+      },
+      "markdown_paths": {
+        "en": "zander_tx_buddy/walkthrough.en.md",
+        "de": "zander_tx_buddy/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Map View",
+            "de": "Kartenansicht"
+          },
+          "media_keys": [
+            "zander-map"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "zander-benchmark"
+          ],
+          "subsections": [
+            {
+              "id": "step-3-publication",
+              "media_keys": [],
+              "layout": "full"
+            }
+          ]
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Time",
+            "de": "Zeitverlauf"
+          },
+          "media_keys": [
+            "zander-temporal"
+          ]
+        },
+        {
+          "id": "step-5",
+          "nav_label": {
+            "en": "Evidence",
+            "de": "Datengrundlage"
+          },
+          "media_keys": [
+            "zander-coverage"
+          ]
+        },
+        {
+          "id": "step-6",
+          "nav_label": {
+            "en": "Stations",
+            "de": "Stationen"
+          },
+          "media_keys": [
+            "zander-selected-evidence"
+          ],
+          "subsections": [
+            {
+              "id": "step-6-coverage",
+              "media_keys": [
+                "zander-selected-coverage"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "step-7",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-8",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Fazit"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=tx&callsign=SK0WE%2FP&qth=JO97&band=20m&from=2022-05-21T09%3A45Z&to=2022-05-21T10%3A30Z&mode=benchmark&benchmark_design=reference_station&reference=SK0WE%2F1&reference_qth=JO97&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&segment_bin=10m&station_bin=1h#wspradar-results-inspection",
+      "show_setup_summary": false,
+      "show_setup_media": true,
+      "setup_media_key": "zander-setup-network-schematic",
+      "setup_media_position": "left",
+      "resource_manifest": "zander_tx_buddy/resources/manifest.json",
+      "show_hero_period": false,
+      "excluded_media_keys": [
+        "demo-6-map",
+        "demo-6-segment",
+        "zander-figure4-comparison"
+      ]
+    },
+    "milazzo_tx_buddy": {
+      "publication_url": "https://www.qsl.net/kp4md/wspr.htm",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Demo walkthrough / #7",
+          "period": "19 December 2010, 12:00 – 20 December 2010, 20:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": ""
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Demo-Anleitung / #7",
+          "period": "19. Dezember 2010, 12:00 – 20. Dezember 2010, 20:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": ""
+        }
+      },
+      "markdown_paths": {
+        "en": "milazzo_tx_buddy/walkthrough.en.md",
+        "de": "milazzo_tx_buddy/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Begin with the installed RX walkthrough",
+            "de": "Mit dem installierten RX-Rundgang beginnen"
+          },
+          "media_keys": []
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Keep the full locator identities separate",
+            "de": "Die vollständigen Locatoridentitäten getrennt halten"
+          },
+          "media_keys": [
+            "demo-7-stations"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Trace one pair through the panels",
+            "de": "Ein Paar durch die Panels verfolgen"
+          },
+          "media_keys": [
+            "milazzo-figure6-rx-comparison",
+            "demo-7-drilldown"
+          ]
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Continue with the optional TX comparison",
+            "de": "Mit dem optionalen TX-Vergleich fortfahren"
+          },
+          "media_keys": [
+            "milazzo-figure7-tx-comparison"
+          ]
+        },
+        {
+          "id": "step-5",
+          "nav_label": {
+            "en": "Separate graphical agreement from paired evidence",
+            "de": "Grafische Übereinstimmung von gepaarter Evidenz trennen"
+          },
+          "media_keys": []
+        }
+      ],
+      "launch_url": "https://wspradar.org/?v=1&run=1&direction=rx&callsign=KP4MD&qth=CM98&band=40m&from=2010-12-19T12%3A00Z&to=2010-12-20T20%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=WB6RQN&reference_qth=CM98&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=5000&segment_bin=12h&selected_station=VE6PDQ%40DO34IR#wspradar-results-inspection"
+    }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "source_filename": "WSPR Global Network Infographic Map (1).png",
+  "source_file": "source/setup-network-original.png",
+  "source_sha256": "1e84b8307d3f1dd5d9c52704b80c2d336e82a3bb7ff0f6fbc307275e1a1c3506",
+  "source_bytes": 1718445,
+  "source_image_px": [
+    1672,
+    941
+  ],
+  "purpose": "User-supplied conceptual illustration for the Demo #1 setup, not observed station locations or measured radio paths.",
+  "conversion": {
+    "tool": "Pillow",
+    "version": "12.2.0",
+    "format": "WebP",
+    "quality": 94,
+    "lossless": false,
+    "method": 6,
+    "resampling": "LANCZOS",
+    "composition": "Complete source image; no cropping, redrawing, relabeling or intentional recoloring; no upscaling."
+  },
+  "original_is_published": false,
+  "review": "Compared lossless and quality-94 encodings. Reviewed the 520, 1040 and 1600 px previews and station/locator, receiver, WSJT-X, report-upload and WSPRnet labels. Quality 94 selected for the clear size saving with readable enlarged labels.",
+  "published_derivatives": [
+    {
+      "path": "setup/setup-network-520.webp",
+      "bytes": 32144,
+      "sha256": "509c41c64607097730aacf8025bc5685a566255d3b2b2e835a2048c332e6d1df"
+    },
+    {
+      "path": "setup/setup-network-1040.webp",
+      "bytes": 88856,
+      "sha256": "334578636ba3e724012f2d57111d58a1d631184c97f882c564acb4a16c616aed"
+    },
+    {
+      "path": "setup/setup-network-1600.webp",
+      "bytes": 153214,
+      "sha256": "5ef10cdb7be3a12ef1dde7d2710bcf036fd868cfdde23d55b737a01afadccd86"
+    }
+  ],
+  "candidate_comparison": [
+    {
+      "path": "setup-network-520-lossless.webp",
+      "width": 520,
+      "height": 293,
+      "bytes": 139252,
+      "sha256": "b4ac52d2a956067902571129abaf66f41682f8ae24b4529f4644e55654d992ce",
+      "encoding": "lossless",
+      "options": {
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "setup-network-520-q94.webp",
+      "width": 520,
+      "height": 293,
+      "bytes": 32144,
+      "sha256": "509c41c64607097730aacf8025bc5685a566255d3b2b2e835a2048c332e6d1df",
+      "encoding": "q94",
+      "options": {
+        "lossless": false,
+        "quality": 94,
+        "method": 6,
+        "exact": true
+      }
+    },
+    {
+      "path": "setup-network-1040-lossless.webp",
+      "width": 1040,
+      "height": 585,
+      "bytes": 502670,
+      "sha256": "970c3fee02f423ba2134756d729978eaa4168f894990e0a9ed2c7a2e527060ec",
+      "encoding": "lossless",
+      "options": {
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "setup-network-1040-q94.webp",
+      "width": 1040,
+      "height": 585,
+      "bytes": 88856,
+      "sha256": "334578636ba3e724012f2d57111d58a1d631184c97f882c564acb4a16c616aed",
+      "encoding": "q94",
+      "options": {
+        "lossless": false,
+        "quality": 94,
+        "method": 6,
+        "exact": true
+      }
+    },
+    {
+      "path": "setup-network-1600-lossless.webp",
+      "width": 1600,
+      "height": 900,
+      "bytes": 1114366,
+      "sha256": "80c1e7632e585de3a149a823932b1a64fe18977eb702d2f3763ca0d8f3299283",
+      "encoding": "lossless",
+      "options": {
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "setup-network-1600-q94.webp",
+      "width": 1600,
+      "height": 900,
+      "bytes": 153214,
+      "sha256": "5ef10cdb7be3a12ef1dde7d2710bcf036fd868cfdde23d55b737a01afadccd86",
+      "encoding": "q94",
+      "options": {
+        "lossless": false,
+        "quality": 94,
+        "method": 6,
+        "exact": true
+      }
+    }
+  ]
+}

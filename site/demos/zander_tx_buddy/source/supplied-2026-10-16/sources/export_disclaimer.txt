@@ -1,0 +1,11 @@
+Experimental Use & Disclaimer
+
+WSPRadar is a free, non-commercial hobby project developed for amateur-radio experimentation, education and scientific exploration.
+
+WSPRadar analyzes observational data from publicly available WSPR reporting databases. Both the source data and the resulting analyses may contain errors, omissions, reporting biases or inaccuracies. Statistical assumptions, uncontrolled propagation conditions and software defects may further affect the reliability and interpretation of results.
+
+WSPRadar is not a calibrated measurement instrument. Its findings are indicative and should be independently verified. Results must not be relied upon as the sole basis for significant personal, financial, safety-related, technical, legal or other consequential decisions. WSPRadar is not intended for safety-critical applications, emergency decision-making or establishing compliance with legal or regulatory requirements.
+
+The software, service and results are provided “as is” and “as available.” No additional contractual guarantee is given regarding accuracy, completeness, reliability, fitness for a particular purpose or continuous availability. This statement does not exclude or restrict statutory rights.
+
+Use and interpretation of the results remain the user's responsibility, including independently assessing their suitability before acting on them. Mandatory statutory rights remain unaffected.

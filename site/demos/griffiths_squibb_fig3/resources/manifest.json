@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "WSPRadar_export_2026_10_15__10_39.zip",
+      "bytes": 5425501,
+      "sha256": "a69366ae97a0b4ad612385f0b711bcd9a7510c3baa6872d359fcb99bd6843aef"
+    },
+    {
+      "path": "demo1_verified_export_summary.json",
+      "bytes": 15397,
+      "sha256": "f08f3f1b216aaeccb7881e33411c815366f24165e508457d757c90b713c01edb"
+    },
+    {
+      "path": "export/benchmark/figure_map_highres.png",
+      "bytes": 1513590,
+      "sha256": "0b3e390c0731524d89cf457604ad6313b0c84ec30b7a7b025121139247a5d3c6"
+    },
+    {
+      "path": "export/benchmark/figure_segment_insight.png",
+      "bytes": 312098,
+      "sha256": "ea76deecb0e35b6519dd4ba40fea0f4a46c0dba6d113c3b04d6936f8ecab0914"
+    },
+    {
+      "path": "export/benchmark/figure_segment_temporal_coverage.png",
+      "bytes": 484262,
+      "sha256": "73bd4f105178d3c5d96b92e6393471418de293c475bc0d59512f7e76e44a6965"
+    },
+    {
+      "path": "export/benchmark/figure_segment_temporal_evidence.png",
+      "bytes": 442017,
+      "sha256": "370b7a65733ff1db5a6d04ffd4dfa923017f91cec74e9fa7d1dcd64059a67a4a"
+    },
+    {
+      "path": "export/benchmark/figure_selected_station_coverage.png",
+      "bytes": 404948,
+      "sha256": "e41c206f12459857a204b22c499bbf529124bf5c2f8a073226ddf6e93c5b9fd6"
+    },
+    {
+      "path": "export/benchmark/figure_selected_station_evidence.png",
+      "bytes": 552396,
+      "sha256": "9577870a0b0f395e4458cc63d46bad2317538338b29799f81cf4aa1a58390ec4"
+    },
+    {
+      "path": "export/benchmark/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 8438672,
+      "sha256": "4745a69b81852f5d5d312c5dfb5564f61fbfa9499079620b9d51600b7f58ac32"
+    },
+    {
+      "path": "export/benchmark/table_drilldown_selected_stations.csv",
+      "bytes": 161186,
+      "sha256": "197a342fbc4e2e7ab817607625732b505cf6064b93a60cc1ff0c870161ae15ed"
+    },
+    {
+      "path": "export/benchmark/table_station_insights_current_segment.csv",
+      "bytes": 27762,
+      "sha256": "873f7d6a7d8b5ae5762bedab08379b00fb71cc21ad142e52c995b06406b2e172"
+    },
+    {
+      "path": "export/config/run_metadata.json",
+      "bytes": 2256,
+      "sha256": "506496cf0042a3f59479a01e207cf1a998ce0ada4533d1a8debd5d765e403349"
+    },
+    {
+      "path": "export/config/wspradar_config.config",
+      "bytes": 6517,
+      "sha256": "353eb8d9ea5a409abcb94a973b8e6be88cdc4197f9258b6f3ee2f559ef0f66c0"
+    },
+    {
+      "path": "fresh/WSPRadar_export_2026_10_15__17_39.zip",
+      "bytes": 5239218,
+      "sha256": "9f8bc1952bd26d5b04ec56b9be250af921d7c1a79b0a0a982cfd4139cb0bfcc3"
+    },
+    {
+      "path": "fresh/comparison_with_supplied_export.json",
+      "bytes": 4630,
+      "sha256": "2c4bfae29e7310bad8ba9f95fcfd07335342f9cc49cc7c78453b45dcdaf5f70f"
+    },
+    {
+      "path": "fresh/coverage.png",
+      "bytes": 171197,
+      "sha256": "dc900e8b83d1091ba8870fd7010df34ca0ac8324f29fbc2fa966e7a8f79874a5"
+    },
+    {
+      "path": "fresh/demo1_verified_export_summary.json",
+      "bytes": 15397,
+      "sha256": "c8cfb53636c15089fd5dbfea6c4f84b0d85fdbf9e3575f60e30157c58da13b3e"
+    },
+    {
+      "path": "fresh/difference.png",
+      "bytes": 134962,
+      "sha256": "197fcb4dfa6801e3044865b93eaf21b2f5d600066045ad0c56b17b395808e436"
+    },
+    {
+      "path": "fresh/export/benchmark/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 8563295,
+      "sha256": "dca352d43b443a63ada0d9d4c8f6849b027a6f39292b3a80d24d567b19c9c1d1"
+    },
+    {
+      "path": "fresh/export/benchmark/table_drilldown_selected_stations.csv",
+      "bytes": 163521,
+      "sha256": "1d527cbd72a195d7ad8903bb82169b664e0e5e193421b24beef4bab3acd4f7a6"
+    },
+    {
+      "path": "fresh/export/benchmark/table_station_insights_current_segment.csv",
+      "bytes": 28555,
+      "sha256": "403e1e23f76acb74ff099715d6b18085e50f2ccc4cd7e312f6519dcabc8ca993"
+    },
+    {
+      "path": "fresh/export/config/run_metadata.json",
+      "bytes": 2256,
+      "sha256": "9fc5bee0479a7f66938717f443fc86ee7b37a9e3b5b93241ae0d8644331acee6"
+    },
+    {
+      "path": "fresh/export/config/wspradar_config.config",
+      "bytes": 6517,
+      "sha256": "f76773ddb9c92b0c7bdfb03c8a8296e08110d9141c26ffc383fdd5c0031e40e2"
+    },
+    {
+      "path": "fresh/map.png",
+      "bytes": 441687,
+      "sha256": "ec0df6d4ea60aab67839d183da57cd2768c5e0b45c40d95f1474d573de031e08"
+    },
+    {
+      "path": "fresh/provenance.json",
+      "bytes": 5593,
+      "sha256": "b3cdb10a34aa30f593a52ae06373c41754ed2500f82580adc4817cd21ca7b5e5"
+    },
+    {
+      "path": "fresh/station-coverage.png",
+      "bytes": 146258,
+      "sha256": "2e6710daaa2b5585907436d80066b1790fa115ce1c48943db6f38e4bfc1c4794"
+    },
+    {
+      "path": "fresh/station.png",
+      "bytes": 239410,
+      "sha256": "56901fa43b6853353afea24b76f5ed001d565b57c5300f0174681849cd296650"
+    },
+    {
+      "path": "fresh/time.png",
+      "bytes": 189507,
+      "sha256": "75d01580fbbf7fd6bfd5eb856554cc6bdc209fc64425a8b8bf5a06e422d0ffad"
+    },
+    {
+      "path": "fresh/web/coverage-1200.webp",
+      "bytes": 137192,
+      "sha256": "d54d126ea7b7a8d8dc113a7a01915485f91de133d67d68bd478c1dd7c4aa4e22"
+    },
+    {
+      "path": "fresh/web/coverage-600.webp",
+      "bytes": 66988,
+      "sha256": "58a182ba925ff5c84eac0b62f6971bd7f95fdfd1356ea0a6fe2a6e85f96fada2"
+    },
+    {
+      "path": "fresh/web/difference-1200.webp",
+      "bytes": 85948,
+      "sha256": "2081f4d6719f5013bdeacbb4418b597422669cbed12f0759adde2a8b05c9021a"
+    },
+    {
+      "path": "fresh/web/difference-600.webp",
+      "bytes": 33474,
+      "sha256": "056287581a587353cf8c89628dc4abe9eb27f5808576f1addfe27edc86c9f981"
+    },
+    {
+      "path": "fresh/web/map-1200.webp",
+      "bytes": 141812,
+      "sha256": "c398c379acc50cc37d6c5ff43bab9ec365d2f7dd702ac21bb793db948fb5108b"
+    },
+    {
+      "path": "fresh/web/map-600.webp",
+      "bytes": 99792,
+      "sha256": "52751c3134bb0448b4f11b0653b386980f9e694a6934ac86c6d4b55d0e51bda4"
+    },
+    {
+      "path": "fresh/web/station-1200.webp",
+      "bytes": 216518,
+      "sha256": "ed81bbe1cd5a174823577954a9aeae9fabbf73bef4484ea3f04147960ce745d9"
+    },
+    {
+      "path": "fresh/web/station-600.webp",
+      "bytes": 98150,
+      "sha256": "91d8989290b68e597943adb9b1ff66899f74efaada5a468e27a9a0df657fd32e"
+    },
+    {
+      "path": "fresh/web/station-coverage-1200.webp",
+      "bytes": 97342,
+      "sha256": "c3e54ba48f6e7cee5f04933707cabfadfa1c4b7618af66cbd8487710e07fbe24"
+    },
+    {
+      "path": "fresh/web/station-coverage-600.webp",
+      "bytes": 44514,
+      "sha256": "4a16b8fdb8cf916a73996ad5f156491be89550ac03c5fac0bccad63fab77c043"
+    },
+    {
+      "path": "fresh/web/time-1200.webp",
+      "bytes": 151890,
+      "sha256": "52b7c90a22dc7e2b269f08ed61ebef4ab7cc48adb25e6c7f324782501ffdfe4d"
+    },
+    {
+      "path": "fresh/web/time-600.webp",
+      "bytes": 73868,
+      "sha256": "457fdb5dd84a2ba04715e4e505a4ac9fc0bc199b3c2a5d006480a1c606d32962"
+    },
+    {
+      "path": "setup/setup-network-520.webp",
+      "bytes": 32144,
+      "sha256": "509c41c64607097730aacf8025bc5685a566255d3b2b2e835a2048c332e6d1df"
+    },
+    {
+      "path": "setup/setup-network-1040.webp",
+      "bytes": 88856,
+      "sha256": "334578636ba3e724012f2d57111d58a1d631184c97f882c564acb4a16c616aed"
+    },
+    {
+      "path": "setup/setup-network-1600.webp",
+      "bytes": 153214,
+      "sha256": "5ef10cdb7be3a12ef1dde7d2710bcf036fd868cfdde23d55b737a01afadccd86"
+    }
+  ],
+  "figures": [
+    {
+      "key": "fresh-demo1-map",
+      "path": "fresh/map.png",
+      "width": 1200,
+      "height": 1250,
+      "title": {
+        "en": "Map View: the April comparison",
+        "de": "Kartenansicht: der April-Vergleich"
+      },
+      "alt": {
+        "en": "Complete dark RX Benchmark map for G3ZIL versus G4HZX, with sector colors, direction and distance ranges, scale, decode outcomes and evidence counts.",
+        "de": "Vollständige dunkle RX-Benchmark-Karte für G3ZIL gegenüber G4HZX mit Sektorfarben, Richtungen und Entfernungsbereichen, Skala, Empfangskategorien und Beobachtungszahlen."
+      },
+      "caption": {
+        "en": "Sector colors show station-balanced median ΔSNR for G3ZIL minus G4HZX.",
+        "de": "Die Sektorfarben zeigen das stationsgleichgewichtete mediane ΔSNR für G3ZIL minus G4HZX."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/map-600.webp",
+          "width": 600,
+          "height": 625
+        },
+        {
+          "path": "fresh/web/map-1200.webp",
+          "width": 1200,
+          "height": 1250
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-difference",
+      "path": "fresh/difference.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Benchmark Evidence",
+        "de": "Benchmark-Evidenz"
+      },
+      "alt": {
+        "en": "Complete dark Benchmark Evidence panels for decode outcomes, station-median ΔSNR and Joint-Spot ΔSNR, with +6.5 dB and +7.0 dB medians.",
+        "de": "Vollständige dunkle Benchmark-Evidenzdiagramme für Empfangskategorien, ΔSNR der Stationsmediane und Joint-Spot-ΔSNR mit Medianen von +6,5 dB und +7,0 dB."
+      },
+      "caption": {
+        "en": "Read decode outcomes alongside the station-balanced median of +6.5 dB and Joint-Spot median of +7.0 dB.",
+        "de": "Lies die Empfangskategorien zusammen mit dem stationsgleichgewichteten Median von +6,5 dB und dem Joint-Spot-Median von +7,0 dB."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/difference-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/difference-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-time",
+      "path": "fresh/time.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Temporal Evidence",
+        "de": "Zeitliche Evidenz"
+      },
+      "alt": {
+        "en": "Complete dark chronological and UTC-hour ΔSNR charts, preserving median markers, middle-50-percent bands, density colors, nonlinear axes and overall +7 dB median.",
+        "de": "Vollständige dunkle ΔSNR-Diagramme im Zeitverlauf und nach UTC-Stunde mit Medianmarkierungen, Bändern der mittleren 50 Prozent, Dichtefarben, nichtlinearen Achsen und dem Gesamtmedian von +7 dB."
+      },
+      "caption": {
+        "en": "The chronological view uses 24-hour bins; the UTC-hour view combines different dates.",
+        "de": "Die chronologische Ansicht verwendet 24-Stunden-Intervalle; die Ansicht nach UTC-Stunde fasst verschiedene Tage zusammen."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/time-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/time-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-coverage",
+      "path": "fresh/coverage.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Temporal Evidence Coverage",
+        "de": "Zeitliche Evidenzabdeckung"
+      },
+      "alt": {
+        "en": "Complete dark temporal coverage charts showing station and transmitter-cycle counts, Joint Evidence Share lines and the Target-activity qualification.",
+        "de": "Vollständige dunkle Diagramme der zeitlichen Evidenzabdeckung mit Stations- und Senderzykluszahlen, Joint-Evidence-Share-Linien und dem Hinweis zur Target-Aktivität."
+      },
+      "caption": {
+        "en": "Station and transmitter-cycle counts show the supporting evidence. Joint Evidence Share is not a receiver success rate. Native dark app figure rendered on 15 October 2026.",
+        "de": "Stations- und Senderzykluszahlen zeigen die unterstützende Evidenz. Joint Evidence Share ist keine Empfangserfolgsquote. Native dunkle App-Abbildung vom 15. Oktober 2026."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/coverage-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/coverage-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-station",
+      "path": "fresh/station.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Selected Station Evidence: DJ0ABR",
+        "de": "Evidenz der ausgewählten Station: DJ0ABR"
+      },
+      "alt": {
+        "en": "Complete dark selected-station ΔSNR evidence for DJ0ABR at JN68nt, with 12-hour chronological bins, UTC-hour folding and the +25 dB point on 20 April.",
+        "de": "Vollständige dunkle ΔSNR-Evidenz für DJ0ABR in JN68nt mit chronologischen 12-Stunden-Intervallen, Zusammenfassung nach UTC-Stunde und dem Punkt bei +25 dB am 20. April."
+      },
+      "caption": {
+        "en": "Across 2 334 Joint Spots, G3ZIL shows a median SNR advantage of **+5 dB**. After little difference in early April, the advantage increases, with most 12-hour medians around **+5 to +8 dB**.\n\nLate-night observations (00:00–03:00 UTC) are sparse, possibly reflecting 40 m propagation change on this ~1 060 km path.",
+        "de": "Über 2 334 Joint Spots zeigt G3ZIL einen medianen SNR-Vorteil von **+5 dB**. Nach geringen Unterschieden Anfang April nimmt der Vorteil zu, wobei die meisten 12-Stunden-Mediane bei etwa **+5 bis +8 dB** liegen.\n\nIn den späten Nachtstunden (00:00–03:00 UTC) gibt es nur wenige Beobachtungen, was möglicherweise mit einer Änderung der Ausbreitungsbedingungen auf 40 m über diesen ~1 060 km langen Funkweg zusammenhängt."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/station-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/station-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-station-coverage",
+      "path": "fresh/station-coverage.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Selected Path Evidence Coverage: DJ0ABR",
+        "de": "Evidenzabdeckung des ausgewählten Funkwegs: DJ0ABR"
+      },
+      "alt": {
+        "en": "Complete dark coverage charts for DJ0ABR at JN68nt, showing retained WSPR cycles and Joint Evidence Share in 12-hour chronological bins and by UTC hour.",
+        "de": "Vollständige dunkle Abdeckungsdiagramme für DJ0ABR in JN68nt mit berücksichtigten WSPR-Zyklen und Joint Evidence Share in chronologischen 12-Stunden-Intervallen und nach UTC-Stunde."
+      },
+      "caption": {
+        "en": "During 20 April, 12:00–24:00 UTC, the path has one Joint Spot and three Target-only observations.",
+        "de": "Am 20. April von 12:00 bis 24:00 UTC hat der Funkweg einen Joint Spot und drei reine Target-Beobachtungen."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/station-coverage-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/station-coverage-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "demo1-setup-network-schematic",
+      "path": "setup/setup-network-1600.webp",
+      "width": 1600,
+      "height": 900,
+      "title": {
+        "en": "Two receivers, shared WSPR signals",
+        "de": "Zwei Empfänger, gemeinsame WSPR-Signale"
+      },
+      "alt": {
+        "en": "Schematic world map of WSPR transmitters and a UK inset showing the G3ZIL low dipole and G4HZX vertical, their receivers, WSJT-X and uploaded reception reports.",
+        "de": "Schematische Weltkarte mit WSPR-Sendern und einem UK-Ausschnitt mit dem niedrigen Dipol von G3ZIL, der Vertikalantenne von G4HZX, ihren Empfängern, WSJT-X und hochgeladenen Empfangsmeldungen."
+      },
+      "caption": {
+        "en": "Illustrative setup and reporting flow; transmitter positions and signal paths are schematic.",
+        "de": "Illustration des Aufbaus und Meldewegs; Senderpositionen und Signalwege sind schematisch."
+      },
+      "variants": [
+        {
+          "path": "setup/setup-network-520.webp",
+          "width": 520,
+          "height": 293
+        },
+        {
+          "path": "setup/setup-network-1040.webp",
+          "width": 1040,
+          "height": 585
+        },
+        {
+          "path": "setup/setup-network-1600.webp",
+          "width": 1600,
+          "height": 900
+        }
+      ],
+      "provenance": {
+        "source_filename": "WSPR Global Network Infographic Map (1).png",
+        "source_file": "source/setup-network-original.png",
+        "source_sha256": "1e84b8307d3f1dd5d9c52704b80c2d336e82a3bb7ff0f6fbc307275e1a1c3506",
+        "source_bytes": 1718445,
+        "source_image_px": [
+          1672,
+          941
+        ],
+        "purpose": "User-supplied conceptual illustration for the Demo #1 setup, not observed station locations or measured radio paths.",
+        "conversion": {
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "format": "WebP",
+          "quality": 94,
+          "lossless": false,
+          "method": 6,
+          "resampling": "LANCZOS",
+          "composition": "Complete source image; no cropping, redrawing, relabeling or intentional recoloring; no upscaling."
+        },
+        "original_is_published": false,
+        "review": "Compared lossless and quality-94 encodings. Reviewed the 520, 1040 and 1600 px previews and station/locator, receiver, WSJT-X, report-upload and WSPRnet labels. Quality 94 selected for the clear size saving with readable enlarged labels."
+      }
+    }
+  ]
+}

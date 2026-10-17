@@ -1,8 +1,17 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: General questions and experiment-design help
-    url: https://github.com/markusthemaker/WSPRadar/issues/new
-    about: Open a blank issue for usage questions, experiment-design help, result interpretation, or an early idea.
+  - name: Ask a question
+    url: https://github.com/markusthemaker/WSPRadar/discussions/new?category=ask-a-question
+    about: Check the manual first; if anything remains unclear, ask here. No programming knowledge needed. Please write posts and replies in English.
+  - name: Discuss your experiments
+    url: https://github.com/markusthemaker/WSPRadar/discussions/new?category=discuss-your-experiments
+    about: Discuss experiment setups and share your findings. Please write posts and replies in English.
+  - name: Ideas and feature requests
+    url: https://github.com/markusthemaker/WSPRadar/discussions/new?category=ideas-and-feature-requests
+    about: Suggest an improvement, a new capability, or an early idea. Please write posts and replies in English.
+  - name: Report a bug or concern
+    url: https://github.com/markusthemaker/WSPRadar/discussions/new?category=report-a-bug-or-concern
+    about: Report a possible problem or a scientific concern. No confirmed diagnosis needed. Please write posts and replies in English.
   - name: WSPRadar documentation and demos
     url: https://wspradar.streamlit.app/
     about: Open the application to review its documentation, limitations, references, and maintained demo analyses.

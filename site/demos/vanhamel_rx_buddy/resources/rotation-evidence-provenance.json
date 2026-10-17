@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "demo_id": "vanhamel_rx_buddy",
+  "kind": "Six native WSPRadar figures rendered offline from the frozen Figure 6 archive fixture",
+  "theme": "native dark application rendering; paper_theme=False",
+  "fixture_id": "vanhamel_fig6_rotation_v1",
+  "source_rows_sha256": "84ab229a22555a365fc16ba707a16fd12c8a7b9b75f5b557768790ea2c07cf28",
+  "source_manifest_sha256": "64aa9d88797e57bc2a2b2713dac54cf5f5e2fc04e33e58fcb729a65468fc74a3",
+  "independent_summary_sha256": "bc3df33b05c6d0ce1b824217ac6e686d818329c44798b169604c7367aa2bea24",
+  "reproduction_script_sha256": "0a609b8a461a10cc4d4e4b9d6367f37dc46f365ec1a04b30642d6c85f30cbe8c",
+  "reproduction_command": ".\\.venv\\Scripts\\python.exe scripts\\internal\\render_vanhamel_rotation_walkthrough.py --output-directory .tmp\\vanhamel-rotation-walkthrough",
+  "runtime_source_hashes": {
+    "core/analysis_runner.py": "42ff5aafe960a8c4f2bbfdd3b77ec5450fe8c9b6bcec2ce0b5c1f03a3064939b",
+    "core/compare_engine.py": "1e207a3d5c337ce6b0d2429df67e0d3fd4f29e18507ed4d5b5099102097f3fad",
+    "core/map_data.py": "3226178801761389f3d8df24228587da97f861400fedb267f10c92f09e49fa8b",
+    "core/plot_engine.py": "2212fe261ac6d542609451912bb60e8ddd28a8483f08aaf8d3563fc037b780fa",
+    "ui/inspector/evidence_data.py": "ad549d01ef2a60036aa91f9f14d73e35d78885ea8f9180743aca8c2af87eee22",
+    "ui/inspector/view_models.py": "3c283a5fe523dd37f9544440d2d7641de79fe0dcc7a51987c44b07e7e9385f27",
+    "ui/inspector/presentation.py": "ac26c99dc8e9b09662047f49ef5502c96c8efb9630e790a1b3494f4baeea810e",
+    "ui/plots/evidence_figures.py": "99d3e3cb71dc840dc310375785053ee1d812929d73dd0df32af5cd204a7404b3",
+    "ui/plots/benchmark_evidence_figures.py": "2d2d7920b37806b704bcafd50e00a4dffa33fab2d209244a050a73ea4c9710e6",
+    "ui/results_export.py": "47283b798aa7c39cbab78bad13547f75c88fa56fed2e138f87ea34b2b4def1d6",
+    "i18n.py": "613dcb9b0164d1647dcbb52dad55ab4c9fd553b7f63575a5acd8c0d660c39cb9"
+  },
+  "counts": {
+    "stat_joint": 60,
+    "stat_both_async": 0,
+    "stat_only_u": 13,
+    "stat_only_r": 2,
+    "spot_joint": 5379,
+    "spot_both_async": 1735,
+    "spot_only_u": 23,
+    "spot_only_r": 2,
+    "tot_stats": 75,
+    "tot_spots": 7139
+  },
+  "station_median_db": 1.4,
+  "joint_spot_median_db": 2.4,
+  "joint_spot_share_percent": 75.346687211094,
+  "selected_path": {
+    "callsign": "M7AEO",
+    "locator": "IO82",
+    "counts": {
+      "joint": 1441,
+      "target_only": 109,
+      "reference_only": 5
+    },
+    "distance_km": 598.2666092534009,
+    "azimuth_degrees": 291.23872835907423,
+    "median_db": 0.4,
+    "first_750_median_db": -0.6,
+    "remaining_691_median_db": 2.4
+  },
+  "sector_rows": [
+    {
+      "SegmentID": "[0-2500km] ENE",
+      "dist_label": "[0-2500km]",
+      "dir_name": "ENE",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 3.0,
+      "val": 4.4,
+      "cnt": 4.0,
+      "total_spots": 366.0
+    },
+    {
+      "SegmentID": "[0-2500km] ESE",
+      "dist_label": "[0-2500km]",
+      "dir_name": "ESE",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 5.0,
+      "val": -0.1,
+      "cnt": 5.0,
+      "total_spots": 64.0
+    },
+    {
+      "SegmentID": "[0-2500km] N",
+      "dist_label": "[0-2500km]",
+      "dir_name": "N",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 0.0,
+      "val": 3.9,
+      "cnt": 2.0,
+      "total_spots": 445.0
+    },
+    {
+      "SegmentID": "[0-2500km] NE",
+      "dist_label": "[0-2500km]",
+      "dir_name": "NE",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 2.0,
+      "val": 2.4,
+      "cnt": 5.0,
+      "total_spots": 1008.0
+    },
+    {
+      "SegmentID": "[0-2500km] NNE",
+      "dist_label": "[0-2500km]",
+      "dir_name": "NNE",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 1.0,
+      "val": 2.4,
+      "cnt": 7.0,
+      "total_spots": 165.0
+    },
+    {
+      "SegmentID": "[0-2500km] NW",
+      "dist_label": "[0-2500km]",
+      "dir_name": "NW",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 14.0,
+      "val": 0.9,
+      "cnt": 4.0,
+      "total_spots": 838.0
+    },
+    {
+      "SegmentID": "[0-2500km] S",
+      "dist_label": "[0-2500km]",
+      "dir_name": "S",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 8.0,
+      "val": -7.6,
+      "cnt": 1.0,
+      "total_spots": 1.0
+    },
+    {
+      "SegmentID": "[0-2500km] SE",
+      "dist_label": "[0-2500km]",
+      "dir_name": "SE",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 6.0,
+      "val": -1.6,
+      "cnt": 3.0,
+      "total_spots": 39.0
+    },
+    {
+      "SegmentID": "[0-2500km] SSE",
+      "dist_label": "[0-2500km]",
+      "dir_name": "SSE",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 7.0,
+      "val": -3.6,
+      "cnt": 4.0,
+      "total_spots": 81.0
+    },
+    {
+      "SegmentID": "[0-2500km] SW",
+      "dist_label": "[0-2500km]",
+      "dir_name": "SW",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 10.0,
+      "val": -1.4,
+      "cnt": 2.0,
+      "total_spots": 74.0
+    },
+    {
+      "SegmentID": "[0-2500km] W",
+      "dist_label": "[0-2500km]",
+      "dir_name": "W",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 12.0,
+      "val": 1.9,
+      "cnt": 5.0,
+      "total_spots": 438.0
+    },
+    {
+      "SegmentID": "[0-2500km] WNW",
+      "dist_label": "[0-2500km]",
+      "dir_name": "WNW",
+      "r_min": 0.0,
+      "r_max": 2500.0,
+      "az_bucket": 13.0,
+      "val": 0.4,
+      "cnt": 17.0,
+      "total_spots": 1855.0
+    }
+  ],
+  "sparse_hour": {
+    "utc_hour": 13,
+    "joint_spots": 1,
+    "median_db": 7.4
+  },
+  "sparse_selected_bin": {
+    "start_utc": "2021-05-09T05:15Z",
+    "end_utc": "2021-05-09T17:15Z",
+    "joint_spots": 1,
+    "median_db": 4.4
+  },
+  "drilldown_examples": [
+    {
+      "utc": "2021-05-01T18:24Z",
+      "target_snr_db": -20,
+      "corrected_reference_snr_db": -19.4,
+      "delta_snr_db": -0.6
+    },
+    {
+      "utc": "2021-05-07T20:04Z",
+      "target_snr_db": -12,
+      "corrected_reference_snr_db": -12.4,
+      "delta_snr_db": 0.4
+    },
+    {
+      "utc": "2021-05-08T20:16Z",
+      "target_snr_db": -16,
+      "corrected_reference_snr_db": -20.4,
+      "delta_snr_db": 4.4
+    },
+    {
+      "utc": "2021-05-14T20:04Z",
+      "target_snr_db": -17,
+      "corrected_reference_snr_db": -20.4,
+      "delta_snr_db": 3.4
+    }
+  ],
+  "validation": [
+    "All frozen fixture manifest hashes and sizes verified.",
+    "Production SQL and post-fetch rows match independent frozen expectations.",
+    "Every M7AEO paired SNR component and UTC cycle matches the independent raw reference.",
+    "M7AEO 12-hour bin counts, medians, quartiles, and density cells match independent expectations.",
+    "All supplied overall counts, medians, sparse-bin examples and drilldown SNR values checked against production results."
+  ],
+  "limitations": [
+    "This is an offline reconstruction, not a live-provider rerun.",
+    "Reception 750 is the publication reconstruction boundary, not an independently logged UTC rotation time.",
+    "Native production renderers and numeric inputs are unchanged; only separate browser derivatives are resized using Lanczos and encoded losslessly."
+  ],
+  "outputs": [
+    {
+      "file": "map.en.png",
+      "bytes": 1329955,
+      "sha256": "42d6a191c6e163de6ea2501d45b9ca26e6768b29b550db485f290b7c308bdf71",
+      "dimensions": [
+        3690,
+        3840
+      ]
+    },
+    {
+      "file": "benchmark-evidence.en.png",
+      "bytes": 293421,
+      "sha256": "6c097b5f10a530a60732e9225b8152bb1ae11c2ce8d053677d5c41ef302f3111",
+      "dimensions": [
+        3885,
+        1714
+      ]
+    },
+    {
+      "file": "temporal-evidence.en.png",
+      "bytes": 563649,
+      "sha256": "75fdeb12f6e2a4b54f30d40beda0915b085bceaa4f4d044eb6122330e77ac86e",
+      "dimensions": [
+        3855,
+        1710
+      ]
+    },
+    {
+      "file": "temporal-coverage.en.png",
+      "bytes": 530850,
+      "sha256": "289fc8184004eb70c7a04f50026ed89dc8924f061f2360c4cc70acdccaf8d378",
+      "dimensions": [
+        3807,
+        1692
+      ]
+    },
+    {
+      "file": "selected-evidence.en.png",
+      "bytes": 418977,
+      "sha256": "d4b003f618c377ed311e7c9daecc8c26b4483498627b48648fae4e4370493ef8",
+      "dimensions": [
+        3855,
+        1710
+      ]
+    },
+    {
+      "file": "selected-coverage.en.png",
+      "bytes": 391462,
+      "sha256": "14d7b79ad1e14bc6d989ad86d8a3d0736a4217513b54d60954bc4286ef1bebbb",
+      "dimensions": [
+        3807,
+        1692
+      ]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "source_url": "https://pure.tudelft.nl/ws/portalfiles/portal/125931824/4809313.pdf",
+  "publication_url": "https://doi.org/10.1155/2022/4809313",
+  "figure": "Figure 1",
+  "printed_page": 3,
+  "pdf_page_index": 3,
+  "pdf_sha256": "da361e24befcd74ea94ddffafaf51da6975c48e86c1a46428216cdaab722e3dd",
+  "crop_points": [
+    70,
+    71,
+    529,
+    173
+  ],
+  "svg_dimensions": [
+    1836,
+    408
+  ],
+  "svg_viewbox": [
+    0,
+    0,
+    459,
+    102
+  ],
+  "source_structure": "Original vector labels, paths and symbols plus one lossless RGB decoding of the PDF's original embedded CMYK JPEG at its native 1890 by 317 pixels. PDF color-space decoding is necessary because directly embedded CMYK JPEG renders with incorrect colors in browsers.",
+  "original_pdf_jpeg_sha256": "b00af3c00d6cbe8f191a052cb4b170cda61bdebed87cd89251ef5ba5b16658e0",
+  "original_pdf_jpeg_bytes": 218934,
+  "embedded_rgb_png_sha256": "557fde261e87fde9c867d7b19744d3bd75ce59c376f3705e89bcabe0a8a17a04",
+  "embedded_rgb_png_bytes": 545726,
+  "cropped_away_page_glyph_uses_removed": 4304,
+  "figure_label_glyph_uses": 83,
+  "figure_labels": "Coaxial cables (25 m)160 mantennaChoke + bandpass filterZ83-NUC -6 dBsplitter Choke",
+  "adaptation": "SVG vector black paints changed to white. Source and adapted SVG embed exactly identical lossless RGB PNG bytes. An sRGB SVG filter preserves saturated original colors and renders neutral tones as white ink with opacity 1 minus relative luminance for original opaque pixels. The alpha calculation uses source alpha minus relative luminance and is constrained by SourceAlpha to avoid painting transparent filter-edge pixels. Relative luminance is 0.2126 R + 0.7152 G + 0.0722 B. White becomes transparent and black becomes white. The neutral mask is clamp(2 - 16 * (max(R,G,B) - min(R,G,B)), 0, 1). No labels, path geometry, placement or connections were redrawn.",
+  "changed_vector_paints": 96,
+  "structural_verification": "Source and adapted SVG element structure and all attributes match exactly except fill, stroke, the raster image filter and a bounded image clipping path. Original figure paths, text glyphs and transforms are unchanged. The SVG clip removes one empty source pixel along the raster top, right and bottom to prevent a filter-boundary seam; no image pixels are edited.",
+  "copyright": "Copyright 2022 Jurgen Vanhamel et al.; article published under the Creative Commons Attribution License. Attribution and indication of adaptation required.",
+  "files": {
+    "figure1-original.svg": {
+      "bytes": 944726,
+      "sha256": "d092a23c9bdeb63dfe0b22f69726591adfdd9c96772a35afdff2131f19436de7"
+    },
+    "figure1-source.svg": {
+      "bytes": 766925,
+      "sha256": "5d908e536c3b0640d66c2c864e7d25d28102aa9f6b29ef739691f43677c7da64"
+    },
+    "figure1-dark.svg": {
+      "bytes": 768799,
+      "sha256": "ae0aa193dae30b5f112cde7829855d9f5404d99d4305c1994bca166966089c19"
+    },
+    "figure1-dark-transparent-preview.png": {
+      "sha256": "3efaacd2b3eecacfb82d1969626e50eedaa04070c9785ad15e2ec99d7034def3",
+      "bytes": 494488
+    },
+    "figure1-dark-preview.png": {
+      "sha256": "80817a9347c330dc63a65a729051be3dfff98075029da6b9d1dbdfbb844163c4",
+      "bytes": 472402
+    },
+    "figure1-source-preview.png": {
+      "sha256": "cec09e1413477a63b066c11c289fd808b6056cbb88f2d6480912affc327cd389",
+      "bytes": 552311
+    },
+    "figure1-pdf-original-raster.jpeg": {
+      "sha256": "b00af3c00d6cbe8f191a052cb4b170cda61bdebed87cd89251ef5ba5b16658e0",
+      "bytes": 218934
+    },
+    "figure1-pdf-decoded-raster.png": {
+      "sha256": "557fde261e87fde9c867d7b19744d3bd75ce59c376f3705e89bcabe0a8a17a04",
+      "bytes": 545726
+    }
+  },
+  "render_verification": "Rendered the final SVG at 1836x408 against #0b1220 and with transparency. Original saturated color samples match the source render exactly. Sampled exterior/background and corrected boundary alpha is zero. All original label glyph and connection geometry attributes match source SVG."
+}

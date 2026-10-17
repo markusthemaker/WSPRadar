@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "demo_id": "zander_tx_buddy",
+  "kind": "Six native WSPRadar dark figures rendered offline from frozen raw reports; supplied export CSVs used only for validation",
+  "theme": "native dark application rendering; paper_theme=False",
+  "fixture_id": "zander_experiment_a_v1",
+  "source_rows_sha256": "5efc787d9d5fb24ff92f0fd9080cc81d3dd9e32e2a35692ca726e2f12b5c6051",
+  "source_manifest_sha256": "3f05e9fe898ef79bc7efcca1c10f2e28403fe10df304c29afd9f3165bd5b56bf",
+  "reproduction_script_sha256": "e5368819caa1f662bd4b6107d8eee228cf252b5e327ef51f99a53b4dc63f5af0",
+  "reproduction_command": ".\\.venv\\Scripts\\python.exe scripts\\internal\\render_zander_walkthrough.py --output-directory .tmp\\zander-dark-2026-10-16",
+  "supplied_source_hashes": {
+    "export_disclaimer.txt": "4d425b26f22d9c4d4d6faf098de16905b0a7ff298c204f2083b98ddb73145c25",
+    "run_metadata.json": "acb9fe4dd2312f0bf19fed719df2e722a847dbeff1894d25bf14f4af139b64b9",
+    "table_drilldown_all_stations_current_segment.csv": "344ef30a8d0204307b6a9e09af280b74a9779c7f1a99acaf4601bc8db00ab0cc",
+    "table_drilldown_selected_stations.csv": "a484585b1c6f003748782922d594dc4b777c5388704172d12e5c41a8fea8b7ea",
+    "table_station_insights_current_segment.csv": "2be7d526c3020c3944db162430889f04617550e8c93ad8854a088ebbc606a26c",
+    "wspradar_config.config": "88c24c3d0a357d07265d0042e2b0dd8e8dd4d069e3ea73bfa2bbb9dcc3dc5958"
+  },
+  "runtime_source_hashes": {
+    "core/analysis_runner.py": "42ff5aafe960a8c4f2bbfdd3b77ec5450fe8c9b6bcec2ce0b5c1f03a3064939b",
+    "core/compare_engine.py": "1e207a3d5c337ce6b0d2429df67e0d3fd4f29e18507ed4d5b5099102097f3fad",
+    "core/map_data.py": "3226178801761389f3d8df24228587da97f861400fedb267f10c92f09e49fa8b",
+    "core/plot_engine.py": "2212fe261ac6d542609451912bb60e8ddd28a8483f08aaf8d3563fc037b780fa",
+    "ui/inspector/evidence_data.py": "ad549d01ef2a60036aa91f9f14d73e35d78885ea8f9180743aca8c2af87eee22",
+    "ui/inspector/view_models.py": "3c283a5fe523dd37f9544440d2d7641de79fe0dcc7a51987c44b07e7e9385f27",
+    "ui/inspector/presentation.py": "ac26c99dc8e9b09662047f49ef5502c96c8efb9630e790a1b3494f4baeea810e",
+    "ui/plots/evidence_figures.py": "99d3e3cb71dc840dc310375785053ee1d812929d73dd0df32af5cd204a7404b3",
+    "ui/plots/benchmark_evidence_figures.py": "2d2d7920b37806b704bcafd50e00a4dffa33fab2d209244a050a73ea4c9710e6",
+    "ui/results_export.py": "47283b798aa7c39cbab78bad13547f75c88fa56fed2e138f87ea34b2b4def1d6",
+    "i18n.py": "613dcb9b0164d1647dcbb52dad55ab4c9fd553b7f63575a5acd8c0d660c39cb9"
+  },
+  "time_window": {
+    "start_utc": "2022-05-21T09:45:00+00:00",
+    "end_utc": "2022-05-21T10:30:00+00:00"
+  },
+  "reference_snr_correction_db": 0,
+  "counts": {
+    "stat_joint": 37,
+    "stat_both_async": 0,
+    "stat_only_u": 1,
+    "stat_only_r": 47,
+    "spot_joint": 166,
+    "spot_both_async": 139,
+    "spot_only_u": 1,
+    "spot_only_r": 151,
+    "tot_stats": 85,
+    "tot_spots": 457
+  },
+  "station_median_db": -5.0,
+  "joint_spot_median_db": -7.0,
+  "joint_spot_mean_db": -6.783132530120482,
+  "joint_spot_sample_sd_db": 3.51463845382668,
+  "segment_temporal_bins": [
+    {
+      "start_utc": "2022-05-21T09:45:00+00:00",
+      "end_utc": "2022-05-21T09:55:00+00:00",
+      "joint_spots": 8,
+      "median_db": -8.0,
+      "target_only": 16,
+      "reference_only": 23
+    },
+    {
+      "start_utc": "2022-05-21T09:55:00+00:00",
+      "end_utc": "2022-05-21T10:05:00+00:00",
+      "joint_spots": 70,
+      "median_db": -6.0,
+      "target_only": 8,
+      "reference_only": 125
+    },
+    {
+      "start_utc": "2022-05-21T10:05:00+00:00",
+      "end_utc": "2022-05-21T10:15:00+00:00",
+      "joint_spots": 76,
+      "median_db": -8.0,
+      "target_only": 12,
+      "reference_only": 88
+    },
+    {
+      "start_utc": "2022-05-21T10:15:00+00:00",
+      "end_utc": "2022-05-21T10:25:00+00:00",
+      "joint_spots": 12,
+      "median_db": -4.0,
+      "target_only": 0,
+      "reference_only": 19
+    },
+    {
+      "start_utc": "2022-05-21T10:25:00+00:00",
+      "end_utc": "2022-05-21T10:30:00+00:00",
+      "joint_spots": 0,
+      "median_db": null,
+      "target_only": 0,
+      "reference_only": 0
+    }
+  ],
+  "selected_path": {
+    "callsign": "ON5KQ",
+    "locator": "JO10os",
+    "median_db": -7.0,
+    "bins": [
+      {
+        "start_utc": "2022-05-21T09:45:00+00:00",
+        "end_utc": "2022-05-21T10:30:00+00:00",
+        "joint_spots": 11,
+        "median_db": -7.0,
+        "target_only": 2,
+        "reference_only": 0
+      }
+    ]
+  },
+  "validation": [
+    "All frozen fixture manifest hashes and sizes verified.",
+    "Production SQL and post-fetch selection, all paired components, and distinct station/joint weighting match independent frozen oracles.",
+    "All 457 supplied retained receiver-cycle identities, UTC times, SNR components, differences, and outcomes match exactly.",
+    "All 37 supplied qualifying station joint/one-sided counts and station medians match exactly.",
+    "All 11 supplied selected-path paired observations match exactly; complete selected path retains 13 cycles.",
+    "Native 10-minute segment and 1-hour selected-path recipes match independently grouped supplied CSV counts, medians, quartiles, density cells, coverage outcomes, and station/unit joint shares.",
+    "All six native figures have dark figure and PNG backgrounds; no recoloring applied."
+  ],
+  "limitations": [
+    "Offline reconstruction, not a live-provider rerun; SQLite adapter executes generated SQL and does not validate the ClickHouse engine.",
+    "This script preserves the supplied source export and frozen fixture; browser derivatives are prepared separately from these native PNGs."
+  ],
+  "outputs": [
+    {
+      "file": "map.en.png",
+      "bytes": 1388769,
+      "sha256": "ec3b1eb718be718c1111bd584984ec75fc76cdb882065db272cb91d1ec99b42f",
+      "dimensions": [
+        3690,
+        3840
+      ]
+    },
+    {
+      "file": "benchmark-evidence.en.png",
+      "bytes": 313131,
+      "sha256": "d26d059443121b730c0f72516f62bb1fd50d66463039e2c1197dc72c9d4cbbae",
+      "dimensions": [
+        3885,
+        1654
+      ]
+    },
+    {
+      "file": "temporal-evidence.en.png",
+      "bytes": 323530,
+      "sha256": "cd92f3f71da161f71082b14fed8c91b2a235d7b083462a2b8589c636ac6ae79f",
+      "dimensions": [
+        3815,
+        1639
+      ]
+    },
+    {
+      "file": "temporal-coverage.en.png",
+      "bytes": 363365,
+      "sha256": "2c0a6fef7a9a4f6a75962095b167bba36d535adceb5796ae291a2dc5e23ec2db",
+      "dimensions": [
+        3807,
+        1692
+      ]
+    },
+    {
+      "file": "selected-evidence.en.png",
+      "bytes": 240370,
+      "sha256": "e65162f87a85b67b801fb03ce9a18af09d486b2074ccc96db46bfc6d59236bf5",
+      "dimensions": [
+        3815,
+        1639
+      ]
+    },
+    {
+      "file": "selected-coverage.en.png",
+      "bytes": 264800,
+      "sha256": "fb2e9cd37267a9c7bedae80142577c022086afa087a0f3a41e166766a3b1d229",
+      "dimensions": [
+        3780,
+        1692
+      ]
+    }
+  ]
+}

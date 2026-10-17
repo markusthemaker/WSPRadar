@@ -1,0 +1,68 @@
+{
+  "app": "WSPRadar.org",
+  "version": "v1.0 RC2",
+  "export_signature": "b804cc157b6c61d67f05fdf7692d8364309b307d3c759a010ddd4bf9f43bc40d",
+  "exported_utc": "2026-10-15T10:39:59Z",
+  "language": "en",
+  "run_mode": "RX",
+  "database_source": "wspr_live",
+  "blocks_present": {
+    "benchmark": true,
+    "performance": false
+  },
+  "callsign": "G3ZIL",
+  "reference_or_benchmark_mode": "reference_station",
+  "band": "40m",
+  "time_window": {
+    "start_utc": "2017-04-01T00:00Z",
+    "end_utc": "2017-05-01T00:00Z"
+  },
+  "benchmark_snr_correction_mode": "no_offset",
+  "benchmark_snr_correction_db": 0.0,
+  "thresholds_and_filters": {
+    "solar_state": "all",
+    "max_peer_distance_km": 10000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_joint_spots_per_station": 1,
+    "min_confirmed_opportunities_per_peer": 3,
+    "min_joint_stations_per_map_segment": 1
+  },
+  "result_blocks": [
+    {
+      "analysis_id": "rx_benchmark",
+      "title": "RX Benchmark: G3ZIL (Target) vs. G4HZX (Reference)",
+      "folder": "benchmark",
+      "result_mode": "benchmark",
+      "decode_filter_mode": "legacy_no_code",
+      "analysis_cache_file": "benchmark/analysis_cache.parquet",
+      "selected_segment": "Full Range | All Directions",
+      "selected_distance": "Full Range",
+      "selected_direction": "All Directions",
+      "selected_ranges": [
+        "Full Range"
+      ],
+      "selected_directions": [
+        "All Directions"
+      ],
+      "selected_stations": [
+        "DJ0ABR (JN68nt)"
+      ],
+      "selected_station_label": null,
+      "selected_station_context": null,
+      "selected_station_count": 1,
+      "selected_station_role": null,
+      "selected_evidence_weighting": "Single selected path",
+      "selected_evidence_figures": {},
+      "benchmark_evidence_figures": {
+        "figure_segment_temporal_coverage.png": "RX Benchmark Temporal Evidence Coverage: Target G3ZIL",
+        "figure_selected_station_coverage.png": "RX Benchmark Selected Path Evidence Coverage: DJ0ABR (JN68nt)"
+      },
+      "show_non_joint": false,
+      "show_zero_target": false,
+      "evidence_time_bin": "12h",
+      "segment_evidence_time_bin": "24h",
+      "performance_method_version": null
+    }
+  ]
+}

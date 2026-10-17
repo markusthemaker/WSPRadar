@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "demo_id": "griffiths_squibb_fig3",
+  "analysis_started_at_utc": "2026-10-15T15:28:47Z",
+  "exported_utc": "2026-10-15T15:39:44Z",
+  "app_version": "v1.0 RC2",
+  "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+  "app_worktree_dirty": true,
+  "source_revision_note": "The recorded Git revision does not alone identify the dirty working tree used for this run.",
+  "run_method": "Selected Demo #1 and executed Run RX Analysis in the native local Streamlit UI. The six displayed dark PNGs were downloaded unchanged through the browser UI.",
+  "database_source": "wspr.live",
+  "retrieval": "strict and legacy-compatibility query results read from disk cache",
+  "actual_network_requests": 0,
+  "retrieval_note": "This is a fresh application execution and figure rendering using retained historical source observations, not a fresh upstream database download.",
+  "decode_filter_mode": "legacy_no_code",
+  "configuration": "fresh/export/config/wspradar_config.config",
+  "run_metadata": "fresh/export/config/run_metadata.json",
+  "fresh_archive": "fresh/WSPRadar_export_2026_10_15__17_39.zip",
+  "fresh_archive_sha256": "9f8bc1952bd26d5b04ec56b9be250af921d7c1a79b0a0a982cfd4139cb0bfcc3",
+  "previous_archive": "WSPRadar_export_2026_10_15__10_39.zip",
+  "comparison": "fresh/comparison_with_supplied_export.json",
+  "verified_summary": "fresh/demo1_verified_export_summary.json",
+  "verified_numerical_summary_sections_match_previous": true,
+  "csv_content_matches_previous_ignoring_line_endings": true,
+  "image_derivation": "Original native dark PNG bytes retained. Separate 600 px and up-to-1200 px WebP previews use aspect-preserving Lanczos resizing and lossless encoding; no upscaling, recoloring, redrawing, relabeling, or fabricated data. Decoded derivative pixels were checked against the intended resized pixels.",
+  "images": [
+    {
+      "key": "fresh-demo1-map",
+      "downloaded_filename": "db90cd67fc045540e6f37299686640b7.png",
+      "source_path": "fresh/map.png",
+      "sha256": "ec0df6d4ea60aab67839d183da57cd2768c5e0b45c40d95f1474d573de031e08",
+      "width": 1200,
+      "height": 1250,
+      "native_pixels_preserved": true,
+      "variants": [
+        {
+          "path": "fresh/web/map-600.webp",
+          "width": 600,
+          "height": 625
+        },
+        {
+          "path": "fresh/web/map-1200.webp",
+          "width": 1200,
+          "height": 1250
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-difference",
+      "downloaded_filename": "a8a73f1bbf21091ee50f49f61a6eea22.png",
+      "source_path": "fresh/difference.png",
+      "sha256": "197fcb4dfa6801e3044865b93eaf21b2f5d600066045ad0c56b17b395808e436",
+      "width": 1300,
+      "height": 560,
+      "native_pixels_preserved": true,
+      "variants": [
+        {
+          "path": "fresh/web/difference-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/difference-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-time",
+      "downloaded_filename": "503460b7d972c0822daa23791d19706e.png",
+      "source_path": "fresh/time.png",
+      "sha256": "75d01580fbbf7fd6bfd5eb856554cc6bdc209fc64425a8b8bf5a06e422d0ffad",
+      "width": 1300,
+      "height": 560,
+      "native_pixels_preserved": true,
+      "variants": [
+        {
+          "path": "fresh/web/time-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/time-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-coverage",
+      "downloaded_filename": "b967a78d32c31fa3011f993a43661a20.png",
+      "source_path": "fresh/coverage.png",
+      "sha256": "dc900e8b83d1091ba8870fd7010df34ca0ac8324f29fbc2fa966e7a8f79874a5",
+      "width": 1300,
+      "height": 560,
+      "native_pixels_preserved": true,
+      "variants": [
+        {
+          "path": "fresh/web/coverage-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/coverage-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-station",
+      "downloaded_filename": "0e368084ab2de585662725cc3d7f0b58.png",
+      "source_path": "fresh/station.png",
+      "sha256": "56901fa43b6853353afea24b76f5ed001d565b57c5300f0174681849cd296650",
+      "width": 1300,
+      "height": 560,
+      "native_pixels_preserved": true,
+      "variants": [
+        {
+          "path": "fresh/web/station-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/station-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-station-coverage",
+      "downloaded_filename": "dca10b537e0f6d00c56e013680d5abc1.png",
+      "source_path": "fresh/station-coverage.png",
+      "sha256": "2e6710daaa2b5585907436d80066b1790fa115ce1c48943db6f38e4bfc1c4794",
+      "width": 1300,
+      "height": 560,
+      "native_pixels_preserved": true,
+      "variants": [
+        {
+          "path": "fresh/web/station-coverage-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/station-coverage-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    }
+  ]
+}

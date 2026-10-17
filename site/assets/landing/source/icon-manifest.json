@@ -1,0 +1,95 @@
+{
+  "version": "1.0",
+  "icons": [
+    {
+      "name": "tx-station",
+      "svg": "icons/neon/tx-station.svg",
+      "png": "icons/png-512/tx-station.png",
+      "mono": "icons/monochrome/tx-station.svg"
+    },
+    {
+      "name": "rx-station",
+      "svg": "icons/neon/rx-station.svg",
+      "png": "icons/png-512/rx-station.png",
+      "mono": "icons/monochrome/rx-station.svg"
+    },
+    {
+      "name": "wspr-database",
+      "svg": "icons/neon/wspr-database.svg",
+      "png": "icons/png-512/wspr-database.png",
+      "mono": "icons/monochrome/wspr-database.svg"
+    },
+    {
+      "name": "analysis-laptop",
+      "svg": "icons/neon/analysis-laptop.svg",
+      "png": "icons/png-512/analysis-laptop.png",
+      "mono": "icons/monochrome/analysis-laptop.svg"
+    },
+    {
+      "name": "wspr-spot",
+      "svg": "icons/neon/wspr-spot.svg",
+      "png": "icons/png-512/wspr-spot.png",
+      "mono": "icons/monochrome/wspr-spot.svg"
+    },
+    {
+      "name": "world-paths",
+      "svg": "icons/neon/world-paths.svg",
+      "png": "icons/png-512/world-paths.png",
+      "mono": "icons/monochrome/world-paths.svg"
+    },
+    {
+      "name": "rx-benchmark",
+      "svg": "icons/neon/rx-benchmark.svg",
+      "png": "icons/png-512/rx-benchmark.png",
+      "mono": "icons/monochrome/rx-benchmark.svg"
+    },
+    {
+      "name": "tx-benchmark",
+      "svg": "icons/neon/tx-benchmark.svg",
+      "png": "icons/png-512/tx-benchmark.png",
+      "mono": "icons/monochrome/tx-benchmark.svg"
+    },
+    {
+      "name": "rx-performance",
+      "svg": "icons/neon/rx-performance.svg",
+      "png": "icons/png-512/rx-performance.png",
+      "mono": "icons/monochrome/rx-performance.svg"
+    },
+    {
+      "name": "tx-performance",
+      "svg": "icons/neon/tx-performance.svg",
+      "png": "icons/png-512/tx-performance.png",
+      "mono": "icons/monochrome/tx-performance.svg"
+    },
+    {
+      "name": "results-map",
+      "svg": "icons/neon/results-map.svg",
+      "png": "icons/png-512/results-map.png",
+      "mono": "icons/monochrome/results-map.svg"
+    },
+    {
+      "name": "evidence-chart",
+      "svg": "icons/neon/evidence-chart.svg",
+      "png": "icons/png-512/evidence-chart.png",
+      "mono": "icons/monochrome/evidence-chart.svg"
+    },
+    {
+      "name": "try-demo",
+      "svg": "icons/neon/try-demo.svg",
+      "png": "icons/png-512/try-demo.png",
+      "mono": "icons/monochrome/try-demo.svg"
+    },
+    {
+      "name": "yagi-antenna",
+      "svg": "icons/neon/yagi-antenna.svg",
+      "png": "icons/png-512/yagi-antenna.png",
+      "mono": "icons/monochrome/yagi-antenna.svg"
+    },
+    {
+      "name": "vertical-antenna",
+      "svg": "icons/neon/vertical-antenna.svg",
+      "png": "icons/png-512/vertical-antenna.png",
+      "mono": "icons/monochrome/vertical-antenna.svg"
+    }
+  ]
+}

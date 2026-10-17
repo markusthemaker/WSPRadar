@@ -1,0 +1,1117 @@
+[
+  {
+    "alt": {
+      "de": "WSPRadar-Karte zum RX-Benchmark von G3ZIL und G4HZX mit 57 767 Joint Spots und 792 gemeinsam beobachteten Sendestationen.",
+      "en": "WSPRadar RX Benchmark map comparing G3ZIL and G4HZX, with 57 767 Joint Spots and 792 jointly observed transmitting stations."
+    },
+    "asset_path": "assets/screenshots/demo-1-map.jpg",
+    "caption": {
+      "de": "Live-Aufnahme der Anwendung mit der unveränderten Vorgabe für April 2017. Die Sektorfarben zeigen stationsgleichgewichtetes ΔSNR für G3ZIL minus G4HZX; die Markierungen unterscheiden Decode Outcomes. Karte, Legende, Skala und Evidenzzahlen sind vollständig sichtbar.",
+      "en": "Live application capture of the unchanged April 2017 preset. Sector colors summarize station-balanced ΔSNR for G3ZIL minus G4HZX; markers distinguish decode outcomes. The complete map, legend, scale, and evidence counts remain visible."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "demo_number": 1,
+    "key": "demo-1-map",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:54:04.878Z",
+      "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+      "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1145
+      ],
+      "image_sha256": "5e2e098f7e01fe10046f856c49004cbee3ab3a150b1cf4035334866dc2c61fa9",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-05-01T00:00Z",
+            "start_utc": "2017-04-01T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "24h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "DJ0ABR",
+                "locator": "JN68NT"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "12h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "24h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-1-map.jpg",
+    "stage": "map",
+    "title": {
+      "de": "Kartenansicht: der April-Vergleich",
+      "en": "Map View: the April comparison"
+    }
+  },
+  {
+    "alt": {
+      "de": "Bereichsauswahl und drei Benchmark-Evidenzdiagramme im Segment-Inspektor für den vollständigen April-Vergleich mit 792 beitragenden Sendestationen und 57 767 Joint Spots.",
+      "en": "Segment Inspector controls and three Benchmark Evidence panels for the full April comparison, showing 792 contributing TX stations and 57 767 Joint Spots."
+    },
+    "asset_path": "assets/screenshots/demo-1-segment.jpg",
+    "caption": {
+      "de": "Full Range und All Directions behalten den vollständigen Demo-Bereich bei. Lies Decode Outcomes zusammen mit den Stationsmedianen und der Joint-Spot-Verteilung: Sie beschreiben unterschiedliche Gewichtungen der Evidenz.",
+      "en": "Full Range and All Directions retain the complete demo scope. Read Decode Outcomes alongside station medians and the Joint-Spot distribution: they describe different evidence weightings."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "demo_number": 1,
+    "key": "demo-1-segment",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:54:12.786Z",
+      "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+      "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        908
+      ],
+      "image_sha256": "415cbc0503235ca5dcaab0ad293dc372cc842bbc1255cdc8bf39d0c1120fe604",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-05-01T00:00Z",
+            "start_utc": "2017-04-01T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "24h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "DJ0ABR",
+                "locator": "JN68NT"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "12h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "24h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-1-segment.jpg",
+    "stage": "segment",
+    "title": {
+      "de": "Segment-Inspektor: Bereich wählen und beurteilen",
+      "en": "Segment Inspector: define and assess the scope"
+    }
+  },
+  {
+    "alt": {
+      "de": "ΔSNR-Dichte, Intervallmediane, Bänder der mittleren 50 Prozent und zeitliche Evidenzabdeckung für G3ZIL gegenüber G4HZX im April 2017.",
+      "en": "April 2017 ΔSNR density, interval medians, middle-50-percent bands, and temporal evidence coverage for G3ZIL versus G4HZX."
+    },
+    "asset_path": "assets/screenshots/demo-1-temporal.jpg",
+    "caption": {
+      "de": "Die unveränderte Demo verwendet chronologische 24-Stunden-Intervalle. Vergleiche ΔSNR im Zeitverlauf mit der Zusammenfassung nach UTC-Stunde und prüfe anschließend die zugehörige Evidenzabdeckung. Die Stundenansicht fasst verschiedene Tage zusammen.",
+      "en": "The unchanged demo uses 24-hour chronological bins. Compare ΔSNR over time with UTC-hour folding, then check the corresponding evidence coverage. The folded view combines different dates."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "demo_number": 1,
+    "key": "demo-1-temporal",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:54:21.976Z",
+      "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+      "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1122
+      ],
+      "image_sha256": "4278158e68518af69d53760d29f3116d7a2ab5cc9803ef96d781eed9c2e0a4fa",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-05-01T00:00Z",
+            "start_utc": "2017-04-01T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "24h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "DJ0ABR",
+                "locator": "JN68NT"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "12h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "24h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+    "stage": "temporal",
+    "title": {
+      "de": "Zeitliche Evidenz: Veränderung und Abdeckung",
+      "en": "Temporal Evidence: change and coverage"
+    }
+  },
+  {
+    "alt": {
+      "de": "Tabelle Station Insights mit ausgewähltem DJ0ABR in JN68nt und den zugehörigen ΔSNR-Diagrammen im Zeitverlauf und nach UTC-Stunde.",
+      "en": "Station Insights table with DJ0ABR at JN68nt selected, followed by its chronological and UTC-hour ΔSNR charts."
+    },
+    "asset_path": "assets/screenshots/demo-1-stations.jpg",
+    "caption": {
+      "de": "Die Vorgabe wählt DJ0ABR in JN68nt aus. Seine 2 334 Joint Spots ermöglichen einen funkwegspezifischen Vergleich; die dargestellte 12-Stunden-Ansicht ist zusammen mit der breiteren geografischen Evidenz zu lesen.",
+      "en": "The preset selects DJ0ABR at JN68nt. Its 2 334 Joint Spots support a path-specific comparison; the displayed 12-hour view should be read alongside the broader geographic evidence."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "demo_number": 1,
+    "key": "demo-1-stations",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:54:38.303Z",
+      "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+      "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1105
+      ],
+      "image_sha256": "bc85f784e345b7553e4ff5b52ecf9441e8364defa80543bedc2e44fdc431c278",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-05-01T00:00Z",
+            "start_utc": "2017-04-01T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "24h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "DJ0ABR",
+                "locator": "JN68NT"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "12h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "24h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-1-stations.jpg",
+    "stage": "stations",
+    "title": {
+      "de": "Station Insights: dem Funkweg von DJ0ABR folgen",
+      "en": "Station Insights: follow the DJ0ABR path"
+    }
+  },
+  {
+    "alt": {
+      "de": "Live-Drill-Down-Tabelle für DJ0ABR in JN68nt mit gepaarten UTC-Beobachtungen und SNR-Werten von G3ZIL und G4HZX.",
+      "en": "Live Drill-Down table for DJ0ABR at JN68nt, showing paired UTC observations and SNR values from G3ZIL and G4HZX."
+    },
+    "asset_path": "assets/screenshots/demo-1-drilldown.jpg",
+    "caption": {
+      "de": "Die ersten sichtbaren Zeilen zeigen UTC-Zeit, genaue Stationskennung und Locator, Referenz sowie normierte SNR-Werte. Tabellenfilter und Zoom ändern die untersuchte Ansicht, nicht die abgeschlossene Analyse.",
+      "en": "The visible first rows identify UTC time, exact station and locator, Reference, and normalized SNR values. Table filtering and zooming affect the inspected view; they do not redefine the completed analysis."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "demo_number": 1,
+    "key": "demo-1-drilldown",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:54:51.009Z",
+      "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+      "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        576
+      ],
+      "image_sha256": "a2dd0271014607deb65afc4bc595d01ae6089203aa849a545dda04034a83a299",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-05-01T00:00Z",
+            "start_utc": "2017-04-01T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "24h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "DJ0ABR",
+                "locator": "JN68NT"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "12h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "24h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-1-drilldown.jpg",
+    "stage": "drilldown",
+    "title": {
+      "de": "Drill-Down: gepaarte Beobachtungen prüfen",
+      "en": "Drill-Down: inspect the paired observations"
+    }
+  },
+  {
+    "alt": {
+      "de": "Live-ΔSNR-Evidenz über drei Tage mit negativen Medianen in frühen Stunden und positiven Tagesmedianen sowie Abdeckung der gepaarten Evidenz.",
+      "en": "Live three-day ΔSNR evidence with negative early-hour and positive daytime medians, plus paired-evidence coverage."
+    },
+    "asset_path": "assets/screenshots/demo-2-temporal.jpg",
+    "caption": {
+      "de": "Die Live-Vorgabe verwendet chronologische 12-Stunden-Intervalle und eine Zusammenfassung nach UTC-Stunde. Die Mediane der frühen Stunden sprechen für G4HZX, die meisten Tagesmediane für G3ZIL. Prüfe die einzelnen Tage und die Abdeckung, bevor du ein Tagesmuster interpretierst.",
+      "en": "The live preset uses 12-hour chronological bins and one-hour UTC folding. Early-hour medians favor G4HZX while most daytime medians favor G3ZIL. Check the separate dates and coverage before interpreting a daily pattern."
+    },
+    "demo_id": "griffiths_squibb_fig6",
+    "demo_number": 2,
+    "key": "demo-2-temporal",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:55:35.456Z",
+      "config_sha256": "bbb98ffd57cec21f9129ac80ecba5eba8f4d9a44724e8a82f1e7c1d88578ba81",
+      "config_source_path": "config/demos/00b_griffiths_squibb_fig6.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1122
+      ],
+      "image_sha256": "e0ed0b8dd944c44b9fb6d9bf72d267f91e84e6cac607aa5a7e6c7513ca00ced0",
+      "retrieval": "live database request",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-04-07T23:45Z",
+            "start_utc": "2017-04-05T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_non_joint": false,
+            "station_evidence_time_bin": "6h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "6h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-2-temporal.jpg",
+    "stage": "temporal",
+    "title": {
+      "de": "Zeitliche Evidenz: Tag und Nacht",
+      "en": "Temporal Evidence: day and night"
+    }
+  },
+  {
+    "alt": {
+      "de": "Karte G3ZIL gegenüber G4HZX für den 5.–7. April 2017 mit geografischen ΔSNR-Sektoren und vollständiger Evidenzlegende.",
+      "en": "G3ZIL versus G4HZX map for 5–7 April 2017, with geographic ΔSNR sectors and the full evidence legend."
+    },
+    "asset_path": "assets/screenshots/demo-2-map.jpg",
+    "caption": {
+      "de": "Die Live-Vorgabe für den 5.–7. April enthält 200 gemeinsam beobachtete Sendestationen und 6 459 Joint Spots. Ungefärbte Sektoren weisen keine Antennennullstellen nach; ihnen fehlt eine gestützte Sektorschätzung.",
+      "en": "The live 5–7 April preset contains 200 jointly observed transmitting stations and 6 459 Joint Spots. Uncolored sectors do not demonstrate antenna nulls; they lack a supported sector estimate."
+    },
+    "demo_id": "griffiths_squibb_fig6",
+    "demo_number": 2,
+    "key": "demo-2-map",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:55:46.515Z",
+      "config_sha256": "bbb98ffd57cec21f9129ac80ecba5eba8f4d9a44724e8a82f1e7c1d88578ba81",
+      "config_source_path": "config/demos/00b_griffiths_squibb_fig6.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1145
+      ],
+      "image_sha256": "9185e1d1a0e3a0dc0177f3a5fa1742cafb931a17c5d78445f598d5dbe24d2cd0",
+      "retrieval": "live database request",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 3,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "G4HZX",
+          "reference_qth": "IO91",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "G3ZIL",
+          "qth": "IO90HW",
+          "time_selection": {
+            "end_utc": "2017-04-07T23:45Z",
+            "start_utc": "2017-04-05T00:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_non_joint": false,
+            "station_evidence_time_bin": "6h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "6h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-2-map.jpg",
+    "stage": "map",
+    "title": {
+      "de": "Kartenansicht: der Drei-Tage-Vergleich",
+      "en": "Map View: the three-day comparison"
+    }
+  },
+  {
+    "alt": {
+      "de": "Live-ΔSNR-Zeitreihe und Evidenzabdeckung für M7AEO in IO82 mit der Stufe um den 8. Mai und der Referenzkorrektur von +1,6 dB.",
+      "en": "Live M7AEO IO82 ΔSNR time series and evidence coverage, displaying the step around 8 May and the +1.6 dB Reference correction."
+    },
+    "asset_path": "assets/screenshots/demo-5-selected-evidence.jpg",
+    "caption": {
+      "de": "M7AEO in IO82 trägt 1 441 Joint Spots bei. Der ausgewählte Funkweg zeigt den Übergang zu höheren Werten um den 8. Mai; die vorgegebene Referenzkorrektur von +1,6 dB ist angewendet. Das vollständige Abdeckungsdiagramm macht die überwiegend nächtliche Beobachtung sichtbar.",
+      "en": "M7AEO at IO82 contributes 1 441 Joint Spots. The selected path shows the upward transition around 8 May, with the preset +1.6 dB Reference correction applied. The complete coverage panel makes the predominantly nighttime sampling visible."
+    },
+    "demo_id": "vanhamel_rx_buddy",
+    "demo_number": 5,
+    "key": "demo-5-selected-evidence",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:57:01.924Z",
+      "config_sha256": "ff5281cb18d2bb3cf28114c7b7f1e3efd6faee348512b01e726704827c9938b9",
+      "config_source_path": "config/demos/02_vanhamel_rx_ab.config",
+      "database_source": "wspr.live",
+      "decode_policy": "strict code = 1",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1105
+      ],
+      "image_sha256": "a4ce92052b0f6968589178b54f9eb1e0c7fb118f1e9e67345587436f0a421de9",
+      "retrieval": "live database request",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 5000,
+          "min_confirmed_opportunities_per_peer": 5,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "ON4AWM1",
+          "reference_qth": "JO20",
+          "snr_correction_db": 1.6,
+          "snr_correction_mode": "established_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "160m",
+          "callsign": "ON4AWM0",
+          "qth": "JO20OT",
+          "time_selection": {
+            "end_utc": "2021-05-15T07:00Z",
+            "start_utc": "2021-05-01T17:15Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "12h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "M7AEO",
+                "locator": "IO82"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "12h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "M7AEO",
+                "locator": "IO82"
+              }
+            ],
+            "show_zero_target": false,
+            "station_evidence_time_bin": "3h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-5-selected-evidence.jpg",
+    "stage": "selected_evidence",
+    "title": {
+      "de": "Evidenz der ausgewählten Station: die Antennendrehung",
+      "en": "Selected Station Evidence: the antenna rotation"
+    }
+  },
+  {
+    "alt": {
+      "de": "Live-Karte des Zander-TX-Benchmarks von SK0WE/P gegenüber SK0WE/1 mit negativen ΔSNR-Sektoren über Europa und Richtung Nordamerika.",
+      "en": "Live Zander TX Benchmark map comparing SK0WE/P with SK0WE/1, showing negative ΔSNR sectors across Europe and toward North America."
+    },
+    "asset_path": "assets/screenshots/demo-6-map.jpg",
+    "caption": {
+      "de": "Die unveränderte Vorgabe 09:45–10:30 UTC liefert 166 Joint Spots von 37 beitragenden Empfängern. Negative Sektoren sprechen für die Referenzstation SK0WE/1; das Muster beschreibt relative Leistung auf beobachteten Funkwegen, kein vollständiges Antennenstrahlungsdiagramm.",
+      "en": "The unchanged 09:45–10:30 UTC preset yields 166 Joint Spots from 37 contributing receivers. Negative sectors favor the Reference station SK0WE/1; their pattern describes sampled relative performance, not a complete antenna radiation pattern."
+    },
+    "demo_id": "zander_tx_buddy",
+    "demo_number": 6,
+    "key": "demo-6-map",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:57:51.383Z",
+      "config_sha256": "fe2260ded0360cbce3e67ea860a1ebe93ada40f7cadcaf7e485ee7f7a104ca38",
+      "config_source_path": "config/demos/03_zander_tx_buddy_experiment_a.config",
+      "database_source": "wspr.live",
+      "decode_policy": "strict code = 1",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1145
+      ],
+      "image_sha256": "e6ca7cfd25defd17d367cd0216bc562288ab18eaadcac805c17cd23f501b11f6",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 5,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "SK0WE/1",
+          "reference_qth": "JO97",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "tx",
+          "band": "20m",
+          "callsign": "SK0WE/P",
+          "qth": "JO97",
+          "time_selection": {
+            "end_utc": "2022-05-21T10:30Z",
+            "start_utc": "2022-05-21T09:45Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_non_joint": false,
+            "station_evidence_time_bin": "1h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "1h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-6-map.jpg",
+    "stage": "map",
+    "title": {
+      "de": "Kartenansicht: beobachtete Sendefunkwege",
+      "en": "Map View: sampled transmitting paths"
+    }
+  },
+  {
+    "alt": {
+      "de": "Zander-Segment-Inspektor mit 37 beitragenden Empfangsstationen, 166 Joint Spots, Decode Outcomes, Stationsmedianen und Joint-Spot-ΔSNR-Histogramm.",
+      "en": "Zander Segment Inspector with 37 contributing RX stations, 166 Joint Spots, Decode Outcomes, station medians, and the Joint-Spot ΔSNR histogram."
+    },
+    "asset_path": "assets/screenshots/demo-6-segment.jpg",
+    "caption": {
+      "de": "Dieselben 166 Joint Spots ergeben den angezeigten Mittelwert von −6,8 dB. Vergleiche das mittlere Histogramm der Stationsmediane mit dem rechten Joint-Spot-Histogramm: Gleichgewichtung der Empfänger und Gleichgewichtung der Beobachtungen beantworten unterschiedliche Fragen.",
+      "en": "The same 166 Joint Spots give the displayed mean of −6.8 dB. Compare the middle station-median histogram with the right Joint-Spot histogram: equal receiver weighting and equal observation weighting answer different questions."
+    },
+    "demo_id": "zander_tx_buddy",
+    "demo_number": 6,
+    "key": "demo-6-segment",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:58:04.930Z",
+      "config_sha256": "fe2260ded0360cbce3e67ea860a1ebe93ada40f7cadcaf7e485ee7f7a104ca38",
+      "config_source_path": "config/demos/03_zander_tx_buddy_experiment_a.config",
+      "database_source": "wspr.live",
+      "decode_policy": "strict code = 1",
+      "display_language": "en",
+      "image_px": [
+        999,
+        908
+      ],
+      "image_sha256": "751f8e0f8947ecc5fab97c5d907d77800d51c19305c336134a7168ea47ffbde3",
+      "retrieval": "validated persistent demo query cache",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 10000,
+          "min_confirmed_opportunities_per_peer": 5,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "SK0WE/1",
+          "reference_qth": "JO97",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "tx",
+          "band": "20m",
+          "callsign": "SK0WE/P",
+          "qth": "JO97",
+          "time_selection": {
+            "end_utc": "2022-05-21T10:30Z",
+            "start_utc": "2022-05-21T09:45Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_non_joint": false,
+            "station_evidence_time_bin": "1h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "1h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-6-segment.jpg",
+    "stage": "segment",
+    "title": {
+      "de": "Benchmark-Evidenz: Empfänger und Joint Spots",
+      "en": "Benchmark Evidence: receivers versus Joint Spots"
+    }
+  },
+  {
+    "alt": {
+      "de": "Live-Station-Insights zum Milazzo-Beispiel mit ausgewähltem VE6PDQ in DO34ir und drei Joint Spots sowie dünn besetzten ΔSNR-Evidenzdiagrammen.",
+      "en": "Live Milazzo Station Insights with VE6PDQ DO34ir selected and three Joint Spots, followed by sparse ΔSNR evidence charts."
+    },
+    "asset_path": "assets/screenshots/demo-7-stations.jpg",
+    "caption": {
+      "de": "Dieser Live-Lauf mit wspr.live vom 13. Oktober 2026 liefert drei RX Joint Spots für VE6PDQ in DO34ir, während die aufbewahrte Publikationsrekonstruktion fünf dokumentiert. Diese Abweichung ist hier nicht geklärt. Unterscheide dieses datierte Live-Ergebnis von der festen Rekonstruktion; keines der beiden erlaubt allein aus diesem Funkweg eine breite Antennenaussage.",
+      "en": "This live wspr.live run on 13 October 2026 returns three RX Joint Spots for VE6PDQ at DO34ir, whereas the retained publication reconstruction documents five. The discrepancy is not resolved here. Keep this dated live result distinct from the fixed reconstruction; neither supports a broad antenna conclusion from this path alone."
+    },
+    "demo_id": "milazzo_tx_buddy",
+    "demo_number": 7,
+    "key": "demo-7-stations",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:59:04.113Z",
+      "config_sha256": "36baa2f1e5d7bfde69975547473e962969a38bfb7b825f0a59f4e07608df7c19",
+      "config_source_path": "config/demos/05_milazzo_tx_buddy.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        1105
+      ],
+      "image_sha256": "441e75967b7c490dcda2323f6f78bba7d75df50a5f92f1a445578e444d350277",
+      "retrieval": "live database request",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 5000,
+          "min_confirmed_opportunities_per_peer": 5,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "WB6RQN",
+          "reference_qth": "CM98",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "KP4MD",
+          "qth": "CM98",
+          "time_selection": {
+            "end_utc": "2010-12-20T20:00Z",
+            "start_utc": "2010-12-19T12:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "12h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "VE6PDQ",
+                "locator": "DO34IR"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "3h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "3h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "verification_note": "Live selected VE6PDQ/DO34ir count is 3 RX Joint Spots, not the 5 documented by the retained publication reconstruction. Cause not investigated in this website task.",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-7-stations.jpg",
+    "stage": "stations",
+    "title": {
+      "de": "Station Insights: wenige gepaarte Beobachtungen",
+      "en": "Station Insights: sparse paired evidence"
+    }
+  },
+  {
+    "alt": {
+      "de": "Drill-Down-Tabelle mit den drei zurückgegebenen Paaren für VE6PDQ in DO34ir und ΔSNR-Werten von 8, 22 und 7 dB.",
+      "en": "Drill-Down table showing the three returned VE6PDQ DO34ir pairs with ΔSNR values of 8, 22, and 7 dB."
+    },
+    "asset_path": "assets/screenshots/demo-7-drilldown.jpg",
+    "caption": {
+      "de": "Die Live-Tabelle enthält gepaarte Meldungen vom 19. Dezember 2010 um 14:46 UTC sowie vom 20. Dezember um 09:04 und 15:46 UTC. Sie enthält drei statt der fünf Paare aus der aufbewahrten Rekonstruktion. Die Aufnahme hält das aktuelle Abfrageergebnis fest, ohne die Rekonstruktion zu ersetzen oder die Vorgabe zu verändern.",
+      "en": "The live table lists paired reports at 19 December 2010 14:46 UTC and 20 December 09:04 and 15:46 UTC. It contains three pairs rather than the five in the retained reconstruction. This screenshot records the current query result without replacing the reconstruction or altering the preset."
+    },
+    "demo_id": "milazzo_tx_buddy",
+    "demo_number": 7,
+    "key": "demo-7-drilldown",
+    "provenance": {
+      "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+      "app_version": "v1.0 RC2",
+      "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+      "captured_at_utc": "2026-10-13T10:59:19.901Z",
+      "config_sha256": "36baa2f1e5d7bfde69975547473e962969a38bfb7b825f0a59f4e07608df7c19",
+      "config_source_path": "config/demos/05_milazzo_tx_buddy.config",
+      "database_source": "wspr.live",
+      "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+      "display_language": "en",
+      "image_px": [
+        999,
+        576
+      ],
+      "image_sha256": "e657e6acebb6b44411aeb34e043b55bc08d575363ccc125ecedbae74f1db214f",
+      "retrieval": "live database request",
+      "settings": {
+        "advanced_parameters": {
+          "exclude_moving_stations": false,
+          "exclude_special_callsigns": false,
+          "max_peer_distance_km": 5000,
+          "min_confirmed_opportunities_per_peer": 5,
+          "min_joint_spots_per_station": 1,
+          "min_joint_stations_per_map_segment": 1,
+          "solar_state": "all"
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "reference_callsign": "WB6RQN",
+          "reference_qth": "CM98",
+          "snr_correction_db": 0.0,
+          "snr_correction_mode": "no_offset"
+        },
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "band": "40m",
+          "callsign": "KP4MD",
+          "qth": "CM98",
+          "time_selection": {
+            "end_utc": "2010-12-20T20:00Z",
+            "start_utc": "2010-12-19T12:00Z"
+          }
+        },
+        "results_view": {
+          "benchmark": {
+            "segment_evidence_time_bin": "12h",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": [
+              {
+                "callsign": "VE6PDQ",
+                "locator": "DO34IR"
+              }
+            ],
+            "show_non_joint": false,
+            "station_evidence_time_bin": "3h"
+          },
+          "performance": {
+            "segment_evidence_time_bin": "auto",
+            "selected_directions": "all",
+            "selected_ranges": "all",
+            "selected_stations": null,
+            "show_zero_target": false,
+            "station_evidence_time_bin": "3h"
+          }
+        }
+      },
+      "settings_modified_for_capture": false,
+      "source_url": "http://127.0.0.1:8517/",
+      "verification_note": "Live selected VE6PDQ/DO34ir count is 3 RX Joint Spots, not the 5 documented by the retained publication reconstruction. Cause not investigated in this website task.",
+      "viewport_css_px": [
+        1440,
+        1800
+      ]
+    },
+    "source_path": "docs/website/assets/screenshots/demo-7-drilldown.jpg",
+    "stage": "drilldown",
+    "title": {
+      "de": "Drill-Down: alle drei Live-Paare",
+      "en": "Drill-Down: all three live pairs"
+    }
+  }
+]

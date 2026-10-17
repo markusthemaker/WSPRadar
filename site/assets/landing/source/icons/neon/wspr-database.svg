@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-hidden="true"><style>
+.cyan{stroke:#40b6ff;stroke-width:8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.green{stroke:#39ff14;stroke-width:8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.green circle.solid,.green polygon{fill:#39ff14;stroke:#39ff14}
+</style><g class="cyan"><ellipse cx="128" cy="62" rx="78" ry="26"/><path d="M50 62 V194 M206 62 V194"/><path d="M50 107 C50 141 206 141 206 107 M50 151 C50 185 206 185 206 151 M50 193 C50 224 206 224 206 193"/></g><g class="green"><path d="M50 62 C50 96 206 96 206 62"/><circle cx="78" cy="112" r="5" class="solid"/><circle cx="78" cy="155" r="5" class="solid"/><circle cx="78" cy="198" r="5" class="solid"/></g></svg>

@@ -1,0 +1,79 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report suspected bugs, scientific concerns, or documentation problems here. You do not need programming knowledge or a confirmed diagnosis.
+
+        Please write in English and use one topic per discussion. Start with what you know; reproduction details and supporting files are optional.
+
+        This discussion is public. Remove passwords, tokens, private URLs, and unrelated personal information from text and attachments.
+
+  - type: dropdown
+    id: report_type
+    attributes:
+      label: Type of report
+      description: Choose the closest match. Select Unsure if you do not know which category fits.
+      options:
+        - Software bug
+        - Scientific concern
+        - Documentation
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened or concerns you?
+      description: Describe the behavior, result, or claim, and where you encountered it.
+      placeholder: Include the relevant page, control, figure, or documentation section. For an error or unexpected result, give the exact message or values if available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_or_concern
+    attributes:
+      label: What did you expect, or why is this concerning?
+      description: Explain the discrepancy or concern in your own words. You do not need to identify its cause or propose a fix.
+      placeholder: For a bug, describe what you expected. For a scientific concern, identify the specific WSPRadar assumption, calculation, interpretation, or claim that may be incorrect, incomplete, or misleading, and explain why.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps and analysis settings
+      description: Optional. Include only the details that apply and that you know. Reproduction steps are not required for scientific concerns.
+      placeholder: |
+        - Steps leading to the problem:
+        - Demo, if used:
+        - Analysis mode and RX/TX direction:
+        - Target and reference callsigns with full locators:
+        - Band:
+        - Complete UTC start and end:
+        - Relevant settings, filters, thresholds, or corrections:
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Optional. Add error text, screenshots, numerical results, references, or a prepared reproducibility package. A saved .config file can be attached in a ZIP archive. Check attachments for information you do not intend to publish.
+      placeholder: Paste relevant evidence or attach files here, and explain what they show.
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Optional. Include details that are relevant and readily available; browser and device details are most useful for interface problems.
+      placeholder: |
+        - WSPRadar version, if known:
+        - Public app or local installation:
+        - Browser and version:
+        - Device or operating system:
+        - Python version, if running locally:
+    validations:
+      required: false

@@ -1,0 +1,641 @@
+[
+  {
+    "alt": {
+      "de": "Vergleich zu Griffiths Abbildung 3 mit drei Panels für Originalpublikation, rekonstruierte gepaarte SNR-Differenzen und chronologische WSPRadar-Evidenz, einschließlich Quellenangabe, Achsen, Legenden und Erläuterungen.",
+      "en": "Three-panel Griffiths Figure 3 comparison of original publication, reconstructed paired SNR differences, and WSPRadar's chronological evidence, with source citation, axes, legends, and explanatory notes."
+    },
+    "asset_path": "assets/figures/griffiths-figure3-comparison.png",
+    "caption": {
+      "de": "Der vollständige Vergleich bewahrt Originalpublikation, Rekonstruktion und native chronologische WSPRadar-Ansicht. Verfolge die Verschiebung nach oben in der ersten Monatshälfte und behalte ΔSNR = G3ZIL − G4HZX im Blick. Medianmarkierungen, das Band der mittleren 50 % und Dichtefarben beschreiben unterschiedliche Aspekte der Beobachtungen. Vergrößere die Abbildung, um alle Beschriftungen und den Verweis auf die Paarbildungsdiagnose zu lesen.",
+      "en": "The complete comparison retains the original publication, the reconstruction, and the native WSPRadar chronological view. Follow the first-half upward shift while keeping ΔSNR = G3ZIL − G4HZX in view. Median markers, the middle-50% band, and density colors describe different aspects of the observations. Enlarge the figure to read all labels and the pairing-diagnostic reference."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 3060,
+    "key": "griffiths-figure3-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_griffiths_figure3_comparisons.py",
+      "kind": "publication-comparison",
+      "pdf": "static/reference_figures/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3.pdf",
+      "sha256": "5a5444bdf0e7f30d2fc402b479664f5c4fbab28a947a2834f6dd965a2d9aa53a",
+      "source_asset": "figure3_evidence_comparison.png",
+      "source_figure": "paper_figure3.png",
+      "source_fixture": "tests/regression/reference_fixtures/griffiths_fig3_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/griffiths-figure3-comparison.png",
+    "title": {
+      "de": "Ein Monat gepaarter Empfangsbeobachtungen",
+      "en": "A month of paired reception"
+    },
+    "width": 3060
+  },
+  {
+    "alt": {
+      "de": "Diagnose des negativen Randbereichs von Griffiths Abbildung 3 mit ursprünglicher Publikationsevidenz, Berichtskombinationen, durchgerechneter Paarbildung und Unterscheidung zwischen diagnostischen Kombinationen und nativen gepaarten Beobachtungen.",
+      "en": "Griffiths Figure 3 negative-tail diagnostic with original publication evidence, report combinations, a worked pairing example, and the distinction between diagnostic combinations and native paired observations."
+    },
+    "asset_path": "assets/figures/griffiths-figure3-pairing-diagnostic.png",
+    "caption": {
+      "de": "Diese Diagnose verbindet ungewöhnliche Beobachtungen im negativen Randbereich mit den zugrunde liegenden Berichten und Paarkombinationen. Lies Originalevidenz und durchgerechnete Paarbildung gemeinsam. Diagnostische Berichtskombinationen sind von den nativen gepaarten Beobachtungen der Hauptstatistiken zu unterscheiden; die Abbildung weist keine physikalische Ursache der ungewöhnlichen Werte nach.",
+      "en": "This diagnostic connects the unusual negative-tail observations with the reports and pair combinations behind them. Read the original evidence and the worked pairing explanation together. Diagnostic report combinations are distinct from the native paired observations used for the main statistics; the figure does not establish a physical cause for the unusual values."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 3060,
+    "key": "griffiths-figure3-pairing-diagnostic",
+    "provenance": {
+      "generator": "scripts/internal/build_griffiths_figure3_comparisons.py",
+      "kind": "publication-pairing-diagnostic",
+      "pdf": "static/reference_figures/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3_diagnostic.pdf",
+      "sha256": "8d638b2e4681db4e48ff4f381ad1b5d8d60b09f8e2fbf951260575e51e6b1695",
+      "source_asset": "figure3_tail_diagnostic.png",
+      "source_figure": "paper_figure3.png",
+      "source_fixture": "tests/regression/reference_fixtures/griffiths_fig3_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/griffiths-figure3-pairing-diagnostic.png",
+    "title": {
+      "de": "Paarbildung und Mehrfachmeldungen",
+      "en": "Pairing and duplicate reports"
+    },
+    "width": 3060
+  },
+  {
+    "alt": {
+      "de": "Vergleich zu Griffiths Abbildung 6 mit Publikation, erklärter Dichterekonstruktion und nativer WSPRadar-Evidenz nach UTC-Stunde, einschließlich Vergleichsbereichen, einzelnen Prüfpunkten, Dichteskalen und Median-IQR-Erläuterung.",
+      "en": "Griffiths Figure 6 comparison of the publication, a declared density reconstruction, and native WSPRadar UTC-hour evidence, including comparison regions, point witnesses, density scales, and median/IQR interpretation."
+    },
+    "asset_path": "assets/figures/griffiths-figure6-comparison.png",
+    "caption": {
+      "de": "Vergleiche die veröffentlichte Dichtedarstellung mit der Rekonstruktion und der nativen Ansicht nach UTC-Stunde. Die drei Panels behalten ihre jeweiligen Achsen, Skalen und Anmerkungen. Beschriftete Bereiche und einzelne Prüfpunkte stützen bestimmte Vergleiche; sie bedeuten nicht, dass WSPRadar das undokumentierte Konturverfahren der Publikation exakt reproduziert. Die native Ansicht bewahrt ihre eigenen Dichtezellen, Mediane und Zusammenfassungen der mittleren 50 %.",
+      "en": "Compare the published density presentation with the reconstruction and the native UTC-hour view. The three panels retain their own axes, scales, and annotations. The labeled regions and point witnesses support specific comparisons; they do not imply that WSPRadar reproduces the publication's undocumented contour method exactly. The native view retains its own density cells, medians, and middle-50% summaries."
+    },
+    "demo_id": "griffiths_squibb_fig6",
+    "height": 2250,
+    "key": "griffiths-figure6-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_griffiths_fig6_comparison.py",
+      "kind": "publication-comparison",
+      "pdf": "static/reference_figures/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf",
+      "sha256": "bdc59145837a00189455a9002a791771ad81e95654c5aa45c6b80ee48d384e71",
+      "source_asset": "figure6_evidence_comparison.png",
+      "source_figure": "paper_figure6.png",
+      "source_fixture": "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/griffiths-figure6-comparison.png",
+    "title": {
+      "de": "Die tägliche Umkehr des relativen SNR",
+      "en": "The daily reversal in relative SNR"
+    },
+    "width": 4140
+  },
+  {
+    "alt": {
+      "de": "Vergleich zu Vanhamel Abbildung 6 mit vier Panels für Originalpublikation, rekonstruierte SNR-Kurven, Dichtezuordnung nach Empfangsnummer, native UTC-Evidenz, übereinstimmend nummerierte Bins und gemeinsame Dichteskala.",
+      "en": "Four-panel Vanhamel Figure 6 comparison with original publication, reconstructed SNR traces, reception-number density mapping, native UTC evidence, matching numbered bins, and the shared density scale."
+    },
+    "asset_path": "assets/figures/vanhamel-figure6-comparison.png",
+    "caption": {
+      "de": "Vier ausgerichtete Panels verbinden Publikation (A), rekonstruierte Kurven in Empfangsreihenfolge (B), die Zuordnung nativer Dichte-Bins zu Empfangsnummernbereichen (C) und die native chronologische Ansicht (D). Übereinstimmende Bin-Nummern verbinden C und D; deren Dichtewerte und Farbnormalisierung sind gleich. Unterscheide das Zählen von Empfängen vom Messen verstrichener Zeit und lies die native nichtlineare Achse anhand ihrer beschrifteten dB-Werte.",
+      "en": "Four aligned panels connect the publication (A), reconstructed reception-order traces (B), a mapping of native density bins to reception-number spans (C), and the native chronological view (D). Matching bin numbers connect C and D, whose density values and color normalization are the same. Preserve the distinction between counting receptions and measuring elapsed time, and read the native nonlinear axis by its labeled dB values."
+    },
+    "demo_id": "vanhamel_rx_buddy",
+    "height": 3031,
+    "key": "vanhamel-figure6-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_vanhamel_rotation_comparison.py",
+      "kind": "publication-comparison-with-time-mapping",
+      "pdf": "static/reference_figures/vanhamel_fig6_rotation_v1/WSPRadar_Demo_Vanhamel_Figure6.pdf",
+      "sha256": "f2262759b760b380ceb2e9cada899c0b0322abd9e47d48ec77e19b5358e1dedc",
+      "source_asset": "figure6_overlay_1p6.png",
+      "source_figure": "paper_figure6.png",
+      "source_fixture": "tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1"
+    },
+    "source_path": "docs/website/assets/figures/vanhamel-figure6-comparison.png",
+    "title": {
+      "de": "Von der Empfangsnummer zur UTC-Zeit",
+      "en": "From reception number to UTC time"
+    },
+    "width": 3300
+  },
+  {
+    "alt": {
+      "de": "Zander Abbildung 4 mit Publikationshistogramm, Rekonstruktion grober Klassen samt Residuen und nativem WSPRadar-Prozenthistogramm mit 1-dB-Klassen; Legenden, Quellenangabe, Mittelwerte und Erläuterungen bleiben erhalten.",
+      "en": "Zander Figure 4 publication histogram, coarse-bin reconstruction with residuals, and native WSPRadar 1 dB percentage histogram, retaining legends, source citation, means, and explanatory text."
+    },
+    "asset_path": "assets/figures/zander-figure4-comparison.png",
+    "caption": {
+      "de": "Panel A bewahrt das Histogramm der Publikation. Panel B rekonstruiert dessen grobe Dichteklassen und enthält den Residuenvergleich; Panel C zeigt WSPRadars natives Prozenthistogramm mit 1-dB-Klassen. Klassenbreite und vertikale Einheiten erklären die unterschiedlichen Balken. Lies Mittelwert und Streuung zusammen mit ihrer Beobachtungseinheit: 166 gemeinsame Empfängerzyklen. Negatives ΔSNR spricht auf den erfassten Funkwegen für die Referenz-Vertikalantenne.",
+      "en": "Panel A preserves the publication histogram. Panel B reconstructs its coarse density bins and retains the residual comparison; Panel C presents WSPRadar's native 1 dB percentage histogram. Bin width and vertical units explain why the bars differ. Read the mean and spread alongside their observation unit: 166 joint receiver-cycles. Negative ΔSNR favors the Reference vertical on the sampled paths."
+    },
+    "demo_id": "zander_tx_buddy",
+    "height": 2592,
+    "key": "zander-figure4-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_zander_fig4_comparison.py",
+      "kind": "publication-comparison",
+      "pdf": "static/reference_figures/zander_fig4_paper_v1/WSPRadar_Demo_Zander_Figure4.pdf",
+      "sha256": "97da113f4b57c5b700486865b352aaac85b911897be4fedbc9c79e709b9a75e9",
+      "source_asset": "figure4_histogram_overlay.png",
+      "source_figure": "paper_figure4.png",
+      "source_fixture": "tests/regression/reference_fixtures/zander_fig4_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/zander-figure4-comparison.png",
+    "title": {
+      "de": "Dieselbe gepaarte Evidenz in unterschiedlichen Histogrammen",
+      "en": "The same paired evidence in different histogram views"
+    },
+    "width": 4320
+  },
+  {
+    "alt": {
+      "de": "RX-Vergleich zu Milazzo Abbildung 6 mit Originalpublikation, Berichtsrekonstruktion über dem Originalraster, nativer gepaarter Evidenz, Hilfslinien zur zyklusgleichen Identität und vollständiger Erklärung der Richtungskorrektur.",
+      "en": "Milazzo Figure 6 RX comparison showing the original publication, report reconstruction over the original raster, native paired evidence, same-cycle identity guides, and the complete direction-correction explanation."
+    },
+    "asset_path": "assets/figures/milazzo-figure6-rx-comparison.png",
+    "caption": {
+      "de": "Der RX-Hauptrundgang bewahrt die ursprüngliche Abbildung 6 in Panel A, rekonstruiert Berichte über dem Publikationsbild in Panel B und zeigt native gepaarte Evidenz in Panel C. Lies den Hinweis zur Richtungskorrektur: Archivierte Identitäten belegen Empfang von VE6PDQ trotz der ursprünglich gedruckten Richtung. Gestrichelte Hilfslinien verbinden nur zulässige Paare desselben Zyklus mit vollständiger Locatorübereinstimmung. Halte VE6PDQ/DO34IR und VE6PDQ/DO34 beim Nachvollziehen der fünf Paare über diese beiden Identitäten getrennt.",
+      "en": "The main RX walkthrough retains the original Figure 6 in Panel A, reconstructs reports over the publication image in Panel B, and displays native paired evidence in Panel C. Read the direction-correction note: archived identities establish reception from VE6PDQ despite the original printed direction. The dashed guides connect only eligible same-cycle, full-locator pairs. Keep VE6PDQ/DO34IR and VE6PDQ/DO34 distinct when following the five pairs across the two identities."
+    },
+    "demo_id": "milazzo_tx_buddy",
+    "height": 2592,
+    "key": "milazzo-figure6-rx-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_milazzo_publication_overlays.py",
+      "kind": "publication-comparison-with-raster-underlay",
+      "pdf": "static/reference_figures/milazzo_publication_overlays_v1/WSPRadar_Demo_Milazzo_Figure6.pdf",
+      "sha256": "85845877028e81531db04c9238c06a82081d1714cee0abcd8993345d39895035",
+      "source_asset": "figure6_rx_overlay.png",
+      "source_figure": "paper_figure6.jpg",
+      "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v1"
+    },
+    "source_path": "docs/website/assets/figures/milazzo-figure6-rx-comparison.png",
+    "title": {
+      "de": "RX: Welche Publikationsberichte bilden genaue Paare?",
+      "en": "RX: which publication reports form exact pairs?"
+    },
+    "width": 3840
+  },
+  {
+    "alt": {
+      "de": "TX-Vergleich zu Milazzo Abbildung 7 mit Originalpublikation, leistungsnormalisierter Berichtsrekonstruktion, Markierungen des Aktivitäts-Gates und nativer Evidenz für den einzigen Joint Spot auf dem ausgewählten Funkweg zu VE6PDQ.",
+      "en": "Milazzo Figure 7 TX comparison with original publication, power-normalized report reconstruction, activity-gate markers, and native evidence for the single Joint Spot on the selected VE6PDQ path."
+    },
+    "asset_path": "assets/figures/milazzo-figure7-tx-comparison.png",
+    "caption": {
+      "de": "Abbildung 7 ist der optionale reziproke TX-Vergleich. Die Rekonstruktion bewahrt das hinterlegte Originalbild, Berichtsmarkierungen und Anmerkungen zum Target-Active Gate; die native Ansicht zeigt die wenigen gepaarten Beobachtungen des Funkwegs zu VE6PDQ. Unterscheide die vielen rekonstruierten Berichte vom einzigen verbleibenden Joint Spot dieses Funkwegs. Normalisierung anhand gemeldeter Sendeleistung und ungleiche Betriebszeitpläne sind für die Deutung gepaarter und nicht gemeinsamer Beobachtungen wesentlich.",
+      "en": "Figure 7 is the optional reciprocal TX comparison. Its reconstruction retains the original-image underlay, report markers, and Target-Active Gate annotations; the native view shows the sparse paired evidence for the VE6PDQ path. Distinguish the many reconstructed reports from the single surviving Joint Spot on this path. Reported-power normalization and unequal operating schedules are essential to interpreting the paired and non-joint observations."
+    },
+    "demo_id": "milazzo_tx_buddy",
+    "height": 2592,
+    "key": "milazzo-figure7-tx-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_milazzo_publication_overlays.py",
+      "kind": "publication-comparison-with-raster-underlay",
+      "pdf": "static/reference_figures/milazzo_publication_overlays_v1/WSPRadar_Demo_Milazzo_Figure7.pdf",
+      "sha256": "5023890994a7219ad82b82f27b1d6fec36b41e0c7f86cb32412e8d6c1a1dd1cf",
+      "source_asset": "figure7_tx_overlay.png",
+      "source_figure": "paper_figure7.jpg",
+      "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v1"
+    },
+    "source_path": "docs/website/assets/figures/milazzo-figure7-tx-comparison.png",
+    "title": {
+      "de": "TX-Anschlussbeispiel: Normalisierung, Aktivität und ein verbleibendes Paar",
+      "en": "TX follow-up: normalization, activity, and one surviving pair"
+    },
+    "width": 3840
+  },
+  {
+    "alt": {
+      "de": "Vollständige RX-Benchmark-Karte von G3ZIL gegenüber G4HZX auf 40 m im April 2017, mit Farbskala, Empfangskategorien, 792 gemeinsam beobachteten Stationseinträgen und 57 767 Joint Spots.",
+      "en": "Complete RX Benchmark map of G3ZIL versus G4HZX on 40 m in April 2017, with color scale, decode outcomes, 792 joint station entries and 57 767 Joint Spots."
+    },
+    "asset_path": "assets/figures/landing-demo1-map.webp",
+    "caption": {
+      "de": "Wo zeigt sich der Unterschied? Die Sektorfarben zeigen stationsgleichgewichtete mediane SNR-Differenzen: G3ZIL minus G4HZX. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "Where does the difference appear? Sector colors show station-balanced median SNR differences: G3ZIL minus G4HZX. Actual dark-mode app capture, October 13, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 995,
+    "key": "landing-demo1-map",
+    "provenance": {
+      "crop_box_xyxy": [
+        43,
+        133,
+        999,
+        1128
+      ],
+      "derivation": "Rectangular crop of the complete figure from an existing live dark-mode screenshot; lossless WebP stores the original decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. Original screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-15",
+      "sha256": "6cc71ef774fa879e728d26900062f9dd876b2c3ca687d5c819c79cd8cddaf6c9",
+      "source_capture_key": "demo-1-map",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-map.jpg",
+      "source_capture_provenance": {
+        "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+        "app_version": "v1.0 RC2",
+        "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+        "captured_at_utc": "2026-10-13T10:54:04.878Z",
+        "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live",
+        "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+        "display_language": "en",
+        "image_px": [
+          999,
+          1145
+        ],
+        "image_sha256": "5e2e098f7e01fe10046f856c49004cbee3ab3a150b1cf4035334866dc2c61fa9",
+        "retrieval": "validated persistent demo query cache",
+        "settings": {
+          "advanced_parameters": {
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_confirmed_opportunities_per_peer": 3,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_map_segment": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "mode": "reference_station",
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_non_joint": false,
+              "station_evidence_time_bin": "12h"
+            },
+            "performance": {
+              "segment_evidence_time_bin": "auto",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": null,
+              "show_zero_target": false,
+              "station_evidence_time_bin": "24h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_url": "http://127.0.0.1:8517/",
+        "viewport_css_px": [
+          1440,
+          1800
+        ]
+      },
+      "source_capture_sha256": "5e2e098f7e01fe10046f856c49004cbee3ab3a150b1cf4035334866dc2c61fa9"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-map.webp",
+    "title": {
+      "de": "Weltkarte",
+      "en": "World map"
+    },
+    "width": 956
+  },
+  {
+    "alt": {
+      "de": "Drei vollständige Benchmark-Evidenzdiagramme mit Empfangskategorien, SNR-Differenzen der Stationsmediane und SNR-Differenzen der Joint Spots für G3ZIL gegenüber G4HZX.",
+      "en": "Three complete Benchmark Evidence panels showing decode outcomes, station-median SNR differences and Joint-Spot SNR differences for G3ZIL versus G4HZX."
+    },
+    "asset_path": "assets/figures/landing-demo1-snr.webp",
+    "caption": {
+      "de": "Was wurde empfangen, und um wie viel besser? Der Median der Stationsmediane beträgt +6,5 dB, der Joint-Spot-Median +7,0 dB. Positive Werte sprechen für G3ZIL. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "What was heard, and how much better? The station-median result is +6.5 dB; the Joint-Spot median is +7.0 dB. Positive values favor G3ZIL. Actual dark-mode app capture, October 13, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 412,
+    "key": "landing-demo1-snr",
+    "provenance": {
+      "crop_box_xyxy": [
+        43,
+        480,
+        999,
+        892
+      ],
+      "derivation": "Rectangular crop of the complete figure from an existing live dark-mode screenshot; lossless WebP stores the original decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. Original screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-15",
+      "sha256": "57209d7783b4a27dda819bd8f43194afb26e256a702b6f76d23f72f71bf39165",
+      "source_capture_key": "demo-1-segment",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-segment.jpg",
+      "source_capture_provenance": {
+        "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+        "app_version": "v1.0 RC2",
+        "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+        "captured_at_utc": "2026-10-13T10:54:12.786Z",
+        "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live",
+        "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+        "display_language": "en",
+        "image_px": [
+          999,
+          908
+        ],
+        "image_sha256": "415cbc0503235ca5dcaab0ad293dc372cc842bbc1255cdc8bf39d0c1120fe604",
+        "retrieval": "validated persistent demo query cache",
+        "settings": {
+          "advanced_parameters": {
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_confirmed_opportunities_per_peer": 3,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_map_segment": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "mode": "reference_station",
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_non_joint": false,
+              "station_evidence_time_bin": "12h"
+            },
+            "performance": {
+              "segment_evidence_time_bin": "auto",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": null,
+              "show_zero_target": false,
+              "station_evidence_time_bin": "24h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_url": "http://127.0.0.1:8517/",
+        "viewport_css_px": [
+          1440,
+          1800
+        ]
+      },
+      "source_capture_sha256": "415cbc0503235ca5dcaab0ad293dc372cc842bbc1255cdc8bf39d0c1120fe604"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-snr.webp",
+    "title": {
+      "de": "SNR-Differenz und Empfangskategorien",
+      "en": "SNR difference and decode outcomes"
+    },
+    "width": 956
+  },
+  {
+    "alt": {
+      "de": "Vollständige Diagramme der SNR-Differenz im Zeitverlauf und nach UTC-Stunde für den Vergleich im April 2017, einschließlich Achsen, Legenden, Beschriftung der nichtlinearen Skala und des gesamten Joint-Spot-Medians von +7,0 dB.",
+      "en": "Complete chronological and UTC-hour SNR-difference charts for the April 2017 comparison, retaining axes, legends, nonlinear-scale labels and the +7.0 dB overall Joint-Spot median."
+    },
+    "asset_path": "assets/figures/landing-demo1-temporal.webp",
+    "caption": {
+      "de": "Blieb der Unterschied gleich? Tagesmediane und die Ansicht nach UTC-Stunde zeigen, wie die gepaarten SNR-Differenzen variieren. Das schattierte Band enthält die mittleren 50 % der Beobachtungen. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "Did the difference stay the same? Daily medians and the UTC-hour view show how the paired SNR differences vary. The shaded band is the middle 50% of observations. Actual dark-mode app capture, October 13, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 413,
+    "key": "landing-demo1-temporal",
+    "provenance": {
+      "crop_box_xyxy": [
+        43,
+        212,
+        999,
+        625
+      ],
+      "derivation": "Rectangular crop of the complete figure from an existing live dark-mode screenshot; lossless WebP stores the original decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. Original screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-15",
+      "sha256": "3d0645c28cac0d037c564d3699d67c18dd9eade6b49acd9245161bbbc6f37018",
+      "source_capture_key": "demo-1-temporal",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+      "source_capture_provenance": {
+        "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+        "app_version": "v1.0 RC2",
+        "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+        "captured_at_utc": "2026-10-13T10:54:21.976Z",
+        "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live",
+        "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+        "display_language": "en",
+        "image_px": [
+          999,
+          1122
+        ],
+        "image_sha256": "4278158e68518af69d53760d29f3116d7a2ab5cc9803ef96d781eed9c2e0a4fa",
+        "retrieval": "validated persistent demo query cache",
+        "settings": {
+          "advanced_parameters": {
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_confirmed_opportunities_per_peer": 3,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_map_segment": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "mode": "reference_station",
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_non_joint": false,
+              "station_evidence_time_bin": "12h"
+            },
+            "performance": {
+              "segment_evidence_time_bin": "auto",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": null,
+              "show_zero_target": false,
+              "station_evidence_time_bin": "24h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_url": "http://127.0.0.1:8517/",
+        "viewport_css_px": [
+          1440,
+          1800
+        ]
+      },
+      "source_capture_sha256": "4278158e68518af69d53760d29f3116d7a2ab5cc9803ef96d781eed9c2e0a4fa"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-temporal.webp",
+    "title": {
+      "de": "Im Zeitverlauf",
+      "en": "Over time"
+    },
+    "width": 956
+  },
+  {
+    "alt": {
+      "de": "Vollständige Abbildung zur zeitlichen Evidenzabdeckung für G3ZIL mit täglichen und nach UTC-Stunde zusammengefassten Stations- und Senderzykluszahlen, Linien für Joint Evidence Share sowie dem Hinweis zur Target-Aktivität.",
+      "en": "Complete Temporal Evidence Coverage figure for G3ZIL, including daily and UTC-hour station and transmitter-cycle counts, joint-evidence share lines and the Target-activity qualification."
+    },
+    "asset_path": "assets/figures/landing-demo1-coverage.webp",
+    "caption": {
+      "de": "Wie viel Evidenz trägt das Muster? Prüfe neben dem SNR die Anzahl der Stationen und Senderzyklen. Joint Evidence Share ist keine Empfangserfolgsquote. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "How much evidence supports the pattern? Check the station and transmitter-cycle counts alongside SNR. Joint Evidence Share is not a receiver success rate. Actual dark-mode app capture, October 13, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 413,
+    "key": "landing-demo1-coverage",
+    "provenance": {
+      "crop_box_xyxy": [
+        43,
+        696,
+        999,
+        1109
+      ],
+      "derivation": "Rectangular crop of the complete figure from an existing live dark-mode screenshot; lossless WebP stores the original decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. Original screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-15",
+      "sha256": "7c7a71aef0636870ac30e676c1377f025a0f55721d1a33baa9f06239c49333de",
+      "source_capture_key": "demo-1-temporal",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+      "source_capture_provenance": {
+        "app_source_revision": "3d174c268300d2148d38773fed7f54df79a4ae20",
+        "app_version": "v1.0 RC2",
+        "capture_method": "Live Streamlit browser rendering through Codex CUA; screenshot clip of the visible section; no pixel edits or synthetic evidence.",
+        "captured_at_utc": "2026-10-13T10:54:21.976Z",
+        "config_sha256": "ee92d4c681f441ee2ba9728410cdfcd93466cffc08e5e2a3908bd28b2e08bf64",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live",
+        "decode_policy": "legacy compatibility fallback after no strict target-side evidence",
+        "display_language": "en",
+        "image_px": [
+          999,
+          1122
+        ],
+        "image_sha256": "4278158e68518af69d53760d29f3116d7a2ab5cc9803ef96d781eed9c2e0a4fa",
+        "retrieval": "validated persistent demo query cache",
+        "settings": {
+          "advanced_parameters": {
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_confirmed_opportunities_per_peer": 3,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_map_segment": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "mode": "reference_station",
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_non_joint": false,
+              "station_evidence_time_bin": "12h"
+            },
+            "performance": {
+              "segment_evidence_time_bin": "auto",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": null,
+              "show_zero_target": false,
+              "station_evidence_time_bin": "24h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_url": "http://127.0.0.1:8517/",
+        "viewport_css_px": [
+          1440,
+          1800
+        ]
+      },
+      "source_capture_sha256": "4278158e68518af69d53760d29f3116d7a2ab5cc9803ef96d781eed9c2e0a4fa"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-coverage.webp",
+    "title": {
+      "de": "Evidenzabdeckung",
+      "en": "Evidence coverage"
+    },
+    "width": 956
+  }
+]

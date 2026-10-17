@@ -1,0 +1,4 @@
+# Preserve manifest hashes and retained evidence bytes on every platform.
+/content/generated/** -text
+/site/assets/** -text
+/site/demos/** -text

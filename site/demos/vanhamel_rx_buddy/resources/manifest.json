@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "benchmark-evidence.en-1040.webp",
+      "bytes": 81124,
+      "sha256": "255b2ee30050879b1e9df690054eece8d1a53f066e402d0daa5fc231cda37582"
+    },
+    {
+      "path": "benchmark-evidence.en-520.webp",
+      "bytes": 32552,
+      "sha256": "d2e3844203265b88c8284960be8d8f91bb04aa238d573def14adecce22baecd3"
+    },
+    {
+      "path": "benchmark-evidence.en.png",
+      "bytes": 293421,
+      "sha256": "6c097b5f10a530a60732e9225b8152bb1ae11c2ce8d053677d5c41ef302f3111"
+    },
+    {
+      "path": "map.en-1040.webp",
+      "bytes": 153166,
+      "sha256": "3c1fa344982b7e952df115c211719c4412d2f45a3d0c0f24eefb8d3ccf22c859"
+    },
+    {
+      "path": "map.en-520.webp",
+      "bytes": 63288,
+      "sha256": "cf22ff4a537abf2844c7a27d5184c5a49db5ae5b97aa589957f319e28b1936d3"
+    },
+    {
+      "path": "map.en.png",
+      "bytes": 1329955,
+      "sha256": "42d6a191c6e163de6ea2501d45b9ca26e6768b29b550db485f290b7c308bdf71"
+    },
+    {
+      "path": "rotation-evidence-provenance.json",
+      "bytes": 8836,
+      "sha256": "e54bbaf5d4bacde0c156d41b1a7f9da74d4701276d3a84cdf3c51a1a36ed2817"
+    },
+    {
+      "path": "selected-coverage.en-1040.webp",
+      "bytes": 90456,
+      "sha256": "f6ac7a8d535135384f8c87888c6fcf9d126927302803599b5a141b8c69fa6618"
+    },
+    {
+      "path": "selected-coverage.en-520.webp",
+      "bytes": 40962,
+      "sha256": "7a865d9cbc06ed2b6528b32785d9cf52fae56dd4de0217dcbfe9c2bdf63d3105"
+    },
+    {
+      "path": "selected-coverage.en.png",
+      "bytes": 391462,
+      "sha256": "14d7b79ad1e14bc6d989ad86d8a3d0736a4217513b54d60954bc4286ef1bebbb"
+    },
+    {
+      "path": "selected-evidence.en-1040.webp",
+      "bytes": 92734,
+      "sha256": "1c34c0d58b7e767b9d207af1941cb64feac81b00baea5acd8760ea67beb5501a"
+    },
+    {
+      "path": "selected-evidence.en-520.webp",
+      "bytes": 46596,
+      "sha256": "7ff019ef470e5f6bccbfef28fa3b12867501f75027a077bf65d39b902b9d9bc6"
+    },
+    {
+      "path": "selected-evidence.en.png",
+      "bytes": 418977,
+      "sha256": "d4b003f618c377ed311e7c9daecc8c26b4483498627b48648fae4e4370493ef8"
+    },
+    {
+      "path": "temporal-coverage.en-1040.webp",
+      "bytes": 127120,
+      "sha256": "681223f5521bce868fd58e70b69dda9c05020ee600d1399e21523e7184c8c14f"
+    },
+    {
+      "path": "temporal-coverage.en-520.webp",
+      "bytes": 60532,
+      "sha256": "057d3a8098a63ea6250ab3fa8c44e238f14961e178615f9072c2b75a12fa59bc"
+    },
+    {
+      "path": "temporal-coverage.en.png",
+      "bytes": 530850,
+      "sha256": "289fc8184004eb70c7a04f50026ed89dc8924f061f2360c4cc70acdccaf8d378"
+    },
+    {
+      "path": "temporal-evidence.en-1040.webp",
+      "bytes": 121188,
+      "sha256": "f74ed636ef9400b6ae8a86e81206d2357b4ffa2eb95a66a1987090634c268611"
+    },
+    {
+      "path": "temporal-evidence.en-520.webp",
+      "bytes": 56702,
+      "sha256": "8a5cd57055772e51ee804cb89e24c9122bbfd6241f9351a5e367bcd22078c5f3"
+    },
+    {
+      "path": "temporal-evidence.en.png",
+      "bytes": 563649,
+      "sha256": "75fdeb12f6e2a4b54f30d40beda0915b085bceaa4f4d044eb6122330e77ac86e"
+    },
+    {
+      "path": "WSPRadar_Demo_Vanhamel_Figure6.pdf",
+      "bytes": 878962,
+      "sha256": "b5ef06231cadc7f5feca0f6821397484b7be5f6584ef795a927e7f2b25ed350e"
+    }
+  ],
+  "figures": [
+    {
+      "key": "rotation-map",
+      "path": "map.en.png",
+      "title": {
+        "en": "Map View: the two-week antenna comparison",
+        "de": "Kartenansicht: der Antennenvergleich über zwei Wochen"
+      },
+      "caption": {
+        "en": "",
+        "de": ""
+      },
+      "alt": {
+        "en": "Azimuthal map centered on ON4AWM0 showing different station-balanced median SNR differences by direction and distance, with 5 379 Joint Spots from 60 contributing station entries.",
+        "de": "Azimutalkarte mit ON4AWM0 im Mittelpunkt: Der stationsgleichgewichtete Median der SNR-Differenz unterscheidet sich je nach Richtung und Entfernung; 60 Stationseinträge liefern 5 379 Joint Spots."
+      },
+      "width": 3690,
+      "height": 3840,
+      "variants": [
+        {
+          "path": "map.en-520.webp",
+          "width": 520,
+          "height": 541
+        },
+        {
+          "path": "map.en-1040.webp",
+          "width": 1040,
+          "height": 1082
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3690,
+          3840
+        ],
+        "kind": "Native WSPRadar dark figure rendered offline from frozen Figure 6 archive reports",
+        "source_sha256": "42d6a191c6e163de6ea2501d45b9ca26e6768b29b550db485f290b7c308bdf71",
+        "details": "rotation-evidence-provenance.json",
+        "derivatives": "Resized directly from native PNG using Lanczos and lossless WebP encoding; scientific colors, data, labels and geometry retained.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    },
+    {
+      "key": "rotation-benchmark",
+      "path": "benchmark-evidence.en.png",
+      "title": {
+        "en": "Benchmark Evidence",
+        "de": "Benchmark-Evidenz"
+      },
+      "caption": {
+        "en": "*Read the reception outcomes alongside the station-balanced median of +1.4 dB and Joint-Spot median of +2.4 dB.*",
+        "de": "*Betrachte die Empfangsergebnisse zusammen mit dem stationsgleichgewichteten Median von +1,4 dB und dem Median der Joint Spots von +2,4 dB.*"
+      },
+      "alt": {
+        "en": "Decode Outcomes, Station Medians and Joint-Spot Delta SNR panels: 60 of 75 station entries contribute 5 379 Joint Spots; station-balanced median +1.4 dB and pooled Joint-Spot median +2.4 dB.",
+        "de": "Drei Diagramme zu Empfangsergebnissen, Stationsmedianen und Joint-Spot-Delta-SNR: 60 von 75 Stationseinträgen liefern 5 379 Joint Spots; stationsgleichgewichteter Median +1,4 dB, Median aller Joint Spots +2,4 dB."
+      },
+      "width": 3885,
+      "height": 1714,
+      "variants": [
+        {
+          "path": "benchmark-evidence.en-520.webp",
+          "width": 520,
+          "height": 229
+        },
+        {
+          "path": "benchmark-evidence.en-1040.webp",
+          "width": 1040,
+          "height": 459
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3885,
+          1714
+        ],
+        "kind": "Native WSPRadar dark figure rendered offline from frozen Figure 6 archive reports",
+        "source_sha256": "6c097b5f10a530a60732e9225b8152bb1ae11c2ce8d053677d5c41ef302f3111",
+        "details": "rotation-evidence-provenance.json",
+        "derivatives": "Resized directly from native PNG using Lanczos and lossless WebP encoding; scientific colors, data, labels and geometry retained.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    },
+    {
+      "key": "rotation-temporal",
+      "path": "temporal-evidence.en.png",
+      "title": {
+        "en": "Temporal Evidence",
+        "de": "Zeitliche Evidenz"
+      },
+      "caption": {
+        "en": "*The chronological view shows how the comparison evolves. The UTC-hour view combines observations from the same hour on different dates.*",
+        "de": "*Der Zeitverlauf zeigt, wie sich der Vergleich entwickelt. Die Ansicht nach UTC-Stunde fasst Beobachtungen derselben Uhrzeit von verschiedenen Tagen zusammen.*"
+      },
+      "alt": {
+        "en": "All-station Delta SNR over time in 12-hour bins and by UTC hour, with bin medians, middle-50-percent bands and the overall +2.4 dB Joint-Spot median.",
+        "de": "Delta-SNR aller Stationen im Zeitverlauf in 12-Stunden-Intervallen und nach UTC-Stunde, mit Intervallmedianen, den mittleren 50 Prozent der Beobachtungen und dem Gesamtmedian der Joint Spots von +2,4 dB."
+      },
+      "width": 3855,
+      "height": 1710,
+      "variants": [
+        {
+          "path": "temporal-evidence.en-520.webp",
+          "width": 520,
+          "height": 231
+        },
+        {
+          "path": "temporal-evidence.en-1040.webp",
+          "width": 1040,
+          "height": 461
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3855,
+          1710
+        ],
+        "kind": "Native WSPRadar dark figure rendered offline from frozen Figure 6 archive reports",
+        "source_sha256": "75fdeb12f6e2a4b54f30d40beda0915b085bceaa4f4d044eb6122330e77ac86e",
+        "details": "rotation-evidence-provenance.json",
+        "derivatives": "Resized directly from native PNG using Lanczos and lossless WebP encoding; scientific colors, data, labels and geometry retained.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    },
+    {
+      "key": "rotation-coverage",
+      "path": "temporal-coverage.en.png",
+      "title": {
+        "en": "Temporal Evidence Coverage",
+        "de": "Zeitliche Evidenzabdeckung"
+      },
+      "caption": {
+        "en": "*Check the observation counts behind the SNR pattern, especially where the evidence is sparse.*",
+        "de": "*Prüfe die Beobachtungszahlen hinter dem SNR-Muster, besonders dort, wo nur wenige Beobachtungen vorliegen.*"
+      },
+      "alt": {
+        "en": "Station and transmitter-cycle coverage over time and by UTC hour, split into Joint, Target-only and Reference-only evidence, with station-balanced and outcome-level Joint Evidence Share lines.",
+        "de": "Abdeckung durch Stationen und Senderzyklen im Zeitverlauf und nach UTC-Stunde, aufgeteilt in Joint-Evidenz, nur beim Target und nur bei der Referenz beobachtete Signale; Linien zeigen den stationsgleichgewichteten und beobachtungsgewichteten Anteil der Joint-Evidenz."
+      },
+      "width": 3807,
+      "height": 1692,
+      "variants": [
+        {
+          "path": "temporal-coverage.en-520.webp",
+          "width": 520,
+          "height": 231
+        },
+        {
+          "path": "temporal-coverage.en-1040.webp",
+          "width": 1040,
+          "height": 462
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3807,
+          1692
+        ],
+        "kind": "Native WSPRadar dark figure rendered offline from frozen Figure 6 archive reports",
+        "source_sha256": "289fc8184004eb70c7a04f50026ed89dc8924f061f2360c4cc70acdccaf8d378",
+        "details": "rotation-evidence-provenance.json",
+        "derivatives": "Resized directly from native PNG using Lanczos and lossless WebP encoding; scientific colors, data, labels and geometry retained.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    },
+    {
+      "key": "rotation-selected-evidence",
+      "path": "selected-evidence.en.png",
+      "title": {
+        "en": "Selected Station Evidence: M7AEO",
+        "de": "Evidenz der ausgewählten Station: M7AEO"
+      },
+      "caption": {
+        "en": "*The overall +0.4 dB median hides a clear change between the early and later observations.*",
+        "de": "*Der Gesamtmedian von +0,4 dB verdeckt eine deutliche Veränderung zwischen den frühen und späteren Beobachtungen.*"
+      },
+      "alt": {
+        "en": "M7AEO at IO82, 1 441 Joint Spots: chronological and UTC-hour Delta SNR panels show the upward change around 8 May and an overall median of +0.4 dB.",
+        "de": "M7AEO in IO82 mit 1 441 Joint Spots: Die Delta-SNR-Diagramme im Zeitverlauf und nach UTC-Stunde zeigen den Anstieg um den 8. Mai und einen Gesamtmedian von +0,4 dB."
+      },
+      "width": 3855,
+      "height": 1710,
+      "variants": [
+        {
+          "path": "selected-evidence.en-520.webp",
+          "width": 520,
+          "height": 231
+        },
+        {
+          "path": "selected-evidence.en-1040.webp",
+          "width": 1040,
+          "height": 461
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3855,
+          1710
+        ],
+        "kind": "Native WSPRadar dark figure rendered offline from frozen Figure 6 archive reports",
+        "source_sha256": "d4b003f618c377ed311e7c9daecc8c26b4483498627b48648fae4e4370493ef8",
+        "details": "rotation-evidence-provenance.json",
+        "derivatives": "Resized directly from native PNG using Lanczos and lossless WebP encoding; scientific colors, data, labels and geometry retained.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    },
+    {
+      "key": "rotation-selected-coverage",
+      "path": "selected-coverage.en.png",
+      "title": {
+        "en": "Selected Path Evidence Coverage: M7AEO",
+        "de": "Evidenzabdeckung des ausgewählten Funkwegs: M7AEO"
+      },
+      "caption": {
+        "en": "*Repeated comparisons support the change, while some individual intervals remain sparse.*",
+        "de": "*Wiederholte Vergleiche stützen die Veränderung; in manchen einzelnen Intervallen liegen dennoch nur wenige Beobachtungen vor.*"
+      },
+      "alt": {
+        "en": "M7AEO path coverage over time and by UTC hour: 1 441 Joint Spots, 109 Target-only observations and five Reference-only observations, with Joint Evidence Share.",
+        "de": "Evidenzabdeckung des Funkwegs von M7AEO im Zeitverlauf und nach UTC-Stunde: 1 441 Joint Spots, 109 Beobachtungen nur beim Target und fünf nur bei der Referenz, ergänzt um den Anteil der Joint-Evidenz."
+      },
+      "width": 3807,
+      "height": 1692,
+      "variants": [
+        {
+          "path": "selected-coverage.en-520.webp",
+          "width": 520,
+          "height": 231
+        },
+        {
+          "path": "selected-coverage.en-1040.webp",
+          "width": 1040,
+          "height": 462
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3807,
+          1692
+        ],
+        "kind": "Native WSPRadar dark figure rendered offline from frozen Figure 6 archive reports",
+        "source_sha256": "14d7b79ad1e14bc6d989ad86d8a3d0736a4217513b54d60954bc4286ef1bebbb",
+        "details": "rotation-evidence-provenance.json",
+        "derivatives": "Resized directly from native PNG using Lanczos and lossless WebP encoding; scientific colors, data, labels and geometry retained.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    }
+  ]
+}

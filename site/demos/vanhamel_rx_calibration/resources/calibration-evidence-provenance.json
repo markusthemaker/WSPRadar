@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "demo_id": "vanhamel_rx_calibration",
+  "kind": "native WSPRadar Benchmark Evidence export reconstructed offline from a frozen archive fixture",
+  "render_theme": "native dark theme (paper_theme=False)",
+  "publication_url": "https://doi.org/10.1155/2022/4809313",
+  "fixture_id": "vanhamel_rx_calibration_v1",
+  "source_rows_sha256": "f4b26f3c02bc9d41108ff2528d48ea54a15e852d7e3e7ef3e8ce778a9db5a6b8",
+  "source_manifest_sha256": "67671c5d50c0560ca7ddb997525364ad9aea2ff2a1b97123e8caa55a746fb8e3",
+  "independent_summary_sha256": "18a6142f2df42a51818ae1f09dfc58f7197308b561d5000b42bd0e18bb92fe6f",
+  "reproduction_script_sha256": "d1bfd378073f96229e5f5f8678e7463a0e27069127d62f2a43f5bfc770db2fc5",
+  "reproduction_command": ".\\.venv\\Scripts\\python.exe scripts\\internal\\render_vanhamel_calibration_walkthrough.py --output-directory .tmp\\vanhamel-walkthrough",
+  "runtime_source_hashes": {
+    "ui/plots/evidence_figures.py": "99d3e3cb71dc840dc310375785053ee1d812929d73dd0df32af5cd204a7404b3",
+    "ui/results_export.py": "47283b798aa7c39cbab78bad13547f75c88fa56fed2e138f87ea34b2b4def1d6",
+    "ui/inspector/view_models.py": "3c283a5fe523dd37f9544440d2d7641de79fe0dcc7a51987c44b07e7e9385f27",
+    "ui/inspector/evidence_data.py": "ad549d01ef2a60036aa91f9f14d73e35d78885ea8f9180743aca8c2af87eee22",
+    "core/compare_engine.py": "1e207a3d5c337ce6b0d2429df67e0d3fd4f29e18507ed4d5b5099102097f3fad",
+    "i18n.py": "613dcb9b0164d1647dcbb52dad55ab4c9fd553b7f63575a5acd8c0d660c39cb9",
+    "tests/regression/test_vanhamel_calibration_reference.py": "e4c5a1aae9cae0b7a30000c5a13dc793fab00375fa16a7a4fb20478466ba8a6a"
+  },
+  "configuration": {
+    "target": "ON4AWM0",
+    "target_qth": "JO20OT",
+    "reference": "ON4AWM1",
+    "reference_grid": "JO20",
+    "band": "160m",
+    "start_utc": "2021-02-06T06:00:00Z",
+    "end_utc_exclusive": "2021-02-13T06:00:00Z",
+    "max_peer_distance_km": 2500,
+    "minimum_joint_observations_per_station": 50,
+    "reference_snr_correction_db": 0.0
+  },
+  "counts": {
+    "stat_joint": 10,
+    "stat_both_async": 0,
+    "stat_only_u": 0,
+    "stat_only_r": 0,
+    "spot_joint": 1143,
+    "spot_both_async": 114,
+    "spot_only_u": 0,
+    "spot_only_r": 0,
+    "tot_stats": 10,
+    "tot_spots": 1257
+  },
+  "joint_share_percent": 90.9307875894988,
+  "joint_spot_mean_db": 1.2143482064741906,
+  "joint_spot_median_db": 1.0,
+  "station_median_min_db": 1.0,
+  "station_median_max_db": 1.0,
+  "joint_spots_per_station_min": 52,
+  "joint_spots_per_station_max": 344,
+  "validation": [
+    "All frozen fixture manifest sizes and SHA-256 hashes verified.",
+    "All qualifying paired identities, UTC cycles and SNR components matched independent fixture rows.",
+    "Joint histogram, pooled mean and median matched independent fixture expectations.",
+    "Each qualifying station count and median matched independent fixture expectations."
+  ],
+  "limits": [
+    "The selected archive week is not authenticated as either original seven-day publication dataset.",
+    "The historical hardware state across the entire selected week is not independently established.",
+    "The paper reports a 1.2 dB average magnitude but does not publish the named-callsign sign, exact pairing method or averaging weights.",
+    "Native renderer and current localized labels were used; no scientific code or numerical inputs were changed.",
+    "This is an offline fixture reconstruction, not a live-provider rerun or an authenticated screenshot of the publication."
+  ],
+  "outputs": [
+    {
+      "file": "benchmark-evidence.en.png",
+      "language": "en",
+      "bytes": 261913,
+      "sha256": "748c86335cd2604a3d8e6af630f51bb97b056e5a0fc7f5d7cda98095f1fd4d4f",
+      "dimensions": [
+        3885,
+        1654
+      ]
+    }
+  ]
+}
