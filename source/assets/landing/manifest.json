@@ -2428,7 +2428,8 @@
       "bytes": 884345,
       "sha256": "d41ea7143e6f7945732d32642a08c9f5e1154f523127299695745bae8c7740c6",
       "approved_master": "archive/browser-assets/landing/web/hero-1280.png",
-      "recipe": {
+      "source_path": "assets/browser-assets/landing/web/hero-1280.png",
+      "retained_recipe": {
         "kind": "image",
         "source_path": "assets/landing/originals/hero/WSPR-Insights-Across-Earth.png",
         "source_bytes": 2352260,
@@ -2676,7 +2677,8 @@
       "bytes": 35044,
       "sha256": "fd6c08a22934c5b4cee9b4965675dadb2bebd3a648a4b049d515cfbe6f5eb27b",
       "approved_master": "archive/browser-assets/landing/web/logo-128.png",
-      "recipe": {
+      "source_path": "assets/browser-assets/landing/web/logo-128.png",
+      "retained_recipe": {
         "kind": "image",
         "source_path": "assets/landing/originals/brand/WSPRadar-radar-emblem-concept.png",
         "source_bytes": 2007865,
@@ -2764,7 +2766,8 @@
       "bytes": 497237,
       "sha256": "256322ae8e29e3a8c0c65e88d14be817887412007158f968d5867b68a82df893",
       "approved_master": "archive/browser-assets/landing/web/network-700.png",
-      "recipe": {
+      "source_path": "assets/browser-assets/landing/web/network-700.png",
+      "retained_recipe": {
         "kind": "image",
         "source_path": "assets/landing/originals/hero/Europe-signal-paths-art-transparent.png",
         "source_bytes": 1916682,

@@ -581,6 +581,16 @@ Milazzo verification evidence lives under `source/assets/demos/milazzo_tx_buddy/
 The remaining `source/archive/` is ignored by Git and is not needed by the build.
 Historical provenance retains its original archive paths.
 
+The hero, emblem, and network PNG fallbacks also use explicit approved encoded
+masters under `source/assets/browser-assets/landing/web/`. Exact PNG bytes differ
+between the current Windows and Linux encoder environments: the same pinned Pillow
+release reproduced the approved hero on Windows but failed its byte hash in the
+Linux clean build. Each fallback therefore has an active `source_path` copied
+with the existing byte-count and SHA-256 verification. Its complete previous
+recipe remains as `retained_recipe` provenance rather than an executable build
+step. Original artwork, dimensions, public paths, and approved image bytes remain
+unchanged. WebP and font-subset resources continue to use their declared recipes.
+
 The header's native `picture` uses width descriptors and a `sizes` expression
 matching the shell to select an image for viewport width and pixel density.
 The shell is at most 1280 pixels wide including 24-pixel horizontal padding,

@@ -3,6 +3,7 @@
 from copy import deepcopy
 from io import BytesIO
 from pathlib import Path
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -108,6 +109,34 @@ class BrowserAssetTests(unittest.TestCase):
     def test_duplicate_public_paths_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "Duplicate"):
             browser_assets.resource_payload(self.assets, {"files": [self.record, self.record]}, source_root=self.source, cache_root=self.cache)
+
+
+class LandingPngMasterTests(unittest.TestCase):
+    def test_png_fallbacks_keep_reviewed_bytes_without_an_encoder_or_cache(self):
+        asset_root = browser_assets.SOURCE_ROOT / "assets" / "landing"
+        manifest = json.loads((asset_root / "manifest.json").read_text(encoding="utf-8"))
+        fallbacks = [manifest[name]["fallback"] for name in ("hero", "logo", "network")]
+        records_by_path = {record["path"]: record for record in manifest["files"]}
+        records = [records_by_path[fallback["path"]] for fallback in fallbacks]
+
+        for record in records:
+            self.assertNotIn("recipe", record)
+            self.assertTrue(record["source_path"].startswith("assets/browser-assets/landing/"))
+            retained = record["retained_recipe"]
+            self.assertEqual(retained["format"], "PNG")
+            original = browser_assets.bounded_path(browser_assets.SOURCE_ROOT, retained["source_path"])
+            browser_assets.verify(original.read_bytes(), {
+                "bytes": retained["source_bytes"], "sha256": retained["source_sha256"],
+            }, retained["source_path"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            cache = Path(temporary) / "empty-cache"
+            with patch.object(browser_assets, "encode_recipe", side_effect=AssertionError("PNG master was re-encoded")):
+                payload = browser_assets.resource_payload(asset_root, {"files": records}, cache_root=cache, rebuild=True)
+            self.assertFalse(cache.exists())
+        self.assertEqual(set(payload), {fallback["path"] for fallback in fallbacks})
+        for fallback in fallbacks:
+            browser_assets.verify(payload[fallback["path"]], fallback, fallback["path"])
 
 
 if __name__ == "__main__":
