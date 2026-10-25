@@ -13,6 +13,15 @@ The workflow is local `temp` -> GitHub `temp` -> GitHub `main`. GitHub Pages
 publishes `main`; pushing to `temp` alone does not update the website. This
 website publication workflow does not create an application release or tag.
 
+The prepared [Pages workflow](../.github/workflows/deploy-pages.yml) builds and
+validates `temp` and `main`, with deployment restricted to successful canonical
+`main` runs. It publishes only `generated/`; the Git helpers continue to publish
+the permitted source tree and do not build the website or wait for Actions.
+Before the first static-site release, complete the separately approved
+[Pages activation](../README.md#prepared-github-pages-deployment), retaining
+`wspradar.org` and enforced HTTPS. Workflow files follow the same Git tracking
+and ignore rules as other source files; review their contents before publishing.
+
 ## Prerequisites and initial setup
 
 Git, Windows PowerShell 5.1 or PowerShell 7, and authenticated GitHub CLI (`gh`)
@@ -41,8 +50,10 @@ After editing and reviewing the website files, commit and push to GitHub `temp`:
 powershell -ExecutionPolicy Bypass -File .\scripts\git-push-temp.ps1 -Message 'Describe the website change'
 ```
 
-This stages all nonignored changes permitted by the website allowlist. It
-fetches GitHub `temp` and rebases local work if newer remote commits exist.
+This stages all tracked changes and nonignored new files with `git add -A`.
+Ignored untracked files remain local; adding an already tracked file to
+`.gitignore` does not untrack it. It fetches GitHub `temp` and rebases local work
+if newer remote commits exist.
 Resolve and test any conflicts before retrying. A detached HEAD can be recovered
 onto local `temp` only when doing so preserves existing `temp` history.
 
@@ -69,16 +80,14 @@ options:
   `markusthemaker/WSPRadar`. GitHub must report repository ID `1416038123` and
   public visibility. Missing CLI access, invalid metadata, and verification
   failures stop the workflow. Mirror and custom transport settings are rejected.
-- `WebsiteAllowedFiles` lists exact approved paths: the original nine website
-  and support files, these four helpers, this guide, the focused test module,
-  and the reviewed static website sources, imported public-content bundle,
-  retained design and evidence assets, discussion template, and website tests.
-  Unapproved tracked, staged, and nonignored untracked files stop the workflow
-  before staging. Symbolic links, junctions in content paths, and submodules
-  are rejected. Ignored untracked files are not staged by the helper.
-- Every reachable commit must contain only allowed regular files. Deleting an
-  accidentally committed application file in a later commit does not make its
-  history safe to publish. The sole history root must be the original website
+- Filenames are not restricted by an allowlist. All tracked, staged, and
+  nonignored untracked paths must identify regular files within the checkout.
+  Symbolic links, junctions in content paths, and submodules are rejected.
+  Ignored untracked files are not staged by the helper.
+- Every reachable commit must contain only regular files. Deleting an
+  accidentally committed application file in a later commit does not remove it
+  from public history; review contents before committing because the guard does
+  not classify confidentiality. The sole history root must be the original website
   commit `ce3546f4ad40f7729a7397d813359630e29b2e79`. Unrelated history merges,
   shallow checkouts, replacement refs, and grafts are rejected.
 - Fetched branch histories are checked before rebasing or resetting; the
@@ -86,14 +95,21 @@ options:
   and pushes use explicit branch references, with tag following, pruning, and
   recursive submodule operations disabled. No tags are published.
 
-To add a legitimate new website file, review its contents and explicitly extend
-the exact allowlist in the guard, then run the focused checks. Do not use broad
-directory patterns or copy application source into an allowed website file.
-The allowlist checks paths and Git modes; it cannot classify the meaning or
-confidentiality of file contents. Review the complete diff before publishing.
+New website files require no guard edits. Review their contents and the complete
+diff before publishing; do not copy private application source into this public
+repository. The guard checks repository identity, paths, Git modes, and ancestry;
+it cannot classify the meaning or confidentiality of file contents.
 
-The repository's `.gitattributes` preserves exact bytes under `content/generated/`,
-`site/assets/`, and `site/demos/`. Automatic line-ending conversion would invalidate
+`.gitignore` excludes `generated/`, `dist/`, `.tmp/`, `.venv/`, `.pytest_cache/`,
+Python bytecode, and the remaining `source/archive/`. Active archive inputs have
+been moved into `source/assets/browser-assets/` and the corresponding
+`source/assets/demos/` evidence directory. The ignored archive remains on disk
+but is not part of the Git backup. The build remains self-contained in the
+tracked source tree; GitHub Actions creates and deploys `generated/` from it.
+The guard still inspects every reachable historical tree, including legacy paths.
+
+The repository's `.gitattributes` preserves exact bytes under `source/imported/app/`,
+`source/assets/`, `source/archive/`, and `source/pages/`. Automatic line-ending conversion would invalidate
 the imported-content and evidence manifests after a fresh checkout, including on
 Windows systems with `core.autocrlf=true`. Keep these attributes with the backup.
 
@@ -107,9 +123,9 @@ status before retrying.
 
 - `git-baseline-temp.ps1 -Force` aborts an active rebase and discards tracked
   local changes and unpublished local `temp` commits while resetting to GitHub
-  `temp`. Other active Git operations must be resolved separately. Unapproved
-  files or history still cause rejection and require independent review.
-  The helper does not run `git clean`; allowed untracked files may remain.
+  `temp`. Other active Git operations must be resolved separately. Unsupported
+  file types or history still cause rejection and require independent review.
+  The helper does not run `git clean`; untracked files may remain.
 - `git-push-temp.ps1 -Message 'Reviewed recovery' -ForceRemote` deliberately
   replaces GitHub `temp` using a lease tied to the freshly fetched remote SHA.
 - `git-release-main.ps1 -ForceWithLease` deliberately replaces GitHub `main`

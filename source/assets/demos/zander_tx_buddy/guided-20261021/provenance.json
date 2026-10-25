@@ -1,0 +1,374 @@
+{
+  "source_package": "WSPRadar_Zander_Guided_Demo.zip",
+  "source_package_sha256": "e4433899fd6a9d9d69c7e76913a095951f380ffd5258525bc015dd11989fa280",
+  "source_package_bytes": 9220692,
+  "retained_package": "../../source/20261021-guided/zander-guided-demo/",
+  "retained_archive": "../../source/20261021-guided/WSPRadar_Zander_Guided_Demo.zip",
+  "source_package_files_sha256": {
+    "figures/figure_decodes_over_snr.png": "71f0858e727d50ca81688304ca57a431e65b759dcb72456596e7ebfe8d409f20",
+    "figures/figure_decodes_over_snr_dark.png": "711775d3ab0719e9218412926be74c84faf4a907023e2de7524d394d14a48c37",
+    "figures/figure_map_delta_decode.png": "dc1befd8c6291568a8955b4132584971ee134487454ad26181bdd1a34e458823",
+    "figures/figure_map_delta_decode_dark.png": "3b3ac13a41e7f3e506703f9aa31e8bb18208b5b70501d31d8c5efc24a4532954",
+    "figures/figure_map_delta_snr.png": "23eb167b9291ca389a386d61253456f38bfb915b3162e85ea297f16ecf0df879",
+    "figures/figure_map_delta_snr_dark.png": "7204ad8271ad4555c0bf4744944264c04f5978c595b053210da6620686025136",
+    "figures/figure_segment_statistics.png": "fd361783fe193a122afb8f80b3b3c2ad42abf6b468fda82eb0cd9d3b952fe2a3",
+    "figures/figure_segment_statistics_dark.png": "3000cebd9b0d4cdc28827dd811fd132d7eb9295f61fc964a45816216ea04327f",
+    "figures/figure_segment_temporal_delta_decode.png": "98bfc7d9ca985cb9aaa31696fef383b353ea7f70a009b9838ec4ff98ce9777a8",
+    "figures/figure_segment_temporal_delta_decode_dark.png": "4c85d2d3ce393aeb14cadbad58086784fe74eaa172fe082adb490ecf2537a40b",
+    "figures/figure_segment_temporal_delta_snr.png": "74ad0d2ed37dc4a38a8c7a372d90678b894f2872301053cccd1b03dd12efa2f5",
+    "figures/figure_segment_temporal_delta_snr_dark.png": "e4e9d728127ab88ced1b1cf3e96deb24af0bb0bf364f308cbbab335662bc2c95",
+    "figures/figure_selected_station_temporal_delta_decode.png": "b67c6313f26fce4b028f31fe596824f041bc1a11a948f5c056413bdc868e70b0",
+    "figures/figure_selected_station_temporal_delta_decode_dark.png": "6d37274f16d5e608e1f652c4ae26756bc6e4240b9ad24a87879f837b17674669",
+    "figures/figure_selected_station_temporal_delta_snr.png": "b7378c88974411ed7d19319fb72df306f1954fba41ca29aaf20a373d7ca8f645",
+    "figures/figure_selected_station_temporal_delta_snr_dark.png": "94504fde64803d930bc291f4016c876f2fde8383516a96c6e2ac1e75e23d8c77",
+    "figures/setup-network.png": "8636c04f537baccc57ecc37bae4e4ea9921aba8cb1f9680aa2638ee598e17aeb",
+    "README.md": "11ed0bb8ac55511dbb77099339283e49d4a484bdfedfbd57afc9c13ae2fad9d4",
+    "source/analysis_cache.parquet": "cf648de9687461b812a0856704071a7368dc8d8d94a8f82e7fcbeeaa56a7930b",
+    "source/export_disclaimer.txt": "4d425b26f22d9c4d4d6faf098de16905b0a7ff298c204f2083b98ddb73145c25",
+    "source/run_metadata.json": "fc2767d11929f7ab51be16e74b2f7450f85d22204d09a8238e269230b884499d",
+    "source/table_drilldown_all_stations_current_segment.csv": "c46cd020474c2e2f3651b4a7e354c347e6060aec0c7f76f57a10917a269cb8a9",
+    "source/table_drilldown_selected_stations.csv": "10915aff45978aa0a60322cdd33f6ebe81349f81c7523e3d7637381cff71eb73",
+    "source/table_station_insights.csv": "850656e01b89f0ee0e1795e48a3d48b693ecbf542c8b41ff6eb149ea55908471",
+    "source/wspradar_config.config": "609f148099b85b4bcfc1573c32c77b2f69c521c343b5559bca4cb88ea6df8dd9",
+    "verification.json": "6160b7b95f92f4e9314c58aa074839a503cc1ac34f7b958a37e2d598f0061c8e",
+    "Zander_Portable_Vertical_Comparison.md": "69519804ddad18768919d8099f83f003f0683e532d1ea68da08cf0684ff548ce"
+  },
+  "supplied_source_hashes_verified": true,
+  "source_export": {
+    "archive": "WSPRadar_export_2026_10_21__20_44(1).zip",
+    "sha256": "8b3ce292da1d87f0df5138966dfa7836ed09d04cbd1a960ab5f76f0587201e5e",
+    "verification_scope": "Supplied metadata; original export ZIP not included"
+  },
+  "export": {
+    "app": "WSPRadar.org",
+    "version": "v1.0 RC3",
+    "export_signature": "619135d8c905e40c25ace907066b65b6ca28fda0ad829536b2324b13f992b945",
+    "exported_utc": "2026-10-21T18:44:56Z",
+    "run_mode": "TX",
+    "database_source": "wspr_live",
+    "callsign": "SK0WE/P",
+    "time_window": {
+      "start_utc": "2022-05-21T09:45Z",
+      "end_utc": "2022-05-21T10:30Z"
+    },
+    "thresholds_and_filters": {
+      "solar_state": "all",
+      "max_peer_distance_km": 10000,
+      "exclude_special_callsigns": false,
+      "exclude_moving_stations": false,
+      "min_qualifying_stations_per_map_segment": 2,
+      "min_joint_spots_per_station": 1,
+      "min_decode_event_share_percent": 1.0
+    }
+  },
+  "processing": "Native dark PNGs and supplied setup copied byte-for-byte. Browser variants derived with LANCZOS and lossless WebP; decoded pixels verified equal to direct source resizes. No supplied scripts executed.",
+  "figures": [
+    {
+      "key": "zander-rc3-setup",
+      "path": "guided-20261021/setup-network.png",
+      "native_size": [
+        1040,
+        652
+      ],
+      "native_bytes": 965230,
+      "variants": [
+        {
+          "width": 520,
+          "height": 326,
+          "lossless_webp_bytes": 180830,
+          "optimized_png_bytes": 220889,
+          "saving_percent": 18.14,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 652,
+          "lossless_webp_bytes": 604042,
+          "optimized_png_bytes": 739807,
+          "saving_percent": 18.35,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-map",
+      "path": "guided-20261021/figure_map_delta_snr_dark.png",
+      "native_size": [
+        3423,
+        3511
+      ],
+      "native_bytes": 1218021,
+      "variants": [
+        {
+          "width": 520,
+          "height": 533,
+          "lossless_webp_bytes": 71924,
+          "optimized_png_bytes": 158364,
+          "saving_percent": 54.58,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 1067,
+          "lossless_webp_bytes": 190694,
+          "optimized_png_bytes": 438280,
+          "saving_percent": 56.49,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 2133,
+          "lossless_webp_bytes": 470768,
+          "optimized_png_bytes": 1154619,
+          "saving_percent": 59.23,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-decodes",
+      "path": "guided-20261021/figure_decodes_over_snr_dark.png",
+      "native_size": [
+        3900,
+        2498
+      ],
+      "native_bytes": 397213,
+      "variants": [
+        {
+          "width": 520,
+          "height": 333,
+          "lossless_webp_bytes": 43152,
+          "optimized_png_bytes": 90082,
+          "saving_percent": 52.1,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 666,
+          "lossless_webp_bytes": 97186,
+          "optimized_png_bytes": 217041,
+          "saving_percent": 55.22,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 1332,
+          "lossless_webp_bytes": 207958,
+          "optimized_png_bytes": 488811,
+          "saving_percent": 57.46,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-decode-map",
+      "path": "guided-20261021/figure_map_delta_decode_dark.png",
+      "native_size": [
+        3521,
+        3511
+      ],
+      "native_bytes": 1258318,
+      "variants": [
+        {
+          "width": 520,
+          "height": 519,
+          "lossless_webp_bytes": 72242,
+          "optimized_png_bytes": 153067,
+          "saving_percent": 52.8,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 1037,
+          "lossless_webp_bytes": 189478,
+          "optimized_png_bytes": 421261,
+          "saving_percent": 55.02,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 2074,
+          "lossless_webp_bytes": 456444,
+          "optimized_png_bytes": 1093833,
+          "saving_percent": 58.27,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-statistics",
+      "path": "guided-20261021/figure_segment_statistics_dark.png",
+      "native_size": [
+        3852,
+        1657
+      ],
+      "native_bytes": 346900,
+      "variants": [
+        {
+          "width": 520,
+          "height": 224,
+          "lossless_webp_bytes": 41880,
+          "optimized_png_bytes": 79462,
+          "saving_percent": 47.3,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 447,
+          "lossless_webp_bytes": 98420,
+          "optimized_png_bytes": 200290,
+          "saving_percent": 50.86,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 895,
+          "lossless_webp_bytes": 210452,
+          "optimized_png_bytes": 487650,
+          "saving_percent": 56.84,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-snr-time",
+      "path": "guided-20261021/figure_segment_temporal_delta_snr_dark.png",
+      "native_size": [
+        3808,
+        1731
+      ],
+      "native_bytes": 350714,
+      "variants": [
+        {
+          "width": 520,
+          "height": 236,
+          "lossless_webp_bytes": 29194,
+          "optimized_png_bytes": 63576,
+          "saving_percent": 54.08,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 473,
+          "lossless_webp_bytes": 67182,
+          "optimized_png_bytes": 152883,
+          "saving_percent": 56.06,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 946,
+          "lossless_webp_bytes": 152984,
+          "optimized_png_bytes": 354060,
+          "saving_percent": 56.79,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-decode-time",
+      "path": "guided-20261021/figure_segment_temporal_delta_decode_dark.png",
+      "native_size": [
+        3799,
+        1641
+      ],
+      "native_bytes": 364349,
+      "variants": [
+        {
+          "width": 520,
+          "height": 225,
+          "lossless_webp_bytes": 28462,
+          "optimized_png_bytes": 63465,
+          "saving_percent": 55.15,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 449,
+          "lossless_webp_bytes": 63276,
+          "optimized_png_bytes": 158353,
+          "saving_percent": 60.04,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 898,
+          "lossless_webp_bytes": 145270,
+          "optimized_png_bytes": 374015,
+          "saving_percent": 61.16,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-station-snr",
+      "path": "guided-20261021/figure_selected_station_temporal_delta_snr_dark.png",
+      "native_size": [
+        3808,
+        1816
+      ],
+      "native_bytes": 311489,
+      "variants": [
+        {
+          "width": 520,
+          "height": 248,
+          "lossless_webp_bytes": 24234,
+          "optimized_png_bytes": 55236,
+          "saving_percent": 56.13,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 496,
+          "lossless_webp_bytes": 55574,
+          "optimized_png_bytes": 135577,
+          "saving_percent": 59.01,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 992,
+          "lossless_webp_bytes": 125640,
+          "optimized_png_bytes": 317000,
+          "saving_percent": 60.37,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    },
+    {
+      "key": "zander-rc3-station-decode",
+      "path": "guided-20261021/figure_selected_station_temporal_delta_decode_dark.png",
+      "native_size": [
+        3775,
+        1717
+      ],
+      "native_bytes": 264357,
+      "variants": [
+        {
+          "width": 520,
+          "height": 237,
+          "lossless_webp_bytes": 17872,
+          "optimized_png_bytes": 45914,
+          "saving_percent": 61.08,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 1040,
+          "height": 473,
+          "lossless_webp_bytes": 44508,
+          "optimized_png_bytes": 116880,
+          "saving_percent": 61.92,
+          "decoded_pixels_equal_resized_source": true
+        },
+        {
+          "width": 2080,
+          "height": 946,
+          "lossless_webp_bytes": 105656,
+          "optimized_png_bytes": 277611,
+          "saving_percent": 61.94,
+          "decoded_pixels_equal_resized_source": true
+        }
+      ]
+    }
+  ]
+}

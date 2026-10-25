@@ -1,0 +1,4 @@
+Date/Time (UTC),TX Station,Locator,km,Azimuth,Outcome,Target (T),Elsewhere (E),Target SNR (dB @ 30 dBm)
+21-Apr-2017 05:32:00,ZL4KT,RE54GD,19194,49.6,T - Target,1,0,-33.0
+21-Apr-2017 05:40:00,ZL4KT,RE54GD,19194,49.6,T - Target,1,0,-33.0
+21-Apr-2017 05:50:00,ZL4KT,RE54GD,19194,49.6,T - Target,1,0,-33.0

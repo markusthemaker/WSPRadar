@@ -1,0 +1,1611 @@
+{
+  "schema_version": 2,
+  "demos": {
+    "griffiths_squibb_fig3": {
+      "publication_url": "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf",
+      "languages": {
+        "en": {
+          "eyebrow": "Guided Demo",
+          "period": "April 2017",
+          "mode": "RX Benchmark",
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "placeholder_detail": "A verified illustration or photograph of the two receiving installations will appear here.",
+          "glance_title": "At a glance",
+          "metric_note": "The median across all paired observations is +7 dB. The +6.5 dB result gives each transmitting-station entry equal weight. These are different summaries of the same evidence.",
+          "evidence_title": "Explore the evidence",
+          "evidence_intro": "Read the rest of this guided demo to understand the bigger picture, from geography to individual observations."
+        },
+        "de": {
+          "eyebrow": "Geführte Demo / #1",
+          "period": "April 2017",
+          "mode": "RX Benchmark",
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie der beiden Empfangsanlagen.",
+          "glance_title": "Auf einen Blick",
+          "metric_note": "Der Median aller gepaarten Beobachtungen beträgt +7 dB. Beim Ergebnis von +6,5 dB erhält jeder Sendestationseintrag dasselbe Gewicht. Das sind unterschiedliche Zusammenfassungen derselben Evidenz.",
+          "evidence_title": "Die Evidenz erkunden",
+          "evidence_intro": "Derselbe Vergleich — von der Geografie bis zur einzelnen Beobachtung."
+        }
+      },
+      "metrics": [
+        {
+          "en": {
+            "value": "+6.5 dB",
+            "label": "Station-balanced median ΔSNR",
+            "detail": "Each transmitting-station identity contributes one median. Positive values favor G3ZIL."
+          },
+          "de": {
+            "value": "+6,5 dB",
+            "label": "Stationsgleichgewichtetes medianes ΔSNR",
+            "detail": "Jede Sendestationsidentität trägt einen Median bei. Positive Werte sprechen für G3ZIL."
+          }
+        },
+        {
+          "en": {
+            "value": "57 767",
+            "label": "Spot pairs",
+            "detail": "Paired observations of the same transmitter in the same two-minute WSPR cycle."
+          },
+          "de": {
+            "value": "57 767",
+            "label": "Joint Spots",
+            "detail": "Gepaarte Beobachtungen desselben Senders im selben zweiminütigen WSPR-Zyklus."
+          }
+        },
+        {
+          "en": {
+            "value": "792",
+            "label": "Transmitting-station identities",
+            "detail": "Callsign plus reported locator; contributing stations within 10 000 km."
+          },
+          "de": {
+            "value": "792",
+            "label": "Sendestationsidentitäten",
+            "detail": "Rufzeichen und gemeldeter Locator; beitragende Stationen innerhalb von 10 000 km."
+          }
+        }
+      ],
+      "markdown_paths": {
+        "en": "griffiths_squibb_fig3/walkthrough.en.md",
+        "de": "griffiths_squibb_fig3/walkthrough.de.md"
+      },
+      "resource_manifest": "griffiths_squibb_fig3/manifest.json",
+      "sections": [
+        {
+          "id": "load",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "map",
+          "nav_label": {
+            "en": "Map View",
+            "de": "Kartenansicht"
+          },
+          "media_keys": [
+            "fresh-demo1-map"
+          ]
+        },
+        {
+          "id": "difference",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "fresh-demo1-difference"
+          ]
+        },
+        {
+          "id": "time",
+          "nav_label": {
+            "en": "Time",
+            "de": "Zeit"
+          },
+          "media_keys": [
+            "fresh-demo1-time"
+          ],
+          "subsections": [
+            {
+              "id": "published-figure3",
+              "media_keys": [
+                "griffiths-figure3-comparison"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "coverage",
+          "nav_label": {
+            "en": "Evidence",
+            "de": "Evidenz"
+          },
+          "media_keys": [
+            "fresh-demo1-coverage"
+          ]
+        },
+        {
+          "id": "stations",
+          "nav_label": {
+            "en": "Stations",
+            "de": "Stationen"
+          },
+          "media_keys": [
+            "fresh-demo1-station",
+            "fresh-demo1-station-coverage"
+          ]
+        },
+        {
+          "id": "drilldown",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "takeaways",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Erkenntnisse"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "excluded_media_keys": [
+        "griffiths-figure3-pairing-diagnostic"
+      ],
+      "inverted_media_keys": [
+        "griffiths-figure3-comparison"
+      ],
+      "preserved_color_regions": {
+        "griffiths-figure3-comparison": {
+          "image_px": [
+            3060,
+            3060
+          ],
+          "rectangles_px": [
+            [
+              353,
+              2161,
+              2339,
+              549
+            ],
+            [
+              2752,
+              2161,
+              32,
+              549
+            ]
+          ],
+          "label_rectangles_px": [
+            [
+              2372,
+              2161,
+              320,
+              106
+            ]
+          ]
+        }
+      },
+      "setup_media_key": "demo1-setup-network-schematic",
+      "setup_media_position": "left",
+      "show_setup_summary": false,
+      "sections_by_language": {
+        "en": [
+          {
+            "id": "load-demo",
+            "nav_label": {
+              "en": "Load Demo"
+            },
+            "media_keys": [],
+            "layout": "full",
+            "aliases": [
+              "load"
+            ]
+          },
+          {
+            "id": "delta-snr-map",
+            "nav_label": {
+              "en": "ΔSNR Map"
+            },
+            "media_keys": [
+              "rc3-demo1-map-typography-en-20261024"
+            ],
+            "aliases": [
+              "map"
+            ]
+          },
+          {
+            "id": "decoding-reach",
+            "nav_label": {
+              "en": "Decodes by SNR"
+            },
+            "media_keys": [
+              "rc3-demo1-reach-typography-en-20261024"
+            ]
+          },
+          {
+            "id": "delta-decode-map",
+            "nav_label": {
+              "en": "ΔDecode Map"
+            },
+            "media_keys": [
+              "demo1-decode-advantage-map-typography-en-20261024"
+            ]
+          },
+          {
+            "id": "difference",
+            "nav_label": {
+              "en": "Statistics"
+            },
+            "media_keys": [
+              "demo1-benchmark-statistics-typography-en-20261024"
+            ]
+          },
+          {
+            "id": "time",
+            "nav_label": {
+              "en": "ΔSNR over Time"
+            },
+            "media_keys": [
+              "demo1-temporal-delta-snr-typography-en-20261024"
+            ],
+            "subsections": [
+              {
+                "id": "published-figure3",
+                "nav_label": {
+                  "en": "Paper Evidence"
+                },
+                "show_in_nav": true,
+                "media_keys": [
+                  "griffiths-figure3-comparison"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "evidence",
+            "nav_label": {
+              "en": "ΔDecode over Time"
+            },
+            "media_keys": [
+              "demo1-temporal-delta-decode-typography-en-20261024"
+            ],
+            "aliases": [
+              "coverage"
+            ]
+          },
+          {
+            "id": "stations",
+            "nav_label": {
+              "en": "Stations"
+            },
+            "media_keys": [
+              "demo1-selected-temporal-delta-snr-typography-en-20261024",
+              "demo1-selected-temporal-delta-decode-typography-en-20261024"
+            ]
+          },
+          {
+            "id": "drill-down",
+            "nav_label": {
+              "en": "Drill-Down"
+            },
+            "media_keys": [],
+            "layout": "full",
+            "aliases": [
+              "drilldown"
+            ]
+          },
+          {
+            "id": "takeaways",
+            "nav_label": {
+              "en": "Takeaways"
+            },
+            "media_keys": [],
+            "layout": "full"
+          }
+        ]
+      },
+      "settings_table_disclosure": {
+        "en": {
+          "preview_rows": 5,
+          "summary": "Show all settings"
+        }
+      },
+      "settings_tables": {
+        "en": {
+          "columns": [
+            "Setting",
+            "Value in this demo",
+            "What it means"
+          ],
+          "rows": [
+            {
+              "key": "direction",
+              "meaning": "Compare reception, rather than transmission or standalone Performance."
+            },
+            {
+              "key": "target",
+              "meaning": "The station being evaluated and the center of the maps."
+            },
+            {
+              "key": "reference",
+              "meaning": "The receiving station used for comparison."
+            },
+            {
+              "key": "benchmark_design",
+              "meaning": "Compare this controlled pair, not a neighborhood reference."
+            },
+            {
+              "key": "band",
+              "meaning": "Use reports from this band."
+            },
+            {
+              "key": "time_window",
+              "meaning": "Examine April’s observations; the end is exclusive."
+            },
+            {
+              "key": "scope",
+              "meaning": "The geographic scope of these figures."
+            },
+            {
+              "key": "reference_snr_correction",
+              "meaning": "No additional Reference offset is applied in this run."
+            },
+            {
+              "key": "min_spot_pairs_per_station",
+              "meaning": "Minimum same-cycle pairs needed for a station’s ΔSNR result."
+            },
+            {
+              "key": "min_qualifying_stations_per_map_segment",
+              "meaning": "Avoid coloring a whole geographic segment from a single station’s result."
+            },
+            {
+              "key": "min_decode_event_share_percent",
+              "meaning": "Minimum share of the full run’s <strong class=\"defined-term\">observed events</strong> (transmitter-cycles decoded by at least one receiver) needed to color a ΔDecode segment."
+            },
+            {
+              "key": "delta_snr_outlier_reporting",
+              "meaning": "Include the optional ΔSNR outlier-candidate report."
+            },
+            {
+              "key": "time_bins",
+              "meaning": "The chronological bins used below; UTC-hour profiles use 1 h bins."
+            },
+            {
+              "key": "selected_stations",
+              "meaning": "A prepared example for Station Insights and Drill-Down."
+            }
+          ]
+        }
+      }
+    },
+    "vanhamel_rx_calibration": {
+      "publication_url": "https://doi.org/10.1155/2022/4809313",
+      "show_hero_period": false,
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Guided Demo",
+          "period": "6 February 2021, 06:00 – 13 February 2021, 06:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": "Find the receiver offset, check its support, and prepare for an antenna comparison."
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Geführte Demo",
+          "period": "6. Februar 2021, 06:00 – 13. Februar 2021, 06:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": "Den Empfängeroffset bestimmen, seine Grundlage prüfen und den Antennenvergleich vorbereiten."
+        }
+      },
+      "markdown_paths": {
+        "en": "vanhamel_rx_calibration/walkthrough.en.md",
+        "de": "vanhamel_rx_calibration/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "vanhamel-calibration-benchmark"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Takeaway",
+            "de": "Fazit"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "show_setup_summary": false,
+      "resource_manifest": "vanhamel_rx_calibration/manifest.json",
+      "setup_media_key": "vanhamel-calibration-setup",
+      "sections_by_language": {
+        "en": [
+          {
+            "id": "step-1",
+            "nav_label": {
+              "en": "Load demo",
+              "de": "Demo laden"
+            },
+            "media_keys": [],
+            "layout": "full"
+          },
+          {
+            "id": "step-2",
+            "nav_label": {
+              "en": "Difference",
+              "de": "Unterschied"
+            },
+            "media_keys": [
+              "rc3-calibration-statistics-typography-en-20261024"
+            ],
+            "subsections": [
+              {
+                "id": "temporal-snr",
+                "nav_label": {
+                  "en": "Time stability",
+                  "de": "Zeitliche Stabilität"
+                },
+                "media_keys": [
+                  "rc3-calibration-temporal-snr-typography-en-20261024"
+                ]
+              },
+              {
+                "id": "decoding-check",
+                "nav_label": {
+                  "en": "Decoding check",
+                  "de": "Dekodiervergleich"
+                },
+                "media_keys": [
+                  "rc3-calibration-decodes-over-snr-typography-en-20261024"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "step-3",
+            "nav_label": {
+              "en": "Takeaway",
+              "de": "Fazit"
+            },
+            "media_keys": [],
+            "layout": "full"
+          }
+        ]
+      }
+    },
+    "vanhamel_rx_buddy": {
+      "publication_url": "https://doi.org/10.1155/2022/4809313",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Guided Demo",
+          "period": "May 2021",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": "Start with the overall picture, then follow the change on one well-observed path."
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Geführte Demo",
+          "period": "Mai 2021",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": "Beginne mit dem Gesamtbild und verfolge die Veränderung anschließend auf einem gut belegten Funkweg."
+        }
+      },
+      "markdown_paths": {
+        "en": "vanhamel_rx_buddy/walkthrough.en.md",
+        "de": "vanhamel_rx_buddy/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Map View",
+            "de": "Kartenansicht"
+          },
+          "media_keys": [
+            "rotation-map"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "rotation-benchmark"
+          ]
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Time",
+            "de": "Zeitverlauf"
+          },
+          "media_keys": [
+            "rotation-temporal"
+          ]
+        },
+        {
+          "id": "step-5",
+          "nav_label": {
+            "en": "Evidence",
+            "de": "Datengrundlage"
+          },
+          "media_keys": [
+            "rotation-coverage"
+          ]
+        },
+        {
+          "id": "step-6",
+          "nav_label": {
+            "en": "Stations",
+            "de": "Stationen"
+          },
+          "media_keys": [
+            "rotation-selected-evidence"
+          ],
+          "subsections": [
+            {
+              "id": "step-6-coverage",
+              "media_keys": [
+                "rotation-selected-coverage"
+              ]
+            },
+            {
+              "id": "step-6-publication",
+              "media_keys": [],
+              "layout": "full"
+            }
+          ]
+        },
+        {
+          "id": "step-7",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-8",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Fazit"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "show_setup_summary": false,
+      "show_setup_media": true,
+      "resource_manifest": "vanhamel_rx_buddy/manifest.json",
+      "excluded_media_keys": [
+        "demo-5-selected-evidence",
+        "vanhamel-figure6-comparison"
+      ],
+      "sections_by_language": {
+        "en": [
+          {
+            "id": "load-demo",
+            "media_keys": [],
+            "nav_label": {
+              "en": "Load demo"
+            },
+            "aliases": [
+              "step-1"
+            ],
+            "layout": "full"
+          },
+          {
+            "id": "delta-snr-map",
+            "media_keys": [
+              "rotation-20261021-delta-snr-map-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "ΔSNR Map"
+            },
+            "aliases": [
+              "step-2"
+            ]
+          },
+          {
+            "id": "decoding-reach",
+            "media_keys": [
+              "rotation-20261021-decoding-reach-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "Decodes & Stations"
+            }
+          },
+          {
+            "id": "delta-decode-map",
+            "media_keys": [
+              "rotation-20261021-delta-decode-map-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "ΔDecode Map"
+            }
+          },
+          {
+            "id": "difference",
+            "media_keys": [
+              "rotation-20261021-difference-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "Benchmark Statistics"
+            },
+            "aliases": [
+              "step-3"
+            ]
+          },
+          {
+            "id": "time",
+            "media_keys": [
+              "rotation-20261021-time-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "ΔSNR through time"
+            },
+            "aliases": [
+              "step-4"
+            ]
+          },
+          {
+            "id": "evidence",
+            "media_keys": [
+              "rotation-20261021-evidence-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "ΔDecode through time"
+            },
+            "aliases": [
+              "step-5"
+            ]
+          },
+          {
+            "id": "stations",
+            "media_keys": [
+              "rotation-20261021-stations-typography-en-20261024"
+            ],
+            "nav_label": {
+              "en": "Station Insights"
+            },
+            "aliases": [
+              "step-6"
+            ],
+            "subsections": [
+              {
+                "id": "published-figure6",
+                "media_keys": [],
+                "nav_label": {
+                  "en": "Paper Evidence"
+                },
+                "aliases": [
+                  "step-6-publication"
+                ],
+                "layout": "full",
+                "show_in_nav": true
+              },
+              {
+                "id": "station-decodes",
+                "media_keys": [
+                  "rotation-20261021-station-decodes-typography-en-20261024"
+                ],
+                "aliases": [
+                  "step-6-coverage"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "drill-down",
+            "media_keys": [],
+            "nav_label": {
+              "en": "Drill-Down"
+            },
+            "aliases": [
+              "step-7"
+            ],
+            "layout": "full"
+          },
+          {
+            "id": "takeaways",
+            "media_keys": [],
+            "nav_label": {
+              "en": "Download Evidence"
+            },
+            "aliases": [
+              "step-8"
+            ],
+            "layout": "full"
+          }
+        ]
+      },
+      "setup_media_key": "vanhamel-rotation-setup-network-schematic",
+      "setup_media_position": "left"
+    },
+    "zander_tx_buddy": {
+      "publication_url": "https://arxiv.org/abs/2209.08989",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Guided Demo · Zander experiment",
+          "period": "21 May 2022, 09:45 – 21 May 2022, 10:30 UTC",
+          "mode": "TX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": "Follow a transmitting-antenna comparison from the world map to individual reception reports."
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Geführte Demo / #6 · Zander-Experiment",
+          "period": "21. Mai 2022, 09:45 – 21. Mai 2022, 10:30 UTC",
+          "mode": "TX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": "Verfolge einen Sendeantennenvergleich von der Weltkarte bis zu einzelnen Empfangsmeldungen."
+        }
+      },
+      "markdown_paths": {
+        "en": "zander_tx_buddy/walkthrough.en.md",
+        "de": "zander_tx_buddy/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Map View",
+            "de": "Kartenansicht"
+          },
+          "media_keys": [
+            "zander-map"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Difference",
+            "de": "Unterschied"
+          },
+          "media_keys": [
+            "zander-benchmark"
+          ],
+          "subsections": [
+            {
+              "id": "step-3-publication",
+              "media_keys": [],
+              "layout": "full"
+            }
+          ]
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Time",
+            "de": "Zeitverlauf"
+          },
+          "media_keys": [
+            "zander-temporal"
+          ]
+        },
+        {
+          "id": "step-5",
+          "nav_label": {
+            "en": "Evidence",
+            "de": "Datengrundlage"
+          },
+          "media_keys": [
+            "zander-coverage"
+          ]
+        },
+        {
+          "id": "step-6",
+          "nav_label": {
+            "en": "Stations",
+            "de": "Stationen"
+          },
+          "media_keys": [
+            "zander-selected-evidence"
+          ],
+          "subsections": [
+            {
+              "id": "step-6-coverage",
+              "media_keys": [
+                "zander-selected-coverage"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "step-7",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "step-8",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Fazit"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "show_setup_summary": false,
+      "show_setup_media": true,
+      "setup_media_key": "zander-setup-network-schematic",
+      "setup_media_position": "left",
+      "resource_manifest": "zander_tx_buddy/manifest.json",
+      "show_hero_period": false,
+      "excluded_media_keys": [
+        "demo-6-map",
+        "demo-6-segment",
+        "zander-figure4-comparison",
+        "zander-rc3-setup"
+      ],
+      "sections_by_language": {
+        "en": [
+          {
+            "id": "load-demo",
+            "nav_label": {
+              "en": "Load demo"
+            },
+            "media_keys": [],
+            "aliases": [
+              "step-1"
+            ],
+            "layout": "full"
+          },
+          {
+            "id": "delta-snr-map",
+            "nav_label": {
+              "en": "ΔSNR Map"
+            },
+            "media_keys": [
+              "zander-rc3-map-typography-en-20261024"
+            ],
+            "aliases": [
+              "step-2"
+            ]
+          },
+          {
+            "id": "decoding-reach",
+            "nav_label": {
+              "en": "Decodes & Stations by SNR"
+            },
+            "media_keys": [
+              "zander-rc3-decodes-typography-en-20261024"
+            ]
+          },
+          {
+            "id": "delta-decode-map",
+            "nav_label": {
+              "en": "ΔDecode Map"
+            },
+            "media_keys": [
+              "zander-rc3-decode-map-typography-en-20261024"
+            ]
+          },
+          {
+            "id": "difference",
+            "nav_label": {
+              "en": "Benchmark Statistics"
+            },
+            "media_keys": [
+              "zander-rc3-statistics-typography-en-20261024"
+            ],
+            "aliases": [
+              "step-3"
+            ],
+            "subsections": [
+              {
+                "id": "published-figure4",
+                "nav_label": {
+                  "en": "Paper Evidence"
+                },
+                "media_keys": [],
+                "aliases": [
+                  "step-3-publication"
+                ],
+                "layout": "full",
+                "show_in_nav": true
+              }
+            ]
+          },
+          {
+            "id": "time",
+            "nav_label": {
+              "en": "ΔSNR Temporal Coverage"
+            },
+            "media_keys": [
+              "zander-rc3-snr-time-typography-en-20261024"
+            ],
+            "aliases": [
+              "step-4"
+            ]
+          },
+          {
+            "id": "evidence",
+            "nav_label": {
+              "en": "ΔDecode Temporal Coverage"
+            },
+            "media_keys": [
+              "zander-rc3-decode-time-typography-en-20261024"
+            ],
+            "aliases": [
+              "step-5"
+            ]
+          },
+          {
+            "id": "stations",
+            "nav_label": {
+              "en": "Station Insights"
+            },
+            "media_keys": [
+              "zander-rc3-station-snr-typography-en-20261024"
+            ],
+            "aliases": [
+              "step-6"
+            ],
+            "subsections": [
+              {
+                "id": "station-decodes",
+                "nav_label": {
+                  "en": "Selected station ΔDecode"
+                },
+                "media_keys": [
+                  "zander-rc3-station-decode-typography-en-20261024"
+                ],
+                "aliases": [
+                  "step-6-coverage"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "drill-down",
+            "nav_label": {
+              "en": "Drill-Down"
+            },
+            "media_keys": [],
+            "aliases": [
+              "step-7"
+            ],
+            "layout": "full"
+          },
+          {
+            "id": "takeaways",
+            "nav_label": {
+              "en": "Download Evidence"
+            },
+            "media_keys": [],
+            "aliases": [
+              "step-8"
+            ],
+            "layout": "full"
+          }
+        ]
+      },
+      "settings_tables": {
+        "en": {
+          "columns": [
+            "Setting",
+            "Value in this demo",
+            "What it means"
+          ],
+          "rows": [
+            {
+              "key": "direction",
+              "meaning": "Compare how two transmitting setups were heard."
+            },
+            {
+              "key": "target",
+              "meaning": "The short portable vertical being evaluated."
+            },
+            {
+              "key": "reference",
+              "meaning": "The larger vertical used for comparison."
+            },
+            {
+              "key": "benchmark_design",
+              "meaning": "Compare simultaneous transmissions from these two setups."
+            },
+            {
+              "key": "band",
+              "meaning": "Use reports from this band."
+            },
+            {
+              "key": "time_window",
+              "meaning": "Examine the prepared 45-minute window."
+            },
+            {
+              "key": "reference_snr_correction",
+              "meaning": "None; no additional Reference offset is applied."
+            },
+            {
+              "key": "min_spot_pairs_per_station",
+              "meaning": "Include sparsely observed paths."
+            },
+            {
+              "key": "min_qualifying_stations_per_map_segment",
+              "meaning": "Require more than one receiver per colored segment."
+            },
+            {
+              "key": "min_decode_event_share_percent",
+              "meaning": "A separate count requirement, independent of the ΔSNR minimums."
+            }
+          ]
+        }
+      }
+    },
+    "milazzo_tx_buddy": {
+      "publication_url": "https://www.qsl.net/kp4md/wspr.htm",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "placeholder_title": "Setup illustration to follow",
+          "evidence_title": "Explore the evidence",
+          "eyebrow": "Guided Demo",
+          "period": "19 December 2010, 12:00 – 20 December 2010, 20:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "A verified illustration or photograph of this experimental setup will appear here.",
+          "evidence_intro": ""
+        },
+        "de": {
+          "publication": "Originalpublikation",
+          "nav_setup": "Aufbau",
+          "placeholder_title": "Aufbauabbildung folgt",
+          "evidence_title": "Die Evidenz erkunden",
+          "eyebrow": "Geführte Demo / #7",
+          "period": "19. Dezember 2010, 12:00 – 20. Dezember 2010, 20:00 UTC",
+          "mode": "RX Benchmark",
+          "placeholder_detail": "Hier folgt eine geprüfte Abbildung oder Fotografie dieses Versuchsaufbaus.",
+          "evidence_intro": ""
+        }
+      },
+      "markdown_paths": {
+        "en": "milazzo_tx_buddy/walkthrough.en.md",
+        "de": "milazzo_tx_buddy/walkthrough.de.md"
+      },
+      "sections": [
+        {
+          "id": "step-1",
+          "nav_label": {
+            "en": "Begin with the installed RX guided demo",
+            "de": "Mit dem installierten RX-Rundgang beginnen"
+          },
+          "media_keys": []
+        },
+        {
+          "id": "step-2",
+          "nav_label": {
+            "en": "Keep the full locator identities separate",
+            "de": "Die vollständigen Locatoridentitäten getrennt halten"
+          },
+          "media_keys": [
+            "demo-7-stations"
+          ]
+        },
+        {
+          "id": "step-3",
+          "nav_label": {
+            "en": "Trace one pair through the panels",
+            "de": "Ein Paar durch die Panels verfolgen"
+          },
+          "media_keys": [
+            "milazzo-figure6-rx-comparison",
+            "demo-7-drilldown"
+          ]
+        },
+        {
+          "id": "step-4",
+          "nav_label": {
+            "en": "Continue with the optional TX comparison",
+            "de": "Mit dem optionalen TX-Vergleich fortfahren"
+          },
+          "media_keys": [
+            "milazzo-figure7-tx-comparison"
+          ]
+        },
+        {
+          "id": "step-5",
+          "nav_label": {
+            "en": "Separate graphical agreement from paired evidence",
+            "de": "Grafische Übereinstimmung von gepaarter Evidenz trennen"
+          },
+          "media_keys": []
+        }
+      ],
+      "resource_manifest": "milazzo_tx_buddy/manifest.json",
+      "show_setup_media": false,
+      "show_setup_summary": false,
+      "sections_by_language": {
+        "en": [
+          {
+            "id": "published-figures",
+            "nav_label": {
+              "en": "Original Figure 6"
+            },
+            "media_keys": [
+              "milazzo-figure6-original"
+            ]
+          },
+          {
+            "id": "load-demo",
+            "nav_label": {
+              "en": "Load demo"
+            },
+            "media_keys": [],
+            "layout": "full",
+            "aliases": [
+              "step-1"
+            ]
+          },
+          {
+            "id": "stations",
+            "nav_label": {
+              "en": "Station identities"
+            },
+            "media_keys": [],
+            "layout": "full",
+            "aliases": [
+              "step-2"
+            ]
+          },
+          {
+            "id": "drill-down",
+            "nav_label": {
+              "en": "Follow one RX pair"
+            },
+            "media_keys": [
+              "milazzo-figure6-pairs"
+            ],
+            "aliases": [
+              "step-3"
+            ]
+          },
+          {
+            "id": "evidence",
+            "nav_label": {
+              "en": "Count the RX reports"
+            },
+            "media_keys": [
+              "milazzo-figure6-coverage"
+            ]
+          },
+          {
+            "id": "tx-comparison",
+            "nav_label": {
+              "en": "Reverse to TX"
+            },
+            "media_keys": [
+              "milazzo-figure7-original"
+            ],
+            "aliases": [
+              "step-4"
+            ],
+            "subsections": [
+              {
+                "id": "tx-cycle-matching",
+                "nav_label": {
+                  "en": "TX cycles and decode counts"
+                },
+                "media_keys": [
+                  "milazzo-figure7-reconstruction"
+                ]
+              }
+            ],
+            "launch_action": {
+              "variant": "tx",
+              "label": "Run in WSPRadar App · TX"
+            }
+          },
+          {
+            "id": "wider-results",
+            "nav_label": {
+              "en": "Explore other paths"
+            },
+            "media_keys": [],
+            "layout": "full",
+            "subsections": [
+              {
+                "id": "delta-snr-map",
+                "nav_label": {
+                  "en": "ΔSNR map"
+                },
+                "media_keys": [],
+                "layout": "full"
+              },
+              {
+                "id": "decoding-reach",
+                "nav_label": {
+                  "en": "Decodes & Stations by SNR"
+                },
+                "media_keys": [],
+                "layout": "full"
+              },
+              {
+                "id": "delta-decode-map",
+                "nav_label": {
+                  "en": "ΔDecode map"
+                },
+                "media_keys": [],
+                "layout": "full"
+              },
+              {
+                "id": "difference",
+                "nav_label": {
+                  "en": "Segment statistics"
+                },
+                "media_keys": [],
+                "layout": "full"
+              },
+              {
+                "id": "time",
+                "nav_label": {
+                  "en": "Temporal views"
+                },
+                "media_keys": [],
+                "layout": "full"
+              }
+            ]
+          },
+          {
+            "id": "paper-comparison",
+            "nav_label": {
+              "en": "What the replay adds"
+            },
+            "media_keys": [],
+            "layout": "full",
+            "aliases": [
+              "step-5"
+            ]
+          },
+          {
+            "id": "takeaways",
+            "nav_label": {
+              "en": "Save and apply the method"
+            },
+            "media_keys": [],
+            "layout": "full"
+          }
+        ]
+      },
+      "launch_actions": {
+        "en": [
+          {
+            "variant": "default",
+            "label": "Run in WSPRadar App · RX"
+          },
+          {
+            "variant": "tx",
+            "label": "Run in WSPRadar App · TX"
+          }
+        ]
+      }
+    },
+    "griffiths_squibb_rx_performance": {
+      "publication_url": "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf",
+      "languages": {
+        "en": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "eyebrow": "Guided Demo · RX Performance",
+          "period": "1 April – 1 May 2017 UTC",
+          "mode": "RX Performance",
+          "placeholder_title": "Setup illustration",
+          "placeholder_detail": "",
+          "evidence_title": "Explore the evidence",
+          "evidence_intro": ""
+        },
+        "de": {
+          "publication": "Original paper",
+          "nav_setup": "Setup",
+          "eyebrow": "Guided Demo · RX Performance · English guide",
+          "period": "1 April – 1 May 2017 UTC",
+          "mode": "RX Performance",
+          "placeholder_title": "Setup illustration",
+          "placeholder_detail": "",
+          "evidence_title": "Explore the evidence",
+          "evidence_intro": ""
+        }
+      },
+      "metrics": [],
+      "markdown_paths": {
+        "en": "griffiths_squibb_rx_performance/walkthrough.en.md",
+        "de": "griffiths_squibb_rx_performance/walkthrough.de.md"
+      },
+      "resource_manifest": "griffiths_squibb_rx_performance/manifest.json",
+      "sections": [
+        {
+          "id": "load-demo",
+          "nav_label": {
+            "en": "Load demo",
+            "de": "Demo laden"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "performance-map",
+          "nav_label": {
+            "en": "Decode Rate map",
+            "de": "Decode Rate map"
+          },
+          "media_keys": [
+            "rx-performance-performance-map"
+          ]
+        },
+        {
+          "id": "performance-evidence",
+          "nav_label": {
+            "en": "Performance Evidence",
+            "de": "Performance Evidence"
+          },
+          "media_keys": [
+            "rx-performance-performance-evidence"
+          ]
+        },
+        {
+          "id": "snr-deviation",
+          "nav_label": {
+            "en": "SNR deviation",
+            "de": "SNR deviation"
+          },
+          "media_keys": [
+            "rx-performance-snr-deviation"
+          ]
+        },
+        {
+          "id": "temporal-evidence",
+          "nav_label": {
+            "en": "Reception history",
+            "de": "Reception history"
+          },
+          "media_keys": [
+            "rx-performance-temporal-evidence"
+          ]
+        },
+        {
+          "id": "stations",
+          "nav_label": {
+            "en": "Station Insights",
+            "de": "Station Insights"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "selected-station-snr",
+          "nav_label": {
+            "en": "HB0QRP SNR",
+            "de": "HB0QRP SNR"
+          },
+          "media_keys": [
+            "rx-performance-selected-station-snr"
+          ]
+        },
+        {
+          "id": "selected-station-evidence",
+          "nav_label": {
+            "en": "HB0QRP Decode Rate",
+            "de": "HB0QRP Decode Rate"
+          },
+          "media_keys": [
+            "rx-performance-selected-station-evidence"
+          ]
+        },
+        {
+          "id": "drill-down",
+          "nav_label": {
+            "en": "Drill-Down",
+            "de": "Drill-Down"
+          },
+          "media_keys": [],
+          "layout": "full"
+        },
+        {
+          "id": "takeaways",
+          "nav_label": {
+            "en": "Takeaways",
+            "de": "Takeaways"
+          },
+          "media_keys": [],
+          "layout": "full"
+        }
+      ],
+      "show_setup_media": false,
+      "show_setup_summary": false,
+      "settings_tables": {
+        "en": {
+          "columns": [
+            "Setting",
+            "This demo",
+            "Meaning"
+          ],
+          "rows": [
+            {
+              "key": "direction",
+              "meaning": "One receiving station, without a Reference receiver."
+            },
+            {
+              "key": "target",
+              "meaning": "Receiver under test and reported QTH."
+            },
+            {
+              "key": "band",
+              "meaning": "Selected WSPR operating band."
+            },
+            {
+              "key": "time_window",
+              "meaning": "The complete April 2017 measurement window, in UTC."
+            },
+            {
+              "key": "scope",
+              "meaning": "Worldwide scope; peers at or beyond the 22,000 km boundary are excluded."
+            },
+            {
+              "key": "solar_state",
+              "meaning": "Retain all solar states."
+            },
+            {
+              "key": "exclude_special_callsigns",
+              "meaning": "Preserve the supplied transmitter population."
+            },
+            {
+              "key": "exclude_moving_stations",
+              "meaning": "Preserve the supplied transmitter population."
+            },
+            {
+              "key": "min_confirmed_opportunities_per_peer",
+              "meaning": "Successes plus supported misses; not a minimum count of successful spots."
+            },
+            {
+              "key": "min_qualifying_stations_per_map_segment",
+              "meaning": "Minimum qualifying transmitter identities required to color a map segment."
+            },
+            {
+              "key": "time_bins",
+              "meaning": "Independent chronological controls; the UTC-hour profiles always use fixed 1h bins."
+            },
+            {
+              "key": "selected_stations",
+              "meaning": "The saved transmitting-station path used in this guide."
+            }
+          ]
+        },
+        "de": {
+          "columns": [
+            "Setting",
+            "This demo",
+            "Meaning"
+          ],
+          "rows": [
+            {
+              "key": "direction",
+              "meaning": "One receiving station, without a Reference receiver."
+            },
+            {
+              "key": "target",
+              "meaning": "Receiver under test and reported QTH."
+            },
+            {
+              "key": "band",
+              "meaning": "Selected WSPR operating band."
+            },
+            {
+              "key": "time_window",
+              "meaning": "The complete April 2017 measurement window, in UTC."
+            },
+            {
+              "key": "scope",
+              "meaning": "Worldwide scope; peers at or beyond the 22,000 km boundary are excluded."
+            },
+            {
+              "key": "solar_state",
+              "meaning": "Retain all solar states."
+            },
+            {
+              "key": "exclude_special_callsigns",
+              "meaning": "Preserve the supplied transmitter population."
+            },
+            {
+              "key": "exclude_moving_stations",
+              "meaning": "Preserve the supplied transmitter population."
+            },
+            {
+              "key": "min_confirmed_opportunities_per_peer",
+              "meaning": "Successes plus supported misses; not a minimum count of successful spots."
+            },
+            {
+              "key": "min_qualifying_stations_per_map_segment",
+              "meaning": "Minimum qualifying transmitter identities required to color a map segment."
+            },
+            {
+              "key": "time_bins",
+              "meaning": "Independent chronological controls; the UTC-hour profiles always use fixed 1h bins."
+            },
+            {
+              "key": "selected_stations",
+              "meaning": "The saved transmitting-station path used in this guide."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

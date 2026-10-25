@@ -1,0 +1,42 @@
+<div class="demos-landing">
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">${eyebrow}</p>
+        <h1 id="page-title">${title}</h1>
+        <p class="hero-copy">${intro}</p>
+      </div>
+      <div class="hero-aside" aria-label="${getting_started}">
+        <div>${wspr_database} ${real_data}</div>
+        <div>${try_demo} ${prepared}</div>
+        <div>${evidence_chart} ${guidance}</div>
+        <p class="aside-note">${no_station}</p>
+      </div>
+    </section>
+    <section class="choose-section" data-demo-controls hidden aria-labelledby="choose-title">
+      <div class="section-top"><h2 id="choose-title">${choose_title}</h2><span class="helper">${choose_helper}</span></div>
+      <div class="families">
+        <div class="family">
+          <div class="family-heading"><span class="family-name">${benchmark}</span><h3>${compare}</h3></div>
+          <div class="use-grid">${rx_benchmark}${tx_benchmark}</div>
+        </div>
+        <div class="family">
+          <div class="family-heading"><span class="family-name">${performance}</span><h3>${explore}</h3><span class="family-note">${no_reference}</span></div>
+          <div class="use-grid">${rx_performance}${tx_performance}</div>
+        </div>
+      </div>
+      <p class="mode-definition">${mode_definition}</p>
+    </section>
+    <section class="demos-section" id="demos" aria-labelledby="collection-title">
+      <div class="collection-head">
+        <div><h2 id="collection-title" data-default-title="${collection_title}" tabindex="-1">${collection_title}</h2><p id="collection-description" data-default-description="${default_description}">${collection_description}</p></div>
+        <div class="collection-tools" data-demo-controls hidden><span class="demo-count" id="demo-count" role="status" aria-live="polite">${total_label}</span><button type="button" class="reset-button" id="reset-filter" aria-pressed="true" aria-controls="demo-grid">${all_demos}</button></div>
+      </div>
+      <div class="demo-grid" id="demo-grid">${cards}</div>
+      <p class="collection-note" id="collection-note">${collection_note}</p>
+    </section>
+    <section class="next-step" aria-labelledby="next-title">
+      ${analysis_laptop}
+      <div><h2 id="next-title">${next_title}</h2><p>${next_body}</p></div>
+      <a href="${documentation_url}" target="_blank" rel="noopener noreferrer">${next_link} <span aria-hidden="true">→</span></a>
+    </section>
+  </div>

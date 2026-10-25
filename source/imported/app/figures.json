@@ -1,0 +1,909 @@
+[
+  {
+    "alt": {
+      "de": "Vergleich zu Griffiths Abbildung 3 mit drei Panels für Originalpublikation, rekonstruierte gepaarte SNR-Differenzen und chronologische WSPRadar-Evidenz, einschließlich Quellenangabe, Achsen, Legenden und Erläuterungen.",
+      "en": "Three-panel Griffiths Figure 3 comparison of original publication, reconstructed paired SNR differences, and WSPRadar's chronological evidence, with source citation, axes, legends, and explanatory notes."
+    },
+    "asset_path": "assets/figures/griffiths-figure3-comparison.png",
+    "caption": {
+      "de": "Der vollständige Vergleich bewahrt Originalpublikation, Rekonstruktion und native chronologische WSPRadar-Ansicht. Verfolge die Verschiebung nach oben in der ersten Monatshälfte und behalte ΔSNR = G3ZIL − G4HZX im Blick. Medianmarkierungen, das Band der mittleren 50 % und Dichtefarben beschreiben unterschiedliche Aspekte der Beobachtungen. Vergrößere die Abbildung, um alle Beschriftungen und den Verweis auf die Paarbildungsdiagnose zu lesen.",
+      "en": "The complete comparison retains the original publication, the reconstruction, and the native WSPRadar chronological view. Follow the first-half upward shift while keeping ΔSNR = G3ZIL − G4HZX in view. Median markers, the middle-50% band, and density colors describe different aspects of the observations. Enlarge the figure to read all labels and the pairing-diagnostic reference."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 3060,
+    "key": "griffiths-figure3-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_griffiths_figure3_comparisons.py",
+      "kind": "publication-comparison",
+      "pdf": "static/reference_figures/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3.pdf",
+      "sha256": "773a15b512ac250332482d1bc8118c424c9ade2feaa7ffcd76060e99e1157f5d",
+      "source_asset": "figure3_evidence_comparison.png",
+      "source_figure": "paper_figure3.png",
+      "source_fixture": "tests/regression/reference_fixtures/griffiths_fig3_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/griffiths-figure3-comparison.png",
+    "title": {
+      "de": "Ein Monat gepaarter Empfangsbeobachtungen",
+      "en": "A month of paired reception"
+    },
+    "width": 3060
+  },
+  {
+    "alt": {
+      "de": "Diagnose des negativen Randbereichs von Griffiths Abbildung 3 mit ursprünglicher Publikationsevidenz, Berichtskombinationen, durchgerechneter Paarbildung und Unterscheidung zwischen diagnostischen Kombinationen und nativen gepaarten Beobachtungen.",
+      "en": "Griffiths Figure 3 negative-tail diagnostic with original publication evidence, report combinations, a worked pairing example, and the distinction between diagnostic combinations and native paired observations."
+    },
+    "asset_path": "assets/figures/griffiths-figure3-pairing-diagnostic.png",
+    "caption": {
+      "de": "Diese Diagnose verbindet ungewöhnliche Beobachtungen im negativen Randbereich mit den zugrunde liegenden Berichten und Paarkombinationen. Lies Originalevidenz und durchgerechnete Paarbildung gemeinsam. Diagnostische Berichtskombinationen sind von den nativen gepaarten Beobachtungen der Hauptstatistiken zu unterscheiden; die Abbildung weist keine physikalische Ursache der ungewöhnlichen Werte nach.",
+      "en": "This diagnostic connects the unusual negative-tail observations with the reports and pair combinations behind them. Read the original evidence and the worked pairing explanation together. Diagnostic report combinations are distinct from the native paired observations used for the main statistics; the figure does not establish a physical cause for the unusual values."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 3060,
+    "key": "griffiths-figure3-pairing-diagnostic",
+    "provenance": {
+      "generator": "scripts/internal/build_griffiths_figure3_comparisons.py",
+      "kind": "publication-pairing-diagnostic",
+      "pdf": "static/reference_figures/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3_diagnostic.pdf",
+      "sha256": "a7005277005aa7ad77e3d690dc82d0f8e7905f2545debcaa53fd21f907d03261",
+      "source_asset": "figure3_tail_diagnostic.png",
+      "source_figure": "paper_figure3.png",
+      "source_fixture": "tests/regression/reference_fixtures/griffiths_fig3_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/griffiths-figure3-pairing-diagnostic.png",
+    "title": {
+      "de": "Paarbildung und Mehrfachmeldungen",
+      "en": "Pairing and duplicate reports"
+    },
+    "width": 3060
+  },
+  {
+    "alt": {
+      "de": "Vergleich zu Griffiths Abbildung 6 mit Publikation, erklärter Dichterekonstruktion und nativer WSPRadar-Evidenz nach UTC-Stunde, einschließlich Vergleichsbereichen, einzelnen Prüfpunkten, Dichteskalen und Median-IQR-Erläuterung.",
+      "en": "Griffiths Figure 6 comparison of the publication, a declared density reconstruction, and native WSPRadar UTC-hour evidence, including comparison regions, point witnesses, density scales, and median/IQR interpretation."
+    },
+    "asset_path": "assets/figures/griffiths-figure6-comparison.png",
+    "caption": {
+      "de": "Vergleiche die veröffentlichte Dichtedarstellung mit der Rekonstruktion und der nativen Ansicht nach UTC-Stunde. Die drei Panels behalten ihre jeweiligen Achsen, Skalen und Anmerkungen. Beschriftete Bereiche und einzelne Prüfpunkte stützen bestimmte Vergleiche; sie bedeuten nicht, dass WSPRadar das undokumentierte Konturverfahren der Publikation exakt reproduziert. Die native Ansicht bewahrt ihre eigenen Dichtezellen, Mediane und Zusammenfassungen der mittleren 50 %.",
+      "en": "Compare the published density presentation with the reconstruction and the native UTC-hour view. The three panels retain their own axes, scales, and annotations. The labeled regions and point witnesses support specific comparisons; they do not imply that WSPRadar reproduces the publication's undocumented contour method exactly. The native view retains its own density cells, medians, and middle-50% summaries."
+    },
+    "demo_id": "griffiths_squibb_fig6",
+    "height": 2250,
+    "key": "griffiths-figure6-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_griffiths_fig6_comparison.py",
+      "kind": "publication-comparison",
+      "pdf": "static/reference_figures/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf",
+      "sha256": "6023fed66830a631892f430779579691419c3647c229ea8092ac0173b1a1e515",
+      "source_asset": "figure6_evidence_comparison.png",
+      "source_figure": "paper_figure6.png",
+      "source_fixture": "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/griffiths-figure6-comparison.png",
+    "title": {
+      "de": "Die tägliche Umkehr des relativen SNR",
+      "en": "The daily reversal in relative SNR"
+    },
+    "width": 4140
+  },
+  {
+    "alt": {
+      "de": "Vergleich zu Vanhamel Abbildung 6 mit vier Panels für Originalpublikation, rekonstruierte SNR-Kurven, Dichtezuordnung nach Empfangsnummer, native UTC-Evidenz, übereinstimmend nummerierte Bins und gemeinsame Dichteskala.",
+      "en": "Four-panel Vanhamel Figure 6 comparison with original publication, reconstructed SNR traces, reception-number density mapping, native UTC evidence, matching numbered bins, and the shared density scale."
+    },
+    "asset_path": "assets/figures/vanhamel-figure6-comparison.png",
+    "caption": {
+      "de": "Vier ausgerichtete Panels verbinden Publikation (A), rekonstruierte Kurven in Empfangsreihenfolge (B), die Zuordnung nativer Dichte-Bins zu Empfangsnummernbereichen (C) und die native chronologische Ansicht (D). Übereinstimmende Bin-Nummern verbinden C und D; deren Dichtewerte und Farbnormalisierung sind gleich. Unterscheide das Zählen von Empfängen vom Messen verstrichener Zeit und lies die native nichtlineare Achse anhand ihrer beschrifteten dB-Werte.",
+      "en": "Four aligned panels connect the publication (A), reconstructed reception-order traces (B), a mapping of native density bins to reception-number spans (C), and the native chronological view (D). Matching bin numbers connect C and D, whose density values and color normalization are the same. Preserve the distinction between counting receptions and measuring elapsed time, and read the native nonlinear axis by its labeled dB values."
+    },
+    "demo_id": "vanhamel_rx_buddy",
+    "height": 3031,
+    "key": "vanhamel-figure6-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_vanhamel_rotation_comparison.py",
+      "kind": "publication-comparison-with-time-mapping",
+      "pdf": "static/reference_figures/vanhamel_fig6_rotation_v1/WSPRadar_Demo_Vanhamel_Figure6.pdf",
+      "sha256": "0bd77051a8aa02585e20365a1835f662bdfc39408c2e8e433cb9b6492f9a47cf",
+      "source_asset": "figure6_overlay_1p6.png",
+      "source_figure": "paper_figure6.png",
+      "source_fixture": "tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1"
+    },
+    "source_path": "docs/website/assets/figures/vanhamel-figure6-comparison.png",
+    "title": {
+      "de": "Von der Empfangsnummer zur UTC-Zeit",
+      "en": "From reception number to UTC time"
+    },
+    "width": 3300
+  },
+  {
+    "alt": {
+      "de": "Zander Abbildung 4 mit Publikationshistogramm, Rekonstruktion grober Klassen samt Residuen und nativem WSPRadar-Prozenthistogramm mit 1-dB-Klassen; Legenden, Quellenangabe, Mittelwerte und Erläuterungen bleiben erhalten.",
+      "en": "Zander Figure 4 publication histogram, coarse-bin reconstruction with residuals, and native WSPRadar 1 dB percentage histogram, retaining legends, source citation, means, and explanatory text."
+    },
+    "asset_path": "assets/figures/zander-figure4-comparison.png",
+    "caption": {
+      "de": "Panel A bewahrt das Histogramm der Publikation. Panel B rekonstruiert dessen grobe Dichteklassen und enthält den Residuenvergleich; Panel C zeigt WSPRadars natives Prozenthistogramm mit 1-dB-Klassen. Klassenbreite und vertikale Einheiten erklären die unterschiedlichen Balken. Lies Mittelwert und Streuung zusammen mit ihrer Beobachtungseinheit: 166 gemeinsame Empfängerzyklen. Negatives ΔSNR spricht auf den erfassten Funkwegen für die Referenz-Vertikalantenne.",
+      "en": "Panel A preserves the publication histogram. Panel B reconstructs its coarse density bins and retains the residual comparison; Panel C presents WSPRadar's native 1 dB percentage histogram. Bin width and vertical units explain why the bars differ. Read the mean and spread alongside their observation unit: 166 paired receiver-cycles. Negative ΔSNR favors the Reference vertical on the sampled paths."
+    },
+    "demo_id": "zander_tx_buddy",
+    "height": 2592,
+    "key": "zander-figure4-comparison",
+    "provenance": {
+      "generator": "scripts/internal/build_zander_fig4_comparison.py",
+      "kind": "publication-comparison",
+      "pdf": "static/reference_figures/zander_fig4_paper_v1/WSPRadar_Demo_Zander_Figure4.pdf",
+      "sha256": "f529ea9582840fad5647ffc0845df62ce0302baee54ae887181fd169837eb52e",
+      "source_asset": "figure4_histogram_overlay.png",
+      "source_figure": "paper_figure4.png",
+      "source_fixture": "tests/regression/reference_fixtures/zander_fig4_paper_v1"
+    },
+    "source_path": "docs/website/assets/figures/zander-figure4-comparison.png",
+    "title": {
+      "de": "Dieselbe gepaarte Evidenz in unterschiedlichen Histogrammen",
+      "en": "The same paired evidence in different histogram views"
+    },
+    "width": 4320
+  },
+  {
+    "alt": {
+      "de": "RX-Vergleich zu Milazzo Abbildung 6 mit Originalpublikation, Berichtsrekonstruktion über dem Originalraster, nativer gepaarter Evidenz, Hilfslinien zur zyklusgleichen Identität und vollständiger Erklärung der Richtungskorrektur.",
+      "en": "Milazzo Figure 6 RX comparison showing the original publication, report reconstruction over the original raster, native paired evidence, same-cycle identity guides, and the complete direction-correction explanation."
+    },
+    "asset_path": "assets/figures/milazzo-figure6-rx-comparison.png",
+    "caption": {
+      "de": "Der RX-Hauptrundgang bewahrt die ursprüngliche Abbildung 6 in Panel A, rekonstruiert Berichte über dem Publikationsbild in Panel B und zeigt native gepaarte Evidenz in Panel C. Lies den Hinweis zur Richtungskorrektur: Archivierte Identitäten belegen Empfang von VE6PDQ trotz der ursprünglich gedruckten Richtung. Gestrichelte Hilfslinien verbinden nur zulässige Paare desselben Zyklus mit vollständiger Locatorübereinstimmung. Halte VE6PDQ/DO34IR und VE6PDQ/DO34 beim Nachvollziehen der fünf Paare über diese beiden Identitäten getrennt.",
+      "en": "The main RX walkthrough retains the original Figure 6 in Panel A, reconstructs reports over the publication image in Panel B, and displays native paired evidence in Panel C. Read the direction-correction note: database identities establish reception from VE6PDQ despite the original printed direction. The dashed guides connect only eligible same-cycle, full-locator pairs. Keep VE6PDQ/DO34IR and VE6PDQ/DO34 distinct when following the five pairs across the two identities."
+    },
+    "demo_id": "milazzo_tx_buddy",
+    "height": 2592,
+    "key": "milazzo-figure6-rx-comparison",
+    "provenance": {
+      "dpi": 160,
+      "generator": "scripts/internal/render_milazzo_website_assets.py",
+      "kind": "complete-current-native-PDF-page",
+      "page": 1,
+      "pdf": "static/reference_figures/milazzo_publication_overlays_v3/WSPRadar_Demo_Milazzo_Figure6.pdf",
+      "previous_derivation": {
+        "generator": "scripts/internal/build_milazzo_publication_overlays.py",
+        "kind": "publication-comparison-with-raster-underlay",
+        "pdf": "static/reference_figures/milazzo_publication_overlays_v1/WSPRadar_Demo_Milazzo_Figure6.pdf",
+        "sha256": "85845877028e81531db04c9238c06a82081d1714cee0abcd8993345d39895035",
+        "source_asset": "figure6_rx_overlay.png",
+        "source_figure": "paper_figure6.jpg",
+        "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v1"
+      },
+      "scientific_scope": "Current complete-observation historical replay; full VE6PDQ path with full locators kept separate. RX Figure 6 uses the current demo time window, distance, correction and minimum-pair settings. Reciprocal TX Figure 7 is the explicitly identified follow-up direction; PDF footer states its settings.",
+      "sha256": "335b3c7233949d5b582dd2379a34139bfc5a21c8762bd0fe60e59e1f9d5004c6",
+      "source_asset": "WSPRadar_Demo_Milazzo_Figure6.pdf",
+      "source_figure": "paper_figure6.jpg",
+      "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v3"
+    },
+    "source_path": "docs/website/assets/figures/milazzo-figure6-rx-comparison.png",
+    "title": {
+      "de": "RX: Welche Publikationsberichte bilden genaue Paare?",
+      "en": "RX: which publication reports form exact pairs?"
+    },
+    "width": 3840
+  },
+  {
+    "alt": {
+      "de": "TX-Vergleich zu Milazzo Abbildung 7 mit Originalpublikation, leistungsnormalisierter Berichtsrekonstruktion, Markierungen des Aktivitäts-Gates und nativer Evidenz für den einzigen Joint Spot auf dem ausgewählten Funkweg zu VE6PDQ.",
+      "en": "Milazzo Figure 7 TX comparison with original publication, power-normalized report reconstruction, all archived report markers, and native evidence for the single spot pair on the selected VE6PDQ path."
+    },
+    "asset_path": "assets/figures/milazzo-figure7-tx-comparison.png",
+    "caption": {
+      "de": "Abbildung 7 ist der optionale reziproke TX-Vergleich. Die Rekonstruktion bewahrt das hinterlegte Originalbild, Berichtsmarkierungen und Anmerkungen zum Target-Active Gate; die native Ansicht zeigt die wenigen gepaarten Beobachtungen des Funkwegs zu VE6PDQ. Unterscheide die vielen rekonstruierten Berichte vom einzigen verbleibenden Joint Spot dieses Funkwegs. Normalisierung anhand gemeldeter Sendeleistung und ungleiche Betriebszeitpläne sind für die Deutung gepaarter und nicht gemeinsamer Beobachtungen wesentlich.",
+      "en": "Figure 7 is the optional reciprocal TX comparison. Its reconstruction retains the original-image underlay, all archived report markers; the native view shows the sparse paired evidence for the VE6PDQ path. Distinguish the many reconstructed reports from the single spot pair on this path. Reported-power normalization and unequal operating schedules are essential to interpreting the paired and unpaired observations."
+    },
+    "demo_id": "milazzo_tx_buddy",
+    "height": 2592,
+    "key": "milazzo-figure7-tx-comparison",
+    "provenance": {
+      "dpi": 160,
+      "generator": "scripts/internal/render_milazzo_website_assets.py",
+      "kind": "complete-current-native-PDF-page",
+      "page": 1,
+      "pdf": "static/reference_figures/milazzo_publication_overlays_v3/WSPRadar_Demo_Milazzo_Figure7.pdf",
+      "previous_derivation": {
+        "generator": "scripts/internal/build_milazzo_publication_overlays.py",
+        "kind": "publication-comparison-with-raster-underlay",
+        "pdf": "static/reference_figures/milazzo_publication_overlays_v1/WSPRadar_Demo_Milazzo_Figure7.pdf",
+        "sha256": "5023890994a7219ad82b82f27b1d6fec36b41e0c7f86cb32412e8d6c1a1dd1cf",
+        "source_asset": "figure7_tx_overlay.png",
+        "source_figure": "paper_figure7.jpg",
+        "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v1"
+      },
+      "scientific_scope": "Current complete-observation historical replay; full VE6PDQ path with full locators kept separate. RX Figure 6 uses the current demo time window, distance, correction and minimum-pair settings. Reciprocal TX Figure 7 is the explicitly identified follow-up direction; PDF footer states its settings.",
+      "sha256": "fddf95a9decdddfd5de6023bfac24d1bd8c90f1591f909b4794217bef33c8c65",
+      "source_asset": "WSPRadar_Demo_Milazzo_Figure7.pdf",
+      "source_figure": "paper_figure7.jpg",
+      "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v3"
+    },
+    "source_path": "docs/website/assets/figures/milazzo-figure7-tx-comparison.png",
+    "title": {
+      "de": "TX-Anschlussbeispiel: Normalisierung, Aktivität und ein verbleibendes Paar",
+      "en": "TX follow-up: normalization, activity, and one surviving pair"
+    },
+    "width": 3840
+  },
+  {
+    "alt": {
+      "de": "Vollständige RX-Benchmark-Karte von G3ZIL gegenüber G4HZX auf 40 m im April 2017, mit Farbskala, Empfangskategorien, 792 gemeinsam beobachteten Stationseinträgen und 57 767 Joint Spots.",
+      "en": "Complete RX Benchmark ΔSNR map of G3ZIL versus G4HZX on 40 m in April 2017, with color scale, station-level decode outcomes, and qualification settings."
+    },
+    "asset_path": "assets/figures/landing-demo1-map.webp",
+    "caption": {
+      "de": "Wo zeigt sich der Unterschied? Die Sektorfarben zeigen stationsgleichgewichtete mediane SNR-Differenzen: G3ZIL minus G4HZX. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "Where does the difference appear? Sector colors show station-balanced median SNR differences: G3ZIL minus G4HZX. Actual dark-mode application capture from retained reports, October 24, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 513,
+    "key": "landing-demo1-map",
+    "provenance": {
+      "crop_box_xyxy": [
+        20,
+        241,
+        539,
+        754
+      ],
+      "derivation": "Rectangular crop of the complete figure from the current real application screenshot; lossless WebP preserves its decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. The canonical screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-24",
+      "sha256": "178b292a8ad5bf942b389f41eb70063f2b10cbc9f39631dfe19152dbeddca83d",
+      "source_capture_key": "demo-1-map",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-map.jpg",
+      "source_capture_provenance": {
+        "accepted_capture_report": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
+          "repository": "WSPRadar",
+          "sha256": "c25c8e33d6e36fdf2c05be498ae7d5e9c4c44ec31557e9553ebdc795bb56ee5f"
+        },
+        "app_source_revision": "a4d78be13a3c8f03f7da6551a8bbbdda772c7d9f",
+        "app_source_revision_is_base": true,
+        "app_version": "v1.0 RC3",
+        "browser_boundary_violations": [],
+        "browser_version": "155.0.4283.62",
+        "capture_cleanup_followup": null,
+        "capture_method": "Fresh isolated headless Playwright browser rendering the actual local Streamlit application; exact current demo settings; offline query-cache replay; DOM-derived screenshot clips; no pixel edits.",
+        "capture_source_fingerprint_sha256": "c99f6766f709561c0b6c2a74664d19db4d9ecc5e036ed735b6d23e3aa36cafa8",
+        "captured_at_utc": "2026-10-24T12:39:14.961929+00:00",
+        "config_sha256": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live retained reports",
+        "display_language": "en",
+        "image_px": [
+          1154,
+          778
+        ],
+        "image_sha256": "220a84bd981331e564d6bd29c5f58b8feb49af92609470740c48eacfe14dc604",
+        "launch_url": "http://127.0.0.1:57526/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_segment_stations=5&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT#wspradar-map-results",
+        "native_computer_use": false,
+        "query_sources": [
+          {
+            "rows": 0,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23.parquet",
+            "source_sha256": "75da04e10201035e87ade6fa9b6b71e678a4ebef5579d17f15b16b851288ccfd",
+            "sql_sha256": "be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23",
+            "variant": "strict"
+          },
+          {
+            "rows": 125759,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c.parquet",
+            "source_sha256": "0966d7e0cc594706d8af272a74672ee38ec535f3cedbec2c89b489abedf6555d",
+            "sql_sha256": "412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c",
+            "variant": "legacy"
+          }
+        ],
+        "render_source_archive": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime",
+          "repository": "WSPRadar",
+          "runtime_zip": "frozen-runtime-source.zip",
+          "runtime_zip_sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+        },
+        "render_source_sha256": {
+          "app.py": "8cac0fab5957dbc1c51b89eae833b68b7057ac10c24fccdd9c75e693a9df6682",
+          "config/figure_layouts.py": "1a85b86a36d6c7a6baa8acf70b55374aefec1b5e275aea1c4b09b878dc2dd0a1",
+          "config/plot_constants.py": "075858d74b5e13cdf418499398276c595391bacf7ead78fae64588a83c4c6d7b",
+          "core/plot_engine.py": "7c65cfa6a859cfa4d625405e915ec43a8de28b2f71defc22a45c8fb80537ba9a",
+          "i18n.py": "ce1a1cb5c542dcaf630c7d89936575bd37a190b98d74ea1ef41cf0ccdec56df9",
+          "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+          "ui/inspector/presentation.py": "696c7021162cd11631e4adcd6915b9ca243f609e292d15dc430a5c502d3a95bf",
+          "ui/plots/__init__.py": "98b7a8c05316e7a53396b5fa48c4b9e6f22d82e2c41bcb4314425bb0180ca121",
+          "ui/plots/benchmark_evidence_figures.py": "2b4083f855f03c3aadd8dd38e07a9a89fc9abd0fffd8ff7ae4105b1bc1fad3e5",
+          "ui/plots/drilldown_zoom_figures.py": "5838c09b7f646981451cdf83f298b8cf9f3e6de332a7376bd36432544aa5f063",
+          "ui/plots/evidence_figures.py": "cfdb3b4cb1de64e71ba984a9b698f65fd879a4f6d057bc24aa18d2a8e8915ff6",
+          "ui/plots/opportunity_figures.py": "9e63517a015ddb6faba8d2dafa0e0d13786b7413ab6fa0c259da3b15b1f57f07",
+          "ui/plots/snr_reach_figures.py": "b66c9e2e050cccf15f223ebfbf75882062192a3302b9ae86b070ea647b2e573f",
+          "ui/plots/temporal_bars.py": "9ec8e8b83e6dad62ccb0e89f58d472db61ae84b14842d0782315ec1eb2ad707c",
+          "ui/plots/temporal_layout.py": "15bf631c8f8538af30caaa111aee7980dec1ae89d7412c7b064fc8a32fd9f53a"
+        },
+        "replay_cache_freshness": "Task-owned warm-cache timestamps refreshed after SHA-256 verification for this invocation; source report bytes unchanged; this does not represent a fresh provider retrieval.",
+        "replay_input_archive": {
+          "manifest_path": "source/archive/spot-pair-renderers/pre-typography-runtime/replay-data-manifest.json",
+          "manifest_sha256": "9f526b72a2037935c543a0f18e1aaaa9964a4d6ce5792b6fd9ed52d9150daa20",
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/exact-query-replay.zip",
+          "repository": "WSPRadar",
+          "sha256": "dac3efda46788a20b2826ff4c65fef93a034a0a39c3672f870bbe4935c4cdba1"
+        },
+        "retrieval": "Offline replay of hash-verified retained query caches or explicitly derived frozen-report query projections; no live provider requests.",
+        "settings": {
+          "advanced_parameters": {
+            "delta_snr_outlier_reporting": false,
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_decode_event_share_percent": 1.0,
+            "min_qualifying_stations_per_map_segment": 5,
+            "min_spot_pairs_per_station": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "evidence_mode": "controlled",
+            "historical_replay_acknowledged": false,
+            "mode": "reference_station",
+            "operation_confirmed": true,
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_unpaired": false,
+              "station_evidence_time_bin": "12h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_fingerprint_scope": "SHA-256 of the sorted path-to-SHA-256 mapping for app.py, i18n.py and all Python sources under core, config and ui used for this capture.",
+        "source_url": "http://127.0.0.1:57526",
+        "ui_actions": [
+          "Confirmed current demo operating conditions through its visible checkbox",
+          "Run RX Analysis"
+        ],
+        "viewport_css_px": [
+          1440,
+          1800
+        ],
+        "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
+        "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
+      },
+      "source_capture_sha256": "220a84bd981331e564d6bd29c5f58b8feb49af92609470740c48eacfe14dc604"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-map.webp",
+    "title": {
+      "de": "Weltkarte",
+      "en": "World map"
+    },
+    "width": 519
+  },
+  {
+    "alt": {
+      "de": "Drei vollständige Benchmark-Evidenzdiagramme mit Empfangskategorien, SNR-Differenzen der Stationsmediane und SNR-Differenzen der Joint Spots für G3ZIL gegenüber G4HZX.",
+      "en": "Three complete Benchmark Statistics histograms showing Decode Volume, paired-spot SNR differences and station-median SNR differences for G3ZIL versus G4HZX."
+    },
+    "asset_path": "assets/figures/landing-demo1-snr.webp",
+    "caption": {
+      "de": "Was wurde empfangen, und um wie viel besser? Der Median der Stationsmediane beträgt +6,5 dB, der Joint-Spot-Median +7,0 dB. Positive Werte sprechen für G3ZIL. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "What was heard, and how much better? The station-median result is +6.5 dB; the spot-pair median is +7.0 dB. Positive values favor G3ZIL. Actual dark-mode application capture from retained reports, October 24, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 485,
+    "key": "landing-demo1-snr",
+    "provenance": {
+      "crop_box_xyxy": [
+        20,
+        388,
+        1132,
+        873
+      ],
+      "derivation": "Rectangular crop of the complete figure from the current real application screenshot; lossless WebP preserves its decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. The canonical screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-24",
+      "sha256": "b0e2bee1202e2b8e08a31343fae5a19ad31a4ef757293e856cde15d67d162c11",
+      "source_capture_key": "demo-1-segment",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-segment.jpg",
+      "source_capture_provenance": {
+        "accepted_capture_report": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
+          "repository": "WSPRadar",
+          "sha256": "c25c8e33d6e36fdf2c05be498ae7d5e9c4c44ec31557e9553ebdc795bb56ee5f"
+        },
+        "app_source_revision": "a4d78be13a3c8f03f7da6551a8bbbdda772c7d9f",
+        "app_source_revision_is_base": true,
+        "app_version": "v1.0 RC3",
+        "browser_boundary_violations": [],
+        "browser_version": "155.0.4283.62",
+        "capture_cleanup_followup": null,
+        "capture_method": "Fresh isolated headless Playwright browser rendering the actual local Streamlit application; exact current demo settings; offline query-cache replay; DOM-derived screenshot clips; no pixel edits.",
+        "capture_source_fingerprint_sha256": "c99f6766f709561c0b6c2a74664d19db4d9ecc5e036ed735b6d23e3aa36cafa8",
+        "captured_at_utc": "2026-10-24T12:39:16.254848+00:00",
+        "config_sha256": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live retained reports",
+        "display_language": "en",
+        "image_px": [
+          1154,
+          1381
+        ],
+        "image_sha256": "1558b9feb515ff5c7854b126ce9ad55b7c7052e0c833916cb443f3fb72f501ec",
+        "launch_url": "http://127.0.0.1:57526/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_segment_stations=5&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT#wspradar-map-results",
+        "native_computer_use": false,
+        "query_sources": [
+          {
+            "rows": 0,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23.parquet",
+            "source_sha256": "75da04e10201035e87ade6fa9b6b71e678a4ebef5579d17f15b16b851288ccfd",
+            "sql_sha256": "be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23",
+            "variant": "strict"
+          },
+          {
+            "rows": 125759,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c.parquet",
+            "source_sha256": "0966d7e0cc594706d8af272a74672ee38ec535f3cedbec2c89b489abedf6555d",
+            "sql_sha256": "412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c",
+            "variant": "legacy"
+          }
+        ],
+        "render_source_archive": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime",
+          "repository": "WSPRadar",
+          "runtime_zip": "frozen-runtime-source.zip",
+          "runtime_zip_sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+        },
+        "render_source_sha256": {
+          "app.py": "8cac0fab5957dbc1c51b89eae833b68b7057ac10c24fccdd9c75e693a9df6682",
+          "config/figure_layouts.py": "1a85b86a36d6c7a6baa8acf70b55374aefec1b5e275aea1c4b09b878dc2dd0a1",
+          "config/plot_constants.py": "075858d74b5e13cdf418499398276c595391bacf7ead78fae64588a83c4c6d7b",
+          "core/plot_engine.py": "7c65cfa6a859cfa4d625405e915ec43a8de28b2f71defc22a45c8fb80537ba9a",
+          "i18n.py": "ce1a1cb5c542dcaf630c7d89936575bd37a190b98d74ea1ef41cf0ccdec56df9",
+          "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+          "ui/inspector/presentation.py": "696c7021162cd11631e4adcd6915b9ca243f609e292d15dc430a5c502d3a95bf",
+          "ui/plots/__init__.py": "98b7a8c05316e7a53396b5fa48c4b9e6f22d82e2c41bcb4314425bb0180ca121",
+          "ui/plots/benchmark_evidence_figures.py": "2b4083f855f03c3aadd8dd38e07a9a89fc9abd0fffd8ff7ae4105b1bc1fad3e5",
+          "ui/plots/drilldown_zoom_figures.py": "5838c09b7f646981451cdf83f298b8cf9f3e6de332a7376bd36432544aa5f063",
+          "ui/plots/evidence_figures.py": "cfdb3b4cb1de64e71ba984a9b698f65fd879a4f6d057bc24aa18d2a8e8915ff6",
+          "ui/plots/opportunity_figures.py": "9e63517a015ddb6faba8d2dafa0e0d13786b7413ab6fa0c259da3b15b1f57f07",
+          "ui/plots/snr_reach_figures.py": "b66c9e2e050cccf15f223ebfbf75882062192a3302b9ae86b070ea647b2e573f",
+          "ui/plots/temporal_bars.py": "9ec8e8b83e6dad62ccb0e89f58d472db61ae84b14842d0782315ec1eb2ad707c",
+          "ui/plots/temporal_layout.py": "15bf631c8f8538af30caaa111aee7980dec1ae89d7412c7b064fc8a32fd9f53a"
+        },
+        "replay_cache_freshness": "Task-owned warm-cache timestamps refreshed after SHA-256 verification for this invocation; source report bytes unchanged; this does not represent a fresh provider retrieval.",
+        "replay_input_archive": {
+          "manifest_path": "source/archive/spot-pair-renderers/pre-typography-runtime/replay-data-manifest.json",
+          "manifest_sha256": "9f526b72a2037935c543a0f18e1aaaa9964a4d6ce5792b6fd9ed52d9150daa20",
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/exact-query-replay.zip",
+          "repository": "WSPRadar",
+          "sha256": "dac3efda46788a20b2826ff4c65fef93a034a0a39c3672f870bbe4935c4cdba1"
+        },
+        "retrieval": "Offline replay of hash-verified retained query caches or explicitly derived frozen-report query projections; no live provider requests.",
+        "settings": {
+          "advanced_parameters": {
+            "delta_snr_outlier_reporting": false,
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_decode_event_share_percent": 1.0,
+            "min_qualifying_stations_per_map_segment": 5,
+            "min_spot_pairs_per_station": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "evidence_mode": "controlled",
+            "historical_replay_acknowledged": false,
+            "mode": "reference_station",
+            "operation_confirmed": true,
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_unpaired": false,
+              "station_evidence_time_bin": "12h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_fingerprint_scope": "SHA-256 of the sorted path-to-SHA-256 mapping for app.py, i18n.py and all Python sources under core, config and ui used for this capture.",
+        "source_url": "http://127.0.0.1:57526",
+        "ui_actions": [
+          "Confirmed current demo operating conditions through its visible checkbox",
+          "Run RX Analysis"
+        ],
+        "viewport_css_px": [
+          1440,
+          1800
+        ],
+        "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
+        "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
+      },
+      "source_capture_sha256": "1558b9feb515ff5c7854b126ce9ad55b7c7052e0c833916cb443f3fb72f501ec"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-snr.webp",
+    "title": {
+      "de": "SNR-Differenz und Empfangskategorien",
+      "en": "SNR difference and decode outcomes"
+    },
+    "width": 1112
+  },
+  {
+    "alt": {
+      "de": "Vollständige Diagramme der SNR-Differenz im Zeitverlauf und nach UTC-Stunde für den Vergleich im April 2017, einschließlich Achsen, Legenden, Beschriftung der nichtlinearen Skala und des gesamten Joint-Spot-Medians von +7,0 dB.",
+      "en": "Complete chronological and UTC-hour SNR-difference charts for the April 2017 comparison, retaining axes, legends, nonlinear-scale labels and the +7.0 dB overall spot-pair median."
+    },
+    "asset_path": "assets/figures/landing-demo1-temporal.webp",
+    "caption": {
+      "de": "Blieb der Unterschied gleich? Tagesmediane und die Ansicht nach UTC-Stunde zeigen, wie die gepaarten SNR-Differenzen variieren. Das schattierte Band enthält die mittleren 50 % der Beobachtungen. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "Did the difference stay the same? Daily medians and the UTC-hour view show how the paired SNR differences vary. The shaded band is the middle 50% of observations. Actual dark-mode application capture from retained reports, October 24, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 511,
+    "key": "landing-demo1-temporal",
+    "provenance": {
+      "crop_box_xyxy": [
+        20,
+        98,
+        1132,
+        609
+      ],
+      "derivation": "Rectangular crop of the complete figure from the current real application screenshot; lossless WebP preserves its decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. The canonical screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-24",
+      "sha256": "296867972885f3b89ced03bf2d2881f693ba690214cfa506019b6892aad30e9f",
+      "source_capture_key": "demo-1-temporal",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+      "source_capture_provenance": {
+        "accepted_capture_report": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
+          "repository": "WSPRadar",
+          "sha256": "c25c8e33d6e36fdf2c05be498ae7d5e9c4c44ec31557e9553ebdc795bb56ee5f"
+        },
+        "app_source_revision": "a4d78be13a3c8f03f7da6551a8bbbdda772c7d9f",
+        "app_source_revision_is_base": true,
+        "app_version": "v1.0 RC3",
+        "browser_boundary_violations": [],
+        "browser_version": "155.0.4283.62",
+        "capture_cleanup_followup": null,
+        "capture_method": "Fresh isolated headless Playwright browser rendering the actual local Streamlit application; exact current demo settings; offline query-cache replay; DOM-derived screenshot clips; no pixel edits.",
+        "capture_source_fingerprint_sha256": "c99f6766f709561c0b6c2a74664d19db4d9ecc5e036ed735b6d23e3aa36cafa8",
+        "captured_at_utc": "2026-10-24T12:39:16.973684+00:00",
+        "config_sha256": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live retained reports",
+        "display_language": "en",
+        "image_px": [
+          1154,
+          1197
+        ],
+        "image_sha256": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00",
+        "launch_url": "http://127.0.0.1:57526/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_segment_stations=5&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT#wspradar-map-results",
+        "native_computer_use": false,
+        "query_sources": [
+          {
+            "rows": 0,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23.parquet",
+            "source_sha256": "75da04e10201035e87ade6fa9b6b71e678a4ebef5579d17f15b16b851288ccfd",
+            "sql_sha256": "be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23",
+            "variant": "strict"
+          },
+          {
+            "rows": 125759,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c.parquet",
+            "source_sha256": "0966d7e0cc594706d8af272a74672ee38ec535f3cedbec2c89b489abedf6555d",
+            "sql_sha256": "412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c",
+            "variant": "legacy"
+          }
+        ],
+        "render_source_archive": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime",
+          "repository": "WSPRadar",
+          "runtime_zip": "frozen-runtime-source.zip",
+          "runtime_zip_sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+        },
+        "render_source_sha256": {
+          "app.py": "8cac0fab5957dbc1c51b89eae833b68b7057ac10c24fccdd9c75e693a9df6682",
+          "config/figure_layouts.py": "1a85b86a36d6c7a6baa8acf70b55374aefec1b5e275aea1c4b09b878dc2dd0a1",
+          "config/plot_constants.py": "075858d74b5e13cdf418499398276c595391bacf7ead78fae64588a83c4c6d7b",
+          "core/plot_engine.py": "7c65cfa6a859cfa4d625405e915ec43a8de28b2f71defc22a45c8fb80537ba9a",
+          "i18n.py": "ce1a1cb5c542dcaf630c7d89936575bd37a190b98d74ea1ef41cf0ccdec56df9",
+          "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+          "ui/inspector/presentation.py": "696c7021162cd11631e4adcd6915b9ca243f609e292d15dc430a5c502d3a95bf",
+          "ui/plots/__init__.py": "98b7a8c05316e7a53396b5fa48c4b9e6f22d82e2c41bcb4314425bb0180ca121",
+          "ui/plots/benchmark_evidence_figures.py": "2b4083f855f03c3aadd8dd38e07a9a89fc9abd0fffd8ff7ae4105b1bc1fad3e5",
+          "ui/plots/drilldown_zoom_figures.py": "5838c09b7f646981451cdf83f298b8cf9f3e6de332a7376bd36432544aa5f063",
+          "ui/plots/evidence_figures.py": "cfdb3b4cb1de64e71ba984a9b698f65fd879a4f6d057bc24aa18d2a8e8915ff6",
+          "ui/plots/opportunity_figures.py": "9e63517a015ddb6faba8d2dafa0e0d13786b7413ab6fa0c259da3b15b1f57f07",
+          "ui/plots/snr_reach_figures.py": "b66c9e2e050cccf15f223ebfbf75882062192a3302b9ae86b070ea647b2e573f",
+          "ui/plots/temporal_bars.py": "9ec8e8b83e6dad62ccb0e89f58d472db61ae84b14842d0782315ec1eb2ad707c",
+          "ui/plots/temporal_layout.py": "15bf631c8f8538af30caaa111aee7980dec1ae89d7412c7b064fc8a32fd9f53a"
+        },
+        "replay_cache_freshness": "Task-owned warm-cache timestamps refreshed after SHA-256 verification for this invocation; source report bytes unchanged; this does not represent a fresh provider retrieval.",
+        "replay_input_archive": {
+          "manifest_path": "source/archive/spot-pair-renderers/pre-typography-runtime/replay-data-manifest.json",
+          "manifest_sha256": "9f526b72a2037935c543a0f18e1aaaa9964a4d6ce5792b6fd9ed52d9150daa20",
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/exact-query-replay.zip",
+          "repository": "WSPRadar",
+          "sha256": "dac3efda46788a20b2826ff4c65fef93a034a0a39c3672f870bbe4935c4cdba1"
+        },
+        "retrieval": "Offline replay of hash-verified retained query caches or explicitly derived frozen-report query projections; no live provider requests.",
+        "settings": {
+          "advanced_parameters": {
+            "delta_snr_outlier_reporting": false,
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_decode_event_share_percent": 1.0,
+            "min_qualifying_stations_per_map_segment": 5,
+            "min_spot_pairs_per_station": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "evidence_mode": "controlled",
+            "historical_replay_acknowledged": false,
+            "mode": "reference_station",
+            "operation_confirmed": true,
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_unpaired": false,
+              "station_evidence_time_bin": "12h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_fingerprint_scope": "SHA-256 of the sorted path-to-SHA-256 mapping for app.py, i18n.py and all Python sources under core, config and ui used for this capture.",
+        "source_url": "http://127.0.0.1:57526",
+        "ui_actions": [
+          "Confirmed current demo operating conditions through its visible checkbox",
+          "Run RX Analysis"
+        ],
+        "viewport_css_px": [
+          1440,
+          1800
+        ],
+        "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
+        "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
+      },
+      "source_capture_sha256": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-temporal.webp",
+    "title": {
+      "de": "Im Zeitverlauf",
+      "en": "Over time"
+    },
+    "width": 1112
+  },
+  {
+    "alt": {
+      "de": "Vollständige Abbildung zur zeitlichen Evidenzabdeckung für G3ZIL mit täglichen und nach UTC-Stunde zusammengefassten Stations- und Senderzykluszahlen, Linien für Joint Evidence Share sowie dem Hinweis zur Target-Aktivität.",
+      "en": "Complete temporal evidence and ΔDecode figure for G3ZIL versus G4HZX, including chronological and UTC-hour station presence, paired and one-sided spot-level outcomes, and station reach advantage and pooled ΔDecode lines."
+    },
+    "asset_path": "assets/figures/landing-demo1-coverage.webp",
+    "caption": {
+      "de": "Wie viel Evidenz trägt das Muster? Prüfe neben dem SNR die Anzahl der Stationen und Senderzyklen. Joint Evidence Share ist keine Empfangserfolgsquote. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "en": "How much evidence supports the pattern? Check station presence and spot-level outcomes alongside ΔSNR and ΔDecode. Both observed station presence does not require a same-cycle spot pair, and ΔDecode is not a success rate over all transmission attempts. Actual dark-mode application capture from retained reports, October 24, 2026."
+    },
+    "demo_id": "griffiths_squibb_fig3",
+    "height": 480,
+    "key": "landing-demo1-coverage",
+    "provenance": {
+      "crop_box_xyxy": [
+        20,
+        693,
+        1132,
+        1173
+      ],
+      "derivation": "Rectangular crop of the complete figure from the current real application screenshot; lossless WebP preserves its decoded JPEG pixels without rescaling, recoloring, relabeling or redrawing. The canonical screenshot remains available.",
+      "kind": "actual-app-screenshot-figure-crop",
+      "prepared_on": "2026-10-24",
+      "sha256": "83f2ba8d1c03628b814f629d4b8929aecea4e8f1c7ede677d057b9df5b7cbc87",
+      "source_capture_key": "demo-1-temporal",
+      "source_capture_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+      "source_capture_provenance": {
+        "accepted_capture_report": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
+          "repository": "WSPRadar",
+          "sha256": "c25c8e33d6e36fdf2c05be498ae7d5e9c4c44ec31557e9553ebdc795bb56ee5f"
+        },
+        "app_source_revision": "a4d78be13a3c8f03f7da6551a8bbbdda772c7d9f",
+        "app_source_revision_is_base": true,
+        "app_version": "v1.0 RC3",
+        "browser_boundary_violations": [],
+        "browser_version": "155.0.4283.62",
+        "capture_cleanup_followup": null,
+        "capture_method": "Fresh isolated headless Playwright browser rendering the actual local Streamlit application; exact current demo settings; offline query-cache replay; DOM-derived screenshot clips; no pixel edits.",
+        "capture_source_fingerprint_sha256": "c99f6766f709561c0b6c2a74664d19db4d9ecc5e036ed735b6d23e3aa36cafa8",
+        "captured_at_utc": "2026-10-24T12:39:16.973684+00:00",
+        "config_sha256": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
+        "config_source_path": "config/demos/00a_griffiths_squibb_fig3.config",
+        "database_source": "wspr.live retained reports",
+        "display_language": "en",
+        "image_px": [
+          1154,
+          1197
+        ],
+        "image_sha256": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00",
+        "launch_url": "http://127.0.0.1:57526/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_segment_stations=5&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT#wspradar-map-results",
+        "native_computer_use": false,
+        "query_sources": [
+          {
+            "rows": 0,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23.parquet",
+            "source_sha256": "75da04e10201035e87ade6fa9b6b71e678a4ebef5579d17f15b16b851288ccfd",
+            "sql_sha256": "be548f8ed7470981194978b49800e887a8a38aa5beada63e43da07ced7075b23",
+            "variant": "strict"
+          },
+          {
+            "rows": 125759,
+            "source_path": ".wspr_cache/demo-queries/wspr_live/v1/query_412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c.parquet",
+            "source_sha256": "0966d7e0cc594706d8af272a74672ee38ec535f3cedbec2c89b489abedf6555d",
+            "sql_sha256": "412ddadaca32f99f13f362a5e1b093fc03d779ae5acc6528e9c8db6e634d688c",
+            "variant": "legacy"
+          }
+        ],
+        "render_source_archive": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime",
+          "repository": "WSPRadar",
+          "runtime_zip": "frozen-runtime-source.zip",
+          "runtime_zip_sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+        },
+        "render_source_sha256": {
+          "app.py": "8cac0fab5957dbc1c51b89eae833b68b7057ac10c24fccdd9c75e693a9df6682",
+          "config/figure_layouts.py": "1a85b86a36d6c7a6baa8acf70b55374aefec1b5e275aea1c4b09b878dc2dd0a1",
+          "config/plot_constants.py": "075858d74b5e13cdf418499398276c595391bacf7ead78fae64588a83c4c6d7b",
+          "core/plot_engine.py": "7c65cfa6a859cfa4d625405e915ec43a8de28b2f71defc22a45c8fb80537ba9a",
+          "i18n.py": "ce1a1cb5c542dcaf630c7d89936575bd37a190b98d74ea1ef41cf0ccdec56df9",
+          "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+          "ui/inspector/presentation.py": "696c7021162cd11631e4adcd6915b9ca243f609e292d15dc430a5c502d3a95bf",
+          "ui/plots/__init__.py": "98b7a8c05316e7a53396b5fa48c4b9e6f22d82e2c41bcb4314425bb0180ca121",
+          "ui/plots/benchmark_evidence_figures.py": "2b4083f855f03c3aadd8dd38e07a9a89fc9abd0fffd8ff7ae4105b1bc1fad3e5",
+          "ui/plots/drilldown_zoom_figures.py": "5838c09b7f646981451cdf83f298b8cf9f3e6de332a7376bd36432544aa5f063",
+          "ui/plots/evidence_figures.py": "cfdb3b4cb1de64e71ba984a9b698f65fd879a4f6d057bc24aa18d2a8e8915ff6",
+          "ui/plots/opportunity_figures.py": "9e63517a015ddb6faba8d2dafa0e0d13786b7413ab6fa0c259da3b15b1f57f07",
+          "ui/plots/snr_reach_figures.py": "b66c9e2e050cccf15f223ebfbf75882062192a3302b9ae86b070ea647b2e573f",
+          "ui/plots/temporal_bars.py": "9ec8e8b83e6dad62ccb0e89f58d472db61ae84b14842d0782315ec1eb2ad707c",
+          "ui/plots/temporal_layout.py": "15bf631c8f8538af30caaa111aee7980dec1ae89d7412c7b064fc8a32fd9f53a"
+        },
+        "replay_cache_freshness": "Task-owned warm-cache timestamps refreshed after SHA-256 verification for this invocation; source report bytes unchanged; this does not represent a fresh provider retrieval.",
+        "replay_input_archive": {
+          "manifest_path": "source/archive/spot-pair-renderers/pre-typography-runtime/replay-data-manifest.json",
+          "manifest_sha256": "9f526b72a2037935c543a0f18e1aaaa9964a4d6ce5792b6fd9ed52d9150daa20",
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/exact-query-replay.zip",
+          "repository": "WSPRadar",
+          "sha256": "dac3efda46788a20b2826ff4c65fef93a034a0a39c3672f870bbe4935c4cdba1"
+        },
+        "retrieval": "Offline replay of hash-verified retained query caches or explicitly derived frozen-report query projections; no live provider requests.",
+        "settings": {
+          "advanced_parameters": {
+            "delta_snr_outlier_reporting": false,
+            "exclude_moving_stations": false,
+            "exclude_special_callsigns": false,
+            "max_peer_distance_km": 10000,
+            "min_decode_event_share_percent": 1.0,
+            "min_qualifying_stations_per_map_segment": 5,
+            "min_spot_pairs_per_station": 1,
+            "solar_state": "all"
+          },
+          "comparison_parameters": {
+            "evidence_mode": "controlled",
+            "historical_replay_acknowledged": false,
+            "mode": "reference_station",
+            "operation_confirmed": true,
+            "reference_callsign": "G4HZX",
+            "reference_qth": "IO91",
+            "snr_correction_db": 0.0,
+            "snr_correction_mode": "no_offset"
+          },
+          "core_parameters": {
+            "analysis_direction": "rx",
+            "band": "40m",
+            "callsign": "G3ZIL",
+            "qth": "IO90HW",
+            "time_selection": {
+              "end_utc": "2017-05-01T00:00Z",
+              "start_utc": "2017-04-01T00:00Z"
+            }
+          },
+          "results_view": {
+            "benchmark": {
+              "segment_evidence_time_bin": "24h",
+              "selected_directions": "all",
+              "selected_ranges": "all",
+              "selected_stations": [
+                {
+                  "callsign": "DJ0ABR",
+                  "locator": "JN68NT"
+                }
+              ],
+              "show_unpaired": false,
+              "station_evidence_time_bin": "12h"
+            }
+          }
+        },
+        "settings_modified_for_capture": false,
+        "source_fingerprint_scope": "SHA-256 of the sorted path-to-SHA-256 mapping for app.py, i18n.py and all Python sources under core, config and ui used for this capture.",
+        "source_url": "http://127.0.0.1:57526",
+        "ui_actions": [
+          "Confirmed current demo operating conditions through its visible checkbox",
+          "Run RX Analysis"
+        ],
+        "viewport_css_px": [
+          1440,
+          1800
+        ],
+        "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
+        "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
+      },
+      "source_capture_sha256": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00"
+    },
+    "source_path": "docs/website/assets/figures/landing-demo1-coverage.webp",
+    "title": {
+      "de": "Evidenzabdeckung",
+      "en": "Evidence coverage"
+    },
+    "width": 1112
+  }
+]

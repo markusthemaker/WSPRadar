@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-labelledby="operating-window-title">
+<title id="operating-window-title">Two station timelines aligned within one operating window under a shared clock.</title>
+<g stroke="#40b6ff">
+<circle cx="154" cy="63" r="34"/>
+<path d="M82 144H231M82 199H231"/>
+<path d="M45 136V164M45 136L31 117M45 136L59 117M31 164H59"/>
+<path d="M45 191V219M45 191L31 172M45 191L59 172M31 219H59"/>
+</g>
+<g stroke="#39ff14">
+<path d="M154 43V63L171 74"/>
+<path d="M110 116V111H212V116"/>
+<path d="M110 127V220M212 127V220" stroke-dasharray="10 13"/>
+<path d="M110 144H212M110 199H212"/>
+</g>
+</svg>

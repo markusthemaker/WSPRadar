@@ -1,0 +1,1015 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "benchmark-evidence.en-1040.webp",
+      "bytes": 65878,
+      "sha256": "ebecfb278971943a268927b825fd1962eb16a7ada897e64d03fe75b2751c3a8f",
+      "source_path": "assets/browser-assets/demos/vanhamel_rx_calibration/benchmark-evidence.en-1040.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "benchmark-evidence.en-520.webp",
+      "bytes": 27750,
+      "sha256": "2abad4d27aa3116aa278a744d0898c75d3e76dbcfb52b7c299c03d4329cf9d55",
+      "source_path": "assets/browser-assets/demos/vanhamel_rx_calibration/benchmark-evidence.en-520.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "benchmark-evidence.en.png",
+      "bytes": 261913,
+      "sha256": "748c86335cd2604a3d8e6af630f51bb97b056e5a0fc7f5d7cda98095f1fd4d4f"
+    },
+    {
+      "path": "calibration-evidence-provenance.json",
+      "bytes": 3850,
+      "sha256": "4a733f152585beff84c9d484fee13cdb8415c4985d61eb21658d5aa17cfa4798"
+    },
+    {
+      "path": "figure1-dark-1040.webp",
+      "bytes": 133894,
+      "sha256": "8e891324c83a921be80b4a51e9a282ce1aa74206f6907b24c76c49ba52a307d8",
+      "source_path": "assets/browser-assets/demos/vanhamel_rx_calibration/figure1-dark-1040.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "figure1-dark-520.webp",
+      "bytes": 43750,
+      "sha256": "b1a5e3a94802e35661ef0c740f650d7323ae71c58e1e020657dd1debb74e7857",
+      "source_path": "assets/browser-assets/demos/vanhamel_rx_calibration/figure1-dark-520.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "figure1-dark.svg",
+      "bytes": 768799,
+      "sha256": "ae0aa193dae30b5f112cde7829855d9f5404d99d4305c1994bca166966089c19"
+    },
+    {
+      "path": "figure1-provenance.json",
+      "bytes": 4075,
+      "sha256": "f5545d401704a780a99939a88cd60dc14252c90224e1e051059c3cb6cde222be"
+    },
+    {
+      "path": "figure1-dark.png",
+      "bytes": 494488,
+      "sha256": "3efaacd2b3eecacfb82d1969626e50eedaa04070c9785ad15e2ec99d7034def3"
+    },
+    {
+      "path": "rc3-20261020/figure_segment_statistics_dark.png",
+      "bytes": 345977,
+      "sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+      "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_statistics_dark-5370ce1cdd30.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "rc3-20261020/web/statistics-520.webp",
+      "bytes": 44590,
+      "sha256": "9c55930f8b485b590bf3208bbeeb36da6e68fcc86d4e8c593554640f6a4c20a4",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_statistics_dark-5370ce1cdd30.png",
+        "source_bytes": 345977,
+        "source_sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+        "width": 520,
+        "height": 223,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/web/statistics-1040.webp",
+      "bytes": 111066,
+      "sha256": "587ecd57d4cbaaa0ceb18ca4e92e706d6785e31f6c9ded70d44e57db4ca9e371",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_statistics_dark-5370ce1cdd30.png",
+        "source_bytes": 345977,
+        "source_sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+        "width": 1040,
+        "height": 446,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/web/statistics-1600.webp",
+      "bytes": 191098,
+      "sha256": "a883017026626c97bf5aae16b4452a29e9ce16137f2e0193652a4fa13386555b",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_statistics_dark-5370ce1cdd30.png",
+        "source_bytes": 345977,
+        "source_sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+        "width": 1600,
+        "height": 685,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/figure_segment_temporal_delta_snr_dark.png",
+      "bytes": 397055,
+      "sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+      "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_temporal_delta_snr_dark-b71af4a07658.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "rc3-20261020/web/temporal-snr-520.webp",
+      "bytes": 54318,
+      "sha256": "d5bc33377ef76c3f882d5d6106510c6fa5efb935753e8510f060b93905d7f24f",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_temporal_delta_snr_dark-b71af4a07658.png",
+        "source_bytes": 397055,
+        "source_sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+        "width": 520,
+        "height": 241,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/web/temporal-snr-1040.webp",
+      "bytes": 127730,
+      "sha256": "11025fa696ea1eba32f23427f88dbfcc9dd94f44cac13645c578985eb5b7f4cf",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_temporal_delta_snr_dark-b71af4a07658.png",
+        "source_bytes": 397055,
+        "source_sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+        "width": 1040,
+        "height": 483,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/web/temporal-snr-1600.webp",
+      "bytes": 207358,
+      "sha256": "bb67fc3c160c4d5c35dd1e6cc5e0ec612db86d30cade70f2168c93d4bdba9b84",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_temporal_delta_snr_dark-b71af4a07658.png",
+        "source_bytes": 397055,
+        "source_sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+        "width": 1600,
+        "height": 743,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/figure_decodes_over_snr_dark.png",
+      "bytes": 433952,
+      "sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+      "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_decodes_over_snr_dark-be7fafa9f9fb.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "rc3-20261020/web/decodes-over-snr-520.webp",
+      "bytes": 67220,
+      "sha256": "a8a08f1058972afa9b7a1e5af79002819aad341643cb0a2853ec4e72e5283766",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_decodes_over_snr_dark-be7fafa9f9fb.png",
+        "source_bytes": 433952,
+        "source_sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+        "width": 520,
+        "height": 338,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/web/decodes-over-snr-1040.webp",
+      "bytes": 165424,
+      "sha256": "9e06fcafc08d3fbe29f1442fa9d3319907ce14b7d91389b7c0952a271cfa35f2",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_decodes_over_snr_dark-be7fafa9f9fb.png",
+        "source_bytes": 433952,
+        "source_sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+        "width": 1040,
+        "height": 677,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/web/decodes-over-snr-1600.webp",
+      "bytes": 266620,
+      "sha256": "3917c92654e9aaba126b18ed0552912f71e5d81cd7620c76ad30cbba948d4c41",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_decodes_over_snr_dark-be7fafa9f9fb.png",
+        "source_bytes": 433952,
+        "source_sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+        "width": 1600,
+        "height": 1041,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "rc3-20261020/provenance.json",
+      "bytes": 6803,
+      "sha256": "03cbba6aa27240f5377ff8093a1e347c39944c311f796193fae558a6f6acfa7e"
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark.png",
+      "bytes": 355012,
+      "sha256": "5f766fd71d8ac7d6cbac270d4ba1bc5d41024a75a457b3dbc5b8191d78d2e1b1",
+      "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_statistics_dark-5f766fd71d8a.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark-520.webp",
+      "bytes": 44822,
+      "sha256": "fd383ce74a626ba88ff2f95ad92f32f281964fd45704426e8858d0b19f963747",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_statistics_dark-5f766fd71d8a.png",
+        "source_bytes": 355012,
+        "source_sha256": "5f766fd71d8ac7d6cbac270d4ba1bc5d41024a75a457b3dbc5b8191d78d2e1b1",
+        "width": 520,
+        "height": 234
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark-1040.webp",
+      "bytes": 112626,
+      "sha256": "01f0d290885b9d3132059c6b313b00e5080ad9b0641cc599c274d23f3889be8b",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_statistics_dark-5f766fd71d8a.png",
+        "source_bytes": 355012,
+        "source_sha256": "5f766fd71d8ac7d6cbac270d4ba1bc5d41024a75a457b3dbc5b8191d78d2e1b1",
+        "width": 1040,
+        "height": 468
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark-1600.webp",
+      "bytes": 196548,
+      "sha256": "07a0f07531089f293853881cb75443dd2f176174997ea4fb690e8e5e75c16d0e",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_statistics_dark-5f766fd71d8a.png",
+        "source_bytes": 355012,
+        "source_sha256": "5f766fd71d8ac7d6cbac270d4ba1bc5d41024a75a457b3dbc5b8191d78d2e1b1",
+        "width": 1600,
+        "height": 720
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark.png",
+      "bytes": 383681,
+      "sha256": "f6e521cd9bc3e61d340905a70f8bca1ad7b400b3acd1f4b265b5449dc136d2da",
+      "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-f6e521cd9bc3.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-520.webp",
+      "bytes": 54022,
+      "sha256": "6cb3c3cd635b50105dba21939bd81eb33e3e7b16a878b28d60d97303ad370fb6",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-f6e521cd9bc3.png",
+        "source_bytes": 383681,
+        "source_sha256": "f6e521cd9bc3e61d340905a70f8bca1ad7b400b3acd1f4b265b5449dc136d2da",
+        "width": 520,
+        "height": 251
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-1040.webp",
+      "bytes": 126696,
+      "sha256": "77b157ca9725526e2a1f67da97d87d656da2ec116a135d05d85438b98461b4ec",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-f6e521cd9bc3.png",
+        "source_bytes": 383681,
+        "source_sha256": "f6e521cd9bc3e61d340905a70f8bca1ad7b400b3acd1f4b265b5449dc136d2da",
+        "width": 1040,
+        "height": 502
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-1600.webp",
+      "bytes": 207058,
+      "sha256": "5300692c4bad9849d1112811976bac6c60ef814c2f7524ee93ab577bdec65e05",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-f6e521cd9bc3.png",
+        "source_bytes": 383681,
+        "source_sha256": "f6e521cd9bc3e61d340905a70f8bca1ad7b400b3acd1f4b265b5449dc136d2da",
+        "width": 1600,
+        "height": 772
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark.png",
+      "bytes": 436288,
+      "sha256": "0a407cb80280c35344ba8e6e6792c6e7c00b3a7ab3d668b591acd0f80a16e9b4",
+      "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_decodes_over_snr_dark-0a407cb80280.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark-520.webp",
+      "bytes": 67052,
+      "sha256": "9e954e944e4f5afb2fe8b79bb1692460a3478ac3832921a8a526c62596bc9f3f",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_decodes_over_snr_dark-0a407cb80280.png",
+        "source_bytes": 436288,
+        "source_sha256": "0a407cb80280c35344ba8e6e6792c6e7c00b3a7ab3d668b591acd0f80a16e9b4",
+        "width": 520,
+        "height": 339
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark-1040.webp",
+      "bytes": 165708,
+      "sha256": "cb9bcc0a1a7355e83ca1261bd3bff8742af4fe57e62ead96bdd0447ef9495d2f",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_decodes_over_snr_dark-0a407cb80280.png",
+        "source_bytes": 436288,
+        "source_sha256": "0a407cb80280c35344ba8e6e6792c6e7c00b3a7ab3d668b591acd0f80a16e9b4",
+        "width": 1040,
+        "height": 678
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark-1600.webp",
+      "bytes": 265934,
+      "sha256": "0f4c98069fbe996f4f34078034a7288bede7dcf2778270a56d8c9c7fee2c6b12",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_decodes_over_snr_dark-0a407cb80280.png",
+        "source_bytes": 436288,
+        "source_sha256": "0a407cb80280c35344ba8e6e6792c6e7c00b3a7ab3d668b591acd0f80a16e9b4",
+        "width": 1600,
+        "height": 1043
+      }
+    }
+  ],
+  "figures": [
+    {
+      "key": "vanhamel-calibration-benchmark",
+      "path": "benchmark-evidence.en.png",
+      "title": {
+        "en": "Benchmark Evidence: receiver-chain calibration",
+        "de": "Benchmark-Evidenz: Kalibrierung der Empfangsketten"
+      },
+      "caption": {
+        "en": "Native dark English WSPRadar rendering from the reconstruction of frozen database records: ten station entries, 1 143 spot pairs, median +1.0 dB and pooled mean +1.2 dB. [Figure provenance](/assets/demos/vanhamel_rx_calibration/calibration-evidence-provenance.json).",
+        "de": "Native dunkle englische WSPRadar-Darstellung aus der eingefrorenen Archivrekonstruktion: zehn Stationseinträge, 1 143 Joint Spots, Median +1,0 dB und Mittelwert über alle Joint Spots +1,2 dB. [Herkunft der Abbildung](/assets/demos/vanhamel_rx_calibration/calibration-evidence-provenance.json)."
+      },
+      "alt": {
+        "en": "Three Benchmark Evidence panels: all ten stations contribute paired observations, 91% of displayed observations are Paired, and both median markers are +1.0 dB; the spot-pair mean is +1.2 dB.",
+        "de": "Drei Diagramme zur Benchmark-Evidenz: Alle zehn Stationen tragen Joint-Evidenz bei, 91 % der dargestellten Beobachtungen sind Joint Spots, beide Medianmarkierungen liegen bei +1,0 dB; der Joint-Spot-Mittelwert beträgt +1,2 dB."
+      },
+      "width": 3885,
+      "height": 1654,
+      "variants": [
+        {
+          "path": "benchmark-evidence.en-520.webp",
+          "width": 520,
+          "height": 221
+        },
+        {
+          "path": "benchmark-evidence.en-1040.webp",
+          "width": 1040,
+          "height": 443
+        }
+      ],
+      "provenance": {
+        "image_px": [
+          3885,
+          1654
+        ],
+        "kind": "native WSPRadar Benchmark Evidence export reconstructed offline from a frozen archive fixture",
+        "source_sha256": "748c86335cd2604a3d8e6af630f51bb97b056e5a0fc7f5d7cda98095f1fd4d4f",
+        "details": "calibration-evidence-provenance.json",
+        "derivatives": "Resized directly from the original PNG using Lanczos; lossless WebP encoding; no changes to scientific content.",
+        "theme": "Native dark application rendering; paper_theme=False"
+      }
+    },
+    {
+      "key": "vanhamel-calibration-setup",
+      "path": "figure1-dark.png",
+      "width": 1836,
+      "height": 408,
+      "variants": [
+        {
+          "path": "figure1-dark-520.webp",
+          "width": 520,
+          "height": 116
+        },
+        {
+          "path": "figure1-dark-1040.webp",
+          "width": 1040,
+          "height": 231
+        }
+      ],
+      "title": {
+        "en": "One antenna feeding two receiving chains",
+        "de": "Eine Antenne speist zwei Empfangsketten"
+      },
+      "caption": {
+        "en": "One antenna feeding two receiving chains. Schematic of the calibration arrangement described by [Vanhamel et al. (2022), Figure 1](https://doi.org/10.1155/2022/4809313).",
+        "de": "Adaptiert nach [Vanhamel et al. (2022), Abbildung 1](https://doi.org/10.1155/2022/4809313)."
+      },
+      "alt": {
+        "en": "Figure 1 adapted from the paper: one 160 m antenna feeds a choke and minus 6 dB splitter, then two 25 m coaxial paths with chokes, bandpass filters and RTL-SDR receivers connected to one Z83-NUC computer.",
+        "de": "Adaptierte Abbildung 1 der Publikation: Eine 160-m-Antenne speist eine Mantelwellensperre und einen Leistungsteiler mit minus 6 dB, anschließend zwei 25 m lange Koaxialleitungen mit Mantelwellensperren, Bandpassfiltern und RTL-SDR-Empfängern an einem gemeinsamen Z83-NUC-Rechner."
+      },
+      "provenance": {
+        "image_px": [
+          1836,
+          408
+        ],
+        "source_url": "https://pure.tudelft.nl/ws/portalfiles/portal/125931824/4809313.pdf",
+        "figure": "Figure 1",
+        "details": "figure1-provenance.json",
+        "derivatives": "Browser-rendered adapted SVG on transparency, resized directly with Lanczos and saved as lossless WebP; full-size PNG and original adapted SVG retained.",
+        "full_size_source": "Reviewed 1836 by 408 transparent rasterization of the retained adapted SVG; avoids browser SVG-filter edge seams during fractional scaling.",
+        "vector_source": "figure1-dark.svg"
+      }
+    },
+    {
+      "key": "rc3-calibration-statistics",
+      "path": "rc3-20261020/figure_segment_statistics_dark.png",
+      "width": 3882,
+      "height": 1663,
+      "variants": [
+        {
+          "path": "rc3-20261020/web/statistics-520.webp",
+          "width": 520,
+          "height": 223
+        },
+        {
+          "path": "rc3-20261020/web/statistics-1040.webp",
+          "width": 1040,
+          "height": 446
+        },
+        {
+          "path": "rc3-20261020/web/statistics-1600.webp",
+          "width": 1600,
+          "height": 685
+        }
+      ],
+      "title": {
+        "en": "Benchmark Statistics: receiver-chain calibration",
+        "de": "Benchmark Statistics: receiver-chain calibration"
+      },
+      "caption": {
+        "en": "Benchmark Statistics: a small difference, repeated across transmitters. The two SNR panels use 1 143 spot pairs from ten qualifying station entries. The decoding panel uses the broader reception evidence.",
+        "de": "Benchmark Statistics: a small difference, repeated across transmitters. The two SNR panels use 1 143 Joint Spots from ten qualifying station entries. The decoding panel uses the broader reception evidence."
+      },
+      "alt": {
+        "en": "Benchmark Statistics for ON4AWM0 versus ON4AWM1: the qualifying spot-pair distribution has median +1.0 dB and mean +1.2 dB; all ten qualifying station medians are +1.0 dB.",
+        "de": "Benchmark Statistics for ON4AWM0 versus ON4AWM1: the qualifying Joint-Spot distribution has median +1.0 dB and mean +1.2 dB; all ten qualifying station medians are +1.0 dB."
+      },
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_statistics_dark-5370ce1cdd30.png",
+        "bytes": 345977,
+        "sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+          "sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "5a4af470110c67fd8a0a8384edf28735cefc0faa0428adc6be63dd47b6543fb1"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "rc3-20261020/figure_segment_statistics_dark.png",
+          "bytes": 317732,
+          "sha256": "7de564359b88d624f8956a4a29a776b25a9a0739b7a406e819a5c88b6d0bc72b"
+        },
+        "previous_figure_provenance": {
+          "image_px": [
+            3882,
+            1657
+          ],
+          "source_archive": "WSPRadar_export_2026_10_20__21_25.zip",
+          "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_segment_statistics_dark.png",
+          "source_sha256": "7de564359b88d624f8956a4a29a776b25a9a0739b7a406e819a5c88b6d0bc72b",
+          "details": "rc3-20261020/provenance.json",
+          "theme": "Native dark export; original PNG retained unchanged for enlargement.",
+          "derivatives": "Lossless browser derivatives resized directly using LANCZOS; measured PNG/WebP comparison in provenance."
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "rc3-calibration-temporal-snr",
+      "path": "rc3-20261020/figure_segment_temporal_delta_snr_dark.png",
+      "width": 3784,
+      "height": 1757,
+      "variants": [
+        {
+          "path": "rc3-20261020/web/temporal-snr-520.webp",
+          "width": 520,
+          "height": 241
+        },
+        {
+          "path": "rc3-20261020/web/temporal-snr-1040.webp",
+          "width": 1040,
+          "height": 483
+        },
+        {
+          "path": "rc3-20261020/web/temporal-snr-1600.webp",
+          "width": 1600,
+          "height": 743
+        }
+      ],
+      "title": {
+        "en": "ΔSNR Temporal Coverage: calibration stability",
+        "de": "ΔSNR Temporal Coverage: calibration stability"
+      },
+      "caption": {
+        "en": "The median points show the typical difference in each time bin. The gray band contains the middle 50% of the paired differences; it is not an uncertainty interval for the correction.",
+        "de": "The median points show the typical difference in each time bin. The gray band contains the middle 50% of the paired differences; it is not an uncertainty interval for the correction."
+      },
+      "alt": {
+        "en": "Temporal ΔSNR for the qualifying calibration observations. Thirteen of fourteen twelve-hour bins have a +1 dB median; the UTC-hour view has a gap in qualifying daytime evidence.",
+        "de": "Temporal ΔSNR for the qualifying calibration observations. Thirteen of fourteen twelve-hour bins have a +1 dB median; the UTC-hour view has a gap in qualifying daytime evidence."
+      },
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_temporal_delta_snr_dark-b71af4a07658.png",
+        "bytes": 397055,
+        "sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+          "sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "5a4af470110c67fd8a0a8384edf28735cefc0faa0428adc6be63dd47b6543fb1"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "rc3-20261020/figure_segment_temporal_delta_snr_dark.png",
+          "bytes": 370143,
+          "sha256": "d9399868477811d6f6a757b09858fe9d1d1ea5542c4c1160cfb0d2d23969ff6e"
+        },
+        "previous_figure_provenance": {
+          "image_px": [
+            3784,
+            1736
+          ],
+          "source_archive": "WSPRadar_export_2026_10_20__21_25.zip",
+          "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_segment_temporal_delta_snr_dark.png",
+          "source_sha256": "d9399868477811d6f6a757b09858fe9d1d1ea5542c4c1160cfb0d2d23969ff6e",
+          "details": "rc3-20261020/provenance.json",
+          "theme": "Native dark export; original PNG retained unchanged for enlargement.",
+          "derivatives": "Lossless browser derivatives resized directly using LANCZOS; measured PNG/WebP comparison in provenance."
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "rc3-calibration-decodes-over-snr",
+      "path": "rc3-20261020/figure_decodes_over_snr_dark.png",
+      "width": 3807,
+      "height": 2477,
+      "variants": [
+        {
+          "path": "rc3-20261020/web/decodes-over-snr-520.webp",
+          "width": 520,
+          "height": 338
+        },
+        {
+          "path": "rc3-20261020/web/decodes-over-snr-1040.webp",
+          "width": 1040,
+          "height": 677
+        },
+        {
+          "path": "rc3-20261020/web/decodes-over-snr-1600.webp",
+          "width": 1600,
+          "height": 1041
+        }
+      ],
+      "title": {
+        "en": "Decodes & Stations by SNR: calibration run",
+        "de": "Decodes & Stations by SNR: calibration run"
+      },
+      "caption": {
+        "en": "Across all retained observations, ON4AWM0 records **1.21× as many decodes**: **1 766 versus 1 465**, or **301 additional decodes**. These totals use the full run, including stations below the calibration threshold.",
+        "de": "Across all retained observations, ON4AWM0 records **1.21× as many decodes**: **1 766 versus 1 465**, or **301 additional decodes**. These totals use the full run, including stations below the calibration threshold."
+      },
+      "alt": {
+        "en": "Cumulative decodes and stations by raw reported SNR. ON4AWM0 records 1 766 total decodes and ON4AWM1 records 1 465; their one-sided totals are 316 and 15.",
+        "de": "Cumulative decodes and stations by raw reported SNR. ON4AWM0 records 1 766 total decodes and ON4AWM1 records 1 465; their one-sided totals are 316 and 15."
+      },
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_decodes_over_snr_dark-be7fafa9f9fb.png",
+        "bytes": 433952,
+        "sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+          "sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "5a4af470110c67fd8a0a8384edf28735cefc0faa0428adc6be63dd47b6543fb1"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "rc3-20261020/figure_decodes_over_snr_dark.png",
+          "bytes": 389828,
+          "sha256": "59af5c99736fff628c5101a54ebd7941735dee8b121b8343fe3f8e7c9c6c1ccf"
+        },
+        "previous_figure_provenance": {
+          "image_px": [
+            3900,
+            2498
+          ],
+          "source_archive": "WSPRadar_export_2026_10_20__21_25.zip",
+          "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_decodes_over_snr_dark.png",
+          "source_sha256": "59af5c99736fff628c5101a54ebd7941735dee8b121b8343fe3f8e7c9c6c1ccf",
+          "details": "rc3-20261020/provenance.json",
+          "theme": "Native dark export; original PNG retained unchanged for enlargement.",
+          "derivatives": "Lossless browser derivatives resized directly using LANCZOS; measured PNG/WebP comparison in provenance."
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "rc3-calibration-statistics-typography-en-20261024",
+      "path": "typography-en-20261024/figure_segment_statistics_dark.png",
+      "width": 3882,
+      "height": 1748,
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_segment_statistics_dark-520.webp",
+          "width": 520,
+          "height": 234
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_statistics_dark-1040.webp",
+          "width": 1040,
+          "height": 468
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_statistics_dark-1600.webp",
+          "width": 1600,
+          "height": 720
+        }
+      ],
+      "title": {
+        "en": "Benchmark Statistics: receiver-chain calibration",
+        "de": "Benchmark Statistics: receiver-chain calibration"
+      },
+      "caption": {
+        "en": "Benchmark Statistics: a small difference, repeated across transmitters. The two SNR panels use 1 143 spot pairs from ten qualifying station entries. The decoding panel uses the broader reception evidence.",
+        "de": "Benchmark Statistics: a small difference, repeated across transmitters. The two SNR panels use 1 143 Joint Spots from ten qualifying station entries. The decoding panel uses the broader reception evidence."
+      },
+      "alt": {
+        "en": "Benchmark Statistics for ON4AWM0 versus ON4AWM1: the qualifying spot-pair distribution has median +1.0 dB and mean +1.2 dB; all ten qualifying station medians are +1.0 dB.",
+        "de": "Benchmark Statistics for ON4AWM0 versus ON4AWM1: the qualifying Joint-Spot distribution has median +1.0 dB and mean +1.2 dB; all ten qualifying station medians are +1.0 dB."
+      },
+      "provenance": {
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_statistics_dark-5f766fd71d8a.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/vanhamel_rx_calibration/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3882,
+          1748
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_statistics_dark-5370ce1cdd30.png",
+          "bytes": 345977,
+          "sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+            "sha256": "5370ce1cdd30a5f7ca5dd67e1927c52c2b09047e2018455c04b75dbed33d0c59",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "5a4af470110c67fd8a0a8384edf28735cefc0faa0428adc6be63dd47b6543fb1"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "rc3-20261020/figure_segment_statistics_dark.png",
+            "bytes": 317732,
+            "sha256": "7de564359b88d624f8956a4a29a776b25a9a0739b7a406e819a5c88b6d0bc72b"
+          },
+          "previous_figure_provenance": {
+            "image_px": [
+              3882,
+              1657
+            ],
+            "source_archive": "WSPRadar_export_2026_10_20__21_25.zip",
+            "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_segment_statistics_dark.png",
+            "source_sha256": "7de564359b88d624f8956a4a29a776b25a9a0739b7a406e819a5c88b6d0bc72b",
+            "details": "rc3-20261020/provenance.json",
+            "theme": "Native dark export; original PNG retained unchanged for enlargement.",
+            "derivatives": "Lossless browser derivatives resized directly using LANCZOS; measured PNG/WebP comparison in provenance."
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "rc3-calibration-temporal-snr-typography-en-20261024",
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark.png",
+      "width": 3784,
+      "height": 1826,
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-520.webp",
+          "width": 520,
+          "height": 251
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-1040.webp",
+          "width": 1040,
+          "height": 502
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-1600.webp",
+          "width": 1600,
+          "height": 772
+        }
+      ],
+      "title": {
+        "en": "ΔSNR Temporal Coverage: calibration stability",
+        "de": "ΔSNR Temporal Coverage: calibration stability"
+      },
+      "caption": {
+        "en": "The median points show the typical difference in each time bin. The gray band contains the middle 50% of the paired differences; it is not an uncertainty interval for the correction.",
+        "de": "The median points show the typical difference in each time bin. The gray band contains the middle 50% of the paired differences; it is not an uncertainty interval for the correction."
+      },
+      "alt": {
+        "en": "Temporal ΔSNR for the qualifying calibration observations. Thirteen of fourteen twelve-hour bins have a +1 dB median; the UTC-hour view has a gap in qualifying daytime evidence.",
+        "de": "Temporal ΔSNR for the qualifying calibration observations. Thirteen of fourteen twelve-hour bins have a +1 dB median; the UTC-hour view has a gap in qualifying daytime evidence."
+      },
+      "provenance": {
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-f6e521cd9bc3.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/vanhamel_rx_calibration/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3784,
+          1826
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_segment_temporal_delta_snr_dark-b71af4a07658.png",
+          "bytes": 397055,
+          "sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+            "sha256": "b71af4a0765849a4d7736023f797287b54ba876262995a096529386a61f4ee0d",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "5a4af470110c67fd8a0a8384edf28735cefc0faa0428adc6be63dd47b6543fb1"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "rc3-20261020/figure_segment_temporal_delta_snr_dark.png",
+            "bytes": 370143,
+            "sha256": "d9399868477811d6f6a757b09858fe9d1d1ea5542c4c1160cfb0d2d23969ff6e"
+          },
+          "previous_figure_provenance": {
+            "image_px": [
+              3784,
+              1736
+            ],
+            "source_archive": "WSPRadar_export_2026_10_20__21_25.zip",
+            "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_segment_temporal_delta_snr_dark.png",
+            "source_sha256": "d9399868477811d6f6a757b09858fe9d1d1ea5542c4c1160cfb0d2d23969ff6e",
+            "details": "rc3-20261020/provenance.json",
+            "theme": "Native dark export; original PNG retained unchanged for enlargement.",
+            "derivatives": "Lossless browser derivatives resized directly using LANCZOS; measured PNG/WebP comparison in provenance."
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "rc3-calibration-decodes-over-snr-typography-en-20261024",
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark.png",
+      "width": 3807,
+      "height": 2482,
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_decodes_over_snr_dark-520.webp",
+          "width": 520,
+          "height": 339
+        },
+        {
+          "path": "typography-en-20261024/figure_decodes_over_snr_dark-1040.webp",
+          "width": 1040,
+          "height": 678
+        },
+        {
+          "path": "typography-en-20261024/figure_decodes_over_snr_dark-1600.webp",
+          "width": 1600,
+          "height": 1043
+        }
+      ],
+      "title": {
+        "en": "Decodes & Stations by SNR: calibration run",
+        "de": "Decodes & Stations by SNR: calibration run"
+      },
+      "caption": {
+        "en": "Across all retained observations, ON4AWM0 records **1.21× as many decodes**: **1 766 versus 1 465**, or **301 additional decodes**. These totals use the full run, including stations below the calibration threshold.",
+        "de": "Across all retained observations, ON4AWM0 records **1.21× as many decodes**: **1 766 versus 1 465**, or **301 additional decodes**. These totals use the full run, including stations below the calibration threshold."
+      },
+      "alt": {
+        "en": "Cumulative decodes and stations by raw reported SNR. ON4AWM0 records 1 766 total decodes and ON4AWM1 records 1 465; their one-sided totals are 316 and 15.",
+        "de": "Cumulative decodes and stations by raw reported SNR. ON4AWM0 records 1 766 total decodes and ON4AWM1 records 1 465; their one-sided totals are 316 and 15."
+      },
+      "provenance": {
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_decodes_over_snr_dark-0a407cb80280.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/vanhamel_rx_calibration/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3807,
+          2482
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/vanhamel_rx_calibration/current-spot-pairs/figure_decodes_over_snr_dark-be7fafa9f9fb.png",
+          "bytes": 433952,
+          "sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+            "sha256": "be7fafa9f9fb4349f66fe1138efbf7fa3bf2fd45e465d6dd5e027591f8c9c75c",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "5a4af470110c67fd8a0a8384edf28735cefc0faa0428adc6be63dd47b6543fb1"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "rc3-20261020/figure_decodes_over_snr_dark.png",
+            "bytes": 389828,
+            "sha256": "59af5c99736fff628c5101a54ebd7941735dee8b121b8343fe3f8e7c9c6c1ccf"
+          },
+          "previous_figure_provenance": {
+            "image_px": [
+              3900,
+              2498
+            ],
+            "source_archive": "WSPRadar_export_2026_10_20__21_25.zip",
+            "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_decodes_over_snr_dark.png",
+            "source_sha256": "59af5c99736fff628c5101a54ebd7941735dee8b121b8343fe3f8e7c9c6c1ccf",
+            "details": "rc3-20261020/provenance.json",
+            "theme": "Native dark export; original PNG retained unchanged for enlargement.",
+            "derivatives": "Lossless browser derivatives resized directly using LANCZOS; measured PNG/WebP comparison in provenance."
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    }
+  ]
+}

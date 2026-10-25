@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "language": "en",
+  "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+  "source_evidence": {
+    "filename": "analysis_cache.parquet",
+    "bytes": 29814,
+    "sha256": "daab63c4a28b8c47b1bcbf095f3a6b893a667cf02bd366dca821bc0ec92e4be8"
+  },
+  "source_metadata": {
+    "filename": "run_metadata.json",
+    "bytes": 6298,
+    "sha256": "a2c663d659b4c49f02b4152d039bbe91042e01483f78769092fa6d85ae6f1ab4"
+  },
+  "source_configuration": {
+    "filename": "wspradar_config.config",
+    "bytes": 3165,
+    "sha256": "02b42ffd14a870d9223caa884efd3ed6a6a08ae890a461300d5c5c93380c4849"
+  },
+  "configuration": {
+    "filename": "render.config",
+    "bytes": 3797,
+    "sha256": "fe4c69e98333a29be9ff2ea514f9b62dbe800ec5c23e434ace94b384163fc4bc"
+  },
+  "analysis_context": {
+    "run_mode": "RX",
+    "callsign": "ON4AWM0",
+    "qth": "JO20OT",
+    "band": "160m",
+    "comparison_mode": "reference_station",
+    "reference_callsign": "ON4AWM1",
+    "reference_qth": "JO20",
+    "benchmark_evidence_mode": "controlled",
+    "benchmark_operation_confirmed": true,
+    "benchmark_historical_replay_confirmed": false,
+    "reference_snr_correction_db": 0.0,
+    "solar_state": "all",
+    "max_peer_distance_km": 2500,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_spot_pairs_per_station": 50,
+    "min_confirmed_opportunities_per_peer": 5,
+    "min_qualifying_stations_per_map_segment": 1,
+    "min_decode_event_share_percent": 1.0
+  },
+  "scope": "full completed analysis; selected station retains full-run evidence",
+  "selection": {
+    "callsign": "M7AEO",
+    "locator": "IO82"
+  },
+  "bins": {
+    "segment": "12h",
+    "selected": "6h"
+  },
+  "decode_summary": {
+    "decode_val": 9.316001238006809,
+    "decode_cnt": 59,
+    "decode_total_events": 1781,
+    "decode_paired_events": 1450,
+    "decode_target_only_events": 316,
+    "decode_reference_only_events": 15,
+    "decode_target_total": 1766,
+    "decode_reference_total": 1465,
+    "decode_net_events": 301
+  },
+  "selected_decode_summary": {
+    "decode_val": 13.366336633663366,
+    "decode_cnt": 1,
+    "decode_total_events": 464,
+    "decode_paired_events": 344,
+    "decode_target_only_events": 114,
+    "decode_reference_only_events": 6,
+    "decode_target_total": 458,
+    "decode_reference_total": 350,
+    "decode_net_events": 108
+  },
+  "station_reach_formula": "100*(target_distinct-reference_distinct)/(target_distinct+reference_distinct)",
+  "spot_decode_formula": "100*(T-R)/(2*J+T+R)",
+  "station_fold": "Classify per UTC date-hour and exact station identity; ratio of summed daily side totals",
+  "cumulative_snr": {
+    "minimum_db": -35,
+    "maximum_db": 8,
+    "step_db": 1,
+    "spots": {
+      "paired": {
+        "target_count": 1450,
+        "reference_count": 1450,
+        "either_count": 1450
+      },
+      "one_sided": {
+        "target_count": 316,
+        "reference_count": 15,
+        "either_count": 331
+      },
+      "total": {
+        "target_count": 1766,
+        "reference_count": 1465,
+        "either_count": 1781
+      }
+    },
+    "stations": {
+      "paired": {
+        "target_count": 50,
+        "reference_count": 50,
+        "either_count": 50
+      },
+      "one_sided": {
+        "target_count": 9,
+        "reference_count": 0,
+        "either_count": 9,
+        "exclusive_target_count": 9,
+        "exclusive_reference_count": 0,
+        "async_count": 0
+      },
+      "total": {
+        "target_count": 59,
+        "reference_count": 50,
+        "either_count": 59
+      }
+    }
+  },
+  "map_support": {
+    "minimum_spot_pairs_per_station": 50,
+    "minimum_qualifying_stations_per_segment": 1,
+    "minimum_decode_event_share_percent": 1.0
+  },
+  "figures": [
+    {
+      "path": "figure_decodes_over_snr_dark.png",
+      "width": 3807,
+      "height": 2482,
+      "bytes": 436288,
+      "sha256": "0a407cb80280c35344ba8e6e6792c6e7c00b3a7ab3d668b591acd0f80a16e9b4",
+      "variants": [
+        {
+          "path": "figure_decodes_over_snr_dark-600.webp",
+          "width": 600,
+          "height": 391,
+          "bytes": 81860,
+          "sha256": "153c11ab1cb60b7dc531063904372f00336d2bee0a2df210017c3532e248fafc"
+        },
+        {
+          "path": "figure_decodes_over_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 782,
+          "bytes": 195452,
+          "sha256": "376f28c13876fd972f59483dc641a38c915d15ea0af59a21ba8732e3df4f7f3e"
+        }
+      ],
+      "renderer": "ui.plots.snr_reach_figures.render_snr_reach_figure",
+      "recipe_schema_version": 4,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "a52b3e7cec4f7a61f108f6fff4394ad9574e89da64b5c7b1eaaed1e2a51a9c1d"
+    },
+    {
+      "path": "figure_segment_statistics_dark.png",
+      "width": 3882,
+      "height": 1748,
+      "bytes": 355012,
+      "sha256": "5f766fd71d8ac7d6cbac270d4ba1bc5d41024a75a457b3dbc5b8191d78d2e1b1",
+      "variants": [
+        {
+          "path": "figure_segment_statistics_dark-600.webp",
+          "width": 600,
+          "height": 270,
+          "bytes": 56134,
+          "sha256": "8410a10fc8bd192c59b42e4f9796d110051793f090d946fabc69912077aeef22"
+        },
+        {
+          "path": "figure_segment_statistics_dark-1200.webp",
+          "width": 1200,
+          "height": 540,
+          "bytes": 137754,
+          "sha256": "b11c33bd8671ae3305c15fa61d4be713c4217fff8b60a21188131de6cfb2cbac"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+      "recipe_schema_version": 8,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "78db53f2072d21d2cd74db352beee65b44c93079e6d3d98f0c338286db1d31e8"
+    },
+    {
+      "path": "figure_segment_temporal_delta_snr_dark.png",
+      "width": 3784,
+      "height": 1826,
+      "bytes": 383681,
+      "sha256": "f6e521cd9bc3e61d340905a70f8bca1ad7b400b3acd1f4b265b5449dc136d2da",
+      "variants": [
+        {
+          "path": "figure_segment_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 290,
+          "bytes": 65892,
+          "sha256": "354fedb142fba6c87df72e930169bfea2d0ea96c32d96b5e96c051eaa5c097af"
+        },
+        {
+          "path": "figure_segment_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 579,
+          "bytes": 150402,
+          "sha256": "39ab581b9eaab6b1cd3c6e1273c15ada52c2bface42114a2242d02b54d2b4b2b"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_segment_temporal_evidence_export_figure",
+      "recipe_schema_version": 8,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "804eda3d1ae265b7d265d7e2935ea7b43dea6a67d9754f0646a17df224a8d600"
+    }
+  ],
+  "renderer_sources": {
+    "config/figure_typography.py": {
+      "bytes": 461,
+      "sha256": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f"
+    },
+    "config/figure_layouts.py": {
+      "bytes": 2099,
+      "sha256": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231"
+    },
+    "core/plot_engine.py": {
+      "bytes": 50919,
+      "sha256": "376b48adadc2af4aff436eac80b43fbba9a32a5ed4659038981e2ec7055943e5"
+    },
+    "core/figure_footer.py": {
+      "bytes": 5147,
+      "sha256": "d6323c3df5eba2bdc6a47a2d164311dde7c912755af4ea7f2bb3b7c5c29f7f4c"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 29867,
+      "sha256": "c6df8fb4b9ddb30a78e2eecb4b4a1d193bb3e6c1b89f129fa9832ffcb47a3bf5"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 41259,
+      "sha256": "30e2fa61bf3dfaab9351fe1c6248413e9ce91c6f34e5bad7ea67e531da5cb98f"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 117057,
+      "sha256": "4851729d3ba97cd6492dfbd602b953bab5549849674b1995f50934ec38a088d1"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 24086,
+      "sha256": "01d80b2332d5637378a37ae5e479c128e97d941622b50779dededbfa527ec57e"
+    },
+    "ui/plots/temporal_layout.py": {
+      "bytes": 9622,
+      "sha256": "4c4edea77bf57e7ba938056b9378ca1da71fb2ab8d1cf05d01e08a699392459b"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 91243,
+      "sha256": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634"
+    },
+    "ui/inspector/presentation.py": {
+      "bytes": 24398,
+      "sha256": "23f0738b61623d727659abf555fd2cc4dacafaea1abf7a14000e2cef5ded5395"
+    },
+    "i18n.py": {
+      "bytes": 357810,
+      "sha256": "b9e7b92e4b03c2a9c8916f5bf84c7fac1e611a22462fda3d66fbe130857cdc43"
+    },
+    "scripts/internal/render_benchmark_temporal_refresh.py": {
+      "bytes": 19109,
+      "sha256": "bdc24cc8b6ac95059c4370a41734c04ff1a07ed84f74cedb8f7b794beb61925f"
+    }
+  },
+  "browser_derivatives": {
+    "tool": "Pillow 12.2.0",
+    "encoding": "lossless WebP; quality=100; method=4; exact=True",
+    "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+    "decoded_pixels_equal_resized_source": true
+  },
+  "limitations": "Offline retained evidence refresh; source metadata does not prove historical common operation or missing-both transmissions. No fresh provider retrieval.",
+  "renderer_source_captures": {
+    "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade": {
+      "source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "source_manifest_file": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade.json",
+      "renderer_source_sha256": {
+        "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+        "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+        "core/plot_engine.py": "376b48adadc2af4aff436eac80b43fbba9a32a5ed4659038981e2ec7055943e5",
+        "core/figure_footer.py": "d6323c3df5eba2bdc6a47a2d164311dde7c912755af4ea7f2bb3b7c5c29f7f4c",
+        "core/figure_presentation.py": "c6df8fb4b9ddb30a78e2eecb4b4a1d193bb3e6c1b89f129fa9832ffcb47a3bf5",
+        "ui/plots/benchmark_evidence_figures.py": "30e2fa61bf3dfaab9351fe1c6248413e9ce91c6f34e5bad7ea67e531da5cb98f",
+        "ui/plots/evidence_figures.py": "4851729d3ba97cd6492dfbd602b953bab5549849674b1995f50934ec38a088d1",
+        "ui/plots/snr_reach_figures.py": "01d80b2332d5637378a37ae5e479c128e97d941622b50779dededbfa527ec57e",
+        "ui/plots/temporal_layout.py": "4c4edea77bf57e7ba938056b9378ca1da71fb2ab8d1cf05d01e08a699392459b",
+        "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+        "ui/inspector/presentation.py": "23f0738b61623d727659abf555fd2cc4dacafaea1abf7a14000e2cef5ded5395",
+        "i18n.py": "b9e7b92e4b03c2a9c8916f5bf84c7fac1e611a22462fda3d66fbe130857cdc43",
+        "scripts/internal/render_benchmark_temporal_refresh.py": "bdc24cc8b6ac95059c4370a41734c04ff1a07ed84f74cedb8f7b794beb61925f"
+      }
+    }
+  },
+  "renderer_sources_scope": "The legacy renderer_sources field records the initial batch source. Each figure identifies its actual captured renderer version with render_source_signature_id; renderer_source_captures retains the corresponding hashes. Partial refreshes do not relabel unchanged figures.",
+  "typography_refresh": {
+    "language": "en",
+    "date": "2026-10-24",
+    "scope": "Reviewed current runtime typography and legends; retained scientific evidence.",
+    "review_evidence": {
+      "path": "source/archive/spot-pair-renderers/typography-en-20261024/scientific-invariance.json",
+      "bytes": 196232,
+      "sha256": "e37613e13b753051a2d9bbe8a0629fc7674778e559134dd6cf1a9e1749f5ffb4"
+    },
+    "previous_native_provenance": "source/assets/demos/vanhamel_rx_calibration/current-spot-pairs/native-provenance.json",
+    "previous_manifest": {
+      "path": "source/assets/demos/vanhamel_rx_calibration/manifest.json",
+      "bytes": 27459,
+      "sha256": "6b80b3d4444c2f11226619c21c9b4d7c0b62794b52c63afe9681c565358c7b81"
+    },
+    "website_sources": {
+      "rc3-calibration-statistics-typography-en-20261024": {
+        "old_key": "rc3-calibration-statistics",
+        "new_key": "rc3-calibration-statistics-typography-en-20261024",
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_statistics_dark-5f766fd71d8a.png",
+        "alias": "typography-en-20261024/figure_segment_statistics_dark.png",
+        "dimensions": [
+          3882,
+          1748
+        ],
+        "bytes": 355012,
+        "sha256": "5f766fd71d8ac7d6cbac270d4ba1bc5d41024a75a457b3dbc5b8191d78d2e1b1"
+      },
+      "rc3-calibration-temporal-snr-typography-en-20261024": {
+        "old_key": "rc3-calibration-temporal-snr",
+        "new_key": "rc3-calibration-temporal-snr-typography-en-20261024",
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-f6e521cd9bc3.png",
+        "alias": "typography-en-20261024/figure_segment_temporal_delta_snr_dark.png",
+        "dimensions": [
+          3784,
+          1826
+        ],
+        "bytes": 383681,
+        "sha256": "f6e521cd9bc3e61d340905a70f8bca1ad7b400b3acd1f4b265b5449dc136d2da"
+      },
+      "rc3-calibration-decodes-over-snr-typography-en-20261024": {
+        "old_key": "rc3-calibration-decodes-over-snr",
+        "new_key": "rc3-calibration-decodes-over-snr-typography-en-20261024",
+        "source_path": "assets/demos/vanhamel_rx_calibration/typography-en-20261024/native/figure_decodes_over_snr_dark-0a407cb80280.png",
+        "alias": "typography-en-20261024/figure_decodes_over_snr_dark.png",
+        "dimensions": [
+          3807,
+          2482
+        ],
+        "bytes": 436288,
+        "sha256": "0a407cb80280c35344ba8e6e6792c6e7c00b3a7ab3d668b591acd0f80a16e9b4"
+      }
+    }
+  }
+}

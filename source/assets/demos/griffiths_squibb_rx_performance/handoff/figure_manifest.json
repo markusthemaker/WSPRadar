@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "profile_id": "griffiths_squibb_rx_performance",
+  "source_export": "source/original_export.zip",
+  "figure_count": 6,
+  "figures": [
+    {
+      "order": 1,
+      "section_id": "performance-map",
+      "alt": "RX Performance map centered on G3ZIL, with station-balanced Decode Rate by direction and distance and transmitter markers distinguishing heard at least once from heard only elsewhere.",
+      "caption": "G3ZIL's April reception in the worldwide 22,000 km scope. Sector colors describe Decode Rate; individual markers describe at-least-once reception. The map's outer distance guide is labelled 20,000 km; distances are great-circle separations calculated from locators.",
+      "assets": {
+        "light": {
+          "path": "assets/figure_map_highres.png",
+          "sha256": "522e536d70ecd63baefec7a107a91f593b98e0b978ce1c3465d11504d7f1517c",
+          "width": 3443,
+          "height": 3518
+        },
+        "dark": {
+          "path": "assets/figure_map_highres_dark.png",
+          "sha256": "74ba985511363aa82853d35707eb6ff6f287baab9f15d2242095a0708b822891",
+          "width": 3443,
+          "height": 3518
+        }
+      }
+    },
+    {
+      "order": 2,
+      "section_id": "performance-evidence",
+      "alt": "Three distance profiles showing at-least-once transmitter reach, station-balanced and opportunity-level Decode Rates, and successful Target SNR normalized to 1 W.",
+      "caption": "The distance profiles use 2,500 km bins in this worldwide view, with a final 20,000–22,000 km interval. They group all directions together; the map separates direction as well as distance.",
+      "assets": {
+        "light": {
+          "path": "assets/figure_segment_insight.png",
+          "sha256": "8a9096a2021ebeb42f443a44cbf44966d916b98e1d9249233eee35ae6dc6e6dd",
+          "width": 3853,
+          "height": 2167
+        },
+        "dark": {
+          "path": "assets/figure_segment_insight_dark.png",
+          "sha256": "e55af58c443a7c36ae9a8fea2bd088c2d0b31ee0f60771728bf2d65465f47b9f",
+          "width": 3853,
+          "height": 2167
+        }
+      }
+    },
+    {
+      "order": 3,
+      "section_id": "snr-deviation",
+      "alt": "Chronological and UTC-hour profiles of each transmitter path's successful SNR relative to its own full-run median, with density, median and middle-half spread.",
+      "caption": "Left: the sequence of April's 12-hour bins. Right: matching one-hour UTC periods combined across 30 dates.",
+      "assets": {
+        "light": {
+          "path": "assets/figure_segment_temporal_snr_deviation.png",
+          "sha256": "08c9652201800bfaf5e9f3887e8e1f062ea92dbc45323f8afae3397c649eeded",
+          "width": 3808,
+          "height": 1822
+        },
+        "dark": {
+          "path": "assets/figure_segment_temporal_snr_deviation_dark.png",
+          "sha256": "8f12da2c40685b3817c689825e2bb1f4ad753182cbf683156e92fb2bd34fe07f",
+          "width": 3808,
+          "height": 1822
+        }
+      }
+    },
+    {
+      "order": 4,
+      "section_id": "temporal-evidence",
+      "alt": "Station-balanced and opportunity-level support and Decode Rates over April and by UTC hour, with green success support, gray miss support and Decode Rate lines with circular markers.",
+      "caption": "Upper row: station-balanced support and rate. Lower row: confirmed-opportunity counts and pooled rate. Right-hand bars show average daily hourly support.",
+      "assets": {
+        "light": {
+          "path": "assets/figure_segment_temporal_evidence.png",
+          "sha256": "31d266c9337ccc86ac608d36eae6d21f8de830a10f6ab88b8088dcbb3fef9981",
+          "width": 3799,
+          "height": 1785
+        },
+        "dark": {
+          "path": "assets/figure_segment_temporal_evidence_dark.png",
+          "sha256": "68ffcfb80044099d7a3675e8d68e4075dc933ca7e624fdef9c427d0892e6c2b2",
+          "width": 3799,
+          "height": 1785
+        }
+      }
+    },
+    {
+      "order": 5,
+      "section_id": "selected-station-snr",
+      "alt": "Successful SNR from HB0QRP at G3ZIL, normalized to 1 W, shown chronologically in 12-hour bins and by UTC hour across April.",
+      "caption": "These are HB0QRP's actual successful normalized SNR values. Unlike the earlier segment view, the graph does not subtract a path baseline.",
+      "assets": {
+        "light": {
+          "path": "assets/figure_selected_station_snr_evidence.png",
+          "sha256": "e9e579d993e57c283f829cb35c0bb72bab84c1286696f6c5f4a51553feb47427",
+          "width": 3808,
+          "height": 1921
+        },
+        "dark": {
+          "path": "assets/figure_selected_station_snr_evidence_dark.png",
+          "sha256": "34b7f856825b85a93754881c1ec74ea68a7fc90d58e787932ee6ab588d3ac643",
+          "width": 3808,
+          "height": 1921
+        }
+      }
+    },
+    {
+      "order": 6,
+      "section_id": "selected-station-evidence",
+      "alt": "HB0QRP success and miss support and Decode Rate over April and by UTC hour, with 12-hour chronological bins.",
+      "caption": "For one selected transmitter, the two rate weightings coincide. The upper row expresses station support; the lower row shows the number of confirmed opportunities.",
+      "assets": {
+        "light": {
+          "path": "assets/figure_selected_station_temporal_evidence.png",
+          "sha256": "07f26818bb8cb2fb22bd536b564353c063ad710e8731dec25f53580c6afc7888",
+          "width": 3811,
+          "height": 1850
+        },
+        "dark": {
+          "path": "assets/figure_selected_station_temporal_evidence_dark.png",
+          "sha256": "b3c3aa13f7b578dde80f5481f32ef01bfde7d57d9b1d24cb313c20a28ee4de6e",
+          "width": 3811,
+          "height": 1850
+        }
+      }
+    }
+  ],
+  "integration_note": "Inline light figures identify placements. Use existing repository theme-aware components or section injection, but do not render duplicates. Preserve captions, aspect ratios and accessibility text. No new chart or Drill-Down focus figure was generated."
+}

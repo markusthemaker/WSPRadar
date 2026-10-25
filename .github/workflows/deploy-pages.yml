@@ -1,0 +1,112 @@
+name: Build and deploy website
+
+on:
+  push:
+    branches: [main, temp]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build and validate public website
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out public website sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-site.txt
+
+      - name: Set up Node.js for browser-script contracts
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Install website build dependencies
+        run: python -m pip install --requirement requirements-site.txt
+
+      - name: Run website contracts
+        run: python -m unittest discover -s tests -v
+
+      - name: Run browser-script contracts
+        shell: bash
+        run: |
+          for test_file in tests/*.cjs; do
+            node "$test_file"
+          done
+
+      - name: Build generated website
+        run: python scripts/build_site.py
+
+      - name: Verify generated output and local links
+        # Live external URL availability remains a separate release check.
+        run: python scripts/build_site.py --check --offline
+
+      - name: Verify publication root and custom domain
+        shell: bash
+        run: |
+          test -f generated/index.html
+          test "$(cat generated/CNAME)" = 'wspradar.org'
+
+      - name: Upload generated website only
+        if: >-
+          github.repository == 'markusthemaker/WSPRadar' &&
+          github.ref == 'refs/heads/main' &&
+          github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: generated
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy to wspradar.org
+    needs: build
+    if: >-
+      github.repository == 'markusthemaker/WSPRadar' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Require approved Pages settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pages" --jq '
+            if .build_type == "workflow" and
+               .cname == "wspradar.org" and
+               .https_enforced == true
+            then "Pages uses GitHub Actions, wspradar.org, and enforced HTTPS."
+            else error("Configure Pages for GitHub Actions, retain wspradar.org, and enable Enforce HTTPS before deployment.")
+            end'
+
+      - name: Read Pages configuration
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+        with:
+          enablement: false
+
+      - name: Deploy generated website
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

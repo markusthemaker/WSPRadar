@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-labelledby="station-balanced-title">
+<title id="station-balanced-title">Three station summaries of equal size feed one aggregate summary.</title>
+<g stroke="currentColor">
+<path d="M52 61V93M52 61L38 38M52 61L66 38M39 93H65"/>
+<path d="M128 61V93M128 61L114 38M128 61L142 38M115 93H141"/>
+<path d="M204 61V93M204 61L190 38M204 61L218 38M191 93H217"/>
+<path d="M52 139V157L110 183M128 139V183M204 139V157L146 183"/>
+</g>
+<g stroke="currentColor">
+<rect x="36" y="113" width="32" height="16" rx="4"/>
+<rect x="112" y="113" width="32" height="16" rx="4"/>
+<rect x="188" y="113" width="32" height="16" rx="4"/>
+<rect x="94" y="187" width="68" height="38" rx="9"/>
+<path d="M108 206H148"/>
+</g>
+</svg>

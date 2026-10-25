@@ -1,0 +1,35 @@
+{
+  "recipe": "scripts\\internal\\prepare_retained_figure_evidence.py",
+  "sources": {
+    "source_rows": {
+      "path": "C:\\Users\\marku\\Code\\WSPRadarApp\\tests\\regression\\reference_fixtures\\vanhamel_rx_calibration_v1\\source_rows.csv",
+      "bytes": 473865,
+      "sha256": "f4b26f3c02bc9d41108ff2528d48ea54a15e852d7e3e7ef3e8ce778a9db5a6b8"
+    },
+    "source_config": {
+      "path": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_calibration\\20261020-export\\config\\wspradar_config.config",
+      "bytes": 3165,
+      "sha256": "02b42ffd14a870d9223caa884efd3ed6a6a08ae890a461300d5c5c93380c4849"
+    },
+    "source_metadata": {
+      "path": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_calibration\\20261020-export\\config\\run_metadata.json",
+      "bytes": 6298,
+      "sha256": "a2c663d659b4c49f02b4152d039bbe91042e01483f78769092fa6d85ae6f1ab4"
+    },
+    "source_table": {
+      "path": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_calibration\\20261020-export\\benchmark\\table_drilldown_all_stations_current_segment.csv",
+      "bytes": 124380,
+      "sha256": "23cfc9d87c1359d8df6cdb1c059b257c9b2990533ff40772b94d4390151fa21f"
+    }
+  },
+  "observed_station_cycles": 1781,
+  "spot_pairs": 1450,
+  "endpoint_ledger": "Every identity, cycle, side-presence, displayed normalized SNR and ΔSNR matched; no CSV values used as plot inputs",
+  "scientific_values": "Full precision production output from retained raw reports",
+  "selected_station": {
+    "callsign": "M7AEO",
+    "locator": "IO82"
+  },
+  "source_sql_sha256": "4ba6d622cffbd80262fa451d3959781ace1f5ecedd37ee894eb9b58c9fa40b7b",
+  "limitations": "Offline SQLite adapter; no native ClickHouse or live provider check"
+}

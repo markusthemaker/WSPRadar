@@ -1,0 +1,4 @@
+mode,utc,peer_callsign,Target_report_locator,Reference_report_locator,Target_id,Reference_id,Target_raw_SNR_dB,Reference_raw_SNR_dB,would_be_Delta_SNR_dB
+RX,2010-12-19 23:24:00,VE6PDQ,DO34ir,DO34,44693601,44693617,-19,-24,5
+RX,2010-12-19 23:46:00,VE6PDQ,DO34,DO34ir,44695889,44695606,-8,-23,15
+RX,2010-12-20 10:46:00,VE6PDQ,DO34,DO34ir,44743035,44742852,-2,-26,24

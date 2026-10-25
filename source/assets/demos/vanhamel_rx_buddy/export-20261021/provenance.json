@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "source_archive": "site/demos/vanhamel_rx_buddy/source/20261021-export/vanhamel-rotation-guided-demo-package.zip",
+  "source_archive_sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb",
+  "package_root": "vanhamel-guided-demo",
+  "exported_at_utc": "2026-10-21T05:45:35Z",
+  "source_files_sha256": {
+    "figures/figure_decodes_over_snr.png": "3f762120a8607fcb5311b4d95e695d213ccd39a29f9afa26208ff305243622d9",
+    "figures/figure_decodes_over_snr_dark.png": "73952db7f4d48a719c0e73cb7c1cf09b14333472fb6535819f9c3d49eec2abf8",
+    "figures/figure_map_delta_decode.png": "c19e43039c4a95b05cae5f0a401d89bd0db6c30135e8c5b38a87390f8a036808",
+    "figures/figure_map_delta_decode_dark.png": "103d600077508384d0d6e42be5a0d897c28530f4e1ee7e4d23fb7e5203b4e4d3",
+    "figures/figure_map_delta_snr.png": "4cb69b7e958f4d4dfe09e8e4237bcc98b07cce17affa7f5274ebc2542385c2cc",
+    "figures/figure_map_delta_snr_dark.png": "0ca84aa4f6e7c6dfa93f09d4fd773574a10049aa34c1bea1ab427edbad71c559",
+    "figures/figure_segment_statistics.png": "6deb47d295b040cd22700cb870e8414ea8a2b16493fc528474b80f6466136e34",
+    "figures/figure_segment_statistics_dark.png": "90bd77c93121b77c227173a14993a1f4ded5d4b61e09399e224440e0dd6437eb",
+    "figures/figure_segment_temporal_delta_decode.png": "483dce9ae653cad4b7d2e123628b6e5d7fecdf1eba2a905a7218f087c08baa72",
+    "figures/figure_segment_temporal_delta_decode_dark.png": "764f8d18693249a7c9c999e16dc35cdfecd513a8405dbc772e59a0d14a3fa272",
+    "figures/figure_segment_temporal_delta_snr.png": "5431950a97137814c72b89ba4c6293be41c010e6091d44d2963ad534a2e467a3",
+    "figures/figure_segment_temporal_delta_snr_dark.png": "1f11e5185874264dec3b1fcdfac86c4f752f00b442c03f58692a9d7e1a850cb2",
+    "figures/figure_selected_station_temporal_delta_decode.png": "345a8f34d60448e0996459489ad7b1ec4caf2d9d86704bf30ab015f001c22d17",
+    "figures/figure_selected_station_temporal_delta_decode_dark.png": "cc04d15124b700c147b777827d65dfc239d106bec67fc84054a1fd788db468c0",
+    "figures/figure_selected_station_temporal_delta_snr.png": "ae53b37c044e020e4caebebf3089eca279318dcb04118d7e6bcf9c1697867650",
+    "figures/figure_selected_station_temporal_delta_snr_dark.png": "4c9b0a8b301472d7614cce102491355a17091d9c333f303774e3e93539c01748",
+    "README.md": "5601efa4fb2ce8fbce40c08c4eddbdf1433e9572e7f077d60ac6693293d474db",
+    "source/run_metadata.json": "b73a291deb3cf5396d0a32a4b41c8cf7db1f1ea570aff49533dd6a2e68c841c8",
+    "source/table_drilldown_all_stations_current_segment.csv": "eee947170b7d56be1e7f7f26ef427e4c8438e0699b97457db0da4d9e3aa52889",
+    "source/table_drilldown_selected_stations.csv": "53d700c093b8b08bb8b6d68e99a622d456b791d7ba883b1a7457f2c700c819d8",
+    "source/table_station_insights.csv": "c878127adc2b19a63e491bc2bd5637957fca10bb8edddc03c758423f3cc6f799",
+    "source/wspradar_config.config": "97d2e10bb3315d3a490cb9b8d7f964cd10015bc1af4b5d9a9969eea472bab00f",
+    "vanhamel-rotation-guided-demo.md": "978508b3fb888a7402c6c2789deb330f8b58bd5f55551a30acdd57734af575dd"
+  },
+  "figures": [
+    {
+      "section": "delta-snr-map",
+      "source": "figure_map_delta_snr_dark.png",
+      "source_sha256": "0ca84aa4f6e7c6dfa93f09d4fd773574a10049aa34c1bea1ab427edbad71c559",
+      "width": 3399,
+      "height": 3511,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_map_delta_snr-520.webp",
+          "width": 520,
+          "height": 537
+        },
+        {
+          "path": "export-20261021/web/figure_map_delta_snr-1040.webp",
+          "width": 1040,
+          "height": 1074
+        },
+        {
+          "path": "export-20261021/web/figure_map_delta_snr-1600.webp",
+          "width": 1600,
+          "height": 1653
+        }
+      ]
+    },
+    {
+      "section": "decoding-reach",
+      "source": "figure_decodes_over_snr_dark.png",
+      "source_sha256": "73952db7f4d48a719c0e73cb7c1cf09b14333472fb6535819f9c3d49eec2abf8",
+      "width": 3900,
+      "height": 2498,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_decodes_over_snr-520.webp",
+          "width": 520,
+          "height": 333
+        },
+        {
+          "path": "export-20261021/web/figure_decodes_over_snr-1040.webp",
+          "width": 1040,
+          "height": 666
+        },
+        {
+          "path": "export-20261021/web/figure_decodes_over_snr-1600.webp",
+          "width": 1600,
+          "height": 1025
+        }
+      ]
+    },
+    {
+      "section": "delta-decode-map",
+      "source": "figure_map_delta_decode_dark.png",
+      "source_sha256": "103d600077508384d0d6e42be5a0d897c28530f4e1ee7e4d23fb7e5203b4e4d3",
+      "width": 3459,
+      "height": 3511,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_map_delta_decode-520.webp",
+          "width": 520,
+          "height": 528
+        },
+        {
+          "path": "export-20261021/web/figure_map_delta_decode-1040.webp",
+          "width": 1040,
+          "height": 1056
+        },
+        {
+          "path": "export-20261021/web/figure_map_delta_decode-1600.webp",
+          "width": 1600,
+          "height": 1624
+        }
+      ]
+    },
+    {
+      "section": "difference",
+      "source": "figure_segment_statistics_dark.png",
+      "source_sha256": "90bd77c93121b77c227173a14993a1f4ded5d4b61e09399e224440e0dd6437eb",
+      "width": 3852,
+      "height": 1692,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_segment_statistics-520.webp",
+          "width": 520,
+          "height": 228
+        },
+        {
+          "path": "export-20261021/web/figure_segment_statistics-1040.webp",
+          "width": 1040,
+          "height": 457
+        },
+        {
+          "path": "export-20261021/web/figure_segment_statistics-1600.webp",
+          "width": 1600,
+          "height": 703
+        }
+      ]
+    },
+    {
+      "section": "time",
+      "source": "figure_segment_temporal_delta_snr_dark.png",
+      "source_sha256": "1f11e5185874264dec3b1fcdfac86c4f752f00b442c03f58692a9d7e1a850cb2",
+      "width": 3844,
+      "height": 1731,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_segment_temporal_delta_snr-520.webp",
+          "width": 520,
+          "height": 234
+        },
+        {
+          "path": "export-20261021/web/figure_segment_temporal_delta_snr-1040.webp",
+          "width": 1040,
+          "height": 468
+        },
+        {
+          "path": "export-20261021/web/figure_segment_temporal_delta_snr-1600.webp",
+          "width": 1600,
+          "height": 720
+        }
+      ]
+    },
+    {
+      "section": "evidence",
+      "source": "figure_segment_temporal_delta_decode_dark.png",
+      "source_sha256": "764f8d18693249a7c9c999e16dc35cdfecd513a8405dbc772e59a0d14a3fa272",
+      "width": 3817,
+      "height": 1641,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_segment_temporal_delta_decode-520.webp",
+          "width": 520,
+          "height": 224
+        },
+        {
+          "path": "export-20261021/web/figure_segment_temporal_delta_decode-1040.webp",
+          "width": 1040,
+          "height": 447
+        },
+        {
+          "path": "export-20261021/web/figure_segment_temporal_delta_decode-1600.webp",
+          "width": 1600,
+          "height": 688
+        }
+      ]
+    },
+    {
+      "section": "stations",
+      "source": "figure_selected_station_temporal_delta_snr_dark.png",
+      "source_sha256": "4c9b0a8b301472d7614cce102491355a17091d9c333f303774e3e93539c01748",
+      "width": 3844,
+      "height": 1816,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_selected_station_temporal_delta_snr-520.webp",
+          "width": 520,
+          "height": 246
+        },
+        {
+          "path": "export-20261021/web/figure_selected_station_temporal_delta_snr-1040.webp",
+          "width": 1040,
+          "height": 491
+        },
+        {
+          "path": "export-20261021/web/figure_selected_station_temporal_delta_snr-1600.webp",
+          "width": 1600,
+          "height": 756
+        }
+      ]
+    },
+    {
+      "section": "station-decodes",
+      "source": "figure_selected_station_temporal_delta_decode_dark.png",
+      "source_sha256": "cc04d15124b700c147b777827d65dfc239d106bec67fc84054a1fd788db468c0",
+      "width": 3817,
+      "height": 1717,
+      "variants": [
+        {
+          "path": "export-20261021/web/figure_selected_station_temporal_delta_decode-520.webp",
+          "width": 520,
+          "height": 234
+        },
+        {
+          "path": "export-20261021/web/figure_selected_station_temporal_delta_decode-1040.webp",
+          "width": 1040,
+          "height": 468
+        },
+        {
+          "path": "export-20261021/web/figure_selected_station_temporal_delta_decode-1600.webp",
+          "width": 1600,
+          "height": 720
+        }
+      ]
+    }
+  ],
+  "integration": "English narrative and eight unchanged native dark figures; original light/dark figures, prose, metadata, configuration and CSV evidence retained in the complete supplied source archive. Existing Figure 6 reference artwork and PDF retained. German narrative and media deferred."
+}

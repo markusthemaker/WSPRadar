@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-labelledby="joint-and-one-sided-title">
+<title id="joint-and-one-sided-title">Three paired rows showing both reports present, the left report only, and the right report only.</title>
+<g stroke="currentColor">
+<circle cx="192" cy="128" r="17"/>
+<circle cx="64" cy="202" r="17"/>
+</g>
+<g stroke="currentColor">
+<path d="M91 54H165"/>
+<circle cx="64" cy="54" r="17" fill="currentColor"/>
+<circle cx="192" cy="54" r="17" fill="currentColor"/>
+<circle cx="64" cy="128" r="17" fill="currentColor"/>
+<circle cx="192" cy="202" r="17" fill="currentColor"/>
+</g>
+</svg>

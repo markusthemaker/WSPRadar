@@ -2,3 +2,10 @@
 /content/generated/** -text
 /site/assets/** -text
 /site/demos/** -text
+/static/** -text
+
+# New source layout: preserve imported content, assets, evidence and authored Markdown bytes.
+/source/imported/** -text
+/source/assets/** -text
+/source/archive/** -text
+/source/pages/** -text

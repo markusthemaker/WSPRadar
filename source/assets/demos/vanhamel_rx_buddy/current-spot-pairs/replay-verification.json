@@ -1,0 +1,44 @@
+{
+  "recipe": "scripts\\internal\\prepare_retained_figure_evidence.py",
+  "sources": {
+    "source_rows": {
+      "path": "C:\\Users\\marku\\Code\\WSPRadarApp\\tests\\regression\\reference_fixtures\\vanhamel_fig6_rotation_v1\\source_rows.csv",
+      "bytes": 1836860,
+      "sha256": "84ab229a22555a365fc16ba707a16fd12c8a7b9b75f5b557768790ea2c07cf28"
+    },
+    "source_config": {
+      "bytes": 8589,
+      "sha256": "97d2e10bb3315d3a490cb9b8d7f964cd10015bc1af4b5d9a9969eea472bab00f",
+      "source_kind": "zip-member",
+      "archive_path": "source/archive/demos/vanhamel_rx_buddy/20261021-export/vanhamel-rotation-guided-demo-package.zip",
+      "archive_sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb",
+      "archive_member": "vanhamel-guided-demo/source/wspradar_config.config"
+    },
+    "source_metadata": {
+      "bytes": 6303,
+      "sha256": "b73a291deb3cf5396d0a32a4b41c8cf7db1f1ea570aff49533dd6a2e68c841c8",
+      "source_kind": "zip-member",
+      "archive_path": "source/archive/demos/vanhamel_rx_buddy/20261021-export/vanhamel-rotation-guided-demo-package.zip",
+      "archive_sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb",
+      "archive_member": "vanhamel-guided-demo/source/run_metadata.json"
+    },
+    "source_table": {
+      "bytes": 496692,
+      "sha256": "eee947170b7d56be1e7f7f26ef427e4c8438e0699b97457db0da4d9e3aa52889",
+      "source_kind": "zip-member",
+      "archive_path": "source/archive/demos/vanhamel_rx_buddy/20261021-export/vanhamel-rotation-guided-demo-package.zip",
+      "archive_sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb",
+      "archive_member": "vanhamel-guided-demo/source/table_drilldown_all_stations_current_segment.csv"
+    }
+  },
+  "observed_station_cycles": 7164,
+  "spot_pairs": 5379,
+  "endpoint_ledger": "Every identity, cycle, side-presence, displayed normalized SNR and ΔSNR matched; no CSV values used as plot inputs",
+  "scientific_values": "Full precision production output from retained raw reports",
+  "selected_station": {
+    "callsign": "M7AEO",
+    "locator": "IO82"
+  },
+  "source_sql_sha256": "bf14b2352a7e5c808aaaf4f3de36738bf47ed5974adbc4d43a6665d8064caf86",
+  "limitations": "Offline SQLite adapter; no native ClickHouse or live provider check"
+}

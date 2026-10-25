@@ -1,0 +1,75 @@
+{
+  "method_version": "pooled-total-decodes-v1",
+  "render_version": 7,
+  "formula": "100*(T-R)/(2*J+T+R)",
+  "threshold_denominator": "Full retained observed union J+T+R; Joint counted once",
+  "evidence": {
+    "filename": "analysis_cache.parquet",
+    "bytes": 1445197,
+    "sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed"
+  },
+  "configuration": {
+    "filename": "00a_griffiths_squibb_fig3.config",
+    "bytes": 6214,
+    "sha256": "00df7d073f8e6c08e401827361ffab4e1fdd4c3bfe0bb11244b1f1386b2ea4a7"
+  },
+  "analysis_context": {
+    "run_mode": "RX",
+    "callsign": "G3ZIL",
+    "qth": "IO90HW",
+    "band": "40m",
+    "comparison_mode": "reference_station",
+    "reference_callsign": "G4HZX",
+    "reference_qth": "IO91",
+    "benchmark_evidence_mode": "controlled",
+    "benchmark_operation_confirmed": true,
+    "benchmark_historical_replay_confirmed": false,
+    "reference_snr_correction_db": 0.0,
+    "solar_state": "all",
+    "max_peer_distance_km": 10000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_joint_spots_per_station": 1,
+    "min_confirmed_opportunities_per_peer": 5,
+    "min_qualifying_stations_per_map_segment": 5,
+    "min_decode_event_share_percent": 1.0
+  },
+  "summary": {
+    "decode_val": 24.425894099353467,
+    "decode_cnt": 1132,
+    "decode_total_events": 125518,
+    "decode_joint_events": 57767,
+    "decode_target_only_events": 56260,
+    "decode_reference_only_events": 11491,
+    "decode_target_total": 114027,
+    "decode_reference_total": 69258,
+    "decode_net_events": 44769
+  },
+  "minimum_events": 1256,
+  "active_sectors": 11,
+  "native": {
+    "path": "figure_map_decode_highres_dark.png",
+    "width": 3567,
+    "height": 3573,
+    "bytes": 1443689,
+    "sha256": "c12c2067871358f1940e6b5e53a27b69ae57de28949f7c3306f0ec4df1960f9d"
+  },
+  "variants": [
+    {
+      "path": "figure_map_decode_highres_dark-600.webp",
+      "width": 600,
+      "height": 601,
+      "bytes": 104694,
+      "sha256": "58d0879221081404f99e56ce2d85f0072185e6128726cf03258c6865eb91089f"
+    },
+    {
+      "path": "figure_map_decode_highres_dark-1200.webp",
+      "width": 1200,
+      "height": 1202,
+      "bytes": 274946,
+      "sha256": "a2100f70b3139024a98fc0168cc5f4139bf2df39c38c8c55f9ef57a03743a9b1"
+    }
+  ],
+  "recipe": "WSPRadarApp/scripts/internal/render_decode_advantage_map.py",
+  "rendering": "Native production dark map; existing palette with adaptive fold-ratio boundary labels and equal-width color swatches; lossless WebP derivatives"
+}

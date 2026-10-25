@@ -1,5 +1,5 @@
 # Fixed security boundary for the public website workflow, not operator configuration.
-# Application source and history must never be published through these helpers.
+# File selection follows Git tracking and ignore rules; review public content before pushing.
 $script:WebsiteRepositoryPolicy = @{
     FullName = 'markusthemaker/WSPRadar'
     Id = 1416038123L
@@ -14,386 +14,6 @@ $script:WebsiteRepositoryPolicy = @{
     )
 }
 $script:WebsiteRepositoryRoot = $null
-$script:WebsiteAllowedFiles = @(
-    '.github/ISSUE_TEMPLATE/bug_report.yml',
-    '.github/ISSUE_TEMPLATE/config.yml',
-    '.github/ISSUE_TEMPLATE/feature_request.yml',
-    '.github/ISSUE_TEMPLATE/scientific_concern.yml',
-    '.github/SUPPORT.md',
-    'CNAME',
-    'README.md',
-    'img/WSPRadar-2x1.png',
-    'index.html',
-    'scripts/git-repository-guard.ps1',
-    'scripts/git-push-temp.ps1',
-    'scripts/git-release-main.ps1',
-    'scripts/git-baseline-temp.ps1',
-    'scripts/README.md',
-    'scripts/tests/test_git_workflow_safety.py',
-    # Reviewed static website sources, public-content bundle, assets, and tests.
-    '.gitattributes',
-    '.github/DISCUSSION_TEMPLATE/report-a-bug-or-concern.yml',
-    '.gitignore',
-    'AGENTS.md',
-    'content/generated/assets/brand/Rajdhani-OFL.txt',
-    'content/generated/assets/brand/SourceSans3-OFL.txt',
-    'content/generated/assets/brand/SpaceMono-OFL.txt',
-    'content/generated/assets/brand/WSPRadar-140x140.png',
-    'content/generated/assets/brand/radar-hero-desktop-1024.png',
-    'content/generated/assets/brand/radar-hero-desktop-1024.webp',
-    'content/generated/assets/brand/radar-hero-desktop-1280.webp',
-    'content/generated/assets/brand/radar-hero-desktop-1536.webp',
-    'content/generated/assets/brand/radar-hero-desktop-1896.webp',
-    'content/generated/assets/brand/radar-hero-desktop-768.webp',
-    'content/generated/assets/brand/radar-hero-desktop-992.webp',
-    'content/generated/assets/brand/radar-hero-desktop.png',
-    'content/generated/assets/brand/radar-hero-mobile-400.webp',
-    'content/generated/assets/brand/radar-hero-mobile-600.webp',
-    'content/generated/assets/brand/radar-hero-mobile-888.webp',
-    'content/generated/assets/brand/radar-hero-mobile.png',
-    'content/generated/assets/brand/rajdhani-v17-600-normal-devanagari.woff2',
-    'content/generated/assets/brand/rajdhani-v17-600-normal-latin-ext.woff2',
-    'content/generated/assets/brand/rajdhani-v17-600-normal-latin.woff2',
-    'content/generated/assets/brand/rajdhani-v17-700-normal-devanagari.woff2',
-    'content/generated/assets/brand/rajdhani-v17-700-normal-latin-ext.woff2',
-    'content/generated/assets/brand/rajdhani-v17-700-normal-latin.woff2',
-    'content/generated/assets/brand/source-sans-3-v20-italic-latin-ext.woff2',
-    'content/generated/assets/brand/source-sans-3-v20-italic-latin.woff2',
-    'content/generated/assets/brand/source-sans-3-v20-normal-latin-ext.woff2',
-    'content/generated/assets/brand/source-sans-3-v20-normal-latin.woff2',
-    'content/generated/assets/brand/space-mono-v17-400-italic-latin-ext.woff2',
-    'content/generated/assets/brand/space-mono-v17-400-italic-latin.woff2',
-    'content/generated/assets/brand/space-mono-v17-400-italic-vietnamese.woff2',
-    'content/generated/assets/brand/space-mono-v17-400-normal-latin-ext.woff2',
-    'content/generated/assets/brand/space-mono-v17-400-normal-latin.woff2',
-    'content/generated/assets/brand/space-mono-v17-400-normal-vietnamese.woff2',
-    'content/generated/assets/brand/space-mono-v17-700-normal-latin-ext.woff2',
-    'content/generated/assets/brand/space-mono-v17-700-normal-latin.woff2',
-    'content/generated/assets/brand/space-mono-v17-700-normal-vietnamese.woff2',
-    'content/generated/assets/figures/griffiths-figure3-comparison.png',
-    'content/generated/assets/figures/griffiths-figure3-pairing-diagnostic.png',
-    'content/generated/assets/figures/griffiths-figure6-comparison.png',
-    'content/generated/assets/figures/landing-demo1-coverage.webp',
-    'content/generated/assets/figures/landing-demo1-map.webp',
-    'content/generated/assets/figures/landing-demo1-snr.webp',
-    'content/generated/assets/figures/landing-demo1-temporal.webp',
-    'content/generated/assets/figures/milazzo-figure6-rx-comparison.png',
-    'content/generated/assets/figures/milazzo-figure7-tx-comparison.png',
-    'content/generated/assets/figures/vanhamel-figure6-comparison.png',
-    'content/generated/assets/figures/zander-figure4-comparison.png',
-    'content/generated/assets/screenshots/demo-1-drilldown.jpg',
-    'content/generated/assets/screenshots/demo-1-map.jpg',
-    'content/generated/assets/screenshots/demo-1-segment.jpg',
-    'content/generated/assets/screenshots/demo-1-stations.jpg',
-    'content/generated/assets/screenshots/demo-1-temporal.jpg',
-    'content/generated/assets/screenshots/demo-2-map.jpg',
-    'content/generated/assets/screenshots/demo-2-temporal.jpg',
-    'content/generated/assets/screenshots/demo-5-selected-evidence.jpg',
-    'content/generated/assets/screenshots/demo-6-map.jpg',
-    'content/generated/assets/screenshots/demo-6-segment.jpg',
-    'content/generated/assets/screenshots/demo-7-drilldown.jpg',
-    'content/generated/assets/screenshots/demo-7-stations.jpg',
-    'content/generated/brand.json',
-    'content/generated/configs/griffiths_squibb_fig3.config',
-    'content/generated/configs/griffiths_squibb_fig6.config',
-    'content/generated/configs/griffiths_squibb_rx_performance.config',
-    'content/generated/configs/milazzo_tx_buddy.config',
-    'content/generated/configs/vanhamel_rx_buddy.config',
-    'content/generated/configs/vanhamel_rx_calibration.config',
-    'content/generated/configs/zander_tx_buddy.config',
-    'content/generated/demos.json',
-    'content/generated/figures.json',
-    'content/generated/manifest.json',
-    'content/generated/manual.de.md',
-    'content/generated/manual.en.md',
-    'content/generated/screenshots.json',
-    'content/generated/website.json',
-    'docs/architecture.md',
-    'requirements-site.txt',
-    'scripts/build_site.py',
-    'scripts/demo_walkthrough.py',
-    'scripts/external_links.py',
-    'scripts/landing_page.py',
-    'scripts/prepare_landing_assets.py',
-    'site/assets/flags/de.svg',
-    'site/assets/flags/en.svg',
-    'site/assets/landing/README.md',
-    'site/assets/landing/manifest.json',
-    'site/assets/landing/source/README.md',
-    'site/assets/landing/source/brand/WSPRadar-Europe-world-network.png',
-    'site/assets/landing/source/brand/WSPRadar-logo-lockup-concept.png',
-    'site/assets/landing/source/brand/WSPRadar-radar-emblem-concept.png',
-    'site/assets/landing/source/diagrams/how-it-works-flow.png',
-    'site/assets/landing/source/diagrams/how-it-works-flow.svg',
-    'site/assets/landing/source/fonts/Caveat-METADATA.pb',
-    'site/assets/landing/source/fonts/Caveat-OFL.txt',
-    'site/assets/landing/source/fonts/Caveat-variable.ttf',
-    'site/assets/landing/source/fonts/README.md',
-    'site/assets/landing/source/hero/Europe-signal-paths-art-transparent.png',
-    'site/assets/landing/source/hero/Europe-signal-paths-hero-with-copy.png',
-    'site/assets/landing/source/hero/WSPR-Insights-Across-Earth.png',
-    'site/assets/landing/source/hero/WSPRadar-Global-Signal-Insights.png',
-    'site/assets/landing/source/icon-contact-sheet.png',
-    'site/assets/landing/source/icon-manifest.json',
-    'site/assets/landing/source/icons/monochrome/analysis-laptop.svg',
-    'site/assets/landing/source/icons/monochrome/evidence-chart.svg',
-    'site/assets/landing/source/icons/monochrome/results-map.svg',
-    'site/assets/landing/source/icons/monochrome/rx-benchmark.svg',
-    'site/assets/landing/source/icons/monochrome/rx-performance.svg',
-    'site/assets/landing/source/icons/monochrome/rx-station.svg',
-    'site/assets/landing/source/icons/monochrome/try-demo.svg',
-    'site/assets/landing/source/icons/monochrome/tx-benchmark.svg',
-    'site/assets/landing/source/icons/monochrome/tx-performance.svg',
-    'site/assets/landing/source/icons/monochrome/tx-station.svg',
-    'site/assets/landing/source/icons/monochrome/vertical-antenna.svg',
-    'site/assets/landing/source/icons/monochrome/world-paths.svg',
-    'site/assets/landing/source/icons/monochrome/wspr-database.svg',
-    'site/assets/landing/source/icons/monochrome/wspr-spot.svg',
-    'site/assets/landing/source/icons/monochrome/yagi-antenna.svg',
-    'site/assets/landing/source/icons/neon/analysis-laptop.svg',
-    'site/assets/landing/source/icons/neon/evidence-chart.svg',
-    'site/assets/landing/source/icons/neon/results-map.svg',
-    'site/assets/landing/source/icons/neon/rx-benchmark.svg',
-    'site/assets/landing/source/icons/neon/rx-performance.svg',
-    'site/assets/landing/source/icons/neon/rx-station.svg',
-    'site/assets/landing/source/icons/neon/try-demo.svg',
-    'site/assets/landing/source/icons/neon/tx-benchmark.svg',
-    'site/assets/landing/source/icons/neon/tx-performance.svg',
-    'site/assets/landing/source/icons/neon/tx-station.svg',
-    'site/assets/landing/source/icons/neon/vertical-antenna.svg',
-    'site/assets/landing/source/icons/neon/world-paths.svg',
-    'site/assets/landing/source/icons/neon/wspr-database.svg',
-    'site/assets/landing/source/icons/neon/wspr-spot.svg',
-    'site/assets/landing/source/icons/neon/yagi-antenna.svg',
-    'site/assets/landing/source/icons/png-512/analysis-laptop.png',
-    'site/assets/landing/source/icons/png-512/evidence-chart.png',
-    'site/assets/landing/source/icons/png-512/results-map.png',
-    'site/assets/landing/source/icons/png-512/rx-benchmark.png',
-    'site/assets/landing/source/icons/png-512/rx-performance.png',
-    'site/assets/landing/source/icons/png-512/rx-station.png',
-    'site/assets/landing/source/icons/png-512/try-demo.png',
-    'site/assets/landing/source/icons/png-512/tx-benchmark.png',
-    'site/assets/landing/source/icons/png-512/tx-performance.png',
-    'site/assets/landing/source/icons/png-512/tx-station.png',
-    'site/assets/landing/source/icons/png-512/vertical-antenna.png',
-    'site/assets/landing/source/icons/png-512/world-paths.png',
-    'site/assets/landing/source/icons/png-512/wspr-database.png',
-    'site/assets/landing/source/icons/png-512/wspr-spot.png',
-    'site/assets/landing/source/icons/png-512/yagi-antenna.png',
-    'site/assets/landing/web/fonts/Caveat-OFL.txt',
-    'site/assets/landing/web/fonts/caveat-hand-latin.ttf',
-    'site/assets/landing/web/hero-1280.png',
-    'site/assets/landing/web/hero-1280.webp',
-    'site/assets/landing/web/hero-1600.webp',
-    'site/assets/landing/web/hero-2172.webp',
-    'site/assets/landing/web/hero-480.webp',
-    'site/assets/landing/web/hero-768.webp',
-    'site/assets/landing/web/icons/analysis-laptop.svg',
-    'site/assets/landing/web/icons/evidence-chart.svg',
-    'site/assets/landing/web/icons/results-map.svg',
-    'site/assets/landing/web/icons/rx-benchmark.svg',
-    'site/assets/landing/web/icons/rx-performance.svg',
-    'site/assets/landing/web/icons/rx-station.svg',
-    'site/assets/landing/web/icons/try-demo.svg',
-    'site/assets/landing/web/icons/tx-benchmark.svg',
-    'site/assets/landing/web/icons/tx-performance.svg',
-    'site/assets/landing/web/icons/tx-station.svg',
-    'site/assets/landing/web/icons/vertical-antenna.svg',
-    'site/assets/landing/web/icons/world-paths.svg',
-    'site/assets/landing/web/icons/wspr-database.svg',
-    'site/assets/landing/web/icons/wspr-spot.svg',
-    'site/assets/landing/web/icons/yagi-antenna.svg',
-    'site/assets/landing/web/logo-128.png',
-    'site/assets/landing/web/logo-128.webp',
-    'site/assets/landing/web/logo-64.webp',
-    'site/assets/landing/web/network-1000.webp',
-    'site/assets/landing/web/network-400.webp',
-    'site/assets/landing/web/network-700.png',
-    'site/assets/landing/web/network-700.webp',
-    'site/demo-walkthrough.css',
-    'site/demo-walkthrough.js',
-    'site/demo_walkthroughs.json',
-    'site/demos/README.md',
-    'site/demos/griffiths_squibb_fig3/resources/WSPRadar_export_2026_10_15__10_39.zip',
-    'site/demos/griffiths_squibb_fig3/resources/demo1_verified_export_summary.json',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/figure_map_highres.png',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/figure_segment_insight.png',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/figure_segment_temporal_coverage.png',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/figure_segment_temporal_evidence.png',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/figure_selected_station_coverage.png',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/figure_selected_station_evidence.png',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/table_drilldown_all_stations_current_segment.csv',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/table_drilldown_selected_stations.csv',
-    'site/demos/griffiths_squibb_fig3/resources/export/benchmark/table_station_insights_current_segment.csv',
-    'site/demos/griffiths_squibb_fig3/resources/export/config/run_metadata.json',
-    'site/demos/griffiths_squibb_fig3/resources/export/config/wspradar_config.config',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/WSPRadar_export_2026_10_15__17_39.zip',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/comparison_with_supplied_export.json',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/coverage.png',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/demo1_verified_export_summary.json',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/difference.png',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/export/benchmark/table_drilldown_all_stations_current_segment.csv',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/export/benchmark/table_drilldown_selected_stations.csv',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/export/benchmark/table_station_insights_current_segment.csv',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/export/config/run_metadata.json',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/export/config/wspradar_config.config',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/map.png',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/provenance.json',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/station-coverage.png',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/station.png',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/time.png',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/coverage-1200.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/coverage-600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/difference-1200.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/difference-600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/map-1200.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/map-600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/station-1200.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/station-600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/station-coverage-1200.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/station-coverage-600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/time-1200.webp',
-    'site/demos/griffiths_squibb_fig3/resources/fresh/web/time-600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/manifest.json',
-    'site/demos/griffiths_squibb_fig3/resources/setup/setup-network-1040.webp',
-    'site/demos/griffiths_squibb_fig3/resources/setup/setup-network-1600.webp',
-    'site/demos/griffiths_squibb_fig3/resources/setup/setup-network-520.webp',
-    'site/demos/griffiths_squibb_fig3/source/2026-10-15-figure3-addition.de.md',
-    'site/demos/griffiths_squibb_fig3/source/2026-10-15-figure3-addition.en.md',
-    'site/demos/griffiths_squibb_fig3/source/2026-10-15-worked-example.en.md',
-    'site/demos/griffiths_squibb_fig3/source/initial-layout-copy.json',
-    'site/demos/griffiths_squibb_fig3/source/setup-network-original.png',
-    'site/demos/griffiths_squibb_fig3/source/setup-network-provenance.json',
-    'site/demos/griffiths_squibb_fig3/walkthrough.de.md',
-    'site/demos/griffiths_squibb_fig3/walkthrough.en.md',
-    'site/demos/griffiths_squibb_fig6/walkthrough.de.md',
-    'site/demos/griffiths_squibb_fig6/walkthrough.en.md',
-    'site/demos/griffiths_squibb_rx_performance/walkthrough.de.md',
-    'site/demos/griffiths_squibb_rx_performance/walkthrough.en.md',
-    'site/demos/milazzo_tx_buddy/walkthrough.de.md',
-    'site/demos/milazzo_tx_buddy/walkthrough.en.md',
-    'site/demos/vanhamel_rx_buddy/resources/WSPRadar_Demo_Vanhamel_Figure6.pdf',
-    'site/demos/vanhamel_rx_buddy/resources/benchmark-evidence.en-1040.webp',
-    'site/demos/vanhamel_rx_buddy/resources/benchmark-evidence.en-520.webp',
-    'site/demos/vanhamel_rx_buddy/resources/benchmark-evidence.en.png',
-    'site/demos/vanhamel_rx_buddy/resources/manifest.json',
-    'site/demos/vanhamel_rx_buddy/resources/map.en-1040.webp',
-    'site/demos/vanhamel_rx_buddy/resources/map.en-520.webp',
-    'site/demos/vanhamel_rx_buddy/resources/map.en.png',
-    'site/demos/vanhamel_rx_buddy/resources/rotation-evidence-provenance.json',
-    'site/demos/vanhamel_rx_buddy/resources/selected-coverage.en-1040.webp',
-    'site/demos/vanhamel_rx_buddy/resources/selected-coverage.en-520.webp',
-    'site/demos/vanhamel_rx_buddy/resources/selected-coverage.en.png',
-    'site/demos/vanhamel_rx_buddy/resources/selected-evidence.en-1040.webp',
-    'site/demos/vanhamel_rx_buddy/resources/selected-evidence.en-520.webp',
-    'site/demos/vanhamel_rx_buddy/resources/selected-evidence.en.png',
-    'site/demos/vanhamel_rx_buddy/resources/temporal-coverage.en-1040.webp',
-    'site/demos/vanhamel_rx_buddy/resources/temporal-coverage.en-520.webp',
-    'site/demos/vanhamel_rx_buddy/resources/temporal-coverage.en.png',
-    'site/demos/vanhamel_rx_buddy/resources/temporal-evidence.en-1040.webp',
-    'site/demos/vanhamel_rx_buddy/resources/temporal-evidence.en-520.webp',
-    'site/demos/vanhamel_rx_buddy/resources/temporal-evidence.en.png',
-    'site/demos/vanhamel_rx_buddy/source/README.md',
-    'site/demos/vanhamel_rx_buddy/source/supplied-walkthrough.en.txt',
-    'site/demos/vanhamel_rx_buddy/source/walkthrough.previous.de.md',
-    'site/demos/vanhamel_rx_buddy/source/walkthrough.previous.en.md',
-    'site/demos/vanhamel_rx_buddy/walkthrough.de.md',
-    'site/demos/vanhamel_rx_buddy/walkthrough.en.md',
-    'site/demos/vanhamel_rx_calibration/resources/benchmark-evidence.en-1040.webp',
-    'site/demos/vanhamel_rx_calibration/resources/benchmark-evidence.en-520.webp',
-    'site/demos/vanhamel_rx_calibration/resources/benchmark-evidence.en.png',
-    'site/demos/vanhamel_rx_calibration/resources/calibration-evidence-provenance.json',
-    'site/demos/vanhamel_rx_calibration/resources/figure1-dark-1040.webp',
-    'site/demos/vanhamel_rx_calibration/resources/figure1-dark-520.webp',
-    'site/demos/vanhamel_rx_calibration/resources/figure1-dark.png',
-    'site/demos/vanhamel_rx_calibration/resources/figure1-dark.svg',
-    'site/demos/vanhamel_rx_calibration/resources/figure1-provenance.json',
-    'site/demos/vanhamel_rx_calibration/resources/manifest.json',
-    'site/demos/vanhamel_rx_calibration/source/README.md',
-    'site/demos/vanhamel_rx_calibration/source/figure1-pdf-decoded-raster.png',
-    'site/demos/vanhamel_rx_calibration/source/figure1-pdf-original-raster.jpeg',
-    'site/demos/vanhamel_rx_calibration/source/figure1-source.svg',
-    'site/demos/vanhamel_rx_calibration/source/supplied-walkthrough.en.txt',
-    'site/demos/vanhamel_rx_calibration/source/walkthrough.previous.de.md',
-    'site/demos/vanhamel_rx_calibration/source/walkthrough.previous.en.md',
-    'site/demos/vanhamel_rx_calibration/walkthrough.de.md',
-    'site/demos/vanhamel_rx_calibration/walkthrough.en.md',
-    'site/demos/walkthrough.template.md',
-    'site/demos/zander_tx_buddy/resources/figure_map_highres-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_map_highres-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_map_highres.dark-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_map_highres.dark-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_map_highres.dark.png',
-    'site/demos/zander_tx_buddy/resources/figure_map_highres.png',
-    'site/demos/zander_tx_buddy/resources/figure_segment_insight-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_insight-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_insight.dark-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_insight.dark-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_insight.dark.png',
-    'site/demos/zander_tx_buddy/resources/figure_segment_insight.png',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_coverage-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_coverage-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_coverage.dark-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_coverage.dark-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_coverage.dark.png',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_coverage.png',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_evidence-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_evidence-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_evidence.dark-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_evidence.dark-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_evidence.dark.png',
-    'site/demos/zander_tx_buddy/resources/figure_segment_temporal_evidence.png',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_coverage-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_coverage-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_coverage.dark-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_coverage.dark-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_coverage.dark.png',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_coverage.png',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_evidence-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_evidence-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_evidence.dark-1040.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_evidence.dark-520.webp',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_evidence.dark.png',
-    'site/demos/zander_tx_buddy/resources/figure_selected_station_evidence.png',
-    'site/demos/zander_tx_buddy/resources/manifest.json',
-    'site/demos/zander_tx_buddy/resources/setup/setup-network-1040.webp',
-    'site/demos/zander_tx_buddy/resources/setup/setup-network-1584.webp',
-    'site/demos/zander_tx_buddy/resources/setup/setup-network-520.webp',
-    'site/demos/zander_tx_buddy/resources/setup/setup-network.png',
-    'site/demos/zander_tx_buddy/resources/zander-evidence-provenance.json',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/Source_and_Handoff_Notes.md',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/Zander_Portable_Vertical_Comparison.md',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/assets/figure_map_highres.png',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/assets/figure_segment_insight.png',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/assets/figure_segment_temporal_coverage.png',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/assets/figure_segment_temporal_evidence.png',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/assets/figure_selected_station_coverage.png',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/assets/figure_selected_station_evidence.png',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/sources/export_disclaimer.txt',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/sources/run_metadata.json',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/sources/table_drilldown_all_stations_current_segment.csv',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/sources/table_drilldown_selected_stations.csv',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/sources/table_station_insights_current_segment.csv',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/sources/wspradar_config.config',
-    'site/demos/zander_tx_buddy/source/supplied-2026-10-16/verification.json',
-    'site/demos/zander_tx_buddy/source/walkthrough.before-supplied-2026-10-16.de.md',
-    'site/demos/zander_tx_buddy/source/walkthrough.before-supplied-2026-10-16.en.md',
-    'site/demos/zander_tx_buddy/walkthrough.de.md',
-    'site/demos/zander_tx_buddy/walkthrough.en.md',
-    'site/entry.js',
-    'site/landing.css',
-    'site/landing.json',
-    'site/page.html',
-    'site/print.css',
-    'site/print.js',
-    'site/site.css',
-    'site/site.js',
-    'tests/test_demo_walkthrough.py',
-    'tests/test_entry.cjs',
-    'tests/test_external_links.py',
-    'tests/test_print.cjs',
-    'tests/test_site_build.py'
-)
 $script:WebsiteCheckedTrees = @{}
 
 function Invoke-Git {
@@ -504,25 +124,57 @@ function Initialize-WebsiteRepository {
     return $script:WebsiteRepositoryRoot
 }
 
-function Assert-WebsiteFile {
-    param([string]$Path, [string]$Context)
-    if ($Path -cnotin $script:WebsiteAllowedFiles) {
-        throw "Unapproved public website file in ${Context}: '$Path'. Review it before explicitly extending WebsiteAllowedFiles; force options do not bypass this check."
+function ConvertFrom-WebsiteGitPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    if (-not $Path.StartsWith('"')) { return $Path }
+    if ($Path.Length -lt 2 -or -not $Path.EndsWith('"')) {
+        throw 'Git returned an invalid quoted website path.'
     }
+    # core.quotepath=true gives ASCII C quoting, including UTF-8 octal bytes.
+    # Decode before LiteralPath checks so Unicode and escaped names cannot skip
+    # checks of the actual file or its parent directories on Windows PowerShell.
+    $bytes = [System.Collections.Generic.List[byte]]::new()
+    $escapes = @{ 'a' = 7; 'b' = 8; 't' = 9; 'n' = 10; 'v' = 11; 'f' = 12; 'r' = 13; '"' = 34; '\' = 92 }
+    for ($offset = 1; $offset -lt $Path.Length - 1; $offset++) {
+        $character = $Path[$offset]
+        if ($character -eq '\') {
+            $offset++
+            if ($offset -ge $Path.Length - 1) { throw 'Git returned an incomplete website path escape.' }
+            $escape = [string]$Path[$offset]
+            if ($escape -match '^[0-7]$') {
+                if ($offset + 2 -ge $Path.Length - 1 -or $Path.Substring($offset, 3) -notmatch '^[0-7]{3}$') {
+                    throw 'Git returned an invalid website path byte escape.'
+                }
+                $bytes.Add([Convert]::ToByte($Path.Substring($offset, 3), 8))
+                $offset += 2
+            } elseif ($escapes.ContainsKey($escape)) {
+                $bytes.Add([byte]$escapes[$escape])
+            } else {
+                throw 'Git returned an unsupported website path escape.'
+            }
+        } else {
+            if ([int]$character -gt 127) { throw 'Git returned a non-ASCII quoted website path.' }
+            $bytes.Add([byte]$character)
+        }
+    }
+    return [System.Text.UTF8Encoding]::new($false, $true).GetString($bytes.ToArray())
 }
 
 function Assert-WebsiteWorkingTree {
     # Include staged and tracked files even when ignore rules hide new files.
-    # Git quotes unusual filenames; these cannot match the exact ASCII allowlist.
     $paths = @(Get-GitOutput -c core.quotepath=true ls-files --cached --others --exclude-standard)
-    foreach ($path in $paths) {
-        Assert-WebsiteFile -Path $path -Context 'working tree or index'
-        $localPath = Join-Path $script:WebsiteRepositoryRoot $path
+    $rootPrefix = $script:WebsiteRepositoryRoot + [IO.Path]::DirectorySeparatorChar
+    foreach ($gitPath in $paths) {
+        $path = ConvertFrom-WebsiteGitPath -Path $gitPath
+        $localPath = [IO.Path]::GetFullPath((Join-Path $script:WebsiteRepositoryRoot $path))
+        if (-not $localPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'A website file path resolves outside the website checkout.'
+        }
         if (Test-Path -LiteralPath $localPath) {
             $item = Get-Item -LiteralPath $localPath -Force
             if ($item.PSIsContainer) { throw "Expected a regular website file: '$path'." }
-            # Check parent directories too: an allowed filename below a junction
-            # must not silently stage content from outside the website checkout.
+            # Check parent directories too: a filename below a junction must
+            # not silently stage content from outside the website checkout.
             while ($item.FullName -ne $script:WebsiteRepositoryRoot) {
                 if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
                     throw "Symbolic links and junctions are forbidden in website content: '$path'."
@@ -537,7 +189,6 @@ function Assert-WebsiteWorkingTree {
         if ($entry -notmatch '^(100644|100755) [0-9a-f]+ [0-3]\t(.+)$') {
             throw 'The website index contains an unsupported entry; symbolic links and submodules are forbidden.'
         }
-        Assert-WebsiteFile -Path $Matches[2] -Context 'index'
     }
 }
 
@@ -566,7 +217,6 @@ function Assert-WebsiteHistory {
             if ($entry -notmatch '^(100644|100755) blob [0-9a-f]+\t(.+)$') {
                 throw 'Website history contains an unsupported entry; symbolic links and submodules are forbidden.'
             }
-            Assert-WebsiteFile -Path $Matches[2] -Context "history at $Revision"
         }
         $script:WebsiteCheckedTrees[$tree] = $true
     }

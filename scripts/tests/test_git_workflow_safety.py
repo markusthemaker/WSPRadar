@@ -54,7 +54,7 @@ class GitSandbox:
 
         completed = subprocess.run(
             [self.git_executable, "-C", str(self.root), *arguments],
-            env=self.environment, capture_output=True, text=True, timeout=30,
+            env=self.environment, capture_output=True, text=True, encoding="utf-8", timeout=30,
             check=False,
         )
         assert completed.returncode == 0, completed.stdout + completed.stderr
@@ -685,7 +685,7 @@ def test_recorded_transport_preserves_unrelated_branches_and_tags(git_sandbox, t
     assert git_sandbox.git("-C", str(bare_remote), "branch", "--list", "local-unrelated") == ""
 
 
-def test_force_baseline_preserves_allowed_untracked_files(git_sandbox):
+def test_force_baseline_preserves_untracked_files(git_sandbox):
     """Reset tracked state without silently cleaning unrelated untracked work."""
 
     guide = git_sandbox.root / "scripts" / "README.md"
@@ -701,15 +701,31 @@ def test_force_baseline_preserves_allowed_untracked_files(git_sandbox):
 
 @pytest.mark.parametrize("force", [False, True])
 def test_temp_push_commits_reviewed_website_sources_and_imported_assets(git_sandbox, force):
-    """The explicit website inventory permits the reviewed public-site backup."""
+    """Normal Git selection includes new regular files without a filename registry."""
 
     files = {
+        "prepare-demo-prompt.md": b"# Reusable public editorial prompt\n",
+        "new directory/ordinary filename with spaces.txt": b"Ordinary public content\n",
+        "new directory/Überblick [測定].md": b"Public Unicode filename fixture\n",
+        ".github/workflows/additional-website-check.yml": b"name: Additional website check\n",
+        ".github/workflows/deploy-pages.yml": (SCRIPTS_ROOT.parent / ".github/workflows/deploy-pages.yml").read_bytes(),
         ".github/DISCUSSION_TEMPLATE/report-a-bug-or-concern.yml": b"title: Website report\n",
         "scripts/demo_walkthrough.py": b"# Public website renderer fixture\n",
-        "content/generated/manual.en.md": b"# Imported public manual fixture\n",
-        "content/generated/assets/screenshots/demo-1-map.jpg": b"Public screenshot fixture\n",
-        "site/demos/milazzo_tx_buddy/walkthrough.en.md": b"# Website walkthrough fixture\n",
+        "scripts/documentation_pdfs.py": b"# Documentation PDF validator fixture\n",
+        "tests/test_documentation_pdfs.py": b"# Documentation PDF contracts fixture\n",
+        "source/assets/documentation/manifest.json": b"{}\n",
+        "source/assets/documentation/WSPRadar_Doc_EN.pdf": b"%PDF-1.7\nEnglish manual fixture\n%%EOF\n",
+        "source/assets/documentation/WSPRadar_Doc_DE.pdf": b"%PDF-1.7\nGerman manual fixture\n%%EOF\n",
+        "source/imported/app/manual.en.md": b"# Imported public manual fixture\n",
+        "source/imported/app/assets/screenshots/demo-1-map.jpg": b"Public screenshot fixture\n",
+        "source/pages/demos/milazzo_tx_buddy/walkthrough.en.md": b"# Website walkthrough fixture\n",
+        "source/pages/home.en.md": b"<!-- text: home -->\nWebsite introduction\n<!-- /text -->\n",
+        "source/config/interface.json": b"{}\n",
+        "source/theme/styles/site.css": b"body { color: white; }\n",
     }
+    manifest = json.loads((SCRIPTS_ROOT.parent / "source/assets/demos/manifest.json").read_text(encoding="utf-8"))
+    for relative_path in manifest["files"]:
+        files["source/assets/demos/" + relative_path] = b"%PDF-1.7\nReviewed comparison fixture\n%%EOF\n"
     for relative_path, contents in files.items():
         path = git_sandbox.root / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -722,7 +738,7 @@ def test_temp_push_commits_reviewed_website_sources_and_imported_assets(git_sand
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert git_sandbox.git("log", "-1", "--format=%s") == "Back up reviewed website files"
-    assert set(git_sandbox.git("diff", "--name-only", original_head, "HEAD").splitlines()) == set(files)
+    assert set(git_sandbox.git("diff", "--name-only", "-z", original_head, "HEAD").split("\0")[:-1]) == set(files)
     assert git_sandbox.git("status", "--porcelain") == ""
     for relative_path, contents in files.items():
         assert (git_sandbox.root / relative_path).read_bytes() == contents
@@ -732,18 +748,43 @@ def test_temp_push_commits_reviewed_website_sources_and_imported_assets(git_sand
     assert "refs/heads/temp:refs/heads/temp" in pushes[0]
 
 
+def test_source_migration_preserves_regular_file_history(git_sandbox):
+    """Moving a reviewed file must not invalidate its earlier public history."""
+
+    legacy = git_sandbox.root / "site/demos/milazzo_tx_buddy/walkthrough.en.md"
+    current = git_sandbox.root / "source/pages/demos/milazzo_tx_buddy/walkthrough.en.md"
+    payload = b"# Retained reviewed walkthrough\n"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_bytes(payload)
+    git_sandbox.git("add", "site/demos/milazzo_tx_buddy/walkthrough.en.md")
+    git_sandbox.git("commit", "-m", "Reviewed walkthrough at the historical path")
+    current.parent.mkdir(parents=True, exist_ok=True)
+    legacy.rename(current)
+
+    completed, commands = git_sandbox.run(
+        "git-push-temp.ps1", ["-Message", "Move reviewed walkthrough into source"],
+    )
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert current.read_bytes() == payload
+    assert not legacy.exists()
+    assert git_sandbox.git("status", "--porcelain") == ""
+    pushes = [arguments for arguments in _git_commands(commands) if arguments[0] == "push"]
+    assert len(pushes) == 1
+
+
 def test_hashed_public_assets_keep_exact_bytes_with_autocrlf_enabled(git_sandbox):
     """Backup and checkout preserve manifest/evidence bytes under Windows defaults."""
 
     shutil.copy2(SCRIPTS_ROOT.parent / ".gitattributes", git_sandbox.root / ".gitattributes")
     git_sandbox.git("config", "core.autocrlf", "true")
     files = {
-        "content/generated/manual.en.md": b"# Public manual\nPreserve LF bytes.\n",
-        "content/generated/manual.de.md": b"# Public manual\r\nPreserve CRLF bytes.\r\n",
-        "site/assets/flags/en.svg": b"<svg>\n</svg>\n",
-        "site/assets/flags/de.svg": b"<svg>\r\n</svg>\r\n",
-        "site/demos/milazzo_tx_buddy/walkthrough.en.md": b"# Walkthrough\nPreserve LF bytes.\n",
-        "site/demos/milazzo_tx_buddy/walkthrough.de.md": b"# Walkthrough\r\nPreserve CRLF bytes.\r\n",
+        "source/imported/app/manual.en.md": b"# Public manual\nPreserve LF bytes.\n",
+        "source/imported/app/manual.de.md": b"# Public manual\r\nPreserve CRLF bytes.\r\n",
+        "source/assets/flags/en.svg": b"<svg>\n</svg>\n",
+        "source/assets/flags/de.svg": b"<svg>\r\n</svg>\r\n",
+        "source/pages/demos/milazzo_tx_buddy/walkthrough.en.md": b"# Walkthrough\nPreserve LF bytes.\n",
+        "source/pages/demos/milazzo_tx_buddy/walkthrough.de.md": b"# Walkthrough\r\nPreserve CRLF bytes.\r\n",
     }
     for relative_path, contents in files.items():
         path = git_sandbox.root / relative_path
@@ -768,46 +809,58 @@ def test_hashed_public_assets_keep_exact_bytes_with_autocrlf_enabled(git_sandbox
     assert git_sandbox.git("status", "--porcelain") == ""
 
 
-@pytest.mark.parametrize(("workflow", "arguments"), WORKFLOWS)
-@pytest.mark.parametrize("relative_path", [
-    "scripts/unreviewed.py",
-    "content/generated/app.py",
-    "site/private-source.py",
-])
-def test_nested_unapproved_paths_block_every_force_mode(
-    git_sandbox, workflow, arguments, relative_path
-):
-    """Reviewed neighboring files never grant blanket directory permission."""
-
-    path = git_sandbox.root / relative_path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("# Unreviewed source fixture\n", encoding="utf-8")
-    before = git_sandbox.snapshot()
-    completed, commands = git_sandbox.run(workflow, arguments)
-    _assert_guard_rejected(git_sandbox, before, completed, commands)
-    assert relative_path in completed.stdout + completed.stderr
-
-
-@pytest.mark.parametrize(("workflow", "arguments"), WORKFLOWS)
 @pytest.mark.parametrize("state", ["untracked", "staged", "removed-from-history-tip"])
-def test_disallowed_application_path_blocks_every_force_mode(
-    git_sandbox, workflow, arguments, state
-):
-    """An app file must never be staged, discarded, or published by a helper."""
+def test_regular_filenames_are_accepted_in_every_git_state(git_sandbox, state):
+    """The guard checks repository and file modes, not a list of approved names."""
 
-    disallowed_path = git_sandbox.root / "app.py"
-    disallowed_path.write_text("# Private application stand-in\n", encoding="utf-8")
+    relative_path = "new directory/Überblick [測定].md"
+    path = git_sandbox.root / relative_path
+    path.parent.mkdir(parents=True)
+    path.write_text("# Public website material\n", encoding="utf-8")
     if state != "untracked":
-        git_sandbox.git("add", "app.py")
+        git_sandbox.git("add", "--", relative_path)
     if state == "removed-from-history-tip":
-        git_sandbox.git("commit", "-m", "Accidentally copied private application")
-        git_sandbox.git("rm", "app.py")
-        git_sandbox.git("commit", "-m", "Remove private application from current tree")
-        assert not disallowed_path.exists()
+        git_sandbox.git("commit", "-m", "Record regular public material")
+        git_sandbox.git("rm", "--", relative_path)
+        git_sandbox.git("commit", "-m", "Remove obsolete public material")
     before = git_sandbox.snapshot()
-    completed, commands = git_sandbox.run(workflow, arguments)
-    _assert_guard_rejected(git_sandbox, before, completed, commands)
-    assert "app.py" in completed.stdout + completed.stderr
+    completed, _ = git_sandbox.run()
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert git_sandbox.snapshot() == before
+
+
+def test_quoted_filename_below_a_junction_is_rejected(git_sandbox):
+    """Git's UTF-8 quoting cannot hide a reparse-point parent from filesystem checks."""
+
+    directory = git_sandbox.root / "quoted Überblick [測定]"
+    directory.mkdir()
+    (directory / "page.md").write_text("Public fixture\n", encoding="utf-8")
+    git_sandbox.git("add", "--", directory.relative_to(git_sandbox.root).as_posix())
+    git_sandbox.git("commit", "-m", "Track file before replacing its parent")
+    outside = git_sandbox.scratch / "outside website content"
+    directory.rename(outside)
+    if os.name == "nt":
+        command = (
+            "New-Item -ItemType Junction -Path " + _powershell_literal(directory)
+            + " -Target " + _powershell_literal(outside) + " -ErrorAction Stop | Out-Null"
+        )
+        result = subprocess.run(
+            [git_sandbox.powershell_executable, "-NoProfile", "-NonInteractive", "-Command", command],
+            env=git_sandbox.environment, capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+    else:
+        directory.symlink_to(outside, target_is_directory=True)
+    try:
+        before = git_sandbox.snapshot()
+        completed, commands = git_sandbox.run("git-push-temp.ps1", ["-Message", "Check parent link"])
+        _assert_guard_rejected(git_sandbox, before, completed, commands)
+        assert "junctions" in completed.stdout + completed.stderr
+    finally:
+        if os.name == "nt":
+            directory.rmdir()
+        else:
+            directory.unlink()
 
 
 @pytest.mark.parametrize(("workflow", "arguments"), WORKFLOWS)
@@ -817,7 +870,7 @@ def test_foreign_history_is_rejected_even_when_merge_tree_is_website_only(
     """An ours merge cannot smuggle unrelated application ancestors into public Git."""
 
     baseline_tree = git_sandbox.git("rev-parse", "HEAD^{tree}")
-    # A parentless commit using only allowed paths still represents a second,
+    # A parentless commit using only regular website files still represents a second,
     # unrelated history. Its files need not differ for publication to be unsafe.
     foreign_root = git_sandbox.git("commit-tree", baseline_tree, "-m", "Unrelated history root")
     git_sandbox.git("merge", "--allow-unrelated-histories", "--no-ff", "-s", "ours",
@@ -831,10 +884,10 @@ def test_foreign_history_is_rejected_even_when_merge_tree_is_website_only(
 
 @pytest.mark.parametrize("mode", ["120000", "160000"], ids=["symlink", "submodule"])
 @pytest.mark.parametrize(("workflow", "arguments"), WORKFLOWS)
-def test_staged_nonregular_mode_is_rejected_for_an_allowed_filename(
+def test_staged_nonregular_mode_is_rejected_for_a_regular_filename(
     git_sandbox, workflow, arguments, mode
 ):
-    """A permitted path cannot refer to a symlink or another repository."""
+    """An ordinary filename cannot refer to a symlink or another repository."""
 
     object_id = git_sandbox.git("rev-parse", "HEAD" if mode == "160000" else "HEAD:index.html")
     git_sandbox.git("update-index", "--cacheinfo", f"{mode},{object_id},index.html")
@@ -858,19 +911,44 @@ def test_removed_nonregular_mode_is_rejected_in_reachable_history(git_sandbox, m
     _assert_guard_rejected(git_sandbox, before, completed, commands)
 
 
-def test_untracked_ignored_scratch_is_not_staged_or_published(git_sandbox):
-    """Ignored local scratch does not need to become a public allowlist entry."""
+@pytest.mark.parametrize("force", [False, True])
+def test_untracked_ignored_archives_and_caches_are_not_published(git_sandbox, force):
+    """Project ignore rules preserve private archives and disposable local outputs."""
 
-    (git_sandbox.root / ".git" / "info" / "exclude").write_text("/private-scratch/\n", encoding="utf-8")
-    scratch_path = git_sandbox.root / "private-scratch" / "app.py"
-    scratch_path.parent.mkdir()
-    scratch_path.write_text("# Ignored local fixture\n", encoding="utf-8")
+    shutil.copy2(SCRIPTS_ROOT.parent / ".gitignore", git_sandbox.root / ".gitignore")
+    ignored = (
+        "source/archive/private-runtime/app.py", ".pytest_cache/v/cache/nodeids",
+        ".tmp/scratch.py", ".venv/local-runtime.txt", "generated/index.html", "dist/site.zip",
+    )
+    for relative_path in ignored:
+        path = git_sandbox.root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"Ignored local fixture\n")
     (git_sandbox.root / "index.html").write_text("<html>Updated website</html>\n", encoding="utf-8")
-    completed, commands = git_sandbox.run("git-push-temp.ps1", ["-Message", "Allowed website edit"])
+    arguments = ["-Message", "Public website edit"] + (["-ForceRemote"] if force else [])
+    completed, commands = git_sandbox.run("git-push-temp.ps1", arguments)
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert scratch_path.read_text(encoding="utf-8") == "# Ignored local fixture\n"
-    assert "private-scratch" not in git_sandbox.git("ls-tree", "-r", "--name-only", "HEAD")
+    published = set(git_sandbox.git("ls-tree", "-r", "--name-only", "HEAD").splitlines())
+    for relative_path in ignored:
+        assert (git_sandbox.root / relative_path).read_bytes() == b"Ignored local fixture\n"
+        assert relative_path not in published
+    assert git_sandbox.git("status", "--porcelain") == ""
     assert any(arguments[0] == "push" for arguments in _git_commands(commands))
+
+
+def test_ignore_rules_do_not_hide_already_tracked_changes(git_sandbox):
+    """Tracked files retain normal Git behavior even beneath an ignored directory."""
+
+    path = git_sandbox.root / ".pytest_cache" / "previously-tracked.txt"
+    path.parent.mkdir()
+    path.write_text("Previously tracked fixture\n", encoding="utf-8")
+    git_sandbox.git("add", ".pytest_cache/previously-tracked.txt")
+    git_sandbox.git("commit", "-m", "Existing tracked fixture")
+    shutil.copy2(SCRIPTS_ROOT.parent / ".gitignore", git_sandbox.root / ".gitignore")
+    path.write_text("Updated tracked fixture\n", encoding="utf-8")
+    completed, _ = git_sandbox.run("git-push-temp.ps1", ["-Message", "Preserve normal tracked-file selection"])
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert git_sandbox.git("show", "HEAD:.pytest_cache/previously-tracked.txt") == "Updated tracked fixture"
 
 
 @pytest.mark.parametrize(("workflow", "arguments"), WORKFLOWS)
@@ -920,20 +998,20 @@ def test_release_uses_published_temp_and_ignores_stale_local_main(git_sandbox):
 
 
 @pytest.mark.parametrize("remote_branch", ["temp", "main"])
-def test_fetched_disallowed_history_is_rejected_before_release(git_sandbox, remote_branch):
-    """Freshly fetched branch history receives the same content guard as local HEAD."""
+def test_fetched_nonregular_history_is_rejected_before_release(git_sandbox, remote_branch):
+    """Freshly fetched branch history receives the same file-mode guard as local HEAD."""
 
     git_sandbox.git("switch", "-c", "untrusted-upstream")
-    (git_sandbox.root / "app.py").write_text("# Untrusted published history\n", encoding="utf-8")
-    git_sandbox.git("add", "app.py")
-    git_sandbox.git("commit", "-m", "Disallowed upstream content")
+    object_id = git_sandbox.git("rev-parse", "HEAD:index.html")
+    git_sandbox.git("update-index", "--add", "--cacheinfo", f"120000,{object_id},upstream-link")
+    git_sandbox.git("commit", "-m", "Nonregular upstream content")
     git_sandbox.git("update-ref", f"refs/remotes/origin/{remote_branch}", "HEAD")
     git_sandbox.git("switch", "temp")
     before = git_sandbox.snapshot()
     completed, commands = git_sandbox.run("git-release-main.ps1", ["-ForceWithLease"])
     assert completed.returncode != 0
     assert git_sandbox.snapshot() == before
-    assert "app.py" in completed.stdout + completed.stderr
+    assert "unsupported entry" in completed.stdout + completed.stderr
     assert not any(arguments[0] == "push" for arguments in _git_commands(commands))
 
 

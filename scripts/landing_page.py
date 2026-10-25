@@ -1,4 +1,4 @@
-"""Website-owned landing presentation; scientific media remain imported assets."""
+"""Website-owned landing presentation using reviewed scientific media."""
 
 from html import escape
 
@@ -8,36 +8,20 @@ except ImportError:
     from demo_walkthrough import demo_launch_url
 
 
-def render_evidence_crops(builder, item, crop, lang):
-    """Show reviewed source-pixel windows without modifying the original figure."""
-    width, height = item["width"], item["height"]
-    if crop.get("source_size") != [width, height]:
-        raise ValueError("Landing crop source dimensions changed; review the crop")
-    source = builder.manifest["files"][item["asset_path"]]
-    if crop.get("source_sha256") != source["sha256"]:
-        raise ValueError("Landing crop source hash changed; review the crop")
-    layout = crop.get("layout")
-    if layout not in ("rows", "columns"):
-        raise ValueError("Landing crop layout must be rows or columns")
-    regions = crop.get("regions")
-    if not isinstance(regions, list) or not regions:
-        raise ValueError("Landing crop regions must be a nonempty list")
-    parts = ['<span class="result-crops result-crops-' + layout + '">']
-    for region in regions:
-        rect = region.get("rect")
-        if not isinstance(rect, list) or len(rect) != 4 or any(type(value) is not int for value in rect):
-            raise ValueError("Landing crop rectangle must contain four integers")
-        x, y, crop_width, crop_height = rect
-        if min(x, y) < 0 or min(crop_width, crop_height) <= 0 or x + crop_width > width or y + crop_height > height:
-            raise ValueError("Landing crop rectangle is outside the source figure")
-        alternatives = region.get("alt", {})
-        if set(alternatives) != {"en", "de"} or any(not isinstance(value, str) or not value.strip() for value in alternatives.values()):
-            raise ValueError("Landing crop requires English and German alternative text")
-        weight = crop_height if layout == "rows" else crop_width
-        style = f'--crop-weight:{weight};--crop-image-width:{width / crop_width * 100:.6f}%;--crop-image-height:{height / crop_height * 100:.6f}%;--crop-left:{-x / crop_width * 100:.6f}%;--crop-top:{-y / crop_height * 100:.6f}%'
-        parts.append('<span class="result-crop" style="' + style + '"><img src="/content/' + escape(item["asset_path"], quote=True) + '" width="' + str(width) + '" height="' + str(height) + '" loading="lazy" decoding="async" alt="' + escape(alternatives[lang], quote=True) + '"></span>')
-    parts.append('</span>')
-    return ''.join(parts)
+def render_evidence_image(item, lang):
+    """Show a reviewed small preview while retaining the separate original."""
+    preview = item.get("preview")
+    source = preview["source"] if preview else item["native"]
+    images = sorted((preview or item)["images"], key=lambda image: image["width"])
+    if not images:
+        raise ValueError("Landing evidence requires browser derivatives")
+    for image in images:
+        if image["width"] > source["width"] or abs(image["height"] - round(image["width"] * source["height"] / source["width"])) > 1:
+            raise ValueError("Landing evidence derivatives must preserve source proportions without upscaling")
+    fallback = images[0]
+    srcset = ", ".join(image["path"] + " " + str(image["width"]) + "w" for image in images)
+    sizes = "(max-width: 580px) calc(100vw - 90px), (max-width: 600px) calc(93vw - 76.64px), (max-width: 800px) calc(46.5vw - 63.32px), (max-width: 1280px) calc(31vw - 58.88px), 337.92px"
+    return ('<img class="result-image" src="' + escape(fallback["path"], quote=True) + '" srcset="' + escape(srcset, quote=True) + '" sizes="' + sizes + '" width="' + str(fallback["width"]) + '" height="' + str(fallback["height"]) + '" loading="lazy" decoding="async" alt="' + escape((preview or item)["alt"][lang], quote=True) + '">')
 
 
 def render_why_section(content, assets, icon):
@@ -59,37 +43,74 @@ def render_why_section(content, assets, icon):
     for factor in content["factors"]:
         parts.append('<li>' + icon(factor["icon"]) + '<span>' + escape(factor["label"]) + '</span></li>')
     parts.append('</ul></div><div class="why-caution"><strong>' + text("caution_title") + '</strong><p>' + text("caution_body") + '</p></div></article>')
-    parts.append('<article class="why-panel why-repeated"><div class="why-panel-content"><h3>' + text("repeated_title") + '</h3><p class="why-subtitle">' + text("repeated_subtitle") + '</p><div class="why-network"><figure><picture><source type="image/webp" srcset="' + escape(srcset, quote=True) + '" sizes="(max-width: 580px) min(240px, calc(100vw - 92px)), (max-width: 860px) min(360px, calc(44.2vw - 43px)), (max-width: 1280px) min(360px, calc(28.7vw - 40px)), 330px"><img src="/assets/landing/' + escape(fallback["path"], quote=True) + '" width="' + str(fallback["width"]) + '" height="' + str(fallback["height"]) + '" alt="" aria-hidden="true" loading="lazy" decoding="async"></picture></figure><ul class="why-benefits">')
+    parts.append('<article class="why-panel why-repeated"><div class="why-panel-content"><h3>' + text("repeated_title") + '</h3><p class="why-subtitle">' + text("repeated_subtitle") + '</p><div class="why-network"><figure><picture><source type="image/webp" srcset="' + escape(srcset, quote=True) + '" sizes="(max-width: 580px) min(270px, 65vw), (max-width: 860px) min(430px, 65vw), 430px"><img src="/assets/landing/' + escape(fallback["path"], quote=True) + '" width="' + str(fallback["width"]) + '" height="' + str(fallback["height"]) + '" alt="" aria-hidden="true" loading="lazy" decoding="async"></picture></figure><ul class="why-benefits">')
     for benefit in content["benefits"]:
         parts.append('<li>' + icon(benefit["icon"]) + '<div><strong>' + escape(benefit["title"]) + '</strong><span>' + escape(benefit["body"]) + '</span></div></li>')
-    parts.append('</ul></div><div class="why-method"><ol class="why-steps" aria-label="' + text("method_title") + '">')
+    parts.append('</ul></div><div class="why-method">')
+    if content.get("decode_method"):
+        parts.append('<h4 class="method-title">' + icon("signal-quality") + text("method_title") + '</h4>')
+    parts.append('<ol class="why-steps" aria-label="' + text("method_title") + '">')
     for number, step in enumerate(content["steps"], 1):
         parts.append('<li><div class="why-step-heading"><span class="why-step-number" aria-hidden="true">' + str(number) + '.</span><h4>' + escape(step["title"]) + '</h4></div><p>' + escape(step["body"]) + '</p>')
-        if number == 1:
-            parts.append('<table class="why-pairs"><thead><tr><th scope="col" aria-label="' + text("station_label") + '">#</th><th scope="col">' + text("reference_label") + '</th><th scope="col">' + text("target_label") + '</th><th scope="col">' + text("delta_label") + '</th></tr></thead><tbody>')
-            for station, (reference, target, delta) in enumerate((("−21", "−18", "+3"), ("−14", "−10", "+4"), ("−26", "−24", "+2")), 1):
-                parts.append('<tr><th scope="row">#' + str(station) + '</th><td>' + reference + ' dB</td><td>' + target + ' dB</td><td>' + delta + ' dB</td></tr>')
-            parts.append('</tbody></table>')
-        elif number == 2:
-            parts.append('<div class="why-station-medians" aria-hidden="true">')
-            for station, points in enumerate(((18, 32, 49, 63, 82), (29, 47, 65, 78, 88), (14, 27, 39, 56, 75)), 1):
-                parts.append('<div><span>#' + str(station) + '</span><span class="why-dot-row">' + ''.join('<i class="' + ('median' if index == 2 else 'observation') + '" style="--point:' + str(point) + '%"></i>' for index, point in enumerate(points)) + '</span></div>')
-            parts.append('</div>')
-        else:
-            parts.append('<div class="why-summary-dots" aria-hidden="true"><span></span><span class="median"></span><span></span></div>')
         parts.append('</li>')
-    parts.append('</ol></div></div><div class="why-takeaway"><span aria-hidden="true">✓</span><div><strong>' + text("conclusion_title") + '</strong><p>' + text("conclusion_body") + '</p></div></div></article></div></section>')
+    parts.append('</ol></div>')
+    if content.get("decode_method"):
+        method = content["decode_method"]
+        parts.append('<div class="why-method decode-method"><h4 class="method-title">' + icon("decoding-advantage") + escape(method["title"]) + '</h4><ol class="why-steps" aria-label="' + escape(method["title"], quote=True) + '">')
+        for number, step in enumerate(method["steps"], 1):
+            parts.append('<li><div class="why-step-heading"><span class="why-step-number" aria-hidden="true">' + str(number) + '.</span><h4>' + escape(step["title"]) + '</h4></div><p>' + escape(step["body"]) + '</p></li>')
+        parts.append('</ol></div>')
+    parts.append('</div><div class="why-takeaway"><span aria-hidden="true">✓</span><div><strong>' + text("conclusion_title") + '</strong><p>' + text("conclusion_body") + '</p></div></div></article></div></section>')
     return ''.join(parts)
+
+
+def render_analysis_choices(content, family_modes, icon, help_url):
+    """Group configured analysis choices when the locale supplies family copy."""
+    parts = ['<section id="analysis-choices"><div class="section-heading"><h2>' + escape(content["modes_title"]) + '</h2><a href="' + help_url + '">' + escape(content["modes_help"]) + ' →</a></div>']
+
+    def cards(indices, heading):
+        rendered = ['<div class="analysis-grid">']
+        for index in indices:
+            mode = content["modes"][index]
+            level = mode.get("heading_level", int(heading[1]))
+            emphasis = mode.get("emphasize_question", False)
+            if type(level) is not int or level not in (3, 4) or type(emphasis) is not bool:
+                raise ValueError("Analysis card requires heading_level 3 or 4 and boolean emphasize_question")
+            card_heading = "h" + str(level)
+            question = escape(mode["question"])
+            if emphasis:
+                question = "<strong>" + question + "</strong>"
+            rendered.append('<article class="analysis-card">' + icon(mode["icon"]) + '<' + card_heading + '>' + escape(mode["title"]) + '</' + card_heading + '><p class="operator-question">' + question + '</p><p class="muted">' + escape(mode["body"]) + '</p></article>')
+        return ''.join(rendered) + '</div>'
+
+    families = content.get("analysis_families")
+    if families:
+        indices = [index for key in families for index in family_modes[key]]
+        if sorted(indices) != list(range(len(content["modes"]))):
+            raise ValueError("Analysis families must select every mode exactly once")
+        parts.append('<div class="analysis-families">')
+        for key, family in families.items():
+            parts.append('<div class="analysis-family"><div class="analysis-family-intro"><p class="eyebrow">' + escape(family["label"]) + '</p><h3>' + escape(family["title"]) + '</h3><p>' + escape(family["body"]) + '</p></div>' + cards(family_modes[key], "h4") + '</div>')
+        parts.append('</div>')
+    else:
+        parts.append(cards(range(len(content["modes"])), "h3"))
+    return ''.join(parts) + '</section>'
+
+
+def render_operating_note(content, icon):
+    """Render the operating prerequisites after the getting-started steps."""
+    note = content.get("operating_note")
+    if not note:
+        return ''
+    return '<aside class="operating-note" aria-labelledby="operating-note-title">' + icon("operating-window") + '<div><h3 id="operating-note-title">' + escape(note["title"]) + '</h3><p><strong>' + escape(note["intro"]) + '</strong></p><ul><li>' + escape(note["rx"]) + '</li><li>' + escape(note["tx"]) + '</li></ul><p>' + escape(note["detail"]) + '</p></div></aside>'
 
 
 def render_landing(builder, lang, button, route, app_url):
     content = builder.landing[lang]
     selected = builder.landing["featured_demo"]
-    demo = next(item for item in builder.demos if item["id"] == selected["id"])
+    demo = next(item for item in builder.published_demos if item["id"] == selected["id"])
     demo_url = route(lang, "demos/" + demo["id"] + "/")
-    demo_config = builder.demo_walkthroughs["demos"][demo["id"]]
-    run_url = demo_launch_url(demo_config)
-    media = {item["key"]: item for item in builder.figures + builder.screenshots}
+    run_url = demo_launch_url(demo)
     text = lambda key: escape(content[key])
 
     def icon(name, css=""):
@@ -107,25 +128,55 @@ def render_landing(builder, lang, button, route, app_url):
             chunks.append('<span class="flow-connection ' + ('radio' if number == 0 else 'data') + '"><span>' + escape(step["connection"]) + '</span><span class="flow-arrow" aria-hidden="true">→</span></span>')
         chunks.append('</li>')
     chunks.append('</ol></div></div></section>')
+    choices = render_analysis_choices(content, builder.landing.get("analysis_family_modes", {}), icon, builder.anchors[lang]['sec-2-2'] + '#sec-2-2')
+    if content.get("analysis_families"):
+        chunks.append(choices)
     chunks.append(render_why_section(content["why"], builder.landing_assets, icon))
-    chunks.append('<section id="analysis-choices"><div class="section-heading"><h2>' + text("modes_title") + '</h2><a href="' + builder.anchors[lang]['sec-2-2'] + '#sec-2-2' + '">' + text("modes_help") + ' →</a></div><div class="analysis-grid">')
-    for mode in content["modes"]:
-        chunks.append('<article class="analysis-card">' + icon(mode["icon"]) + '<h3>' + escape(mode["title"]) + '</h3><p class="operator-question">' + escape(mode["question"]) + '</p><p class="muted">' + escape(mode["body"]) + '</p></article>')
-    chunks.append('</div></section><section id="real-example" class="real-example"><div class="section-heading"><h2>' + text("example_title") + '</h2><a href="' + route(lang, 'demos/') + '">' + escape(builder.copy[lang]["browse_demos"]) + ' →</a></div><p class="example-lead"><strong>' + text("example_intro") + '</strong></p><p class="example-meta">' + text("example_meta") + '</p>')
-    chunks.append('<div class="example-showcase"><div class="example-context"><p class="eyebrow">' + text("example_tag") + '</p><h3>' + text("example_question") + '</h3><div class="measured-result"><strong>' + text("result") + '</strong><div><p class="result-label"><strong>' + text("result_label") + '</strong></p><p class="result-detail">' + ''.join('<span>' + escape(line) + '</span>' for line in content["result_detail"]) + '</p></div></div><div class="actions">' + button(content['example_link'] + ' →', demo_url) + button(content['try_this'], run_url, secondary=True, external=True) + '</div><p class="example-ready"><em>' + text("example_ready") + '</em></p></div><div class="result-gallery">')
-    for index, key in enumerate(selected["media_keys"]):
-        item = media[key]
+    if not content.get("analysis_families"):
+        chunks.append(choices)
+    example_meta = builder.md(content["example_meta"], lang).replace('<p>', '<p class="example-meta">', 1)
+    chunks.append('<section id="real-example" class="real-example"><div class="section-heading"><h2>' + text("example_title") + '</h2><a href="' + route(lang, 'demos/') + '">' + escape(builder.copy[lang]["browse_demos"]) + ' →</a></div><p class="example-lead"><strong>' + text("example_intro") + '</strong></p>' + example_meta)
+    chunks.append('<div class="example-showcase"><div class="example-context"><p class="eyebrow">' + text("example_tag") + '</p><h3>' + text("example_question") + '</h3><div class="demo-metrics"><div class="demo-metric measured-result"><strong>' + text("result") + '</strong><p class="result-label">' + text("result_label") + '</p><p class="result-detail">' + ''.join('<span>' + escape(line) + '</span>' for line in content["result_detail"]) + '</p></div>')
+    for metric in content.get("demo_metrics", []):
+        chunks.append('<div class="demo-metric"><strong>' + escape(metric["value"]) + '</strong><p class="result-label">' + escape(metric["label"]) + '</p><p class="result-detail">' + escape(metric["detail"]) + '<span>' + text("demo_metric_context") + '</span></p></div>')
+    chunks.append('</div>')
+    for key in ("demo_scope", "demo_balance"):
+        if content.get(key):
+            chunks.append('<p class="' + key.replace("_", "-") + '">' + text(key) + '</p>')
+    chunks.append('<div class="actions">' + button(content['example_link'] + ' →', demo_url) + button(content['try_this'], run_url, secondary=True, external=True) + '</div><p class="example-ready">' + text("example_ready") + '</p></div></div><div class="result-gallery">')
+    cards = selected["cards"]
+    keys = [card["media_key"] for card in cards]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Landing evidence cards must select unique media keys")
+    for card in cards:
+        key = card["media_key"]
+        item = builder.landing_assets.get("evidence", {}).get(key)
+        if item is None:
+            raise ValueError("Unknown landing evidence media key: " + key)
         if item["demo_id"] != demo["id"]:
             raise ValueError("Landing media must belong to the featured demo")
-        url = '/content/' + item['asset_path']
-        label = builder.copy[lang]['full_size'] + ': ' + content['image_titles'][index]
-        crops = render_evidence_crops(builder, item, selected['media_crops'][key], lang)
-        caption = content['image_captions'][index]
-        chunks.append('<figure class="result-preview"><div class="result-card-heading">' + icon(selected['media_icons'][index]) + '<h4>' + escape(content['image_titles'][index]) + '</h4></div><a href="' + escape(url, quote=True) + '" aria-label="' + escape(label, quote=True) + '" target="_blank" rel="noopener noreferrer">' + crops + '</a><figcaption><strong>' + escape(caption['lead']) + '</strong> ' + escape(caption['body']) + '</figcaption></figure>')
-    chunks += ['</div></div></section>',
+        if lang not in card["locales"]:
+            continue
+        selection = card["copy"]
+        if selection["kind"] == "existing":
+            index = selection["index"]
+            title = content["image_titles"][index]
+            caption = content["image_captions"][index]
+        elif selection["kind"] == "added":
+            added = next(view for view in content["demo_added_views"] if view["id"] == selection["id"])
+            title, caption = added["title"], added
+        else:
+            raise ValueError("Unknown landing evidence copy selection")
+        label = builder.copy[lang]['full_size'] + ': ' + card['detail_title'][lang]
+        image = render_evidence_image(item, lang)
+        caption_id = "caption-" + key
+        note = '<p class="result-preview-note">' + escape(item['preview']['note'][lang]) + '</p>' if item.get('preview') else ''
+        chunks.append('<figure class="result-preview" data-media-key="' + escape(key, quote=True) + '"><div class="result-card-heading">' + icon(card['icon']) + '<div><h4>' + escape(title) + '</h4><p class="result-subtitle">' + escape(card['subtitle'][lang]) + '</p></div></div><div class="result-media"><a href="' + escape(item["native"]["path"], quote=True) + '" aria-label="' + escape(label, quote=True) + '" title="' + escape(card['detail_title'][lang], quote=True) + '" data-case-lightbox data-title="' + escape(card['detail_title'][lang], quote=True) + '" data-caption-id="' + escape(caption_id, quote=True) + '" data-original-alt="' + escape(item['alt'][lang], quote=True) + '" target="_blank" rel="noopener noreferrer">' + image + '</a>' + note + '</div><figcaption id="' + escape(caption_id, quote=True) + '"><strong>' + escape(caption['lead']) + '</strong> ' + escape(caption['body']) + '</figcaption></figure>')
+    chunks += ['</div></section>',
                '<section class="get-started-section" id="get-started"><div class="section-heading"><h2>' + text('get_started') + '</h2></div><div class="get-started"><div class="start-heading"><p class="curiosity-callout"><small>' + text('curiosity_context') + '</small>' + ''.join('<span>' + escape(line) + '</span>' for line in content['curiosity_lines']) + '</p></div><ol class="start-steps">']
     for number, step in enumerate(content['start_steps'], 1):
         chunks.append('<li class="start-step"><span class="start-number" aria-hidden="true">' + str(number) + '</span><div><h3>' + escape(step['title']) + '</h3><p>' + escape(step['body']) + '</p></div></li>')
-    chunks += ['</ol><div class="start-grid"><article><details class="start-description"><summary>' + text('demo_title') + '</summary><p>' + text('demo_body') + '</p></details>' + button(builder.copy[lang]['browse_demos'] + ' →', route(lang, 'demos/')) + '</article><article><details class="start-description"><summary>' + text('own_title') + '</summary><p>' + text('own_body') + '</p></details>' + button(content['own_link'], app_url, secondary=True, external=True) + '</article></div></div></section>',
+    chunks += ['</ol><div class="start-grid"><article><details class="start-description"><summary>' + text('demo_title') + '</summary><p>' + text('demo_body') + '</p></details>' + button(builder.copy[lang]['browse_demos'] + ' →', route(lang, 'demos/')) + '</article><article><details class="start-description"><summary>' + text('own_title') + '</summary><p>' + text('own_body') + '</p></details>' + ('<p class="own-benchmark-note">' + text('own_benchmark_note') + '</p>' if content.get('own_benchmark_note') else '') + button(content['own_link'], app_url, secondary=True, external=True) + '</article></div></div></section>',
+               render_operating_note(content, icon),
                '<section class="setup-intro"><h2>' + text('setup_title') + '</h2><p>' + text('setup_body') + '</p><div class="guide-links"><a href="' + route(lang, 'documentation/') + '">' + escape(builder.copy[lang]['docs']) + ' →</a><a href="' + route(lang, 'community/') + '">' + escape(builder.copy[lang]['community']) + ' →</a></div></section></div>']
     return ''.join(chunks)

@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "source_archive": {
+    "filename": "WSPRadar_export_2026_10_20__21_25.zip",
+    "bytes": 7624762,
+    "sha256": "23f13c07b5b1394f0d13a18b15cf9c4f02efed6dc216ace6241e86b811ce112a"
+  },
+  "supplied_walkthrough": {
+    "filename": "WSPRadar_Calibration_Walkthrough.md",
+    "bytes": 15114,
+    "sha256": "047d7c53067a992c2a34fb29293c20c1c94ac1bba01a22d212ed00a11d0fe9c8"
+  },
+  "source_members": [
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/config/wspradar_config.config",
+      "bytes": 3165,
+      "sha256": "02b42ffd14a870d9223caa884efd3ed6a6a08ae890a461300d5c5c93380c4849"
+    },
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/config/run_metadata.json",
+      "bytes": 6298,
+      "sha256": "a2c663d659b4c49f02b4152d039bbe91042e01483f78769092fa6d85ae6f1ab4"
+    },
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/table_station_insights.csv",
+      "bytes": 1937,
+      "sha256": "1c464b5b6c8a8302da98699689a6043d5d9fcc86579f176f0cb77d08fa2c8703"
+    },
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 124380,
+      "sha256": "23cfc9d87c1359d8df6cdb1c059b257c9b2990533ff40772b94d4390151fa21f"
+    },
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_segment_statistics_dark.png",
+      "bytes": 317732,
+      "sha256": "7de564359b88d624f8956a4a29a776b25a9a0739b7a406e819a5c88b6d0bc72b"
+    },
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_segment_temporal_delta_snr_dark.png",
+      "bytes": 370143,
+      "sha256": "d9399868477811d6f6a757b09858fe9d1d1ea5542c4c1160cfb0d2d23969ff6e"
+    },
+    {
+      "archive_member": "WSPRadar_export_2026_10_20__21_25/benchmark/figure_decodes_over_snr_dark.png",
+      "bytes": 389828,
+      "sha256": "59af5c99736fff628c5101a54ebd7941735dee8b121b8343fe3f8e7c9c6c1ccf"
+    }
+  ],
+  "native_theme": "Unmodified supplied native dark PNG exports; no scientific rerendering or recoloring.",
+  "retained_evidence_location": "site/demos/vanhamel_rx_calibration/source/20261020-export",
+  "verified_summary": {
+    "station_entries": 59,
+    "joint_events": 1450,
+    "target_only_events": 316,
+    "reference_only_events": 15,
+    "observed_events": 1781,
+    "target_decodes": 1766,
+    "reference_decodes": 1465,
+    "summed_receiver_decodes": 3231,
+    "minimum_joint_spots_per_station": 50,
+    "qualifying_stations": 10,
+    "qualifying_joint_spots": 1143,
+    "qualifying_mean_delta_snr_db": 1.2143482064741906,
+    "pooled_median_delta_snr_db": 1.0,
+    "all_station_medians_delta_snr_db": 1.0,
+    "joint_spots_per_qualifying_station_range": [
+      52,
+      344
+    ],
+    "twelve_hour_bins": 14,
+    "twelve_hour_bins_with_median_plus_one_db": 13,
+    "twelve_hour_exception": {
+      "start_utc": "2021-02-10T06:00:00Z",
+      "joint_spots": 10,
+      "median_delta_snr_db": 2.0
+    },
+    "utc_hour_exception": {
+      "hour": 16,
+      "joint_spots": 3,
+      "median_delta_snr_db": 2.0
+    },
+    "utc_hours_without_qualifying_joint_spots": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "limits": [
+    "The selected archive week is not authenticated as the original publication dataset.",
+    "The archive does not verify the shared-antenna hardware connection throughout the selected week.",
+    "SNR summaries use qualifying paired evidence; decoding figures use all retained observations.",
+    "The +1.2 dB mean-based correction is specific to this receiver pair and arrangement; Demo #5 uses a separate +1.6 dB reconstruction correction.",
+    "The retained setup illustration is unchanged; no replacement setup image was supplied in the ZIP."
+  ],
+  "browser_derivatives": {
+    "tool": "Pillow",
+    "version": "12.2.0",
+    "webp_version": "1.6.0",
+    "encoding": "Lossless WebP; quality=100; method=6; exact=True",
+    "resampling": "LANCZOS directly from each native PNG; complete image; no upscaling",
+    "widths": [
+      520,
+      1040,
+      1600
+    ],
+    "comparisons": [
+      {
+        "path": "rc3-20261020/web/statistics-520.webp",
+        "png_bytes": 65902,
+        "webp_bytes": 28070,
+        "selected_format": "webp",
+        "bytes": 28070,
+        "saving_vs_equivalent_png_percent": 57.41,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/statistics-1040.webp",
+        "png_bytes": 169814,
+        "webp_bytes": 69846,
+        "selected_format": "webp",
+        "bytes": 69846,
+        "saving_vs_equivalent_png_percent": 58.87,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/statistics-1600.webp",
+        "png_bytes": 317307,
+        "webp_bytes": 126854,
+        "selected_format": "webp",
+        "bytes": 126854,
+        "saving_vs_equivalent_png_percent": 60.02,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/temporal-snr-520.webp",
+        "png_bytes": 69256,
+        "webp_bytes": 34948,
+        "selected_format": "webp",
+        "bytes": 34948,
+        "saving_vs_equivalent_png_percent": 49.54,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/temporal-snr-1040.webp",
+        "png_bytes": 159755,
+        "webp_bytes": 76682,
+        "selected_format": "webp",
+        "bytes": 76682,
+        "saving_vs_equivalent_png_percent": 52.0,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/temporal-snr-1600.webp",
+        "png_bytes": 266641,
+        "webp_bytes": 127044,
+        "selected_format": "webp",
+        "bytes": 127044,
+        "saving_vs_equivalent_png_percent": 52.35,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/decodes-over-snr-520.webp",
+        "png_bytes": 86937,
+        "webp_bytes": 39886,
+        "selected_format": "webp",
+        "bytes": 39886,
+        "saving_vs_equivalent_png_percent": 54.12,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/decodes-over-snr-1040.webp",
+        "png_bytes": 214646,
+        "webp_bytes": 94708,
+        "selected_format": "webp",
+        "bytes": 94708,
+        "saving_vs_equivalent_png_percent": 55.88,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "rc3-20261020/web/decodes-over-snr-1600.webp",
+        "png_bytes": 322434,
+        "webp_bytes": 141780,
+        "selected_format": "webp",
+        "bytes": 141780,
+        "saving_vs_equivalent_png_percent": 56.03,
+        "decoded_pixels_equal_resized_source": true
+      }
+    ]
+  }
+}

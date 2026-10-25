@@ -1,0 +1,534 @@
+{
+  "en": {
+    "text": {
+      "eyebrow": {
+        "$text": "demos-index.en.md#demos_landing.eyebrow"
+      },
+      "title": {
+        "$text": "demos-index.en.md#demos_landing.title"
+      },
+      "intro": {
+        "$text": "demos-index.en.md#demos_landing.intro"
+      },
+      "getting_started": {
+        "$text": "demos-index.en.md#demos_landing.getting_started"
+      },
+      "real_data": {
+        "$text": "demos-index.en.md#demos_landing.real_data"
+      },
+      "prepared": {
+        "$text": "demos-index.en.md#demos_landing.prepared"
+      },
+      "guidance": {
+        "$text": "demos-index.en.md#demos_landing.guidance"
+      },
+      "no_station": {
+        "$text": "demos-index.en.md#demos_landing.no_station"
+      },
+      "choose_title": {
+        "$text": "demos-index.en.md#demos_landing.choose_title"
+      },
+      "choose_helper": {
+        "$text": "demos-index.en.md#demos_landing.choose_helper"
+      },
+      "benchmark": {
+        "$text": "demos-index.en.md#demos_landing.benchmark"
+      },
+      "performance": {
+        "$text": "demos-index.en.md#demos_landing.performance"
+      },
+      "compare": {
+        "$text": "demos-index.en.md#demos_landing.compare"
+      },
+      "explore": {
+        "$text": "demos-index.en.md#demos_landing.explore"
+      },
+      "no_reference": {
+        "$text": "demos-index.en.md#demos_landing.no_reference"
+      },
+      "mode_definition": {
+        "$text": "demos-index.en.md#demos_landing.mode_definition"
+      },
+      "collection_title": {
+        "$text": "demos-index.en.md#demos_landing.collection_title"
+      },
+      "collection_description": {
+        "$text": "demos-index.en.md#demos_landing.collection_description"
+      },
+      "collection_note": {
+        "$text": "demos-index.en.md#demos_landing.collection_note"
+      },
+      "all_demos": {
+        "$text": "demos-index.en.md#demos_landing.all_demos"
+      },
+      "demo_singular": {
+        "$text": "demos-index.en.md#demos_landing.demo_singular"
+      },
+      "demo_plural": {
+        "$text": "demos-index.en.md#demos_landing.demo_plural"
+      },
+      "unavailable": {
+        "$text": "demos-index.en.md#demos_landing.unavailable"
+      },
+      "recommended": {
+        "$text": "demos-index.en.md#demos_landing.recommended"
+      },
+      "placeholder": {
+        "$text": "demos-index.en.md#demos_landing.placeholder"
+      },
+      "placeholder_accessible": {
+        "$text": "demos-index.en.md#demos_landing.placeholder_accessible"
+      },
+      "learn": {
+        "$text": "demos-index.en.md#demos_landing.learn"
+      },
+      "open_demo": {
+        "$text": "demos-index.en.md#demos_landing.open_demo"
+      },
+      "next_title": {
+        "$text": "demos-index.en.md#demos_landing.next_title"
+      },
+      "next_body": {
+        "$text": "demos-index.en.md#demos_landing.next_body"
+      },
+      "next_link": {
+        "$text": "demos-index.en.md#demos_landing.next_link"
+      },
+      "open_original": {
+        "$text": "demos-index.en.md#demos_landing.open_original"
+      }
+    },
+    "cards": [
+      {
+        "id": "griffiths_squibb_fig3",
+        "modes": [
+          "rx-benchmark"
+        ],
+        "title": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.title"
+        },
+        "context": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.context"
+        },
+        "band": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.band"
+        },
+        "stations": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.stations"
+        },
+        "topic": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.topic"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.question"
+        },
+        "learn": [
+          {
+            "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.learn.0"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.learn.1"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.learn.2"
+          }
+        ],
+        "thumb_icon": "results-map",
+        "thumb_title": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.thumb_title"
+        },
+        "thumb_text": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.thumb_text"
+        },
+        "recommended": true,
+        "subtitle": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.subtitle"
+        },
+        "thumb_alt": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_fig3.thumb_alt"
+        },
+        "thumbnail": {
+          "images": [
+            {
+              "path": "web/guided-demos/griffiths_squibb_fig3-480.webp",
+              "width": 480,
+              "height": 270
+            },
+            {
+              "path": "web/guided-demos/griffiths_squibb_fig3-960.webp",
+              "width": 960,
+              "height": 540
+            }
+          ],
+          "original": "/assets/demos/griffiths_squibb_fig3/temporal-decode/figure_map_delta_snr_dark.png"
+        }
+      },
+      {
+        "id": "zander_tx_buddy",
+        "modes": [
+          "tx-benchmark"
+        ],
+        "title": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.title"
+        },
+        "context": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.context"
+        },
+        "band": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.band"
+        },
+        "stations": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.stations"
+        },
+        "topic": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.topic"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.question"
+        },
+        "learn": [
+          {
+            "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.learn.0"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.learn.1"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.learn.2"
+          }
+        ],
+        "thumb_icon": "station-balanced",
+        "thumb_title": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.thumb_title"
+        },
+        "thumb_text": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.thumb_text"
+        },
+        "subtitle": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.subtitle"
+        },
+        "thumb_alt": {
+          "$text": "demos-index.en.md#demos_landing.zander_tx_buddy.thumb_alt"
+        },
+        "thumbnail": {
+          "images": [
+            {
+              "path": "web/guided-demos/zander_tx_buddy-480.webp",
+              "width": 480,
+              "height": 270
+            },
+            {
+              "path": "web/guided-demos/zander_tx_buddy-960.webp",
+              "width": 960,
+              "height": 540
+            }
+          ],
+          "original": "/assets/demos/zander_tx_buddy/typography-en-20261024/figure_segment_statistics_dark.png"
+        }
+      },
+      {
+        "id": "griffiths_squibb_rx_performance",
+        "modes": [
+          "rx-performance"
+        ],
+        "title": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.title"
+        },
+        "context": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.context"
+        },
+        "band": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.band"
+        },
+        "stations": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.stations"
+        },
+        "topic": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.topic"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.question"
+        },
+        "learn": [
+          {
+            "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.learn.0"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.learn.1"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.learn.2"
+          }
+        ],
+        "thumb_icon": "operating-window",
+        "thumb_title": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.thumb_title"
+        },
+        "thumb_text": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.thumb_text"
+        },
+        "subtitle": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.subtitle"
+        },
+        "thumb_alt": {
+          "$text": "demos-index.en.md#demos_landing.griffiths_squibb_rx_performance.thumb_alt"
+        },
+        "thumbnail": {
+          "images": [
+            {
+              "path": "web/guided-demos/griffiths_squibb_rx_performance-480.webp",
+              "width": 480,
+              "height": 270
+            },
+            {
+              "path": "web/guided-demos/griffiths_squibb_rx_performance-960.webp",
+              "width": 960,
+              "height": 540
+            }
+          ],
+          "original": "/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark.png"
+        }
+      },
+      {
+        "id": "vanhamel_rx_calibration",
+        "modes": [
+          "rx-benchmark"
+        ],
+        "title": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.title"
+        },
+        "context": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.context"
+        },
+        "band": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.band"
+        },
+        "stations": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.stations"
+        },
+        "topic": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.topic"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.question"
+        },
+        "learn": [
+          {
+            "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.learn.0"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.learn.1"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.learn.2"
+          }
+        ],
+        "thumb_icon": "signal-quality",
+        "thumb_title": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.thumb_title"
+        },
+        "thumb_text": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.thumb_text"
+        },
+        "subtitle": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.subtitle"
+        },
+        "thumb_alt": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_calibration.thumb_alt"
+        },
+        "thumbnail": {
+          "images": [
+            {
+              "path": "web/guided-demos/vanhamel_rx_calibration-480.webp",
+              "width": 480,
+              "height": 270
+            },
+            {
+              "path": "web/guided-demos/vanhamel_rx_calibration-960.webp",
+              "width": 960,
+              "height": 540
+            }
+          ],
+          "original": "/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_statistics_dark.png"
+        }
+      },
+      {
+        "id": "vanhamel_rx_buddy",
+        "modes": [
+          "rx-benchmark"
+        ],
+        "title": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.title"
+        },
+        "context": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.context"
+        },
+        "band": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.band"
+        },
+        "stations": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.stations"
+        },
+        "topic": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.topic"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.question"
+        },
+        "learn": [
+          {
+            "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.learn.0"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.learn.1"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.learn.2"
+          }
+        ],
+        "thumb_icon": "evidence-chart",
+        "thumb_title": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.thumb_title"
+        },
+        "thumb_text": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.thumb_text"
+        },
+        "subtitle": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.subtitle"
+        },
+        "thumb_alt": {
+          "$text": "demos-index.en.md#demos_landing.vanhamel_rx_buddy.thumb_alt"
+        },
+        "thumbnail": {
+          "images": [
+            {
+              "path": "web/guided-demos/vanhamel_rx_buddy-480.webp",
+              "width": 480,
+              "height": 270
+            },
+            {
+              "path": "web/guided-demos/vanhamel_rx_buddy-960.webp",
+              "width": 960,
+              "height": 540
+            }
+          ],
+          "original": "/assets/demos/vanhamel_rx_buddy/typography-en-20261024/figure_selected_station_temporal_delta_snr_dark.png"
+        }
+      },
+      {
+        "id": "milazzo_tx_buddy",
+        "modes": [
+          "rx-benchmark",
+          "tx-benchmark"
+        ],
+        "title": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.title"
+        },
+        "context": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.context"
+        },
+        "band": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.band"
+        },
+        "stations": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.stations"
+        },
+        "topic": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.topic"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.question"
+        },
+        "learn": [
+          {
+            "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.learn.0"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.learn.1"
+          },
+          {
+            "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.learn.2"
+          }
+        ],
+        "thumb_icon": "joint-and-one-sided",
+        "thumb_title": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.thumb_title"
+        },
+        "thumb_text": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.thumb_text"
+        },
+        "subtitle": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.subtitle"
+        },
+        "thumb_alt": {
+          "$text": "demos-index.en.md#demos_landing.milazzo_tx_buddy.thumb_alt"
+        },
+        "thumbnail": {
+          "images": [
+            {
+              "path": "web/guided-demos/milazzo_tx_buddy-480.webp",
+              "width": 480,
+              "height": 270
+            },
+            {
+              "path": "web/guided-demos/milazzo_tx_buddy-960.webp",
+              "width": 960,
+              "height": 540
+            }
+          ],
+          "original": "/assets/demos/milazzo_tx_buddy/figure6_reconstruction_and_pairs.png"
+        }
+      }
+    ],
+    "modes": [
+      {
+        "id": "rx-benchmark",
+        "label": {
+          "$text": "demos-index.en.md#demos_landing.rx-benchmark.label"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.rx-benchmark.question"
+        },
+        "description": {
+          "$text": "demos-index.en.md#demos_landing.rx-benchmark.description"
+        }
+      },
+      {
+        "id": "tx-benchmark",
+        "label": {
+          "$text": "demos-index.en.md#demos_landing.tx-benchmark.label"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.tx-benchmark.question"
+        },
+        "description": {
+          "$text": "demos-index.en.md#demos_landing.tx-benchmark.description"
+        }
+      },
+      {
+        "id": "rx-performance",
+        "label": {
+          "$text": "demos-index.en.md#demos_landing.rx-performance.label"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.rx-performance.question"
+        },
+        "description": {
+          "$text": "demos-index.en.md#demos_landing.rx-performance.description"
+        }
+      },
+      {
+        "id": "tx-performance",
+        "label": {
+          "$text": "demos-index.en.md#demos_landing.tx-performance.label"
+        },
+        "question": {
+          "$text": "demos-index.en.md#demos_landing.tx-performance.question"
+        },
+        "description": {
+          "$text": "demos-index.en.md#demos_landing.tx-performance.description"
+        }
+      }
+    ]
+  }
+}

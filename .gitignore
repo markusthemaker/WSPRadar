@@ -1,5 +1,8 @@
+/generated/
 /dist/
 /.tmp/
 /.venv/
+/.pytest_cache/
+/source/archive/
 __pycache__/
 *.pyc

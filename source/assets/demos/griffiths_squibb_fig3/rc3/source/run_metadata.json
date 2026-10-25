@@ -1,0 +1,109 @@
+{
+  "app": "WSPRadar.org",
+  "version": "v1.0 RC3",
+  "export_signature": "b4879f60e6cbb9de36c8335af8b80d1dc48eb48ce66cd62bb7a269b630017756",
+  "exported_utc": "2026-10-17T23:27:38Z",
+  "language": "en",
+  "run_mode": "RX",
+  "database_source": "wspr_live",
+  "blocks_present": {
+    "benchmark": true,
+    "performance": false
+  },
+  "callsign": "G3ZIL",
+  "reference_or_benchmark_mode": "reference_station",
+  "band": "40m",
+  "time_window": {
+    "start_utc": "2017-04-01T00:00Z",
+    "end_utc": "2017-05-01T00:00Z"
+  },
+  "benchmark_snr_correction_mode": "no_offset",
+  "benchmark_snr_correction_db": 0.0,
+  "thresholds_and_filters": {
+    "solar_state": "all",
+    "max_peer_distance_km": 10000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_joint_spots_per_station": 1,
+    "min_confirmed_opportunities_per_peer": 3,
+    "min_joint_stations_per_map_segment": 5,
+    "min_decode_events_per_station": 1,
+    "min_decode_stations_per_map_segment": 5
+  },
+  "result_blocks": [
+    {
+      "analysis_id": "rx_benchmark",
+      "title": "RX Benchmark: G3ZIL (Target) vs. G4HZX (Reference)",
+      "folder": "benchmark",
+      "result_mode": "benchmark",
+      "decode_filter_mode": "legacy_no_code",
+      "analysis_cache_file": "benchmark/analysis_cache.parquet",
+      "selected_segment": "Full Range | All Directions",
+      "selected_distance": "Full Range",
+      "selected_direction": "All Directions",
+      "selected_ranges": [
+        "Full Range"
+      ],
+      "selected_directions": [
+        "All Directions"
+      ],
+      "selected_stations": [
+        "DJ0ABR (JN68nt)"
+      ],
+      "selected_station_label": null,
+      "selected_station_context": null,
+      "selected_station_count": 1,
+      "selected_station_role": null,
+      "selected_evidence_weighting": "Single selected path",
+      "selected_evidence_figures": {},
+      "benchmark_evidence_figures": {
+        "figure_segment_temporal_coverage.png": "RX Benchmark Temporal Evidence Coverage: Target G3ZIL",
+        "figure_selected_station_coverage.png": "RX Benchmark Selected Path Evidence Coverage: DJ0ABR (JN68nt)"
+      },
+      "show_non_joint": false,
+      "show_zero_target": false,
+      "evidence_time_bin": "12h",
+      "segment_evidence_time_bin": "24h",
+      "performance_method_version": null,
+      "benchmark_method_version": "controlled-pair-v5",
+      "benchmark_operation_confirmed": true,
+      "benchmark_evidence_mode": "controlled",
+      "benchmark_historical_replay_confirmed": false,
+      "benchmark_maps": {
+        "delta_snr": {
+          "figure": "figure_map_highres.png",
+          "unit": "dB",
+          "station_statistic": "median_joint_observation_difference",
+          "segment_statistic": "median_of_qualifying_station_medians"
+        },
+        "delta_decode": {
+          "figure": "figure_map_decode_highres.png",
+          "unit": "percentage_points",
+          "station_statistic": "100*(target_only-reference_only)/(joint+target_only+reference_only)",
+          "segment_statistic": "mean_of_qualifying_station_differences",
+          "joint_counts_once": true
+        }
+      },
+      "benchmark_snr_reach": {
+        "figure": "figure_snr_reach_highres.png",
+        "scope": "full_active_run",
+        "recipe_kind": "benchmark_snr_reach",
+        "recipe_version": 1,
+        "snr_basis": "reported_raw_snr_per_setup",
+        "transmit_power_normalized": false,
+        "reference_snr_correction_applied": false,
+        "bin_width_db": 1,
+        "spot_counting": "joint_plus_own_one_sided_at_each_snr_cutoff",
+        "station_identity": [
+          "peer_sign",
+          "peer_grid"
+        ],
+        "station_counting": "distinct_per_setup_at_strongest_own_report",
+        "joint_station_counting": "strongest_joint_report_per_setup",
+        "one_sided_station_counting": "exclusive_to_one_setup_over_full_scope",
+        "joint_counted_once_in_either": true,
+        "map_qualification_thresholds_applied": false
+      }
+    }
+  ]
+}

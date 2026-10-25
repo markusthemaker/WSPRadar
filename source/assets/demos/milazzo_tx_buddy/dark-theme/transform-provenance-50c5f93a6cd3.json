@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "recipe": "scripts\\internal\\render_milazzo_dark_website_assets.py",
+  "renderer": "PyMuPDF 1.28.2",
+  "files": [
+    {
+      "path": "figure6_current_comparison.png",
+      "source": "assets/demos/milazzo_tx_buddy/dark-theme/WSPRadar_Demo_Milazzo_Figure6-67936f2132bf.pdf",
+      "source_fingerprint": {
+        "bytes": 622776,
+        "sha256": "67936f2132bff76da4bd8179e48a6b1e892c909679fff6a6f572ec203d839a16"
+      },
+      "page": 1,
+      "dpi": 160,
+      "kind": "complete native current PDF page",
+      "bytes": 1224775,
+      "sha256": "ef6997ed2e1bc0f0cca411cc089be624a7e4be83825ddfa2b3bb628a1a644944"
+    },
+    {
+      "path": "figure6_reconstruction_and_pairs.png",
+      "source": "assets/demos/milazzo_tx_buddy/dark-theme/WSPRadar_Demo_Milazzo_Figure6-67936f2132bf.pdf",
+      "source_fingerprint": {
+        "bytes": 622776,
+        "sha256": "67936f2132bff76da4bd8179e48a6b1e892c909679fff6a6f572ec203d839a16"
+      },
+      "page": 1,
+      "dpi": 144,
+      "pixel_crop_xyxy": [
+        1820,
+        330,
+        3430,
+        2280
+      ],
+      "width": 1610,
+      "height": 1950,
+      "kind": "complete labelled native PDF panel crop",
+      "bytes": 407236,
+      "sha256": "7a576a059e1011f168f2578bec29f9db96e78e101b80742c03415a24cd2be907"
+    },
+    {
+      "path": "figure6_do34ir_coverage.png",
+      "source": "assets/demos/milazzo_tx_buddy/dark-theme/WSPRadar_Demo_Milazzo_Figure6-67936f2132bf.pdf",
+      "source_fingerprint": {
+        "bytes": 622776,
+        "sha256": "67936f2132bff76da4bd8179e48a6b1e892c909679fff6a6f572ec203d839a16"
+      },
+      "page": 2,
+      "dpi": 144,
+      "pixel_crop_xyxy": [
+        110,
+        630,
+        1840,
+        1440
+      ],
+      "width": 1730,
+      "height": 810,
+      "kind": "complete labelled native PDF panel crop",
+      "bytes": 86759,
+      "sha256": "e1da32ed4f531453b097e1c0537240d833d101954326fbbda47b1132321916d6"
+    },
+    {
+      "path": "figure7_current_comparison.png",
+      "source": "assets/demos/milazzo_tx_buddy/dark-theme/WSPRadar_Demo_Milazzo_Figure7-0b396f306254.pdf",
+      "source_fingerprint": {
+        "bytes": 628983,
+        "sha256": "0b396f30625405273edfe8349f9dac8b43c54c8911f846c4d23419ff5e6a7d37"
+      },
+      "page": 1,
+      "dpi": 160,
+      "kind": "complete native current PDF page",
+      "bytes": 1227630,
+      "sha256": "b6f70b9464fc182b87a1e7d64ee45d566946e68ba05f3cd05f59c2558a1fb6c2"
+    },
+    {
+      "path": "figure7_reconstruction.png",
+      "source": "assets/demos/milazzo_tx_buddy/dark-theme/WSPRadar_Demo_Milazzo_Figure7-0b396f306254.pdf",
+      "source_fingerprint": {
+        "bytes": 628983,
+        "sha256": "0b396f30625405273edfe8349f9dac8b43c54c8911f846c4d23419ff5e6a7d37"
+      },
+      "page": 1,
+      "dpi": 144,
+      "pixel_crop_xyxy": [
+        1900,
+        340,
+        3430,
+        1250
+      ],
+      "width": 1530,
+      "height": 910,
+      "kind": "complete labelled native PDF panel crop",
+      "bytes": 301562,
+      "sha256": "1ea5988a053566774c7703f07069431e633f7b9c88d173b30b7c96f4ff7a73b4"
+    }
+  ],
+  "scientific_scope": "Current complete-observation historical replay; RX Figure 6 and reciprocal TX Figure 7. The PDF footers declare the reconstruction settings.",
+  "originals_preserved": true,
+  "recipe_version": "milazzo-pointwise-dark-v1",
+  "theme": {
+    "background": "#000b19",
+    "foreground": "#d2def0",
+    "KP4MD_source_squares_and_lines": "#55c8ff",
+    "WB6RQN_source_circles_and_lines": "#ff8278"
+  },
+  "source_image_transformation": "Pointwise continuous palette mapping; unchanged dimensions and pixel coordinates; no OCR, resampling, inpainting or generative editing.",
+  "pdf_transformation": "Reviewed presentation colors and embedded paper-image pixels only; identical text and noncolor drawing instructions. Native scientific color scales retained.",
+  "original_images": [
+    {
+      "source": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\milazzo_tx_buddy\\supplied-2026-10-23\\Milazzo_Guided_Demo\\assets\\figure6_original.png",
+      "source_fingerprint": {
+        "bytes": 375213,
+        "sha256": "4bb141561f4339115d67d6e07a83366fdd4d808cc3acf585f740c6eb0ac0420f"
+      },
+      "width": 1520,
+      "height": 710,
+      "path": "figure6_original.png",
+      "bytes": 298405,
+      "sha256": "46595256420959f53a02c4473b09e8f7f62a391f79e3bc954cc98b41ec28402e"
+    },
+    {
+      "source": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\milazzo_tx_buddy\\supplied-2026-10-23\\Milazzo_Guided_Demo\\assets\\figure7_original.png",
+      "source_fingerprint": {
+        "bytes": 391887,
+        "sha256": "b8da0a9a1a7105b2abcf5244590ddc9796d9e6493f1406b93c4d53c1b4908132"
+      },
+      "width": 1520,
+      "height": 710,
+      "path": "figure7_original.png",
+      "bytes": 307735,
+      "sha256": "cbac4586cc23cb2f6db5d65c689b1c7833e14b325864555094bb088747bedfa7"
+    }
+  ],
+  "dark_pdf_intermediates": [
+    {
+      "path": "WSPRadar_Demo_Milazzo_Figure6.pdf",
+      "source": "C:\\Users\\marku\\Code\\WSPRadarApp\\tests\\regression\\reference_fixtures\\milazzo_publication_overlays_v3\\WSPRadar_Demo_Milazzo_Figure6.pdf",
+      "source_fingerprint": {
+        "bytes": 633788,
+        "sha256": "f09684734dbad98e0971e0535b2e3b5d091e263795c91161cbb8c57160cbdd03"
+      },
+      "pages": [
+        {
+          "page": 1,
+          "changed_color_operations": 250,
+          "noncolor_stream_sha256": "d4fb313e540c356bf3a27daf9e39fd87d9dae4a91166316027b129edef73e747",
+          "images": [
+            {
+              "name": "/I1",
+              "width": 978,
+              "height": 487,
+              "source_pixels_sha256": "aa34029e6eb2e3f62ba97134d897805e270703b3d1cf995206e2d13c9524aa5b",
+              "dark_pixels_sha256": "006dc8078098a692ce4721a265c4636cd7f018cf7cd317e99eb41c85186ee8a3"
+            },
+            {
+              "name": "/I2",
+              "width": 807,
+              "height": 334,
+              "source_pixels_sha256": "4299bf36b8909ce4c9317fa2d7d110de0e5513c99fc2fe408011e623c75a3b7c",
+              "dark_pixels_sha256": "3ff636961a67db7c03f8bb8c466496fbca01f82b89e2c8642d25287bdf6204ad"
+            }
+          ]
+        },
+        {
+          "page": 2,
+          "changed_color_operations": 1130,
+          "noncolor_stream_sha256": "ae666d5f3efa35cce8ca2a16548a7bebaf7dc97daf35a7cc7126510837dbbecd",
+          "images": []
+        }
+      ],
+      "bytes": 622776,
+      "sha256": "67936f2132bff76da4bd8179e48a6b1e892c909679fff6a6f572ec203d839a16"
+    },
+    {
+      "path": "WSPRadar_Demo_Milazzo_Figure7.pdf",
+      "source": "C:\\Users\\marku\\Code\\WSPRadarApp\\tests\\regression\\reference_fixtures\\milazzo_publication_overlays_v3\\WSPRadar_Demo_Milazzo_Figure7.pdf",
+      "source_fingerprint": {
+        "bytes": 638102,
+        "sha256": "eddb5d8b3af511bb18e249e0da8918ad5816a640e5c0079a1f56e7920d9692f7"
+      },
+      "pages": [
+        {
+          "page": 1,
+          "changed_color_operations": 203,
+          "noncolor_stream_sha256": "3dc9f8f1103c3432bef957b663f5667f736f7c2a99e06669d23004d0e111ffd5",
+          "images": [
+            {
+              "name": "/I1",
+              "width": 978,
+              "height": 487,
+              "source_pixels_sha256": "d76f66802ce7b97323d2ac10311d3efadec1b287abfb90f1f2f49424a186d29d",
+              "dark_pixels_sha256": "4795316c9e58d0ab38f9922314f1ee2aeeda73fa82e52a79974c36832191997d"
+            },
+            {
+              "name": "/I2",
+              "width": 807,
+              "height": 334,
+              "source_pixels_sha256": "3b613ec1f121d5b1ef363928bc2ae853c32e4d6ce50b95bc9d26f2cce3919541",
+              "dark_pixels_sha256": "6b9c9000f55c30c90dce899323e12781bcf12a7268b2148f4d01b3438a7cc818"
+            }
+          ]
+        },
+        {
+          "page": 2,
+          "changed_color_operations": 589,
+          "noncolor_stream_sha256": "cb247e90b8af827f6e838bf32173a9b3c264580a2ca8cdac03d8b917e603e507",
+          "images": []
+        }
+      ],
+      "bytes": 628983,
+      "sha256": "0b396f30625405273edfe8349f9dac8b43c54c8911f846c4d23419ff5e6a7d37"
+    }
+  ],
+  "derivation_scripts": [
+    {
+      "path": "scripts\\internal\\render_milazzo_dark_website_assets.py",
+      "bytes": 3309,
+      "sha256": "25673a8fc8782b6f31630c85dc9aa83a3f8c9f3a965abd9c5c9b182d8773b8c8"
+    },
+    {
+      "path": "scripts\\internal\\milazzo_dark_presentation.py",
+      "bytes": 12173,
+      "sha256": "57d9cd7ef5976daa04ced712ba176722035cb1a9b09afdc3286e53b9a4e48800"
+    },
+    {
+      "path": "scripts\\internal\\render_milazzo_website_assets.py",
+      "bytes": 4243,
+      "sha256": "b61f339cb596186492547579a2545c17dd20a4af7fbcfc4db3b2c3ab736c43ce"
+    }
+  ],
+  "elapsed_seconds": 60.476
+}

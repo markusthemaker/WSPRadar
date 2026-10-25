@@ -1,0 +1,98 @@
+{
+  "name": "WSPRadar front-page icon extension",
+  "version": "1.0",
+  "viewBox": "0 0 256 256",
+  "default_dimensions_px": [
+    256,
+    256
+  ],
+  "recommended_display_sizes_px": [
+    40,
+    48,
+    64
+  ],
+  "stroke_width": 8,
+  "stroke_linecap": "round",
+  "stroke_linejoin": "round",
+  "background": "transparent",
+  "colors": {
+    "cyan": "#40b6ff",
+    "green": "#39ff14",
+    "monochrome": "currentColor"
+  },
+  "usage": {
+    "neon": "Use at 40–64 px on the established dark WSPRadar surface.",
+    "monochrome": "Inline the SVG and set the CSS color property. In an external img element, currentColor does not inherit the parent page color.",
+    "decorative": "When adjacent text already names the function, use an empty img alt or remove role/aria-labelledby and set aria-hidden=\"true\" for inline SVG.",
+    "accessible": "If the icon carries meaning alone, retain its SVG title when inline, or supply the manifest alt text to the img element.",
+    "color_semantics": "Cyan and green extend the brand icon family. They do not define the Target/Reference or chart evidence legend."
+  },
+  "icons": [
+    {
+      "id": "signal-quality",
+      "title": "Signal quality",
+      "alt": "Two matched signal traces with a vertical arrow indicating their SNR difference.",
+      "intended_placement": "Signal Quality / ΔSNR feature, paired-signal explanation, first demo step.",
+      "semantic_note": "A measured difference between jointly decoded signals. The two colors do not assign a fixed winner.",
+      "files": {
+        "neon": "neon/signal-quality.svg",
+        "monochrome": "monochrome/signal-quality.svg"
+      }
+    },
+    {
+      "id": "decoding-advantage",
+      "title": "Decoding advantage",
+      "alt": "Paired comparison bars on both sides of a shared axis, with the longer side varying between rows.",
+      "intended_placement": "ΔDecode map or Decoding Advantage feature.",
+      "semantic_note": "Decode outcomes can favor either setup; the icon makes no universal-winner claim.",
+      "files": {
+        "neon": "neon/decoding-advantage.svg",
+        "monochrome": "monochrome/decoding-advantage.svg"
+      }
+    },
+    {
+      "id": "decoding-reach",
+      "title": "Decoding reach",
+      "alt": "A weakening signal waveform above two station symbols, linking signal quality with station observations.",
+      "intended_placement": "From Signal Quality to Decoding Reach introduction or Weak Signals feature.",
+      "semantic_note": "Connects weaker signals to decoded observations and stations. It does not depict distance or promise greater geographical range.",
+      "files": {
+        "neon": "neon/decoding-reach.svg",
+        "monochrome": "monochrome/decoding-reach.svg"
+      }
+    },
+    {
+      "id": "joint-and-one-sided",
+      "title": "Joint and one-sided",
+      "alt": "Three paired rows showing both reports present, the left report only, and the right report only.",
+      "intended_placement": "Evidence explanation and symmetric Joint / Target-only / Reference-only outcomes.",
+      "semantic_note": "Filled markers mean an observed report. Both one-sided outcomes use the same visual treatment; colors are not assigned to Target and Reference.",
+      "files": {
+        "neon": "neon/joint-and-one-sided.svg",
+        "monochrome": "monochrome/joint-and-one-sided.svg"
+      }
+    },
+    {
+      "id": "operating-window",
+      "title": "Operating window",
+      "alt": "Two station timelines aligned within one operating window under a shared clock.",
+      "intended_placement": "Before You Benchmark or operating-condition note near the setup call to action.",
+      "semantic_note": "Use a comparison window in which both setups are known to be operating. A clock and aligned intervals express that prerequisite, without implying inferred uptime.",
+      "files": {
+        "neon": "neon/operating-window.svg",
+        "monochrome": "monochrome/operating-window.svg"
+      }
+    },
+    {
+      "id": "station-balanced",
+      "title": "Station-balanced",
+      "alt": "Three station summaries of equal size feed one aggregate summary.",
+      "intended_placement": "Per-station summary / Aggregated Result explanation, only where equal station weighting applies.",
+      "semantic_note": "Each station contributes equally to the applicable aggregate. The symbol does not specify a median or claim that every WSPRadar metric uses this weighting.",
+      "files": {
+        "neon": "neon/station-balanced.svg",
+        "monochrome": "monochrome/station-balanced.svg"
+      }
+    }
+  ]
+}

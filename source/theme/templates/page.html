@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="$lang">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="$description">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="$title · WSPRadar">
+  <meta property="og:description" content="$description">
+  <meta property="og:url" content="$canonical">
+  <meta property="og:image" content="https://wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>$title · WSPRadar</title>
+  <link rel="canonical" href="$canonical">
+  <link rel="alternate" hreflang="en" href="$alternate_en">
+  <link rel="alternate" hreflang="de" href="$alternate_de">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  $product_design_stylesheet
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=$landing_css_version">
+  <script src="/assets/site.js" defer></script>
+  $product_navigation_script
+  $entry_script
+  $math_scripts$component_assets
+  <link rel="stylesheet" href="/assets/print.css?v=$print_assets_version" media="print">
+  <script src="/assets/print.js?v=$print_assets_version" defer></script>
+</head>
+<body$body_attrs>
+  <a class="skip-link" href="#main">$skip_label</a>
+  <div class="site-shell">
+    $header
+    <main id="main">$body</main>
+    $footer
+  </div>
+</body>
+</html>

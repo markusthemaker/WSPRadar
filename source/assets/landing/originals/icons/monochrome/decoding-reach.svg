@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-labelledby="decoding-reach-title">
+<title id="decoding-reach-title">A weakening signal waveform above two station symbols, linking signal quality with station observations.</title>
+<g stroke="currentColor">
+<path d="M28 82L42 37L58 127L74 52L90 112L106 62L122 102L138 72L154 92L170 78L186 84H225"/>
+<path d="M128 116V149M64 149H192"/>
+<path d="M64 189V225M64 189L47 169M64 189L81 169M50 225H78"/>
+<path d="M192 189V225M192 189L175 169M192 189L209 169M178 225H206"/>
+</g>
+<g stroke="currentColor">
+<circle cx="64" cy="149" r="6" fill="currentColor"/>
+<circle cx="192" cy="149" r="6" fill="currentColor"/>
+<circle cx="64" cy="188" r="6" fill="currentColor"/>
+<circle cx="192" cy="188" r="6" fill="currentColor"/>
+</g>
+</svg>

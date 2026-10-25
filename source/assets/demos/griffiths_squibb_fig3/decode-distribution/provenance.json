@@ -1,0 +1,68 @@
+{
+  "source": "rc3/source/analysis_cache.parquet",
+  "source_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+  "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+  "recipe_schema_version": 8,
+  "source_events": 125518,
+  "station_entries": 1132,
+  "target_total": 114027,
+  "reference_total": 69258,
+  "receiver_decodes": 183285,
+  "pooled_value": 24.425894099353467,
+  "station_median_delta_snr": 6.5,
+  "joint_spot_median_delta_snr": 7.0,
+  "finite_histogram_counts": [
+    2226,
+    111,
+    81,
+    693,
+    183,
+    61,
+    64,
+    234,
+    323,
+    4179,
+    30519,
+    39169,
+    19820,
+    39557,
+    7933,
+    9433,
+    11447,
+    8175,
+    2754,
+    2209,
+    1778
+  ],
+  "exclusive_counts_reference_target": [
+    286,
+    2050
+  ],
+  "language_scope": "English walkthrough only; German retains reviewed figures",
+  "native": {
+    "path": "decode-distribution/figure_segment_insight_dark.png",
+    "bytes": 293469,
+    "sha256": "da01de71578a2c43af24e6ef4db141feea0ba8b13d2ced813f407e98ef212a45",
+    "width": 3828,
+    "height": 1626
+  },
+  "variants": [
+    {
+      "path": "decode-distribution/figure_segment_insight_dark-600.webp",
+      "bytes": 38304,
+      "sha256": "3a7bd31dfcee4692098f484cf7b1710732b1f59098be7d1924bcca57d009204f",
+      "width": 600,
+      "height": 255,
+      "decoded_pixels_equal_lanczos_resize": true
+    },
+    {
+      "path": "decode-distribution/figure_segment_insight_dark-1200.webp",
+      "bytes": 95996,
+      "sha256": "e183eb1aa4293c31a3500d0165a03df4257be31748fb5596bf453774eb438ba4",
+      "width": 1200,
+      "height": 510,
+      "decoded_pixels_equal_lanczos_resize": true
+    }
+  ],
+  "browser_derivatives": "Lossless WebP; LANCZOS directly from native PNG; complete source image with no cropping, recoloring or upscaling"
+}

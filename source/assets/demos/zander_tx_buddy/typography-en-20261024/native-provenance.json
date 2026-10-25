@@ -1,0 +1,590 @@
+{
+  "schema_version": 1,
+  "language": "en",
+  "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+  "source_evidence": {
+    "filename": "analysis_cache.parquet",
+    "bytes": 14525,
+    "sha256": "cf648de9687461b812a0856704071a7368dc8d8d94a8f82e7fcbeeaa56a7930b"
+  },
+  "source_metadata": {
+    "filename": "run_metadata.json",
+    "bytes": 6299,
+    "sha256": "fc2767d11929f7ab51be16e74b2f7450f85d22204d09a8238e269230b884499d"
+  },
+  "source_configuration": {
+    "filename": "wspradar_config.config",
+    "bytes": 9992,
+    "sha256": "609f148099b85b4bcfc1573c32c77b2f69c521c343b5559bca4cb88ea6df8dd9"
+  },
+  "configuration": {
+    "filename": "render.config",
+    "bytes": 9965,
+    "sha256": "ced9dbbe0d2bf725c24698404d51c84b8313c5110c71b4d6c582e465529f5c7b"
+  },
+  "analysis_context": {
+    "run_mode": "TX",
+    "callsign": "SK0WE/P",
+    "qth": "JO97",
+    "band": "20m",
+    "comparison_mode": "reference_station",
+    "reference_callsign": "SK0WE/1",
+    "reference_qth": "JO97",
+    "benchmark_evidence_mode": "controlled",
+    "benchmark_operation_confirmed": true,
+    "benchmark_historical_replay_confirmed": false,
+    "reference_snr_correction_db": 0.0,
+    "solar_state": "all",
+    "max_peer_distance_km": 10000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_spot_pairs_per_station": 1,
+    "min_confirmed_opportunities_per_peer": 5,
+    "min_qualifying_stations_per_map_segment": 2,
+    "min_decode_event_share_percent": 1.0
+  },
+  "scope": "full completed analysis; selected station retains full-run evidence",
+  "selection": {
+    "callsign": "ON5KQ",
+    "locator": "JO10os"
+  },
+  "bins": {
+    "segment": "10m",
+    "selected": "1h"
+  },
+  "decode_summary": {
+    "decode_val": -44.657534246575345,
+    "decode_cnt": 91,
+    "decode_total_events": 564,
+    "decode_paired_events": 166,
+    "decode_target_only_events": 36,
+    "decode_reference_only_events": 362,
+    "decode_target_total": 202,
+    "decode_reference_total": 528,
+    "decode_net_events": -326
+  },
+  "selected_decode_summary": {
+    "decode_val": -7.142857142857143,
+    "decode_cnt": 1,
+    "decode_total_events": 17,
+    "decode_paired_events": 11,
+    "decode_target_only_events": 2,
+    "decode_reference_only_events": 4,
+    "decode_target_total": 13,
+    "decode_reference_total": 15,
+    "decode_net_events": -2
+  },
+  "station_reach_formula": "100*(target_distinct-reference_distinct)/(target_distinct+reference_distinct)",
+  "spot_decode_formula": "100*(T-R)/(2*J+T+R)",
+  "station_fold": "Classify per UTC date-hour and exact station identity; ratio of summed daily side totals",
+  "cumulative_snr": {
+    "minimum_db": -35,
+    "maximum_db": 6,
+    "step_db": 1,
+    "spots": {
+      "paired": {
+        "target_count": 166,
+        "reference_count": 166,
+        "either_count": 166
+      },
+      "one_sided": {
+        "target_count": 36,
+        "reference_count": 362,
+        "either_count": 398
+      },
+      "total": {
+        "target_count": 202,
+        "reference_count": 528,
+        "either_count": 564
+      }
+    },
+    "stations": {
+      "paired": {
+        "target_count": 37,
+        "reference_count": 37,
+        "either_count": 37
+      },
+      "one_sided": {
+        "target_count": 1,
+        "reference_count": 53,
+        "either_count": 54,
+        "exclusive_target_count": 1,
+        "exclusive_reference_count": 53,
+        "async_count": 0
+      },
+      "total": {
+        "target_count": 38,
+        "reference_count": 90,
+        "either_count": 91
+      }
+    }
+  },
+  "map_support": {
+    "minimum_spot_pairs_per_station": 1,
+    "minimum_qualifying_stations_per_segment": 2,
+    "minimum_decode_event_share_percent": 1.0
+  },
+  "figures": [
+    {
+      "path": "figure_map_delta_snr_dark.png",
+      "width": 3411,
+      "height": 3518,
+      "bytes": 1327351,
+      "sha256": "c9cfb2c1b326d762d1011c539c79136cf914bb474a6d3b8597f5643581ec5e9b",
+      "variants": [
+        {
+          "path": "figure_map_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 619,
+          "bytes": 119238,
+          "sha256": "94a63e67fe985b4b4daab5c1b6acfe2723b8b33c1e334a4a77ab2b2c9495e8d3"
+        },
+        {
+          "path": "figure_map_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 1238,
+          "bytes": 302762,
+          "sha256": "620e1d2fe8080898b29cc20c27fb555fe978378fc1a8e1d138400b196896bc97"
+        }
+      ],
+      "renderer": "core.plot_engine.render_map_figure",
+      "benchmark_metric": "delta_snr",
+      "recipe_schema_version": null,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "82a881c66a75bb416090046d5e3003ad2ddbde671ef87e10154c510a0dd49366"
+    },
+    {
+      "path": "figure_decodes_over_snr_dark.png",
+      "width": 3831,
+      "height": 2482,
+      "bytes": 444796,
+      "sha256": "6e70277d8ee1c2ebb13c130d00909f6e7b805688765e49ee08d8a3d966ce99af",
+      "variants": [
+        {
+          "path": "figure_decodes_over_snr_dark-600.webp",
+          "width": 600,
+          "height": 389,
+          "bytes": 86362,
+          "sha256": "2116e2b785881daf5447ca4e62aa09ead8574108de2f290fe3cd096ba95a3c6c"
+        },
+        {
+          "path": "figure_decodes_over_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 777,
+          "bytes": 196846,
+          "sha256": "8b95355ddddcf2ce584448764a1da852f2ace0225293301bb0390a4f3e8ece7e"
+        }
+      ],
+      "renderer": "ui.plots.snr_reach_figures.render_snr_reach_figure",
+      "recipe_schema_version": 4,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "dcc408ccd4e2b5898a1d1e5936cc019c01b78592733250bb5b2016a7766907ed"
+    },
+    {
+      "path": "figure_map_delta_decode_dark.png",
+      "width": 3520,
+      "height": 3518,
+      "bytes": 1369903,
+      "sha256": "55c065f1a8f45d6fd88e241848d233e8cf6c77df6ffe5caa6dde6e1e2d64e86d",
+      "variants": [
+        {
+          "path": "figure_map_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 600,
+          "bytes": 117190,
+          "sha256": "452234ae24fc51b266557b1bc43f0da9dc207667976a1abab2f04910bd500337"
+        },
+        {
+          "path": "figure_map_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 1199,
+          "bytes": 298706,
+          "sha256": "c1b32d2fb7ff841a193c967b3af2669771713a8b295b668efe27f403fea5a4a9"
+        }
+      ],
+      "renderer": "core.plot_engine.render_map_figure",
+      "benchmark_metric": "delta_decode",
+      "recipe_schema_version": null,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "4bdb59976ee3380fb880f50922326919482ae4a6513f6ac48a67f729de5cb805"
+    },
+    {
+      "path": "figure_segment_statistics_dark.png",
+      "width": 3852,
+      "height": 1748,
+      "bytes": 383642,
+      "sha256": "13b0af0fe96e74e40e02fdd4be80ea08125fdd37eb6b1a24fa82ab9fc91ed5b5",
+      "variants": [
+        {
+          "path": "figure_segment_statistics_dark-600.webp",
+          "width": 600,
+          "height": 272,
+          "bytes": 71292,
+          "sha256": "a3fdd43089a9adac8b1745331307c3d3253012aa117e86dbdbbb282454976440"
+        },
+        {
+          "path": "figure_segment_statistics_dark-1200.webp",
+          "width": 1200,
+          "height": 545,
+          "bytes": 174328,
+          "sha256": "cbd423f8836fd4bf488cf25db376e462b77cfa415fe4b5354f6fb0a4d2ad6a84"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+      "recipe_schema_version": 8,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "e4465196174ff2a333bcfed06e6a881067f51c7c156b142dc6271a5f319d0509"
+    },
+    {
+      "path": "figure_segment_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1822,
+      "bytes": 378688,
+      "sha256": "7e51ff27251c222ace578d6eb7469d6357087656a5ea3c49b67033d84b757107",
+      "variants": [
+        {
+          "path": "figure_segment_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 287,
+          "bytes": 62004,
+          "sha256": "f2e2cb2dc2347066b65f4d7e12c5c8e7821c5b2bc7fa0c1ddf6d1ba71dca64dc"
+        },
+        {
+          "path": "figure_segment_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 574,
+          "bytes": 146500,
+          "sha256": "e1d50acacd141199ea9922af371397712170b50ebd83665580ae22d8ad47fb39"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_segment_temporal_evidence_export_figure",
+      "recipe_schema_version": 8,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "414c59bf0f9feb9afa94ddd3c4c24d7e7fcdeaf0926cf9f3b92c04bc954b7d85"
+    },
+    {
+      "path": "figure_segment_temporal_delta_decode_dark.png",
+      "width": 3799,
+      "height": 1639,
+      "bytes": 427173,
+      "sha256": "c0b44690c4684294e99f857d817c8282fa72392f73cbcfd073e9f650fa38ed9a",
+      "variants": [
+        {
+          "path": "figure_segment_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 259,
+          "bytes": 57830,
+          "sha256": "00ae26c819a9d70873acd81a5c54e918798075db0da357184e0a7bbf9e987e5a"
+        },
+        {
+          "path": "figure_segment_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 518,
+          "bytes": 135688,
+          "sha256": "9888acb247e23a3a62b7b16e4b8655e5475fb18d6c8df0d3435d2c31deb937fe"
+        }
+      ],
+      "renderer": "ui.plots.benchmark_evidence_figures.render_compare_temporal_coverage_export_figure",
+      "recipe_schema_version": 7,
+      "render_source_signature_id": "935ad322758566438aab531ca5a3a53eb3fdaba62a73088e4c15d5fcb2b68997",
+      "render_source_manifest_sha256": "935ad322758566438aab531ca5a3a53eb3fdaba62a73088e4c15d5fcb2b68997",
+      "retained_recipe_sha256": "f3be3cdfd40ab36c8c7fae829e6cac3019124f11e1824719c118c06d19819d9f"
+    },
+    {
+      "path": "figure_selected_station_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1921,
+      "bytes": 342246,
+      "sha256": "93150a4e8e160e9c30dc4033e34277e2652b04db2295a31cbb40c8fac1ddd040",
+      "variants": [
+        {
+          "path": "figure_selected_station_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 303,
+          "bytes": 46772,
+          "sha256": "ce7c59fc04fa9d31a7f76799091630dede8a305df12e8ed3a3530f6d67041bb8"
+        },
+        {
+          "path": "figure_selected_station_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 605,
+          "bytes": 110590,
+          "sha256": "1aeb1c21fefb0351288fe4217f7ffc7fecdf4617f9130a347b0f49dc05dd4d44"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_selected_evidence_export_figure",
+      "recipe_schema_version": 8,
+      "render_source_signature_id": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "render_source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "retained_recipe_sha256": "a6701e28df4a923f6c1a8fc004ae491367db9267c3f7a1530301fee678bb2d73"
+    },
+    {
+      "path": "figure_selected_station_temporal_delta_decode_dark.png",
+      "width": 3775,
+      "height": 1683,
+      "bytes": 305906,
+      "sha256": "6e040ab20dbf2fcf1bb29150349ab64ce556751e6b615ac55cc918f99d325fad",
+      "variants": [
+        {
+          "path": "figure_selected_station_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 267,
+          "bytes": 38512,
+          "sha256": "c2bbb2ba13f8a6454e4b9df2f88cc24afde6eecdfefeae3efeaef19f48d66f0f"
+        },
+        {
+          "path": "figure_selected_station_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 535,
+          "bytes": 93032,
+          "sha256": "feece67e360682eb1b728c99dfa4fb8f6730baa41100d82fd00b774c0993f943"
+        }
+      ],
+      "renderer": "ui.plots.benchmark_evidence_figures.render_selected_compare_coverage_export_figure",
+      "recipe_schema_version": 7,
+      "render_source_signature_id": "787252c8ec71a6d5b2c4bf0c74c9fd8c1dcf95431540fb45928140866e801783",
+      "render_source_manifest_sha256": "787252c8ec71a6d5b2c4bf0c74c9fd8c1dcf95431540fb45928140866e801783",
+      "retained_recipe_sha256": "882b6807f17897173c3e080ff091d72f8d0f6bddd065696ae9c337bd75006d5f"
+    }
+  ],
+  "renderer_sources": {
+    "config/figure_typography.py": {
+      "bytes": 461,
+      "sha256": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f"
+    },
+    "config/figure_layouts.py": {
+      "bytes": 2099,
+      "sha256": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231"
+    },
+    "core/plot_engine.py": {
+      "bytes": 50919,
+      "sha256": "376b48adadc2af4aff436eac80b43fbba9a32a5ed4659038981e2ec7055943e5"
+    },
+    "core/figure_footer.py": {
+      "bytes": 5147,
+      "sha256": "d6323c3df5eba2bdc6a47a2d164311dde7c912755af4ea7f2bb3b7c5c29f7f4c"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 29867,
+      "sha256": "c6df8fb4b9ddb30a78e2eecb4b4a1d193bb3e6c1b89f129fa9832ffcb47a3bf5"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 41259,
+      "sha256": "30e2fa61bf3dfaab9351fe1c6248413e9ce91c6f34e5bad7ea67e531da5cb98f"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 117057,
+      "sha256": "4851729d3ba97cd6492dfbd602b953bab5549849674b1995f50934ec38a088d1"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 24086,
+      "sha256": "01d80b2332d5637378a37ae5e479c128e97d941622b50779dededbfa527ec57e"
+    },
+    "ui/plots/temporal_layout.py": {
+      "bytes": 9622,
+      "sha256": "4c4edea77bf57e7ba938056b9378ca1da71fb2ab8d1cf05d01e08a699392459b"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 91243,
+      "sha256": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634"
+    },
+    "ui/inspector/presentation.py": {
+      "bytes": 24398,
+      "sha256": "23f0738b61623d727659abf555fd2cc4dacafaea1abf7a14000e2cef5ded5395"
+    },
+    "i18n.py": {
+      "bytes": 357810,
+      "sha256": "b9e7b92e4b03c2a9c8916f5bf84c7fac1e611a22462fda3d66fbe130857cdc43"
+    },
+    "scripts/internal/render_benchmark_temporal_refresh.py": {
+      "bytes": 19109,
+      "sha256": "bdc24cc8b6ac95059c4370a41734c04ff1a07ed84f74cedb8f7b794beb61925f"
+    }
+  },
+  "browser_derivatives": {
+    "tool": "Pillow 12.2.0",
+    "encoding": "lossless WebP; quality=100; method=4; exact=True",
+    "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+    "decoded_pixels_equal_resized_source": true
+  },
+  "limitations": "Offline retained evidence refresh; source metadata does not prove historical common operation or missing-both transmissions. No fresh provider retrieval.",
+  "renderer_source_captures": {
+    "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade": {
+      "source_manifest_sha256": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade",
+      "source_manifest_file": "12e470de2f56e1f5a2bba7671e80a3e29a9304f384f27d482e16ade97e1e9ade.json",
+      "renderer_source_sha256": {
+        "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+        "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+        "core/plot_engine.py": "376b48adadc2af4aff436eac80b43fbba9a32a5ed4659038981e2ec7055943e5",
+        "core/figure_footer.py": "d6323c3df5eba2bdc6a47a2d164311dde7c912755af4ea7f2bb3b7c5c29f7f4c",
+        "core/figure_presentation.py": "c6df8fb4b9ddb30a78e2eecb4b4a1d193bb3e6c1b89f129fa9832ffcb47a3bf5",
+        "ui/plots/benchmark_evidence_figures.py": "30e2fa61bf3dfaab9351fe1c6248413e9ce91c6f34e5bad7ea67e531da5cb98f",
+        "ui/plots/evidence_figures.py": "4851729d3ba97cd6492dfbd602b953bab5549849674b1995f50934ec38a088d1",
+        "ui/plots/snr_reach_figures.py": "01d80b2332d5637378a37ae5e479c128e97d941622b50779dededbfa527ec57e",
+        "ui/plots/temporal_layout.py": "4c4edea77bf57e7ba938056b9378ca1da71fb2ab8d1cf05d01e08a699392459b",
+        "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+        "ui/inspector/presentation.py": "23f0738b61623d727659abf555fd2cc4dacafaea1abf7a14000e2cef5ded5395",
+        "i18n.py": "b9e7b92e4b03c2a9c8916f5bf84c7fac1e611a22462fda3d66fbe130857cdc43",
+        "scripts/internal/render_benchmark_temporal_refresh.py": "bdc24cc8b6ac95059c4370a41734c04ff1a07ed84f74cedb8f7b794beb61925f"
+      }
+    },
+    "787252c8ec71a6d5b2c4bf0c74c9fd8c1dcf95431540fb45928140866e801783": {
+      "source_manifest_sha256": "787252c8ec71a6d5b2c4bf0c74c9fd8c1dcf95431540fb45928140866e801783",
+      "source_manifest_file": "787252c8ec71a6d5b2c4bf0c74c9fd8c1dcf95431540fb45928140866e801783.json",
+      "renderer_source_sha256": {
+        "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+        "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+        "core/plot_engine.py": "376b48adadc2af4aff436eac80b43fbba9a32a5ed4659038981e2ec7055943e5",
+        "core/figure_footer.py": "d6323c3df5eba2bdc6a47a2d164311dde7c912755af4ea7f2bb3b7c5c29f7f4c",
+        "core/figure_presentation.py": "c6df8fb4b9ddb30a78e2eecb4b4a1d193bb3e6c1b89f129fa9832ffcb47a3bf5",
+        "ui/plots/benchmark_evidence_figures.py": "75b8edda6f331534149f8516896c8133f29d549785b15d36e64780d58b143402",
+        "ui/plots/evidence_figures.py": "4851729d3ba97cd6492dfbd602b953bab5549849674b1995f50934ec38a088d1",
+        "ui/plots/snr_reach_figures.py": "01d80b2332d5637378a37ae5e479c128e97d941622b50779dededbfa527ec57e",
+        "ui/plots/temporal_layout.py": "93d51bd17958afb23b052fbc05bb0fc654b2dacfa8b5c2c346dbc6066bf3a32b",
+        "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+        "ui/inspector/presentation.py": "23f0738b61623d727659abf555fd2cc4dacafaea1abf7a14000e2cef5ded5395",
+        "i18n.py": "e76a94509e17c4716fd80a71e6468bbab9e2ec7a789013f18cc8e8a294c16145",
+        "scripts/internal/render_benchmark_temporal_refresh.py": "bdc24cc8b6ac95059c4370a41734c04ff1a07ed84f74cedb8f7b794beb61925f"
+      }
+    },
+    "935ad322758566438aab531ca5a3a53eb3fdaba62a73088e4c15d5fcb2b68997": {
+      "source_manifest_sha256": "935ad322758566438aab531ca5a3a53eb3fdaba62a73088e4c15d5fcb2b68997",
+      "source_manifest_file": "935ad322758566438aab531ca5a3a53eb3fdaba62a73088e4c15d5fcb2b68997.json",
+      "renderer_source_sha256": {
+        "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+        "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+        "core/plot_engine.py": "376b48adadc2af4aff436eac80b43fbba9a32a5ed4659038981e2ec7055943e5",
+        "core/figure_footer.py": "d6323c3df5eba2bdc6a47a2d164311dde7c912755af4ea7f2bb3b7c5c29f7f4c",
+        "core/figure_presentation.py": "c6df8fb4b9ddb30a78e2eecb4b4a1d193bb3e6c1b89f129fa9832ffcb47a3bf5",
+        "ui/plots/benchmark_evidence_figures.py": "7710409a384d86216f171fe9cd8d02ab9b91ff9a936bf225f9d06f728824ca8d",
+        "ui/plots/evidence_figures.py": "4851729d3ba97cd6492dfbd602b953bab5549849674b1995f50934ec38a088d1",
+        "ui/plots/snr_reach_figures.py": "01d80b2332d5637378a37ae5e479c128e97d941622b50779dededbfa527ec57e",
+        "ui/plots/temporal_layout.py": "ea97f601a88afcec50a2c2387933e741b7753206b1a57c72477c5ea7154fa07d",
+        "ui/inspector/preparation.py": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634",
+        "ui/inspector/presentation.py": "23f0738b61623d727659abf555fd2cc4dacafaea1abf7a14000e2cef5ded5395",
+        "i18n.py": "e76a94509e17c4716fd80a71e6468bbab9e2ec7a789013f18cc8e8a294c16145",
+        "scripts/internal/render_benchmark_temporal_refresh.py": "bdc24cc8b6ac95059c4370a41734c04ff1a07ed84f74cedb8f7b794beb61925f"
+      }
+    }
+  },
+  "renderer_sources_scope": "The legacy renderer_sources field records the initial batch source. Each figure identifies its actual captured renderer version with render_source_signature_id; renderer_source_captures retains the corresponding hashes. Partial refreshes do not relabel unchanged figures.",
+  "typography_refresh": {
+    "language": "en",
+    "date": "2026-10-24",
+    "scope": "Reviewed current runtime typography and legends; retained scientific evidence.",
+    "review_evidence": {
+      "path": "source/archive/spot-pair-renderers/typography-en-20261024/scientific-invariance.json",
+      "bytes": 196232,
+      "sha256": "e37613e13b753051a2d9bbe8a0629fc7674778e559134dd6cf1a9e1749f5ffb4"
+    },
+    "previous_native_provenance": "source/assets/demos/zander_tx_buddy/current-spot-pairs/native-provenance.json",
+    "previous_manifest": {
+      "path": "source/assets/demos/zander_tx_buddy/manifest.json",
+      "bytes": 104998,
+      "sha256": "71631ec720b349c50cb1f3c02a2d832d15b3610f34843632b2bfb2ff50aa85d8"
+    },
+    "website_sources": {
+      "zander-rc3-map-typography-en-20261024": {
+        "old_key": "zander-rc3-map",
+        "new_key": "zander-rc3-map-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_map_delta_snr_dark-c9cfb2c1b326.png",
+        "alias": "typography-en-20261024/figure_map_delta_snr_dark.png",
+        "dimensions": [
+          3411,
+          3518
+        ],
+        "bytes": 1327351,
+        "sha256": "c9cfb2c1b326d762d1011c539c79136cf914bb474a6d3b8597f5643581ec5e9b"
+      },
+      "zander-rc3-decodes-typography-en-20261024": {
+        "old_key": "zander-rc3-decodes",
+        "new_key": "zander-rc3-decodes-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_decodes_over_snr_dark-6e70277d8ee1.png",
+        "alias": "typography-en-20261024/figure_decodes_over_snr_dark.png",
+        "dimensions": [
+          3831,
+          2482
+        ],
+        "bytes": 444796,
+        "sha256": "6e70277d8ee1c2ebb13c130d00909f6e7b805688765e49ee08d8a3d966ce99af"
+      },
+      "zander-rc3-decode-map-typography-en-20261024": {
+        "old_key": "zander-rc3-decode-map",
+        "new_key": "zander-rc3-decode-map-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_map_delta_decode_dark-55c065f1a8f4.png",
+        "alias": "typography-en-20261024/figure_map_delta_decode_dark.png",
+        "dimensions": [
+          3520,
+          3518
+        ],
+        "bytes": 1369903,
+        "sha256": "55c065f1a8f45d6fd88e241848d233e8cf6c77df6ffe5caa6dde6e1e2d64e86d"
+      },
+      "zander-rc3-statistics-typography-en-20261024": {
+        "old_key": "zander-rc3-statistics",
+        "new_key": "zander-rc3-statistics-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_segment_statistics_dark-13b0af0fe96e.png",
+        "alias": "typography-en-20261024/figure_segment_statistics_dark.png",
+        "dimensions": [
+          3852,
+          1748
+        ],
+        "bytes": 383642,
+        "sha256": "13b0af0fe96e74e40e02fdd4be80ea08125fdd37eb6b1a24fa82ab9fc91ed5b5"
+      },
+      "zander-rc3-snr-time-typography-en-20261024": {
+        "old_key": "zander-rc3-snr-time",
+        "new_key": "zander-rc3-snr-time-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-7e51ff27251c.png",
+        "alias": "typography-en-20261024/figure_segment_temporal_delta_snr_dark.png",
+        "dimensions": [
+          3808,
+          1822
+        ],
+        "bytes": 378688,
+        "sha256": "7e51ff27251c222ace578d6eb7469d6357087656a5ea3c49b67033d84b757107"
+      },
+      "zander-rc3-decode-time-typography-en-20261024": {
+        "old_key": "zander-rc3-decode-time",
+        "new_key": "zander-rc3-decode-time-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_segment_temporal_delta_decode_dark-c0b44690c468.png",
+        "alias": "typography-en-20261024/figure_segment_temporal_delta_decode_dark.png",
+        "dimensions": [
+          3799,
+          1639
+        ],
+        "bytes": 427173,
+        "sha256": "c0b44690c4684294e99f857d817c8282fa72392f73cbcfd073e9f650fa38ed9a"
+      },
+      "zander-rc3-station-snr-typography-en-20261024": {
+        "old_key": "zander-rc3-station-snr",
+        "new_key": "zander-rc3-station-snr-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_selected_station_temporal_delta_snr_dark-93150a4e8e16.png",
+        "alias": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark.png",
+        "dimensions": [
+          3808,
+          1921
+        ],
+        "bytes": 342246,
+        "sha256": "93150a4e8e160e9c30dc4033e34277e2652b04db2295a31cbb40c8fac1ddd040"
+      },
+      "zander-rc3-station-decode-typography-en-20261024": {
+        "old_key": "zander-rc3-station-decode",
+        "new_key": "zander-rc3-station-decode-typography-en-20261024",
+        "source_path": "assets/demos/zander_tx_buddy/typography-en-20261024/native/figure_selected_station_temporal_delta_decode_dark-6e040ab20dbf.png",
+        "alias": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark.png",
+        "dimensions": [
+          3775,
+          1683
+        ],
+        "bytes": 305906,
+        "sha256": "6e040ab20dbf2fcf1bb29150349ab64ce556751e6b615ac55cc918f99d325fad"
+      }
+    }
+  }
+}

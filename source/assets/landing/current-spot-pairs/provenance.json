@@ -1,0 +1,237 @@
+{
+  "recipe": "WSPRadarApp/scripts/internal/render_demo1_thumbnails.py",
+  "purpose": "Current website previews derived from the maintained demo evidence and configuration; historical originals remain preserved.",
+  "canvas": "#000b19",
+  "dimensions": [
+    1200,
+    900
+  ],
+  "aspect_ratio": "4:3",
+  "font": "Matplotlib bundled DejaVu Sans, preserving the existing scientific-figure font family",
+  "evidence": {
+    "path": "C:\\Users\\marku\\Code\\WSPRadar\\source\\assets\\demos\\griffiths_squibb_fig3\\rc3\\source\\analysis_cache.parquet",
+    "bytes": 1445197,
+    "sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed"
+  },
+  "configuration": {
+    "path": "C:\\Users\\marku\\Code\\WSPRadarApp\\config\\demos\\00a_griffiths_squibb_fig3.config",
+    "bytes": 3973,
+    "sha256": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d"
+  },
+  "retained_configuration": {
+    "path": "C:\\Users\\marku\\Code\\WSPRadar\\source\\assets\\demos\\griffiths_squibb_fig3\\rc3\\source\\wspradar_config.config",
+    "bytes": 6726,
+    "sha256": "bd0c60f77ead0eaa058b0590b1a1128d87f9ea9b414a88a56405d6f2a5886f2a"
+  },
+  "style_source": {
+    "path": "C:\\Users\\marku\\Code\\WSPRadar\\source\\theme\\styles\\landing.css",
+    "bytes": 32152,
+    "sha256": "99a3348816b4a14123624d63ae021e367eba1b7840f457d9f62d66fdad2d6ad3"
+  },
+  "checks": {
+    "source_rows": 125518,
+    "paired_events": 57767,
+    "target_only_events": 56260,
+    "reference_only_events": 11491,
+    "station_identities_with_paired_evidence": 792,
+    "median_of_station_medians_db": 6.5,
+    "target_spots": 114027,
+    "reference_spots": 69258,
+    "histogram_count_sum": 792,
+    "temporal_density_count_sum": 57767,
+    "daily_event_count_sum": 125518,
+    "checks": [
+      "All source rows inside declared half-open UTC interval",
+      "Unique station-cycle keys",
+      "Paired count and station median match retained independent audit",
+      "All retained raw-SNR cutoffs match independent audit",
+      "Every daily Paired count and median match independent audit",
+      "Every daily Paired / Target-only / Reference-only count matches independent audit",
+      "Histogram, heatmap and stacks conserve their observation counts"
+    ]
+  },
+  "figures": [
+    {
+      "path": "01_delta_snr.png",
+      "width": 1200,
+      "height": 900,
+      "bytes": 276140,
+      "sha256": "5da243cdf37b72cf2eb7010484c115831c22849f8b1197d4029e35983accf457",
+      "original": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_snr_dark-f0402bf6035c.png",
+      "original_fingerprint": {
+        "bytes": 1524294,
+        "sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1"
+      },
+      "variants": [
+        {
+          "path": "01_delta_snr-400.webp",
+          "width": 400,
+          "height": 300,
+          "bytes": 56052,
+          "sha256": "2ac2e30d87ec4b2118d0afff94fcc939c7a495a78d6c45661c9d0e9b876dafae"
+        },
+        {
+          "path": "01_delta_snr-800.webp",
+          "width": 800,
+          "height": 600,
+          "bytes": 155286,
+          "sha256": "93a6f27047a61b1c38e6048a44ea2983688f562e64a91f317811957c2afca31f"
+        }
+      ],
+      "website_source_path": "source/assets/landing/current-spot-pairs/01_delta_snr-5da243cdf37b.png"
+    },
+    {
+      "path": "02_delta_decode.png",
+      "width": 1200,
+      "height": 900,
+      "bytes": 281507,
+      "sha256": "3dd82126b38e8a00fb79a1dafdec20adb1f8dd17a55ec6ae508dab9f7e604999",
+      "original": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_decode_dark-ea15b2688415.png",
+      "original_fingerprint": {
+        "bytes": 1523489,
+        "sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0"
+      },
+      "variants": [
+        {
+          "path": "02_delta_decode-400.webp",
+          "width": 400,
+          "height": 300,
+          "bytes": 57296,
+          "sha256": "1eb56ed530735a2ca3c7bf238f97cd42354dc654864f4f146478965b3f93a1ff"
+        },
+        {
+          "path": "02_delta_decode-800.webp",
+          "width": 800,
+          "height": 600,
+          "bytes": 158882,
+          "sha256": "fb46659afbe92316cbe0f1372aeac52ee543dc2fb4c52401e6cda9a79ec3bb3c"
+        }
+      ],
+      "website_source_path": "source/assets/landing/current-spot-pairs/02_delta_decode-3dd82126b38e.png"
+    },
+    {
+      "path": "03_decoding_reach.png",
+      "width": 1200,
+      "height": 900,
+      "bytes": 64931,
+      "sha256": "5bee3f0ea33facd0cb48b8d9bfcd6514941f893133960d3314bec0220a32cc85",
+      "original": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_decodes_over_snr_dark-c18537e3c03d.png",
+      "original_fingerprint": {
+        "bytes": 460389,
+        "sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a"
+      },
+      "variants": [
+        {
+          "path": "03_decoding_reach-400.webp",
+          "width": 400,
+          "height": 300,
+          "bytes": 24382,
+          "sha256": "9cbb268de94a5de3a5d15e297f508093101a4fba9c0880b49c6e3b7d5dcb215f"
+        },
+        {
+          "path": "03_decoding_reach-800.webp",
+          "width": 800,
+          "height": 600,
+          "bytes": 59300,
+          "sha256": "79223c962a7b0eea4a64b8eeae9d56972f7c79a1e4dbc630cbd1557cd9ba34a2"
+        }
+      ],
+      "website_source_path": "source/assets/landing/current-spot-pairs/03_decoding_reach-5bee3f0ea33f.png"
+    },
+    {
+      "path": "04_benchmark_difference.png",
+      "width": 1200,
+      "height": 900,
+      "bytes": 65879,
+      "sha256": "31889bdb465653d46a73ba79f84ee981fb5ba7faccfa712c9a5046f78476a7eb",
+      "original": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_statistics_dark-3f9b0e7ff318.png",
+      "original_fingerprint": {
+        "bytes": 345510,
+        "sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424"
+      },
+      "variants": [
+        {
+          "path": "04_benchmark_difference-400.webp",
+          "width": 400,
+          "height": 300,
+          "bytes": 20872,
+          "sha256": "0cf9f1706e8755358bfde267a3a174bfc76b1c0469e6b1b176dbaa67a2a627ed"
+        },
+        {
+          "path": "04_benchmark_difference-800.webp",
+          "width": 800,
+          "height": 600,
+          "bytes": 55624,
+          "sha256": "f3c98e3050822af736c70625d38f2f1a64a4f7880ee0a3b59a0c61807c8fb827"
+        }
+      ],
+      "website_source_path": "source/assets/landing/current-spot-pairs/04_benchmark_difference-31889bdb4656.png"
+    },
+    {
+      "path": "05_temporal_snr.png",
+      "width": 1200,
+      "height": 900,
+      "bytes": 98240,
+      "sha256": "794566b048a011ab3712a06c330da6fc2c707c0d268b09c1ea11a6be1702bc46",
+      "original": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_snr_dark-ae0ebd3d606e.png",
+      "original_fingerprint": {
+        "bytes": 541716,
+        "sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f"
+      },
+      "variants": [
+        {
+          "path": "05_temporal_snr-400.webp",
+          "width": 400,
+          "height": 300,
+          "bytes": 50832,
+          "sha256": "add584ce0a4039f09b1dbd9e831e31a4fc5ab7eede8b22878c663c42aa5223cf"
+        },
+        {
+          "path": "05_temporal_snr-800.webp",
+          "width": 800,
+          "height": 600,
+          "bytes": 95784,
+          "sha256": "ff54578ac7795faef346008a7a057bb9a0b58a64e0b8a917e013a8bb5ac66f51"
+        }
+      ],
+      "website_source_path": "source/assets/landing/current-spot-pairs/05_temporal_snr-794566b048a0.png"
+    },
+    {
+      "path": "06_temporal_coverage.png",
+      "width": 1200,
+      "height": 900,
+      "bytes": 58497,
+      "sha256": "84394ba986825e732b364584729314a0387b069415717092487fb36f78f2855d",
+      "original": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-82b5a653a10a.png",
+      "original_fingerprint": {
+        "bytes": 439384,
+        "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec"
+      },
+      "variants": [
+        {
+          "path": "06_temporal_coverage-400.webp",
+          "width": 400,
+          "height": 300,
+          "bytes": 27250,
+          "sha256": "995b9bda5d957fbdb1f978b9d8df59f22936d53aefafec7a2b6955970bb391e2"
+        },
+        {
+          "path": "06_temporal_coverage-800.webp",
+          "width": 800,
+          "height": 600,
+          "bytes": 45474,
+          "sha256": "f3bdd5999b6effd2da7ea93461b4d71559e4303112b9bf92280dbb66e26e046b"
+        }
+      ],
+      "website_source_path": "source/assets/landing/current-spot-pairs/06_temporal_coverage-84394ba98682.png"
+    }
+  ],
+  "scope": "G3ZIL versus G4HZX; RX 40m; April 2017; 10,000km; controlled common operation declared in retained run",
+  "panel_selection": {
+    "reach": "All-spots curves; each setup's own raw SNR cutoff; >= threshold; full original retains other panels",
+    "histogram": "Exact qualifying station-median distribution, count axis, no fitted density curve",
+    "temporal": "24-hour raw Paired differences; date versus ΔSNR; panel-wide relative density, daily median and IQR; full original retains UTC-hour profile",
+    "coverage": "Raw daily observed station-cycles, Paired counted once; not station counts; full original retains station-balanced coverage"
+  },
+  "originals_unchanged": true
+}

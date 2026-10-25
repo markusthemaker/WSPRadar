@@ -13,11 +13,35 @@ For bug reports, feature requests, scientific concerns, and general questions, s
 
 ## Website review implementation
 
+All editable website inputs live under `source/`; the complete website is built
+under `generated/`, which is the only directory used for local serving.
+
+```text
+source/
+  pages/          Website-authored Markdown, including demos/<demo-id>/
+  assets/         Original artwork and reviewed media with build recipes
+  imported/app/   Manifest-verified public bundle synchronized from WSPRadarApp
+  theme/          templates/, styles/, and scripts/ for website presentation
+  config/         Layout, media placement, and shared interface labels
+  archive/        Ignored local packages, prior narratives, and retained evidence
+generated/        Reproducible HTML and public assets; never hand-edit
+scripts/          Build, synchronization, asset preparation, and maintenance
+tests/            Website contracts
+architecture.md   Source ownership, build contracts, and synchronization
+```
+
+Edit narrative in `source/pages/` and put original media in `source/assets/`.
+Imported app content must be corrected in WSPRadarApp and synchronized again.
+Repository paths are separate from public paths: `/assets/` and `/content/`
+are public routes. Guided-demo PDFs share `/assets/demos/`; the former website
+`/static/reference_figures/` tree is no longer emitted. The root `index.html` and `img/` image remain
+as compatibility files for the published redirect and existing raw GitHub links.
+
 The statements above describe the currently published redirect. The new public
-website is implemented locally under `site/` and `scripts/build_site.py`; its
-generated `dist/` directory is not published by this change. The preview includes
-English and German landing pages, complete chapter and continuous manuals, seven
-demo walkthroughs, a practical evidence guide, and community/report links.
+website is implemented locally under `source/` and `scripts/build_site.py`; its
+`generated/` output directory is not published by this change. The preview includes
+English and German landing pages, complete chapter and continuous manuals, five
+guided demos, a practical evidence guide, and community/report links.
 
 The redesigned landing page presents the benefit first, explains the flow from
 WSPR radio transmissions through uploaded reception reports to WSPRadar, and
@@ -38,8 +62,8 @@ The supplied Europe-centered header retains its English wording in both
 languages. Its responsive WebP derivatives preserve the original PNG separately;
 semantic HTML provides accessible headings, descriptions, and actions. All
 supplied logo concepts, SVG/PNG icons, and artwork are saved under
-`site/assets/landing/source/` for future use. Only the browser files listed in
-`site/assets/landing/manifest.json` are included in generated website assets.
+`source/assets/landing/originals/` for future use. Only the browser files listed in
+`source/assets/landing/manifest.json` are included in generated website assets.
 The page mockup is a visual reference, not an embedded page image.
 The hero actions sit inside the header, navigation is left aligned with a green
 active-page underline, and the explanation panel pairs text with the four-stage
@@ -49,18 +73,44 @@ descriptions remain available in native disclosure controls.
 
 WSPRadarApp owns the canonical manuals, demo configurations, scientific narrative,
 reviewed media and shared branding. This repository imports a reviewed public
-bundle into `content/generated/` and owns website presentation. See
-[architecture and synchronization](docs/architecture.md) and [contributor
+bundle into `source/imported/app/` and owns website presentation. See
+[architecture and synchronization](architecture.md) and [contributor
 instructions](AGENTS.md).
 
-Website-specific landing text and explicit demo/media selection live in
-`site/landing.json`, rendering in `scripts/landing_page.py`, and styling in
-`site/landing.css`. The featured scientific images remain canonical app content:
+Website-specific landing text lives in `source/pages/home.en.md` and
+`source/pages/home.de.md`; explicit demo/media selection and text-block references
+live in `source/config/landing.json`, rendering in `scripts/landing_page.py`, and styling in
+`source/theme/styles/landing.css`. The featured scientific images remain canonical app content:
 they are lossless crops of actual dark-mode screenshots captured on October 13,
 2026, declared in WSPRadarApp `docs/website/figures.json`, and copied through the
 normal public-content export. Their October 15 preparation date is not a new
 capture or a new WSPR measurement. Source screenshots and provenance remain
 available; illustrative supplied artwork is not used as measured evidence.
+
+### Prepared GitHub Pages deployment
+
+The workflow in [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
+builds and validates the public website on pushes to `temp` and `main`, pull
+requests targeting `main`, and manual runs. Only a successful run on `main` in
+`markusthemaker/WSPRadar` can deploy. It uploads the contents of `generated/`, so
+`generated/index.html` becomes `https://wspradar.org/`; generated files remain
+ignored. The build uses this repository and `requirements-site.txt`, with no
+private application checkout or credentials.
+
+The workflow runs the website Python and Node.js contracts and an offline build
+check. Live external URLs and app-to-website export freshness remain separate
+release checks. GitHub Actions are pinned to reviewed commit IDs; review the
+corresponding action definitions when updating those pins.
+
+This workflow is prepared locally; activation is a separate approved step. First
+publish and validate the candidate on `temp`. When deployment is approved, select
+**Settings > Pages > Build and deployment > Source > GitHub Actions**, retain the
+custom domain **wspradar.org**, and keep **Enforce HTTPS** enabled. Restrict the
+`github-pages` environment to `main`, then promote the verified candidate with
+`scripts/git-release-main.ps1`. The workflow checks the publishing mode, domain,
+and HTTPS setting before deployment and stops if any differ; it does not change
+those settings. A manual run on another branch validates without deploying.
+The existing Git helpers do not change Pages settings or wait for deployment.
 
 ### Build and preview
 
@@ -72,27 +122,34 @@ version and can be used for local review:
 & ..\WSPRadarApp\.venv\Scripts\python.exe scripts/build_site.py
 & ..\WSPRadarApp\.venv\Scripts\python.exe scripts/build_site.py --check
 & ..\WSPRadarApp\.venv\Scripts\python.exe -m unittest discover -s tests -v
-& ..\WSPRadarApp\.venv\Scripts\python.exe -m http.server 8787 --bind 127.0.0.1 --directory dist
+& ..\WSPRadarApp\.venv\Scripts\python.exe -m http.server 8787 --bind 127.0.0.1 --directory generated
 ```
 
 Open `http://127.0.0.1:8787/en/` while the last command is running. Stop the server
-with Ctrl+C. Serving `dist/` is necessary because routes and shared assets use
+with Ctrl+C. Serving `generated/` is necessary because routes and shared assets use
 site-root URLs. A separate installation only needs this repository and
 `requirements-site.txt`; the application environment is a local convenience.
 
-The browser derivatives are retained in the repository, so normal builds do not require
-an image-processing library. To regenerate or verify them from retained originals,
-use Python with Pillow and WebP support (verified with Pillow 12.2.0) and
-FontTools (verified with 4.63.0) for the locally served callout font:
+Normal builds generate browser derivatives from retained originals and reviewed
+recipes, using Python with Pillow and WebP support (verified with Pillow 12.2.0)
+and FontTools (verified with 4.63.0) for the locally served callout font.
+A content-addressed cache under ignored `.tmp/` avoids repeating unchanged image
+work. Active approved encoded masters are retained under `source/assets/browser-assets/`
+for historical outputs whose complete encoding recipes are unavailable; these
+preserve existing public bytes. Active Milazzo verification evidence lives under
+`source/assets/demos/milazzo_tx_buddy/evidence/`. The remaining `source/archive/`
+is retained locally, ignored by Git, and not needed for building the website.
+Originals, archives, and unlisted files are never published automatically.
+To prepare or verify landing derivatives separately:
 
 ```powershell
 & ..\WSPRadarApp\.venv\Scripts\python.exe scripts/prepare_landing_assets.py
 & ..\WSPRadarApp\.venv\Scripts\python.exe scripts/prepare_landing_assets.py --check
 ```
 
-The asset check compares regenerated bytes and the manifest with the saved
-files. Encoding can change with the Pillow/libwebp version, so an image-toolchain
-change needs a new visual review. See the [landing-asset notes](site/assets/landing/README.md)
+The asset check compares regenerated bytes with the generated files and reviewed
+manifest. Encoding can change with the Pillow/libwebp version, so an image-toolchain
+change needs a new visual review. See the [landing-asset notes](source/assets/landing/README.md)
 for retained inputs, encoding comparisons, and reproducibility details.
 
 The build verifies every imported file against its manifest, preserves every

@@ -8,7 +8,7 @@ from copy import deepcopy
 import hashlib
 from html import escape, unescape
 from html.parser import HTMLParser
-from io import StringIO
+from io import BytesIO, StringIO
 import json
 from pathlib import Path
 import re
@@ -18,7 +18,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, unquote, urljoin, urlsplit
 
-from scripts import build_site
+from scripts import build_site, demo_walkthrough
 
 
 class AnchorInventory(HTMLParser):
@@ -60,6 +60,262 @@ class TemporarySiteTests(unittest.TestCase):
         return path
 
 
+class PublishedDemoSelectionTests(unittest.TestCase):
+    """Website publication selects canonical records without changing the app catalog."""
+
+    def test_selection_preserves_imported_order_and_record_identity(self) -> None:
+        demos = [{"id": "one", "settings": {"value": 1}}, {"id": "two"}, {"id": "three"}]
+        original = deepcopy(demos)
+        walkthroughs = {"demos": {"three": {}, "one": {}}}
+        selected = build_site.select_published_demos(demos, walkthroughs)
+        self.assertEqual([demo["id"] for demo in selected], ["one", "three"])
+        self.assertIs(selected[0], demos[0])
+        self.assertIs(selected[1], demos[2])
+        self.assertEqual(demos, original)
+        self.assertEqual(list(walkthroughs["demos"]), ["three", "one"])
+
+    def test_selection_rejects_missing_empty_or_malformed_definitions(self) -> None:
+        for walkthroughs in ({}, {"demos": {}}, {"demos": []}, {"demos": None},
+                             {"demos": ["one"]}, {"demos": "one"}):
+            with self.subTest(walkthroughs=walkthroughs), self.assertRaisesRegex(
+                    ValueError, "Published demo definitions"):
+                build_site.select_published_demos([{"id": "one"}], walkthroughs)
+
+    def test_selection_rejects_unknown_demo_ids(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown published demo IDs"):
+            build_site.select_published_demos([{"id": "one"}], {"demos": {"unknown": {}}})
+
+
+class ProductNavigationContractTests(unittest.TestCase):
+    """The exported presentation catalog owns routes on both product surfaces."""
+
+    def test_imported_navigation_requires_explicit_safe_bilingual_routes(self):
+        brand = json.loads((build_site.CONTENT / "brand.json").read_text(encoding="utf-8"))
+        catalog = build_site.product_navigation_catalog(brand)
+        self.assertEqual([item["id"] for item in catalog["items"]],
+                         ["overview", "demos", "analysis", "documentation", "community"])
+        self.assertEqual(catalog["origins"]["analysis"], build_site.APP_URL)
+        self.assertEqual(catalog["local"], {"website_port": 8787, "analysis_port": 8501})
+        for mutation in ("path", "language", "duplicate"):
+            invalid = deepcopy(brand)
+            candidate = invalid["product_navigation"]["catalog"]
+            if mutation == "path":
+                candidate["items"][0]["path"] = "../private/"
+            elif mutation == "language":
+                del candidate["items"][0]["label"]["de"]
+            else:
+                candidate["items"].append(deepcopy(candidate["items"][0]))
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                build_site.product_navigation_catalog(invalid)
+
+    def test_preview_override_only_changes_runtime_routing_configuration(self):
+        builder = build_site.SiteBuilder(local_analysis_port=8521)
+        for language in ("en", "de"):
+            header = builder.header(language, "home", "")
+            self.assertNotIn('<span class="launch">', header)
+            self.assertIn(build_site.COPY[language]["start_analysis"], header)
+            self.assertIn(builder.landing[language]["try_demo"], header)
+            builder.page(language, "", "Preview", "<p>Preview</p>", "home", root_alias=language == "en")
+        for page in builder.pages.values():
+            script = re.search(r'<script id="wspradar-product-navigation" type="application/json">(.*?)</script>', page)
+            self.assertIsNotNone(script)
+            configuration = json.loads(script[1])
+            self.assertEqual(configuration["local_analysis_port"], 8521)
+            self.assertEqual(configuration["catalog"]["origins"]["analysis"], build_site.APP_URL)
+            self.assertLess(page.index('/assets/product-navigation.js'), page.find('/assets/entry.js') if '/assets/entry.js' in page else len(page))
+        with self.assertRaises(ValueError):
+            build_site.SiteBuilder(local_analysis_port=70000)
+
+    def test_analysis_tab_policy_covers_raw_and_markdown_links_without_changing_destinations(self):
+        builder = build_site.SiteBuilder()
+        launch = builder.demos[0]["launch_url"]
+        markdown = builder.md(f'[Markdown demo]({launch})', "en")
+        body = (markdown + '<a data-test="raw" href="' + escape(launch, quote=True)
+                + '" target="_blank" rel="external noopener noreferrer">Raw demo</a>'
+                + '<a href="' + build_site.APP_URL + '" target="other">Analysis</a>')
+        builder.page("en", "tab-policy/", "Launch navigation", body, "home")
+        inventory = AnchorInventory()
+        inventory.feed(builder.pages["en/tab-policy/index.html"])
+        links = [anchor for anchor in inventory.anchors if anchor["text"] in {"Markdown demo", "Raw demo", "Analysis"}]
+        self.assertTrue(links)
+        self.assertEqual([anchor["attributes"]["href"] for anchor in links
+                          if anchor["text"] in {"Markdown demo", "Raw demo"}], [launch, launch])
+        for anchor in links:
+            self.assertNotIn("target", anchor["attributes"])
+
+    def test_all_guided_demo_destinations_keep_the_walkthrough_open(self):
+        builder = build_site.SiteBuilder()
+        for demo in builder.published_demos:
+            destinations = [demo["launch_url"], *demo.get("launch_variants", {}).values()]
+            for language in ("en", "de"):
+                suffix = "demos/" + demo["id"] + "/"
+                body = ''.join(build_site.button("Run demo", destination, external=True)
+                               + builder.md(f'[Inline demo]({destination})', language)
+                               for destination in destinations)
+                builder.page(language, suffix, "Demo launch policy", body, "demos")
+                inventory = AnchorInventory()
+                inventory.feed(builder.pages[language + "/" + suffix + "index.html"])
+                launches = [anchor for anchor in inventory.anchors
+                            if anchor["attributes"].get("href") in destinations]
+                with self.subTest(demo=demo["id"], language=language):
+                    self.assertEqual([anchor["attributes"]["href"] for anchor in launches],
+                                     [destination for destination in destinations for _ in range(2)])
+                    for anchor in launches:
+                        self.assertEqual(anchor["attributes"]["target"], "_blank")
+                        self.assertTrue({"noopener", "noreferrer"}.issubset(anchor["attributes"]["rel"].split()))
+                        if "button" in anchor["attributes"].get("class", "").split():
+                            self.assertEqual(anchor["text"], "Run demo ↗")
+
+    def test_analysis_tab_policy_preserves_unrelated_markup_and_external_targets(self):
+        catalog = build_site.product_navigation_catalog(json.loads(
+            (build_site.CONTENT / "brand.json").read_text(encoding="utf-8"),
+        ))
+        preserved = ('<!-- <a href="https://wspradar.streamlit.app/" target="_blank">comment</a> -->'
+                     '<script>const text = \'<a href="https://wspradar.streamlit.app/" target="_blank">literal</a>\';</script>'
+                     '<a href="/en/documentation/" target="_blank" rel="noopener noreferrer">Docs</a>'
+                     '<a href="https://example.org/publication" target="_blank" rel="external">Publication</a>'
+                     '<a href="https://wspradar.streamlit.app/~/+/app/static/paper.pdf" target="_blank">PDF</a>')
+        source = ('<a href="/?v=1&amp;run=1#wspradar-results-inspection" TARGET="_blank" data-preserve="yes">Demo</a>'
+                  + preserved)
+        rendered = build_site.apply_product_navigation_link_policy(source, catalog)
+        self.assertIn(preserved, rendered)
+        self.assertIn('href="/?v=1&amp;run=1#wspradar-results-inspection"', rendered)
+        self.assertIn('data-preserve="yes"', rendered)
+        self.assertNotIn('TARGET=', rendered)
+        self.assertEqual(build_site.apply_product_navigation_link_policy(rendered, catalog), rendered)
+
+    def test_prepared_guided_demo_launches_open_separately_with_exact_destinations(self):
+        builder = build_site.SiteBuilder()
+        launch = builder.demos[0]["launch_url"]
+        suffix = urlsplit(launch)
+        relative_launch = "/?" + suffix.query + "#" + suffix.fragment
+        direct_launch = build_site.APP_URL + "?" + suffix.query + "#" + suffix.fragment
+        body = (builder.md(f'[Markdown demo]({launch})', "en")
+                + '<a data-test="raw" href="' + escape(relative_launch, quote=True)
+                + '" target="_self" rel="external">Raw demo</a>'
+                + build_site.button("Run demo", direct_launch, external=True)
+                + '<a href="' + build_site.APP_URL + '">Analysis</a>'
+                + '<a href="https://example.org/paper" target="_blank">Paper ↗</a>')
+        rendered = build_site.apply_product_navigation_link_policy(
+            body, builder.navigation, current_suffix="demos/example/",
+        )
+        inventory = AnchorInventory()
+        inventory.feed(rendered)
+        launches = inventory.anchors[:3]
+        self.assertEqual([anchor["attributes"]["href"] for anchor in launches],
+                         [launch, relative_launch, direct_launch])
+        for anchor in launches:
+            self.assertEqual(anchor["attributes"]["target"], "_blank")
+            self.assertTrue({"noopener", "noreferrer"}.issubset(anchor["attributes"]["rel"].split()))
+        self.assertIn("external", launches[1]["attributes"]["rel"].split())
+        self.assertEqual(launches[2]["text"], "Run demo ↗")
+        self.assertNotIn("target", inventory.anchors[3]["attributes"])
+        self.assertIn('<a href="https://example.org/paper" target="_blank">Paper ↗</a>', rendered)
+        self.assertEqual(build_site.apply_product_navigation_link_policy(
+            rendered, builder.navigation, current_suffix="demos/example/",
+        ), rendered)
+        demo_index = AnchorInventory()
+        demo_index.feed(build_site.apply_product_navigation_link_policy(
+            body, builder.navigation, current_suffix="demos/",
+        ))
+        for anchor in demo_index.anchors[:4]:
+            self.assertNotIn("target", anchor["attributes"])
+
+    def test_documentation_entries_open_a_new_tab_but_main_and_reader_navigation_stay_current(self):
+        catalog = build_site.product_navigation_catalog(json.loads(
+            (build_site.CONTENT / "brand.json").read_text(encoding="utf-8"),
+        ))
+        for language in ("en", "de"):
+            source = f'<a href="/{language}/documentation/full/#sec-1" class="button">Documentation →</a>'
+            outside = build_site.apply_product_navigation_link_policy(source, catalog)
+            inventory = AnchorInventory()
+            inventory.feed(outside)
+            self.assertEqual(inventory.anchors[0]["attributes"]["target"], "_blank")
+            self.assertEqual(set(inventory.anchors[0]["attributes"]["rel"].split()), {"noopener", "noreferrer"})
+            self.assertEqual(build_site.apply_product_navigation_link_policy(
+                source, catalog, current_suffix="documentation/full/",
+            ), source)
+            navigation = (f'<a href="/{language}/documentation/" '
+                          'data-product-nav="documentation" target="_blank">Documentation</a>')
+            same_tab = build_site.apply_product_navigation_link_policy(navigation, catalog)
+            inventory = AnchorInventory()
+            inventory.feed(same_tab)
+            self.assertNotIn("target", inventory.anchors[0]["attributes"])
+            self.assertEqual(build_site.apply_product_navigation_link_policy(same_tab, catalog), same_tab)
+
+    def test_same_tab_actions_use_forward_arrows_and_publication_arrows_remain(self):
+        catalog = build_site.product_navigation_catalog(json.loads(
+            (build_site.CONTENT / "brand.json").read_text(encoding="utf-8"),
+        ))
+        publication = '<a href="https://example.org/paper" class="button" target="_blank">Paper ↗</a>'
+        action = build_site.button("Start analysis", build_site.APP_URL, external=True)
+        rendered = build_site.apply_product_navigation_link_policy(action + publication, catalog)
+        self.assertIn("Start analysis →</a>", rendered)
+        self.assertIn(publication, rendered)
+
+
+class ProductDesignContractTests(unittest.TestCase):
+    """Import shared tokens without altering reviewed website defaults."""
+
+    def test_shared_stylesheet_is_source_hashed_and_legacy_bundles_remain_supported(self):
+        self.assertEqual(build_site.product_design_stylesheet_html({}, {"files": {}}), "")
+        brand = {"product_design": {"schema_version": 1, "stylesheet": "assets/brand/product-tokens.css"}}
+        manifest = {"files": {"assets/brand/product-tokens.css": {"sha256": "a" * 64}}}
+        self.assertEqual(
+            build_site.product_design_stylesheet_html(brand, manifest),
+            '<link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=' + "a" * 16 + '">',
+        )
+        brand["product_design"]["stylesheet"] = "../private.css"
+        with self.assertRaisesRegex(ValueError, "Invalid imported product-design"):
+            build_site.product_design_stylesheet_html(brand, manifest)
+
+    def test_shared_stylesheet_requires_a_verified_bundle_entry(self):
+        brand = {"product_design": {"schema_version": 1, "stylesheet": "assets/brand/product-tokens.css"}}
+        with self.assertRaisesRegex(ValueError, "missing from the verified bundle"):
+            build_site.product_design_stylesheet_html(brand, {"files": {}})
+
+    def test_buttons_use_the_shared_blue_controls_without_recoloring_content(self):
+        brand = json.loads((build_site.CONTENT / "brand.json").read_text(encoding="utf-8"))
+        tokens = (build_site.CONTENT / brand["product_design"]["stylesheet"]).read_text(encoding="utf-8")
+        for name, color in (("control-accent", "#24d3f2"), ("control-border", "#214b60"),
+                            ("control-active-bg", "#0c3542")):
+            self.assertIn(f"--product-{name}:{color};", tokens)
+        source = (build_site.SOURCE / "theme" / "styles" / "site.css").read_text(encoding="utf-8")
+        base = re.search(r"\.button\{([^{}]*)\}", source)[1]
+        self.assertIn("background:var(--product-control-active-bg)", base)
+        self.assertIn("border:1px solid var(--product-control-accent)", base)
+        self.assertIn("color:var(--text)!important", base)
+        self.assertIn("min-height:44px", base)
+        secondary = re.search(r"\.button\.secondary\{([^{}]*)\}", source)[1]
+        self.assertIn("background:transparent", secondary)
+        self.assertIn("border-color:var(--product-control-border)", secondary)
+        for name in ("site.css", "landing.css", "demo-walkthrough.css"):
+            stylesheet = (build_site.SOURCE / "theme" / "styles" / name).read_text(encoding="utf-8")
+            for selector, declarations in re.findall(r"([^{}]+)\{([^{}]*)\}", stylesheet):
+                if ".button" in selector or ".nav-toggle" in selector or ".case-dialog button" in selector:
+                    self.assertNotRegex(declarations, r"#(?:39ff14|39ed26|72ff63|22f45b)|rgba\(57,255,20")
+        self.assertIn(".landing-header .nav-links>a[aria-current=page]{font-weight:700}", (build_site.SOURCE / "theme" / "styles" / "landing.css").read_text(encoding="utf-8"))
+        self.assertIn("--product-green:#2cfa77;", tokens)
+
+    def test_demo_heading_tokens_preserve_current_desktop_and_compact_defaults(self):
+        css = (build_site.SOURCE / "theme" / "styles" / "demo-walkthrough.css").read_text(encoding="utf-8")
+        defaults = {
+            "number-size": "52px", "number-border": "#2d718b", "number-radius": "8px",
+            "number-bg": "#041a29", "number-font-size": "32px", "heading-gap": "18px",
+            "section-title-size": "32px", "compact-number-size": "44px",
+            "compact-number-height": "46px", "compact-number-font-size": "29px",
+            "section-title-size-mobile": "30px", "cyan": "#36d9ff",
+        }
+        for name, value in defaults.items():
+            self.assertIn(f"var(--product-{name},{value})", css)
+        self.assertIn("--case-green:var(--product-green)", css)
+        self.assertIn("var(--product-heading,Rajdhani,Arial,sans-serif)", css)
+        self.assertIn(
+            "font-family:var(--product-heading,Rajdhani,Arial,sans-serif)",
+            (build_site.SOURCE / "theme" / "styles" / "site.css").read_text(encoding="utf-8"),
+        )
+
+
 class ManualRenderingTests(unittest.TestCase):
     """Keep chapter links and continuous-reader links faithful to their context."""
 
@@ -70,6 +326,28 @@ class ManualRenderingTests(unittest.TestCase):
         self.assertEqual([section.key for section in sections], ["preface", "part-one", "legacy-one"])
         self.assertEqual(sections[-1].anchors, ("legacy-one", "chapter-one"))
         self.assertIn("Opening  spaces.", sections[0].text)
+
+    def test_part_zero_subsections_keep_the_existing_introductory_page(self) -> None:
+        source = '\n'.join((
+            '<a id="sec-1"></a>', '<a id="part-0"></a>',
+            '## Part 0: Why WSPRadar', 'Opening  spaces.',
+            '<a id="sec-1-1"></a>', '### 0.1 WSPR in 2 Minutes', 'First text.',
+            '<a id="sec-1-0"></a>', '<a id="sec-1-2"></a>',
+            '### 0.2 What WSPRadar can show', 'Second text.',
+            '<a id="sec-1-3"></a>', '### 0.3 What one run produces', 'Third text.',
+            '<a id="sec-1-4"></a>', '### 0.4 Your first useful run', 'Fourth text.',
+            '<a id="documentation-toc"></a>', '### Table of Contents', 'Contents.',
+            '<a id="part-i"></a>', '## Part I: Operator Guide',
+            '<a id="sec-2"></a>', '### 1. Choose and Prepare the Analysis', 'Next text.',
+        ))
+        sections = build_site.split_manual(source)
+        self.assertEqual("".join(section.text for section in sections), source)
+        self.assertEqual([section.key for section in sections],
+                         ["sec-1", "documentation-toc", "part-i", "sec-2"])
+        self.assertEqual([section.level for section in sections], [2, 3, 2, 3])
+        self.assertEqual(sections[0].anchors,
+                         ("sec-1", "part-0", "sec-1-1", "sec-1-0", "sec-1-2", "sec-1-3", "sec-1-4"))
+        self.assertNotIn("documentation-toc", sections[0].anchors)
 
     def test_chapter_crosslinks_route_to_the_owning_chapter_in_each_language(self) -> None:
         for language in ("en", "de"):
@@ -87,17 +365,41 @@ class ManualRenderingTests(unittest.TestCase):
         self.assertIn("methods", inventory.ids)
         self.assertEqual(inventory.links, ["#methods"])
 
+    def test_legacy_reference_pdfs_use_the_website_route_and_preserve_query_and_page(self) -> None:
+        prefixes = ("app/static/", "/app/static/", "https://wspradar.streamlit.app/~/+/app/static/",
+                    "https://wspradar.streamlit.app/app/static/", "/static/", "https://wspradar.org/static/")
+        for prefix in prefixes:
+            for suffix in ("example/report.pdf", "example/report.pdf?v=2&view=full#page=3", "example/REPORT.PDF#page=2"):
+                with self.subTest(prefix=prefix, suffix=suffix):
+                    rendered = build_site.render_markdown(
+                        f'[Figure]({prefix}reference_figures/{suffix})', "en", {})
+                    inventory = AnchorInventory()
+                    inventory.feed(rendered)
+                    self.assertEqual(inventory.anchors[0]["attributes"]["href"],
+                                     f"/assets/demos/{suffix}")
+
     def test_legacy_application_media_links_use_the_hosted_static_route(self) -> None:
         for suffix in ("example.pdf", "example.pdf?v=2#page=3"):
             with self.subTest(suffix=suffix):
                 rendered = build_site.render_markdown(
-                    f'[Figure](app/static/reference_figures/{suffix})', "en", {})
+                    f'[Asset](app/static/downloads/{suffix})', "en", {})
                 self.assertIn(
-                    f'href="https://wspradar.streamlit.app/~/+/app/static/reference_figures/{suffix}"',
+                    f'href="https://wspradar.streamlit.app/~/+/app/static/downloads/{suffix}"',
                     rendered)
         app_link = '[App](https://wspradar.streamlit.app/?run=1)'
         self.assertIn('href="https://wspradar.streamlit.app/?run=1"',
                       build_site.render_markdown(app_link, "en", {}))
+
+    def test_reference_link_migration_preserves_raw_attributes_and_script_literals(self) -> None:
+        preserved = ('<script>const text = \'<a href="app/static/reference_figures/example/report.pdf">literal</a>\';</script>'
+                     '<a href="app/static/downloads/report.pdf" target="_blank">Other asset</a>')
+        source = ("<a data-source='verified' href='app/static/reference_figures/example/report.pdf?v=2&amp;view=full#page=3' target='_blank'>Figure</a>"
+                  + preserved)
+        rendered = build_site.website_reference_pdf_links(source)
+        self.assertEqual(rendered, source.replace(
+            "href='app/static/reference_figures/", "href='/assets/demos/", 1,
+        ))
+        self.assertIn(preserved, rendered)
 
     def test_scientific_tables_keep_all_cells_in_an_accessible_scroll_region(self) -> None:
         rendered = build_site.render_markdown('| Station | ΔSNR |\n|---|---|\n| DL1MKS | −2 dB |', "de", {})
@@ -107,6 +409,20 @@ class ManualRenderingTests(unittest.TestCase):
         self.assertIn("−2 dB", rendered)
         self.assertEqual(rendered.count("<table>"), 1)
         self.assertEqual(rendered.count("</table></div>"), 1)
+
+    def test_table_headers_follow_the_markdown_column_alignment(self) -> None:
+        source = '| Label | Count | Status |\n| :--- | ---: | :---: |\n| Station | 1 | Yes |'
+        for language in ("en", "de"):
+            with self.subTest(language=language):
+                rendered = build_site.render_markdown(source, language, {})
+                headers = re.findall(r'<th style="text-align: (left|right|center);">', rendered)
+                cells = re.findall(r'<td style="text-align: (left|right|center);">', rendered)
+                self.assertEqual(headers, ["left", "right", "center"])
+                self.assertEqual(cells, headers)
+        # Author-selected alignment must survive the shared website styles.
+        for filename in ("site.css", "demo-walkthrough.css", "print.css"):
+            css = (build_site.SOURCE / "theme" / "styles" / filename).read_text(encoding="utf-8")
+            self.assertNotRegex(css, r'text-align\s*:[^;}]*!important')
 
     def test_inline_and_display_math_keep_mathjax_delimiters_and_tex(self) -> None:
         source = r"Inline $\Delta SNR = 3\,\mathrm{dB}$ and $x < y$." + "\n\n" + r"$$\frac{a_1}{b_2} = \left(1+\epsilon\right)$$"
@@ -344,17 +660,28 @@ class LandingStylesheetCacheTests(TemporarySiteTests):
 
     def setUp(self) -> None:
         super().setUp()
-        source_site = build_site.SITE
-        self.site = self.root / "site"
+        source_site = build_site.SOURCE
+        self.source = self.root / "source"
         for relative in (
-            "page.html", "landing.json", "demo_walkthroughs.json", "print.css", "print.js",
-            "assets/landing/manifest.json",
+            "theme/templates/page.html", "config/landing.json", "config/demo_walkthroughs.json",
+            "config/demos_index.json",
+            "assets/documentation/manifest.json",
+            "assets/documentation/WSPRadar_Doc_EN.pdf",
+            "assets/documentation/WSPRadar_Doc_DE.pdf",
+            "theme/styles/print.css", "theme/scripts/print.js",
         ):
-            self.write("site/" + relative, (source_site / relative).read_bytes())
-        self.stylesheet = self.write("site/landing.css", ".result-crop {color: #111111;}\n")
-        site_patch = patch.object(build_site, "SITE", self.site)
+            self.write("source/" + relative, (source_site / relative).read_bytes())
+        for page in (source_site / "pages").glob("*.md"):
+            self.write("source/pages/" + page.name, page.read_bytes())
+        self.stylesheet = self.write("source/theme/styles/landing.css", ".result-crop {color: #111111;}\n")
+        site_patch = patch.object(build_site, "SOURCE", self.source)
         site_patch.start()
         self.addCleanup(site_patch.stop)
+        landing_patch = patch.object(build_site, "landing_payload", return_value={
+            "manifest.json": (source_site / "assets" / "landing" / "manifest.json").read_bytes(),
+        })
+        landing_patch.start()
+        self.addCleanup(landing_patch.stop)
 
     def stylesheet_urls(self) -> dict[str, str]:
         builder = build_site.SiteBuilder()
@@ -403,6 +730,17 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         cls.builder = build_site.SiteBuilder()
         cls.pages = cls.builder.render()
 
+    def test_legacy_logo_keeps_the_published_and_raw_github_bytes(self) -> None:
+        canonical = build_site.SOURCE / "assets" / "brand" / "WSPRadar-2x1.png"
+        compatibility = build_site.ROOT / "img" / "WSPRadar-2x1.png"
+        self.assertEqual(canonical.read_bytes(), compatibility.read_bytes())
+        entrypoint = (build_site.ROOT / "index.html").read_text(encoding="utf-8")
+        for attribute in ('property="og:image"', 'name="twitter:image"'):
+            self.assertIn(
+                '<meta ' + attribute + ' content="https://wspradar.org/img/WSPRadar-2x1.png" />',
+                entrypoint,
+            )
+
     def test_full_manual_partition_preserves_both_canonical_inputs(self) -> None:
         for language in ("en", "de"):
             with self.subTest(language=language):
@@ -412,7 +750,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 partition_ids = Counter(anchor for section in self.builder.sections[language] for anchor in section.anchors)
                 self.assertEqual(original_ids, partition_ids)
 
-    def test_manual_index_preserves_chapter_links_and_featured_intro_in_four_part_groups(self) -> None:
+    def test_manual_index_preserves_chapter_links_and_featured_intro_in_part_groups(self) -> None:
         orientation = {
             "en": (
                 "Start here: Why WSPRadar?",
@@ -436,16 +774,26 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 self.assertNotIn(self.builder.anchors[language]["documentation-toc"], inventory.links)
                 self.assertNotIn(build_site.route(language, "documentation/full/"), inventory.links)
                 groups = re.findall(r'<section class="manual-group">(.*?)</section>', rendered, re.DOTALL)
-                self.assertEqual(len(groups), 4)
-                for group in groups:
+                self.assertEqual(len(groups), 5 if language == "en" else 4)
+                for index, group in enumerate(groups):
                     self.assertIn("<h3><a ", group)
-                    self.assertIn("<ul>", group)
+                    if language == "en" and index == 4:
+                        self.assertIn("Part V: References", group)
+                        self.assertNotIn("<ul>", group)
+                    else:
+                        self.assertIn("<ul>", group)
                 self.assertNotIn('class="manual-introduction"', rendered)
                 self.assertLess(rendered.index('class="manual-start"'), rendered.index('class="manual-index"'))
                 self.assertGreater(rendered.index('class="manual-supplementary"'), rendered.index('class="manual-index"'))
                 references = next(section for section in self.builder.sections[language] if "sec-ref" in section.anchors)
-                self.assertIn(build_site.chapter_url(language, references.key), groups[2])
+                reference_group = 4 if language == "en" else 2
+                self.assertIn(build_site.chapter_url(language, references.key), groups[reference_group])
+                self.assertEqual(references.key, "sec-ref")
+                if language == "en":
+                    self.assertEqual(self.builder.anchors[language]["part-v"], self.builder.anchors[language]["sec-ref"])
+                    self.assertIn('id="part-v"', self.pages["en/documentation/sec-ref/index.html"])
                 self.assertNotIn("sec-disclaimer", "".join(groups))
+                self.assertNotIn(self.builder.anchors[language]["sec-1"], "".join(groups))
                 documentation = re.search(r'<main id="main">(.*?)</main>', self.pages[f"{language}/documentation/index.html"], re.DOTALL)[1]
                 featured = re.findall(r'<section class="manual-start"[^>]*>(.*?)</section>', documentation, re.DOTALL)
                 self.assertEqual(len(featured), 1)
@@ -463,7 +811,24 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 documentation_links = build_site.LinkInventory()
                 documentation_links.feed(documentation)
                 self.assertEqual(Counter(documentation_links.links), Counter(
-                    link for link in expected if link != self.builder.anchors[language]["sec-disclaimer"]))
+                    [link for link in expected if link != self.builder.anchors[language]["sec-disclaimer"]]
+                    + [f"/assets/documentation/WSPRadar_Doc_{language.upper()}.pdf?v={self.builder.documentation_pdf_versions[language]}"]))
+
+    def test_documentation_pdf_action_uses_local_language_and_loads_only_on_request(self) -> None:
+        for language in ("en", "de"):
+            page = self.pages[f"{language}/documentation/index.html"]
+            inventory = AnchorInventory()
+            inventory.feed(page)
+            href = f"/assets/documentation/WSPRadar_Doc_{language.upper()}.pdf?v={self.builder.documentation_pdf_versions[language]}"
+            actions = [link for link in inventory.anchors if link["attributes"]["href"] == href]
+            self.assertEqual(len(actions), 1)
+            attributes = actions[0]["attributes"]
+            self.assertIn("button", attributes["class"].split())
+            self.assertEqual(attributes["target"], "_blank")
+            self.assertEqual(set(attributes["rel"].split()), {"noopener", "noreferrer"})
+            self.assertNotIn("download", attributes)
+            # The PDF appears only in its anchor, never in a preload, iframe or script.
+            self.assertEqual(page.count(href), 1)
 
     def test_numbered_manual_links_retain_complete_accessible_titles(self) -> None:
         for language in ("en", "de"):
@@ -494,6 +859,43 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         self.assertTrue(any(path.startswith("de/") for path, _ in pdf_anchors))
         self.assertTrue(any(urlsplit(href).scheme == "https" for _, href in pdf_anchors))
 
+    def test_reference_pdf_routes_cover_all_canonical_demo_links_without_app_hosting(self) -> None:
+        expected = set()
+        for demo in self.builder.demos:
+            for description in demo["description"].values():
+                for href in re.findall(r"\]\(([^)\s]+)\)", description):
+                    destination = urlsplit(href)
+                    if (destination.path.startswith("/assets/demos/")
+                            and unquote(destination.path).casefold().endswith(".pdf")):
+                        expected.add(destination.path)
+        published = build_site.demo_supplement_files(build_site.DEMO_SUPPLEMENTS)
+        published_routes = {"/" + name for name in published}
+        retained_legacy_routes = {
+            f"/assets/demos/milazzo_publication_overlays_v2/WSPRadar_Demo_Milazzo_Figure{number}.pdf"
+            for number in (6, 7)
+        }
+        self.assertTrue(expected)
+        self.assertEqual(published_routes, expected | retained_legacy_routes)
+        rendered_references = set()
+        for path, content in self.pages.items():
+            inventory = AnchorInventory()
+            inventory.feed(content)
+            for anchor in inventory.anchors:
+                href = anchor["attributes"].get("href", "")
+                destination = urlsplit(href)
+                if destination.netloc in {"", "wspradar.org"}:
+                    self.assertFalse(destination.path.startswith("/static/"), (path, href))
+                if urlsplit(href).path not in published_routes:
+                    continue
+                with self.subTest(page=path, href=href):
+                    destination = urlsplit(href)
+                    self.assertTrue(destination.path.startswith("/assets/demos/"))
+                    self.assertIn(destination.netloc, {"", "wspradar.org"})
+                    self.assertIn(destination.path, published_routes)
+                    self.assertEqual(anchor["attributes"].get("target"), "_blank")
+                    rendered_references.add(destination.path)
+        self.assertTrue(rendered_references)
+
     def test_complete_page_applies_pdf_policy_to_markdown_and_direct_html(self) -> None:
         builder = build_site.SiteBuilder()
         markdown_link = builder.md('[Paper](/assets/paper.pdf?view=1#page=6)', "en")
@@ -506,6 +908,55 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         for anchor in links:
             self.assertEqual(anchor["attributes"]["target"], "_blank")
             self.assertTrue({"noopener", "noreferrer"}.issubset(anchor["attributes"]["rel"].split()))
+
+    def test_generated_analysis_launches_keep_guided_demos_open(self) -> None:
+        launches = 0
+        guided_launches = 0
+        for path, content in self.pages.items():
+            inventory = AnchorInventory()
+            inventory.feed(content)
+            for anchor in inventory.anchors:
+                attributes = anchor["attributes"]
+                destination = urlsplit(attributes.get("href", ""))
+                direct_analysis = destination.netloc == "wspradar.streamlit.app" and destination.path in {"", "/"}
+                canonical_launch = (destination.netloc == "wspradar.org" and destination.path in {"", "/"}
+                                    and (destination.query or destination.fragment == "wspradar-results-inspection"))
+                if direct_analysis or canonical_launch:
+                    launches += 1
+                    with self.subTest(page=path, destination=destination.geturl()):
+                        guided_demo = re.fullmatch(r"(?:en|de)/demos/[^/]+/index.html", path)
+                        prepared_demo = destination.query or destination.fragment == "wspradar-results-inspection"
+                        if guided_demo and prepared_demo:
+                            guided_launches += 1
+                            self.assertEqual(attributes.get("target"), "_blank")
+                            self.assertTrue({"noopener", "noreferrer"}.issubset(attributes.get("rel", "").split()))
+                            if {"button", "text-link"} & set(attributes.get("class", "").split()):
+                                self.assertTrue(anchor["text"].endswith(" ↗"))
+                        else:
+                            self.assertNotIn("target", attributes)
+        self.assertGreater(launches, len(self.pages))
+        self.assertGreaterEqual(guided_launches, 2 * len(self.builder.published_demos))
+
+    def test_documentation_entries_outside_main_navigation_and_reader_open_in_a_new_tab(self) -> None:
+        entries = 0
+        for path, content in self.pages.items():
+            if "/documentation/" in path:
+                continue
+            inventory = AnchorInventory()
+            inventory.feed(content)
+            for anchor in inventory.anchors:
+                attributes = anchor["attributes"]
+                destination = urlsplit(attributes.get("href", ""))
+                if destination.netloc not in {"", "wspradar.org"} or not re.match(r"^/(?:en|de)/documentation/", destination.path):
+                    continue
+                if attributes.get("data-product-nav") == "documentation":
+                    self.assertNotIn("target", attributes)
+                    continue
+                entries += 1
+                with self.subTest(page=path, destination=destination.geturl()):
+                    self.assertEqual(attributes.get("target"), "_blank")
+                    self.assertTrue({"noopener", "noreferrer"}.issubset(attributes.get("rel", "").split()))
+        self.assertGreater(entries, 20)
 
     def test_every_page_has_a_language_counterpart(self) -> None:
         for path in self.pages:
@@ -529,8 +980,8 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 inventory = AnchorInventory()
                 inventory.feed(content)
                 switches = [anchor for anchor in inventory.anchors if anchor["attributes"].get("class") == "language-option"]
-                self.assertEqual(len(switches), 2)
-                for alternate, switch in zip(("en", "de"), switches):
+                self.assertEqual(len(switches), 1)
+                for alternate, switch in zip(("en",), switches):
                     self.assertEqual(switch["attributes"]["href"], f"/{alternate}/{suffix}")
                     self.assertEqual(switch["attributes"]["hreflang"], alternate)
                     self.assertEqual(switch["attributes"]["lang"], alternate)
@@ -576,14 +1027,13 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         for language in ("en", "de"):
             expected = {f"{language}/{suffix}index.html" for suffix in ("", "documentation/", "documentation/full/", "demos/", "guides/read-results/", "community/", "report/")}
             expected.update(f"{language}/documentation/{section.key}/index.html" for section in self.builder.sections[language])
-            expected.update(f"{language}/demos/{demo['id']}/index.html" for demo in self.builder.demos)
+            expected.update(f"{language}/demos/{demo['id']}/index.html" for demo in self.builder.published_demos)
             self.assertEqual({path for path in self.pages if path.startswith(language + "/")}, expected)
 
     def test_every_page_navigation_follows_the_station_workflow(self) -> None:
-        suffixes = ("", "demos/", "documentation/", "community/")
         labels = {
-            "en": ["Overview", "Demo Walkthrough", "Documentation", "Community"],
-            "de": ["Überblick", "Demo-Anleitung", "Dokumentation", "Community"],
+            "en": ["Introduction", "Guided Demos", "WSPRadar App", "Documentation", "Community"],
+            "de": ["Einführung", "Geführte Demo", "WSPRadar App", "Dokumentation", "Community"],
         }
         for path, content in self.pages.items():
             language = "en" if path == "index.html" else path.split("/", 1)[0]
@@ -594,17 +1044,24 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 inventory = AnchorInventory()
                 inventory.feed(navigation[1])
                 self.assertEqual([anchor["attributes"]["href"] for anchor in inventory.anchors],
-                                 [f"/{language}/{suffix}" for suffix in suffixes])
+                                 [f"/{language}/", f"/{language}/demos/", build_site.APP_URL,
+                                  f"/{language}/documentation/", f"/{language}/community/"])
                 self.assertEqual([anchor["text"] for anchor in inventory.anchors], labels[language])
-        for language, page_label in (("en", "Demo walkthrough"), ("de", "Demo-Anleitung")):
+                self.assertEqual(navigation[1].count('<span class="nav-separator" aria-hidden="true">·</span>'), 5)
+                self.assertEqual([anchor["attributes"]["data-product-nav"] for anchor in inventory.anchors],
+                                 ["overview", "demos", "analysis", "documentation", "community"])
+                for anchor in inventory.anchors:
+                    self.assertNotIn("target", anchor["attributes"])
+        for language, page_label in (("en", "Guided Demo"), ("de", "Geführte Demo")):
             with self.subTest(preserved_demo_page_language=language):
                 content = self.pages[f"{language}/demos/index.html"]
-                self.assertIn(f'<p class="eyebrow">{page_label}</p>', content)
+                eyebrow = "GUIDED DEMOS" if language == "en" else page_label
+                self.assertIn(f'<p class="eyebrow">{eyebrow}</p>', content)
                 self.assertIn(f'<title>{page_label} · WSPRadar</title>', content)
 
     def test_every_route_has_responsive_english_artwork_and_live_navigation(self) -> None:
-        landing = json.loads((build_site.SITE / "landing.json").read_text(encoding="utf-8"))
-        assets = json.loads((build_site.SITE / "assets/landing/manifest.json").read_text(encoding="utf-8"))
+        landing = build_site.load_catalog(build_site.SOURCE / "config" / "landing.json", build_site.SOURCE / "pages")
+        assets = json.loads((build_site.SOURCE / "assets/landing/manifest.json").read_text(encoding="utf-8"))
         hero = assets["hero"]["fallback"]
         logo = assets["logo"]["fallback"]
         for path, content in self.pages.items():
@@ -612,32 +1069,35 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             with self.subTest(path=path):
                 header = re.search(r'<header\b[^>]*class="[^"]*\bsite-header\b[^"]*"[^>]*>(.*?)</header>', content, re.DOTALL)
                 self.assertIsNotNone(header)
+                navigation = re.search(r'<div class="site-navigation-shell landing-header">(.*?)</nav></div>', content, re.DOTALL)
+                self.assertIsNotNone(navigation)
+                self.assertLess(navigation.end(), header.start() + 1)
+                self.assertNotIn('radar-artwork', navigation[1])
+                self.assertNotIn('<nav', header[1])
+                header_content = navigation[1] + '</nav>' + header[1]
                 inventory = build_site.LinkInventory()
-                inventory.feed(header[1])
+                inventory.feed(header_content)
                 self.assertIn("/assets/landing/" + hero["path"], inventory.links)
                 self.assertNotIn("/assets/landing/" + logo["path"], inventory.links)
                 self.assertEqual([image["alt"] for image in inventory.images
                                   if image["src"] == "/assets/landing/" + hero["path"]], [landing[language]["hero_alt"]])
-                self.assertIn('<picture class="radar-artwork" lang="en">', header[1])
-                self.assertIn('class="nav-brand"', header[1])
-                self.assertIn('aria-label="WSPRadar.org — ' + build_site.COPY[language]["home"] + '"', header[1])
-                self.assertIn('<span>WSPRadar.org</span>', header[1])
-                self.assertNotIn(self.builder.brand["credit_html"][language], header[1])
+                self.assertIn('<picture class="radar-artwork" lang="en">', header_content)
+                self.assertIn('class="nav-brand"', header_content)
+                self.assertIn('aria-label="WSPRadar.org — ' + build_site.COPY[language]["home"] + '"', header_content)
+                self.assertIn('<span>WSPRadar.org</span>', header_content)
+                self.assertNotIn(self.builder.brand["credit_html"][language], header_content)
                 self.assertEqual(len(inventory.images), 1)
-                self.assertLess(header[1].index('<nav class="navigation"'), header[1].index('<picture class="radar-artwork"'))
+                self.assertLess(header_content.index('<nav class="navigation"'), header_content.index('<picture class="radar-artwork"'))
                 links = AnchorInventory()
-                links.feed(header[1])
+                links.feed(header_content)
                 is_home = path in ("index.html", "en/index.html", "de/index.html")
                 demo_route = re.fullmatch(r"(?:en|de)/demos/([^/]+)/index.html", path)
                 if demo_route:
-                    expected_url = self.builder.demo_walkthroughs["demos"][demo_route[1]]["launch_url"]
+                    expected_url = build_site.demo_launch_url(self.builder.demo_by_id[demo_route[1]])
                     launch_links = [anchor for anchor in links.anchors
                                     if anchor["attributes"]["href"] == expected_url]
-                    self.assertEqual(len(launch_links), 1)
-                    parameters = parse_qs(urlsplit(launch_links[0]["attributes"]["href"]).query)
-                    self.assertEqual(parameters["v"], ["1"])
-                    self.assertEqual(parameters["run"], ["1"])
-                    self.assertNotIn("demo", parameters)
+                    self.assertEqual(launch_links, [])
+                    self.assertNotIn('class="launch"', header_content)
                 else:
                     self.assertEqual(sum(anchor["attributes"]["href"] == build_site.APP_URL for anchor in links.anchors), 2 if is_home else 1)
 
@@ -654,7 +1114,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 elif tag == "img":
                     self.images.append(dict(attributes))
 
-        assets = json.loads((build_site.SITE / "assets/landing/manifest.json").read_text(encoding="utf-8"))
+        assets = json.loads((build_site.SOURCE / "assets/landing/manifest.json").read_text(encoding="utf-8"))
         hero = assets["hero"]
         fallback = hero["fallback"]
         rendered_pictures = []
@@ -680,12 +1140,12 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
 
     def test_compact_footer_uses_current_imported_version_once_and_preserves_developer_credit(self) -> None:
         for language in ("en", "de"):
-            with self.subTest(language=language), patch.dict(self.builder.brand["credit_html"], {language: "Release v2.3 test | Developed by Dr. Markus Brosch"}), patch.dict(self.builder.brand, {"app_version": "v2.3 test"}):
+            with self.subTest(language=language), patch.dict(self.builder.brand["credit_html"], {language: "Release v2.3 test | Designed by Dr. Markus Brosch (DL1MKS), coded with OpenAI Codex"}), patch.dict(self.builder.brand, {"app_version": "v2.3 test"}):
                 self.builder.page(language, "credit-contract/", "Credit contract", "<h1>Credit contract</h1>", "docs")
                 content = self.builder.pages.pop(f"{language}/credit-contract/index.html")
                 footer = re.search(r'<footer\b[^>]*>(.*?)</footer>', content, re.DOTALL)[1]
                 header = re.search(r'<header\b[^>]*>(.*?)</header>', content, re.DOTALL)[1]
-                self.assertIn("Developed by Dr. Markus Brosch", footer)
+                self.assertIn("Designed by Dr. Markus Brosch (DL1MKS), coded with OpenAI Codex", footer)
                 self.assertEqual(footer.count("v2.3 test"), 1)
                 self.assertNotIn("Release v2.3 test", header)
                 self.assertNotIn("v1.0 RC2", footer)
@@ -699,7 +1159,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 footer = re.search(r'<footer\b[^>]*>(.*?)</footer>', content, re.DOTALL)[1]
                 self.assertIn(custom_credit, footer)
 
-    def test_every_footer_keeps_release_developer_disclaimer_and_support_destinations(self) -> None:
+    def test_every_footer_keeps_release_developer_and_disclaimer_without_support_links(self) -> None:
         for path, content in self.pages.items():
             language = "en" if path == "index.html" else path.split("/", 1)[0]
             with self.subTest(path=path):
@@ -711,8 +1171,10 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 self.assertIn(developer_credit.strip(), footer)
                 self.assertEqual(footer.count(self.builder.brand["app_version"]), 1)
                 self.assertIn(f'/{language}/documentation/full/#sec-disclaimer', hrefs)
-                self.assertIn(f'/{language}/report/', hrefs)
-                self.assertIn("https://github.com/markusthemaker/WSPRadar", hrefs)
+                self.assertNotIn(f'/{language}/report/', hrefs)
+                self.assertNotIn("https://github.com/markusthemaker/WSPRadar", hrefs)
+                self.assertEqual(len(hrefs), 2)
+                self.assertIn("https://www.qrz.com/db/DL1MKS", hrefs)
                 self.assertIn('class="footer-main"', footer)
                 self.assertIn('class="footer-legal"', footer)
                 self.assertTrue(any("DL1MKS" in anchor["text"] for anchor in inventory.anchors))
@@ -720,6 +1182,14 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
     def test_introductory_manual_chapter_marks_documentation_current(self) -> None:
         for language, label in (("en", "Documentation"), ("de", "Dokumentation")):
             content = self.pages[f"{language}/documentation/sec-1/index.html"]
+            if language == "en":
+                for anchor in ("part-0", "sec-1", "sec-1-1", "sec-1-0", "sec-1-2", "sec-1-3", "sec-1-4"):
+                    self.assertEqual(self.builder.anchors[language][anchor], "/en/documentation/sec-1/")
+                    self.assertIn(f'id="{anchor}"', content)
+                self.assertIn("<h1>Part 0: Why WSPRadar</h1>", content)
+                for title in ("0.1 WSPR in 2 Minutes", "0.2 What WSPRadar can show",
+                              "0.3 What one run produces", "0.4 Your first useful run"):
+                    self.assertIn(f"<h3>{title}</h3>", content)
             navigation = re.search(r'<div class="nav-links" id="nav-links">(.*?)</div>', content, re.DOTALL)
             inventory = AnchorInventory()
             inventory.feed(navigation[1])
@@ -735,7 +1205,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             disclaimer_chapter = self.builder.anchors[language]["sec-disclaimer"]
             documentation = self.pages[f"{language}/documentation/index.html"]
             manual_groups = re.findall(r'<section class="manual-group">(.*?)</section>', documentation, re.DOTALL)
-            self.assertEqual(len(manual_groups), 4)
+            self.assertEqual(len(manual_groups), 5 if language == "en" else 4)
             self.assertNotIn('class="manual-introduction"', documentation)
             for path in paths:
                 content = self.pages[path]
@@ -746,7 +1216,10 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.assertNotIn('class="manual-introduction"', main)
                     self.assertNotIn('class="manual-start"', main)
                     self.assertNotIn('class="manual-supplementary"', main)
-                    self.assertEqual(re.findall(r'<section class="manual-group">(.*?)</section>', main, re.DOTALL), manual_groups)
+                    expected_groups = [build_site.apply_product_navigation_link_policy(
+                        group, self.builder.navigation,
+                    ) for group in manual_groups]
+                    self.assertEqual(re.findall(r'<section class="manual-group">(.*?)</section>', main, re.DOTALL), expected_groups)
                     self.assertIn(f'/{language}/documentation/full/#sec-disclaimer', footer)
                     self.assertEqual(footer.count('#sec-disclaimer'), 1)
             documentation_main = re.search(r'<main id="main">(.*?)</main>', documentation, re.DOTALL)[1]
@@ -792,7 +1265,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 for key in previous_copy_keys:
                     self.assertIn(build_site.COPY[language][key], unescape(guidance[1]), key)
                 self.assertEqual(guidance[1].count('class="journey-card"'), 3)
-                self.assertEqual(guidance[1].count('class="manual-group"'), 4)
+                self.assertEqual(guidance[1].count('class="manual-group"'), 5 if language == "en" else 4)
                 inventory = build_site.LinkInventory()
                 inventory.feed(guidance[1])
                 for destination in (
@@ -803,26 +1276,27 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.assertIn(destination, inventory.links)
                 self.assertNotIn("<h1", guidance[1])
 
-    def test_landing_presents_demo_first_with_four_equal_analysis_choices(self) -> None:
-        section_ids = ("how-it-works", "analysis-choices", "real-example", "get-started", "more-guidance")
+    def test_landing_presents_demo_first_with_four_analysis_choices_before_explanation(self) -> None:
         for language in ("en", "de"):
             with self.subTest(language=language):
+                middle = ("analysis-choices", "why-wspradar") if language == "en" else ("why-wspradar", "analysis-choices")
+                section_ids = ("how-it-works", *middle, "real-example", "get-started", "more-guidance")
                 content = self.pages[f"{language}/index.html"]
                 main = re.search(r'<main id="main">(.*?)</main>', content, re.DOTALL)[1]
                 self.assertEqual(len(re.findall(r'<h1\b', content)), 1)
                 positions = [main.index(f'id="{section_id}"') for section_id in section_ids]
                 self.assertEqual(positions, sorted(positions))
-                analysis = main[positions[1]:positions[2]]
+                analysis = re.search(r'<section id="analysis-choices"[^>]*>(.*?)</section>', main, re.DOTALL)[1]
                 cards = re.findall(r'<article\b[^>]*class="analysis-card"[^>]*>(.*?)</article>', analysis, re.DOTALL)
                 self.assertEqual(len(cards), 4)
                 self.assertEqual(
-                    [unescape(re.search(r'<h3\b[^>]*>(.*?)</h3>', card, re.DOTALL)[1]) for card in cards],
+                    [unescape(re.search(r'<h[34]\b[^>]*>(.*?)</h[34]>', card, re.DOTALL)[1]) for card in cards],
                     ["RX Benchmark", "TX Benchmark", "RX Performance", "TX Performance"],
                 )
                 for card in cards:
                     self.assertIn("<p", card)
                     self.assertNotIn("<a ", card)
-                get_started = main[positions[3]:positions[4]]
+                get_started = main[positions[4]:positions[5]]
                 route_links = AnchorInventory()
                 route_links.feed(get_started)
                 hrefs = [anchor["attributes"]["href"] for anchor in route_links.anchors]
@@ -852,12 +1326,17 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 self.assertNotIn('class="landing-actions"', main)
                 self.assertIn(escape(self.builder.landing[language]["headline"]), header)
                 self.assertIn(escape(self.builder.landing[language]["no_station"]), header)
+                if "hero_analysis_intro" in self.builder.landing[language]:
+                    self.assertIn(self.builder.landing[language]["hero_analysis_intro"], header)
+                    self.assertNotIn(self.builder.landing[language]["hero_analysis_intro"], main)
+                    self.assertRegex(self.builder.landing[language]["hero_analysis_intro"],
+                                     r"<br\s*/?>\s*<strong>Performance</strong>")
                 inventory = AnchorInventory()
                 inventory.feed(actions[1])
                 self.assertEqual([anchor["attributes"]["href"] for anchor in inventory.anchors],
-                                 [f"/{language}/#real-example", build_site.APP_URL])
+                                 [f"/{language}/demos/", build_site.APP_URL])
                 self.assertEqual([anchor["text"] for anchor in inventory.anchors],
-                                 [self.builder.landing[language]["try_demo"] + " →", build_site.COPY[language]["open"] + " ↗"])
+                                 [self.builder.landing[language]["try_demo"] + " →", build_site.COPY[language]["start_analysis"] + " →"])
 
     def test_get_started_has_three_numbered_steps_and_keeps_two_distinct_routes(self) -> None:
         for language in ("en", "de"):
@@ -893,7 +1372,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             with self.subTest(language=language):
                 content = self.pages[f"{language}/index.html"]
                 start = content.index('id="how-it-works"')
-                end = content.index('id="why-wspradar"')
+                end = content.index('id="analysis-choices"' if language == "en" else 'id="why-wspradar"')
                 flow = content[start:end]
                 self.assertIn('class="what-copy"', flow)
                 self.assertIn('class="how-visual"', flow)
@@ -909,12 +1388,12 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
     def test_why_section_keeps_localized_comparison_and_benchmark_scope_together(self) -> None:
         english = self.builder.landing["en"]["why"]
         german = self.builder.landing["de"]["why"]
-        self.assertEqual(set(english), set(german))
+        self.assertEqual(set(english) - {"decode_method"}, set(german))
         for removed in ("network_caption", "method_note", "median_legend", "summary_legend", "illustrative_note", "illustrative", "setup_a", "setup_b"):
             self.assertNotIn(removed, english)
             self.assertNotIn(removed, german)
         self.assertEqual(english["repeated_title"], "WSPRadar: Many observations, clear insights")
-        self.assertEqual(english["repeated_subtitle"], "Consistently compare your setups using matched observations.")
+        self.assertEqual(english["repeated_subtitle"], "Compare your setups through both signal quality and decoding reach.")
         self.assertEqual(english["quick_subtitle"], "One path. One moment. Repeatable?")
         self.assertEqual(english["benefits"][2]["body"], "Less sensitive to outliers")
         self.assertEqual([(item["title"], item["body"]) for item in english["benefits"][:2]],
@@ -928,13 +1407,16 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         for language in ("en", "de"):
             with self.subTest(language=language):
                 page = self.pages[f"{language}/index.html"]
-                start, end = page.index('id="why-wspradar"'), page.index('id="analysis-choices"')
+                start = page.index('id="why-wspradar"')
                 self.assertLess(page.index('id="how-it-works"'), start)
-                self.assertLess(start, end)
-                section = page[start:end]
+                if language == "en":
+                    self.assertLess(page.index('id="analysis-choices"'), start)
+                else:
+                    self.assertLess(start, page.index('id="analysis-choices"'))
+                section = re.search(r'<section class="why-section"[^>]*>(.*?)</section>', page, re.DOTALL)[0]
                 copy = self.builder.landing[language]["why"]
                 for key, value in copy.items():
-                    if isinstance(value, str):
+                    if isinstance(value, str) and key not in {"station_label", "delta_label"}:
                         self.assertIn(escape(value), section, key)
                 self.assertIn('aria-labelledby="why-title"', section)
                 self.assertIn('id="why-title"', section)
@@ -942,11 +1424,12 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 setups = re.findall(r'<div class="why-setup (target|reference)"><h4>(.*?)</h4>.*?<strong>(.*?)</strong>', section)
                 self.assertEqual(setups, [("target", copy["target_label"], "−17 dB"), ("reference", copy["reference_label"], "−21 dB")])
                 self.assertNotIn('class="why-illustrative"', section)
-                self.assertEqual(section.count('class="why-step-heading"'), 3)
-                self.assertIn("Benchmark", copy["method_title"])
+                step_count = 6 if "decode_method" in copy else 3
+                self.assertEqual(section.count('class="why-step-heading"'), step_count)
+                self.assertIn("ΔSNR" if language == "en" else "Benchmark", copy["method_title"])
                 right_panel = re.search(r'<article class="why-panel why-repeated">(.*?)</article>', section, re.DOTALL)[1]
                 self.assertIn('<div class="why-method">', right_panel)
-                self.assertEqual(right_panel.count('class="why-step-heading"'), 3)
+                self.assertEqual(right_panel.count('class="why-step-heading"'), step_count)
                 self.assertEqual(section.count('class="why-method"'), 1)
                 self.assertIn('<ol class="why-steps" aria-label="' + escape(copy["method_title"]) + '">', right_panel)
                 self.assertEqual(right_panel.count('class="why-takeaway"'), 1)
@@ -964,14 +1447,8 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.assertIn(escape(benefit["title"]), right_panel)
                     self.assertIn(escape(benefit["body"]), right_panel)
                 self.assertNotRegex(section, r"(?i)confidence interval|konfidenzintervall")
-                table_stations = re.findall(r'<th scope="row">(#\d)</th>', section)
-                median_stations = re.findall(r'<div><span>(#\d)</span><span class="why-dot-row">', section)
-                self.assertEqual(table_stations, ["#1", "#2", "#3"])
-                self.assertEqual(table_stations, median_stations)
-                rows = re.findall(r'<tr><th scope="row">#\d</th><td>(−\d+) dB</td><td>(−\d+) dB</td><td>(\+\d+) dB</td></tr>', section)
-                self.assertEqual(len(rows), 3)
-                for reference, target, delta in rows:
-                    self.assertEqual(int(target.replace("−", "-")) - int(reference.replace("−", "-")), int(delta))
+                for removed_illustration in ("why-pairs", "why-station-medians", "why-dot-row", "why-summary-dots"):
+                    self.assertNotIn(removed_illustration, right_panel)
 
     def test_why_network_uses_responsive_derivatives_and_existing_svg_icons(self) -> None:
         class PictureInventory(build_site.LinkInventory):
@@ -988,7 +1465,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         for language in ("en", "de"):
             with self.subTest(language=language):
                 page = self.pages[f"{language}/index.html"]
-                section = page[page.index('id="why-wspradar"'):page.index('id="analysis-choices"')]
+                section = re.search(r'<section class="why-section"[^>]*>(.*?)</section>', page, re.DOTALL)[0]
                 inventory = PictureInventory()
                 inventory.feed(section)
                 self.assertEqual(len(inventory.sources), 1)
@@ -1003,13 +1480,114 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 for image in inventory.images:
                     self.assertIn(image["src"], icons | {"/assets/landing/" + fallback["path"]})
 
-    def test_landing_copy_and_scientific_qualifications_have_bilingual_parity(self) -> None:
-        landing = json.loads((build_site.SITE / "landing.json").read_text(encoding="utf-8"))
-        self.assertEqual(set(landing["en"]), set(landing["de"]))
+    def test_analysis_families_group_each_mode_once_before_benchmark_guidance(self) -> None:
+        page = self.pages["en/index.html"]
+        choices = re.search(r'<section id="analysis-choices"[^>]*>(.*?)</section>', page, re.DOTALL)[1]
+        families = self.builder.landing["en"]["analysis_families"]
+        selections = self.builder.landing["analysis_family_modes"]
+        configured_modes = self.builder.landing["en"]["modes"]
+        self.assertEqual(sorted(index for key in families for index in selections[key]), list(range(4)))
+        self.assertEqual(choices.count('class="analysis-family"'), 2)
+        groups = choices.split('<div class="analysis-family">')[1:]
+        for (key, family), group in zip(families.items(), groups):
+            self.assertIn('<h3>' + escape(family["title"]) + '</h3>', group)
+            cards = re.findall(r'<article class="analysis-card">(.*?)</article>', group, re.DOTALL)
+            self.assertEqual(len(cards), len(selections[key]))
+            for index, card in zip(selections[key], cards):
+                configured = configured_modes[index]
+                heading = "h" + str(configured.get("heading_level", 4))
+                self.assertIn("<" + heading + ">" + escape(configured["title"]) + "</" + heading + ">", card)
+                question = escape(configured["question"])
+                if configured.get("emphasize_question", False):
+                    question = "<strong>" + question + "</strong>"
+                self.assertIn('<p class="operator-question">' + question + '</p>', card)
+        self.assertLess(page.index('id="analysis-choices"'), page.index('id="why-wspradar"'))
+        self.assertNotIn('class="analysis-families"', self.pages["de/index.html"])
+        for invalid in ({"benchmark": [0, 1], "performance": [1, 3]},
+                        {"benchmark": [0], "performance": [2, 3]}):
+            with self.subTest(invalid=invalid), patch.dict(self.builder.landing, {"analysis_family_modes": invalid}):
+                with self.assertRaisesRegex(ValueError, "every mode exactly once"):
+                    self.builder.home("en")
+
+    def test_analysis_card_presentation_is_typed_and_independent_of_mode_identity(self) -> None:
+        from scripts.landing_page import render_analysis_choices
+
+        content = {"modes_title": "Choices", "modes_help": "Help", "modes": [
+            {"icon": "any-icon", "title": "Custom <mode>", "question": "A & B?", "body": "Preserved body."}
+        ]}
+        for level in (3, 4):
+            for emphasis in (False, True):
+                with self.subTest(level=level, emphasis=emphasis):
+                    configured = deepcopy(content)
+                    configured["modes"][0].update(heading_level=level, emphasize_question=emphasis)
+                    rendered = render_analysis_choices(configured, {}, lambda _: "", "/guide/")
+                    self.assertIn(f"<h{level}>Custom &lt;mode&gt;</h{level}>", rendered)
+                    question = "<strong>A &amp; B?</strong>" if emphasis else "A &amp; B?"
+                    self.assertIn('<p class="operator-question">' + question + '</p>', rendered)
+                    self.assertIn('<p class="muted">Preserved body.</p>', rendered)
+        invalid = [{"heading_level": value} for value in (2, 5, "3", True, None)]
+        invalid += [{"emphasize_question": value} for value in (1, "true", None)]
+        for options in invalid:
+            with self.subTest(options=options):
+                configured = deepcopy(content)
+                configured["modes"][0].update(options)
+                with self.assertRaisesRegex(ValueError, "heading_level 3 or 4 and boolean emphasize_question"):
+                    render_analysis_choices(configured, {}, lambda _: "", "/guide/")
+
+    def test_operating_requirements_follow_get_started_before_first_experiment(self) -> None:
+        copy = self.builder.landing["en"]
+        for path in ("index.html", "en/index.html"):
+            with self.subTest(path=path):
+                page = self.pages[path]
+                for removed in ('id="benchmark-views"', 'class="benchmark-view"',
+                                'class="reach-intro"', "Two complementary benchmark views"):
+                    self.assertNotIn(removed, page)
+                self.assertEqual(page.count('class="operating-note"'), 1)
+                sequence = re.search(
+                    r'<section class="get-started-section"[^>]*>.*?</section>'
+                    r'<aside class="operating-note"[^>]*>(.*?)</aside>'
+                    r'<section class="setup-intro">', page, re.DOTALL)
+                self.assertIsNotNone(sequence)
+                note = sequence[1]
+                for value in copy["operating_note"].values():
+                    self.assertIn(escape(value), note)
+                self.assertIn("known to be operating", unescape(note))
+        self.assertNotIn('class="operating-note"', self.pages["de/index.html"])
+        self.assertNotIn('id="benchmark-views"', self.pages["de/index.html"])
+
+    def test_snr_median_and_pooled_decode_have_distinct_method_sequences(self) -> None:
+        page = self.pages["en/index.html"]
+        copy = self.builder.landing["en"]["why"]
+        methods = re.findall(r'<ol class="why-steps" aria-label="([^"]+)">(.*?)</ol>', page, re.DOTALL)
+        self.assertEqual(len(methods), 2)
+        self.assertEqual([unescape(label) for label, _ in methods],
+                         [copy["method_title"], copy["decode_method"]["title"]])
+        for (_, rendered), steps in zip(methods, (copy["steps"], copy["decode_method"]["steps"])):
+            self.assertEqual(rendered.count('class="why-step-heading"'), 3)
+            for step in steps:
+                self.assertIn(escape(step["title"]), rendered)
+                self.assertIn(escape(step["body"]), rendered)
+        self.assertIn("median", unescape(methods[0][1]).lower())
+        self.assertNotIn("mean of station", unescape(methods[0][1]).lower())
+        self.assertIn("pool each setup’s paired and one-sided decodes", unescape(methods[1][1]).lower())
+        self.assertIn("totals divided by their sum", unescape(methods[1][1]).lower())
+        self.assertNotIn("mean of station", unescape(methods[1][1]).lower())
+        self.assertNotIn("median", unescape(methods[1][1]).lower())
+        self.assertNotIn('class="why-method decode-method"', self.pages["de/index.html"])
+
+    def test_landing_preserves_shared_copy_while_english_additions_remain_a_draft(self) -> None:
+        landing = build_site.load_catalog(build_site.SOURCE / "config" / "landing.json", build_site.SOURCE / "pages")
+        draft_fields = {"hero_analysis_intro", "analysis_families", "operating_note",
+                        "demo_metrics", "demo_metric_context", "demo_added_views", "own_benchmark_note"}
+        self.assertEqual(set(landing["en"]) - draft_fields, set(landing["de"]))
+        self.assertTrue(draft_fields <= set(landing["en"]))
+        self.assertTrue(draft_fields.isdisjoint(landing["de"]))
         for collection in ("flow", "modes"):
             self.assertEqual(len(landing["en"][collection]), len(landing["de"][collection]))
+            draft_presentation = {"heading_level", "emphasize_question"} if collection == "modes" else set()
             for english, german in zip(landing["en"][collection], landing["de"][collection]):
-                self.assertEqual(set(english), set(german))
+                self.assertEqual(set(english) - draft_presentation, set(german))
+                self.assertTrue(draft_presentation.isdisjoint(german))
                 self.assertEqual(english["icon"], german["icon"])
         self.assertEqual(len(landing["en"]["curiosity_lines"]), 2)
         self.assertEqual(len(landing["de"]["curiosity_lines"]), 2)
@@ -1022,7 +1600,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             with self.subTest(language=language):
                 content = unescape(self.pages[f"{language}/index.html"])
                 copy = landing[language]
-                for key in ("example_title", "example_intro", "example_meta", "example_question", "result", "result_label", "example_ready"):
+                for key in ("example_title", "example_intro", "example_question", "result", "result_label", "example_ready"):
                     self.assertIn(copy[key], content, key)
                 self.assertEqual(len(copy["result_detail"]), 2)
                 for detail in copy["result_detail"]:
@@ -1043,21 +1621,17 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                          "See what WSPR can reveal about your station")
         self.assertEqual(self.builder.landing["en"]["example_intro"],
                          "Explore a real antenna comparison—and learn how to read your own results.")
-        self.assertEqual(self.builder.landing["en"]["example_meta"],
-                         "Follow two receiving setups on 40 m, comparing the same transmissions. Discover where one setup led, how the advantage changed, and what the observations actually support.")
         self.assertEqual(self.builder.landing["en"]["example_question"],
                          "Low dipole or vertical—which setup heard better?")
         self.assertEqual(self.builder.landing["en"]["result_label"], "SNR advantage for the low-dipole setup")
         self.assertEqual(self.builder.landing["de"]["result_label"], "SNR-Vorteil der Anlage mit niedrigem Dipol")
-        self.assertEqual(self.builder.landing["en"]["result_detail"], ["57 767 paired observations", "792 transmitting-station entries"])
-        self.assertEqual(self.builder.landing["en"]["example_tag"], "GUIDED WALKTHROUGH · 40 m RX BENCHMARK")
+        self.assertEqual(self.builder.landing["en"]["result_detail"], ["57 767 spot pairs", "792 transmitting-station entries"])
+        self.assertEqual(self.builder.landing["en"]["example_tag"], "GUIDED DEMO · 40 m RX BENCHMARK")
         self.assertEqual(self.builder.landing["en"]["example_ready"], "The example is ready to explore. No need to enter your own data.")
-        self.assertEqual(self.builder.landing["en"]["example_link"], "Start walkthrough")
-        self.assertEqual(self.builder.landing["en"]["try_this"], "Run this demo")
         self.assertEqual(self.builder.landing["de"]["example_link"], "Rundgang starten")
         self.assertEqual(self.builder.landing["de"]["try_this"], "Diese Demo starten")
         selected = self.builder.landing["featured_demo"]
-        selected_config = self.builder.demo_walkthroughs["demos"][selected["id"]]
+        selected_config = self.builder.demo_by_id[selected["id"]]
         for language in ("en", "de"):
             with self.subTest(language=language):
                 content = self.pages[f"{language}/index.html"]
@@ -1066,12 +1640,26 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 introduction, showcase = section.split('<div class="example-showcase">', 1)
                 self.assertIn('<h2>' + escape(copy["example_title"]) + '</h2>', introduction)
                 self.assertIn('<strong>' + escape(copy["example_intro"]) + '</strong>', introduction)
-                self.assertIn('<p class="example-meta">' + escape(copy["example_meta"]) + '</p>', introduction)
+                rendered_meta = build_site.open_pdf_links_in_new_tabs(self.builder.md(copy["example_meta"], language)).replace('<p>', '<p class="example-meta">', 1)
+                self.assertIn(rendered_meta, introduction)
                 self.assertLess(introduction.index(escape(copy["example_title"])), introduction.index(escape(copy["example_intro"])))
-                self.assertLess(introduction.index(escape(copy["example_intro"])), introduction.index(escape(copy["example_meta"])))
+                self.assertLess(introduction.index(escape(copy["example_intro"])), introduction.index('<p class="example-meta">'))
+                if language == "en":
+                    self.assertIn('<em>Practical Wireless</em>', rendered_meta)
+                    configured_links = re.findall(r'\[\*\*([^\]]+?)\*\*\]\(([^)]+)\)', copy["example_meta"])
+                    self.assertEqual(len(configured_links), 1)
+                    publication = AnchorInventory()
+                    publication.feed(rendered_meta)
+                    self.assertEqual(len(publication.anchors), 1)
+                    anchor = publication.anchors[0]
+                    self.assertEqual((anchor["text"], anchor["attributes"]["href"]), configured_links[0])
+                    self.assertTrue(urlsplit(anchor["attributes"]["href"]).path.lower().endswith(".pdf"))
+                    self.assertEqual(anchor["attributes"]["target"], "_blank")
+                    self.assertEqual(set(anchor["attributes"]["rel"].split()), {"noopener", "noreferrer"})
+                    self.assertRegex(rendered_meta, r'<a\b[^>]*><strong>' + re.escape(escape(anchor["text"])) + r'</strong></a>')
                 context = showcase.split('<div class="result-gallery">', 1)[0]
                 self.assertIn('class="example-context"', context)
-                self.assertIn('class="measured-result"', context)
+                self.assertRegex(context, r'class="[^\"]*\bmeasured-result\b[^\"]*"')
                 self.assertIn('class="actions"', context)
                 self.assertNotIn("example_station_context", copy)
                 self.assertNotIn('class="example-stations"', context)
@@ -1091,7 +1679,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 self.assertEqual(links.anchors[0]["attributes"]["class"], "button")
                 self.assertIn(copy["try_this"], links.anchors[1]["text"])
                 self.assertEqual(links.anchors[1]["attributes"]["class"], "button secondary")
-                self.assertEqual(links.anchors[1]["attributes"]["target"], "_blank")
+                self.assertNotIn("target", links.anchors[1]["attributes"])
                 self.assertEqual(set(links.anchors[1]["attributes"]["rel"].split()), {"noopener", "noreferrer"})
                 self.assertNotIn('class="example-notes"', section)
                 self.assertNotRegex(" ".join(copy["result_detail"]), r"10[,. ]?000\s*km")
@@ -1101,134 +1689,171 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 self.assertNotIn('id="demo-source-note"', section)
                 self.assertNotIn('aria-describedby="demo-source-note"', section)
 
-    def test_landing_example_crops_declared_real_capture_media_with_full_size_links(self) -> None:
+    def test_landing_evidence_sources_match_native_files_and_lossless_derivative_metadata(self) -> None:
+        from PIL import Image
+
         selected = self.builder.landing["featured_demo"]
-        self.assertEqual(self.builder.landing["en"]["image_titles"], ["Where?", "How much?", "When?", "Who?"])
-        self.assertEqual(self.builder.landing["de"]["image_titles"], ["Wo?", "Wie viel?", "Wann?", "Wer?"])
-        self.assertEqual(self.builder.landing["en"]["image_captions"][1]["body"],
-                         "See how typical SNR differences vary across transmitting stations.")
-        self.assertEqual(self.builder.landing["de"]["image_captions"][1]["body"],
-                         "Sieh, wie typische SNR-Differenzen zwischen Sendestationen variieren.")
-        self.assertEqual(self.builder.landing["en"]["image_captions"][3]["body"],
-                         "Check how many stations and observations support the trend.")
-        self.assertEqual(self.builder.landing["de"]["image_captions"][3]["body"],
-                         "Prüfe, wie viele Stationen und Beobachtungen den Trend stützen.")
-        media = {item["key"]: item for item in self.builder.figures + self.builder.screenshots}
-        captures = {item["key"]: item for item in self.builder.screenshots}
-        self.assertEqual(len(selected["media_keys"]), 4)
-        self.assertEqual(len(set(selected["media_keys"])), 4)
-        for key in selected["media_keys"]:
-            item = media[key]
+        evidence = self.builder.landing_assets["evidence"]
+        demo_payload = build_site.resource_files(
+            self.builder.demo_asset_root, self.builder.demo_walkthroughs["demos"],
+        )
+        keys = [card["media_key"] for card in selected["cards"]]
+        self.assertEqual(keys, ["landing-demo1-map", "landing-demo1-delta-decode", "landing-demo1-decoding-reach",
+                                "landing-demo1-snr", "landing-demo1-temporal", "landing-demo1-coverage"])
+        self.assertEqual(len(set(keys)), 6)
+        for key in keys:
+            item = evidence[key]
             with self.subTest(media=key):
                 self.assertEqual(item["demo_id"], selected["id"])
-                provenance = item["provenance"]
-                self.assertEqual(provenance["kind"], "actual-app-screenshot-figure-crop")
-                capture = captures[provenance["source_capture_key"]]
-                self.assertEqual(capture["demo_id"], selected["id"])
-                actual_source_hash = hashlib.sha256((self.builder.content / capture["asset_path"]).read_bytes()).hexdigest()
-                self.assertEqual(provenance["source_capture_sha256"], actual_source_hash)
-                self.assertEqual(provenance["source_capture_provenance"], capture["provenance"])
-                crop = selected["media_crops"][key]
-                self.assertEqual(crop["source_size"], [item["width"], item["height"]])
-                source_hash = hashlib.sha256((self.builder.content / item["asset_path"]).read_bytes()).hexdigest()
-                self.assertEqual(crop["source_sha256"], source_hash)
-                self.assertIn(crop["layout"], ("rows", "columns"))
-                self.assertTrue(crop["regions"])
-                for region in crop["regions"]:
-                    x, y, width, height = region["rect"]
-                    self.assertTrue(all(type(value) is int for value in region["rect"]))
-                    self.assertGreaterEqual(x, 0)
-                    self.assertGreaterEqual(y, 0)
-                    self.assertGreater(width, 0)
-                    self.assertGreater(height, 0)
-                    self.assertLessEqual(x + width, item["width"])
-                    self.assertLessEqual(y + height, item["height"])
-                    self.assertEqual(set(region["alt"]), {"en", "de"})
-        for language in ("en", "de"):
+                self.assertEqual(set(item["alt"]), {"en", "de"})
+                self.assertTrue(all(item["alt"].values()))
+                native = item["native"]
+                self.assertTrue(native["path"].endswith(".png"))
+                self.assertEqual([image["width"] for image in item["images"]], [600, 1200])
+                for record in [native, *item["images"]]:
+                    payload = demo_payload[record["path"].removeprefix("/")]
+                    if record is native:
+                        source = build_site.ROOT / record["source_path"]
+                        self.assertTrue(source.is_file(), source)
+                        self.assertEqual(payload, source.read_bytes())
+                    self.assertEqual(len(payload), record["bytes"])
+                    self.assertEqual(hashlib.sha256(payload).hexdigest(), record["sha256"])
+                    with Image.open(BytesIO(payload)) as image:
+                        self.assertEqual(image.size, (record["width"], record["height"]))
+                    self.assertTrue(record["path"].startswith("/assets/demos/"))
+                for image in item["images"]:
+                    self.assertTrue(image["path"].endswith(".webp"))
+                    self.assertLessEqual(image["width"], native["width"])
+                    self.assertLessEqual(abs(image["height"] - round(image["width"] * native["height"] / native["width"])), 1)
+                preview = item["preview"]
+                self.assertEqual([image["width"] for image in preview["images"]], [360, 540, 720])
+                source = build_site.SOURCE / "assets/landing" / preview["source"]["path"]
+                self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), preview["source"]["sha256"])
+                with Image.open(source) as original:
+                    for record in preview["images"]:
+                        payload = self.builder.landing_payload[
+                            record["path"].removeprefix("/assets/landing/")
+                        ]
+                        self.assertEqual(len(payload), record["bytes"])
+                        self.assertEqual(hashlib.sha256(payload).hexdigest(), record["sha256"])
+                        self.assertEqual(record["width"] * 3, record["height"] * 4)
+                        self.assertIn(record["path"].removeprefix("/assets/landing/"), self.builder.landing_assets["publish_files"])
+                        with Image.open(BytesIO(payload)) as decoded:
+                            expected = original.convert("RGB").resize((record["width"], record["height"]), Image.Resampling.LANCZOS)
+                            self.assertEqual(decoded.convert("RGB").tobytes(), expected.tobytes())
+                            self.assertEqual(decoded.getpixel((0, 0)), (0, 11, 25))
+                self.assertNotIn(preview["source"]["path"], self.builder.landing_assets["publish_files"])
+
+    def test_demo_metrics_keep_configured_values_with_results(self) -> None:
+        page = self.pages["en/index.html"]
+        section = re.search(r'<section id="real-example"[^>]*>(.*?)</section>', page, re.DOTALL)[1]
+        context = section.split('<div class="result-gallery">', 1)[0]
+        copy = self.builder.landing["en"]
+        metrics = re.findall(r'<div class="demo-metric(?: measured-result)?">(.*?)</div>', context, re.DOTALL)
+        self.assertEqual(len(metrics), 1 + len(copy["demo_metrics"]))
+        self.assertIn(escape(copy["result"]), metrics[0])
+        self.assertIn(escape(copy["result_label"]), metrics[0])
+        for configured, rendered in zip(copy["demo_metrics"], metrics[1:]):
+            for value in configured.values():
+                self.assertIn(escape(value), rendered)
+            self.assertIn(escape(copy["demo_metric_context"]), rendered)
+        for removed in ("demo_scope", "demo_balance"):
+            self.assertNotIn(removed, copy)
+            self.assertNotIn('class="' + removed.replace("_", "-") + '"', context)
+        self.assertEqual(len(re.findall(r'<div class="demo-metric(?: measured-result)?">', self.pages["de/index.html"])), 1)
+
+    def test_landing_evidence_cards_show_responsive_previews_and_original_links_in_locale_order(self) -> None:
+        selected = self.builder.landing["featured_demo"]
+        for language, count in (("en", 6), ("de", 4)):
             with self.subTest(language=language):
                 content = self.pages[f"{language}/index.html"]
-                previews = re.findall(r'<figure class="result-preview">(.*?)</figure>', content, re.DOTALL)
-                self.assertEqual(len(previews), 4)
-                for index, (key, preview) in enumerate(zip(selected["media_keys"], previews)):
-                    item = media[key]
-                    crop = selected["media_crops"][key]
+                self.assertIn('/assets/demo-walkthrough.css', content)
+                self.assertIn('/assets/demo-walkthrough.js', content)
+                cards = [card for card in selected["cards"] if language in card["locales"]]
+                previews = re.findall(r'<figure class="result-preview" data-media-key="([^"]+)">(.*?)</figure>', content, re.DOTALL)
+                self.assertEqual(len(previews), count)
+                self.assertEqual([key for key, _ in previews], [card["media_key"] for card in cards])
+                copy = self.builder.landing[language]
+                for card, (key, preview) in zip(cards, previews):
+                    item = self.builder.landing_assets["evidence"][key]
+                    native = item["native"]
+                    thumbnail = item["preview"]
                     inventory = build_site.LinkInventory()
                     inventory.feed(preview)
-                    evidence_images = [image for image in inventory.images if image["src"].startswith("/content/")]
-                    self.assertEqual(len(evidence_images), len(crop["regions"]))
-                    self.assertIn('class="result-crops result-crops-' + crop["layout"] + '"', preview)
-                    self.assertEqual(preview.count('class="result-crop"'), len(crop["regions"]))
-                    for image, region in zip(evidence_images, crop["regions"]):
-                        self.assertEqual(image["src"], "/content/" + item["asset_path"])
-                        self.assertEqual(image["alt"], region["alt"][language])
-                        self.assertTrue(image["alt"])
-                        self.assertEqual(image["loading"], "eager")
-                        self.assertEqual((image["width"], image["height"]), (str(item["width"]), str(item["height"])))
+                    evidence_images = [image for image in inventory.images if image.get("class") == "result-image"]
+                    self.assertEqual(len(evidence_images), 1)
+                    image = evidence_images[0]
+                    self.assertEqual(image["src"], thumbnail["images"][0]["path"])
+                    self.assertEqual(image["srcset"].split(", "),
+                                     [f'{derivative["path"]} {derivative["width"]}w' for derivative in thumbnail["images"]])
+                    self.assertTrue(image["sizes"])
+                    self.assertEqual(image["alt"], thumbnail["alt"][language])
+                    self.assertEqual(image["loading"], "eager")
+                    self.assertEqual((image["width"], image["height"]), ("360", "270"))
+                    self.assertNotIn("result-crop", preview)
                     links = AnchorInventory()
                     links.feed(preview)
                     self.assertEqual(len(links.anchors), 1)
-                    self.assertEqual(links.anchors[0]["attributes"]["href"], "/content/" + item["asset_path"])
-                    self.assertTrue(links.anchors[0]["attributes"].get("aria-label"))
-                    heading = '<h4>' + escape(self.builder.landing[language]["image_titles"][index]) + '</h4>'
+                    attributes = links.anchors[0]["attributes"]
+                    self.assertEqual(attributes["href"], native["path"])
+                    self.assertEqual(attributes["target"], "_blank")
+                    self.assertEqual(set(attributes["rel"].split()), {"noopener", "noreferrer"})
+                    self.assertEqual(attributes["title"], card["detail_title"][language])
+                    self.assertEqual(attributes["aria-label"], self.builder.copy[language]["full_size"] + ": " + card["detail_title"][language])
+                    self.assertIn("data-case-lightbox", attributes)
+                    self.assertEqual(attributes["data-original-alt"], item["alt"][language])
+                    self.assertEqual(attributes["data-caption-id"], "caption-" + key)
+                    if card["copy"]["kind"] == "existing":
+                        index = card["copy"]["index"]
+                        title, caption = copy["image_titles"][index], copy["image_captions"][index]
+                    else:
+                        caption = next(view for view in copy["demo_added_views"] if view["id"] == card["copy"]["id"])
+                        title = caption["title"]
+                    heading = "<h4>" + escape(title) + "</h4>"
                     self.assertIn(heading, preview)
-                    self.assertLess(preview.index(heading), preview.index('<a '))
-                    self.assertLess(preview.index('</a>'), preview.index('<figcaption>'))
-                    caption = self.builder.landing[language]["image_captions"][index]
-                    self.assertIn('<figcaption><strong>' + escape(caption["lead"]) + '</strong> ' + escape(caption["body"]) + '</figcaption>', preview)
-                    icons = [image for image in inventory.images if not image["src"].startswith("/content/")]
+                    self.assertIn(escape(card["subtitle"][language]), preview)
+                    self.assertLess(preview.index(heading), preview.index("<a "))
+                    self.assertLess(preview.index("</a>"), preview.index("<figcaption "))
+                    self.assertIn('<figcaption id="caption-' + key + '"><strong>' + escape(caption["lead"]) + "</strong> " + escape(caption["body"]) + "</figcaption>", preview)
+                    note = '<p class="result-preview-note">' + escape(thumbnail["note"][language]) + '</p>'
+                    self.assertIn(note, preview)
+                    self.assertLess(preview.index("</a>"), preview.index(note))
+                    self.assertLess(preview.index(note), preview.index("<figcaption "))
+                    icons = [image for image in inventory.images if image.get("class") != "result-image"]
                     self.assertEqual(len(icons), 1)
-                    declared_icons = self.builder.landing_assets["icons"].values()
-                    self.assertIn(icons[0]["src"], {"/assets/landing/" + (icon["path"] if isinstance(icon, dict) else icon) for icon in declared_icons})
+                    icon = self.builder.landing_assets["icons"][card["icon"]]
+                    self.assertEqual(icons[0]["src"], "/assets/landing/" + (icon["path"] if isinstance(icon, dict) else icon))
                     self.assertEqual(icons[0]["alt"], "")
                     self.assertEqual(icons[0]["aria-hidden"], "true")
-                self.assertIn(f'/{language}/demos/{selected["id"]}/', content)
 
     def test_landing_rejects_evidence_from_a_different_demo(self) -> None:
         selected = self.builder.landing["featured_demo"]
-        item = next(item for item in self.builder.figures if item["key"] == selected["media_keys"][0])
+        item = self.builder.landing_assets["evidence"][selected["cards"][0]["media_key"]]
         with patch.dict(item, {"demo_id": "different-experiment"}):
             with self.assertRaisesRegex(ValueError, "Landing media must belong to the featured demo"):
                 self.builder.home("en")
 
-    def test_landing_rejects_crop_config_for_a_changed_source(self) -> None:
+    def test_landing_rejects_unknown_or_duplicate_evidence_selections(self) -> None:
         selected = self.builder.landing["featured_demo"]
-        key = selected["media_keys"][0]
-        crop = selected["media_crops"][key]
-        changes = (
-            {"source_size": [crop["source_size"][0] + 1, crop["source_size"][1]]},
-            {"source_sha256": "0" * 64},
-        )
-        for change in changes:
-            with self.subTest(change=change):
-                configured = deepcopy(selected["media_crops"])
-                configured[key].update(change)
-                with patch.dict(selected, {"media_crops": configured}):
-                    with self.assertRaisesRegex(ValueError, "Landing crop"):
+        for key in ("unknown-evidence", selected["cards"][1]["media_key"]):
+            with self.subTest(key=key):
+                cards = deepcopy(selected["cards"])
+                cards[0]["media_key"] = key
+                with patch.dict(selected, {"cards": cards}):
+                    with self.assertRaises(ValueError):
                         self.builder.home("en")
 
-    def test_landing_rejects_invalid_crop_layout_and_rectangles(self) -> None:
+    def test_landing_rejects_missing_upscaled_or_distorted_derivatives(self) -> None:
         selected = self.builder.landing["featured_demo"]
-        key = selected["media_keys"][0]
-        width, height = selected["media_crops"][key]["source_size"]
-        invalid_rectangles = (
-            [-1, 0, 10, 10], [0, -1, 10, 10],
-            [0, 0, 0, 10], [0, 0, 10, 0],
-            [width - 5, 0, 10, 10], [0, height - 5, 10, 10],
-            [0.5, 0, 10, 10], [False, 0, 10, 10],
-            ["0", 0, 10, 10], [0, 0, 10],
-        )
-        for rectangle in invalid_rectangles:
-            with self.subTest(rectangle=rectangle):
-                configured = deepcopy(selected["media_crops"])
-                configured[key]["regions"][0]["rect"] = rectangle
-                with patch.dict(selected, {"media_crops": configured}):
-                    with self.assertRaisesRegex(ValueError, "Landing crop"):
-                        self.builder.home("en")
-        configured = deepcopy(selected["media_crops"])
-        configured[key]["layout"] = "diagonal"
-        with patch.dict(selected, {"media_crops": configured}):
-            with self.assertRaisesRegex(ValueError, "Landing crop"):
-                self.builder.home("en")
+        item = self.builder.landing_assets["evidence"][selected["cards"][0]["media_key"]]["preview"]
+        distorted = deepcopy(item["images"])
+        distorted[0]["height"] += 20
+        upscaled = deepcopy(item["images"])
+        upscaled[0]["width"] = item["source"]["width"] + 1
+        for images in ([], distorted, upscaled):
+            with self.subTest(images=images), patch.dict(item, {"images": images}):
+                with self.assertRaisesRegex(ValueError, "Landing evidence"):
+                    self.builder.home("en")
 
     def test_website_copy_has_matching_language_keys(self) -> None:
         self.assertEqual(set(build_site.COPY["en"]), set(build_site.COPY["de"]))
@@ -1363,22 +1988,42 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             demo_route = re.fullmatch(r"(?:en|de)/demos/([^/]+)/index.html", path)
             expected_labels = {build_site.APP_URL: {labels[language]}}
             if demo_route:
-                launch_url = self.builder.demo_walkthroughs["demos"][demo_route[1]]["launch_url"]
-                expected_labels[launch_url] = {"Run in WSPRadar App" if language == "en" else "In WSPRadar App starten"}
+                demo = self.builder.demo_by_id[demo_route[1]]
+                config = self.builder.demo_walkthroughs["demos"][demo["id"]]
+                actions = demo_walkthrough.language_override(config, "launch_actions", language, None)
+                if actions is None:
+                    launch_url = build_site.demo_launch_url(demo)
+                    expected_labels[launch_url] = {"Run in WSPRadar App" if language == "en" else "In WSPRadar App starten"}
+                else:
+                    for action in actions:
+                        launch_url = demo_walkthrough.demo_launch_url(demo, action["variant"])
+                        expected_labels.setdefault(launch_url, set()).add(action["label"])
+                sections = list(demo_walkthrough.demo_sections(config, language))
+                while sections:
+                    section = sections.pop()
+                    sections.extend(section.get("subsections", []))
+                    if "launch_action" in section:
+                        action = section["launch_action"]
+                        launch_url = demo_walkthrough.demo_launch_url(demo, action["variant"])
+                        expected_labels.setdefault(launch_url, set()).add(action["label"])
             if path in ("index.html", f"{language}/index.html"):
+                expected_labels[build_site.APP_URL].add(build_site.COPY[language]["start_analysis"])
                 selected = self.builder.landing["featured_demo"]
-                launch_url = self.builder.demo_walkthroughs["demos"][selected["id"]]["launch_url"]
+                launch_url = self.builder.demo_by_id[selected["id"]]["launch_url"]
                 expected_labels[launch_url] = {self.builder.landing[language]["try_this"]}
                 expected_labels[build_site.APP_URL].add(self.builder.landing[language]["own_link"])
             buttons = [anchor for anchor in inventory.anchors
                        if anchor["attributes"].get("href") in expected_labels
                        and "button" in anchor["attributes"].get("class", "").split()]
             with self.subTest(path=path):
-                self.assertTrue(buttons)
+                if demo_route or path in ("index.html", f"{language}/index.html"):
+                    self.assertTrue(buttons)
+                else:
+                    self.assertEqual(buttons, [], "Generic application actions belong in the shared Analysis navigation")
                 if path in ("index.html", f"{language}/index.html"):
                     self.assertEqual(sum(anchor["attributes"]["href"] == launch_url for anchor in buttons), 1)
                 for anchor in buttons:
-                    self.assertIn(anchor["text"].removesuffix(" ↗"), expected_labels[anchor["attributes"]["href"]])
+                    self.assertIn(anchor["text"].removesuffix(" ↗").removesuffix(" →"), expected_labels[anchor["attributes"]["href"]])
 
     def test_overview_has_three_ordered_steps_with_the_matching_destinations(self) -> None:
         titles = {
@@ -1486,17 +2131,22 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                         self.assertIn(unquote(parsed.fragment), inventories[target].ids)
 
     def test_every_reviewed_figure_and_capture_appears_once_on_its_demo_in_each_language(self) -> None:
+        published_ids = {demo["id"] for demo in self.builder.published_demos}
         for language in ("en", "de"):
             for media in [*self.builder.figures, *self.builder.screenshots]:
                 with self.subTest(language=language, media=media["key"]):
+                    if media["demo_id"] not in published_ids:
+                        self.assertNotIn(f"{language}/demos/{media['demo_id']}/index.html", self.pages)
+                        continue
                     html = self.pages[f"{language}/demos/{media['demo_id']}/index.html"]
                     inventory = build_site.LinkInventory()
                     inventory.feed(html)
                     matching = [image for image in inventory.images if image.get("src") == "/content/" + media["asset_path"]]
                     config = self.builder.demo_walkthroughs["demos"][media["demo_id"]]
                     excluded = config.get("excluded_media_keys", [])
-                    placed = {config.get("setup_media_key")} - {None}
-                    sections = list(config["sections"])
+                    placed = ({config.get("setup_media_key")} - {None}
+                              if config.get("show_setup_media", True) else set())
+                    sections = list(demo_walkthrough.demo_sections(config, language))
                     while sections:
                         section = sections.pop()
                         sections.extend(section.get("subsections", []))
@@ -1508,6 +2158,63 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.assertEqual(len(matching), 1)
                     self.assertEqual(matching[0]["alt"], media["alt"][language])
                     self.assertIn(escape(media["title"][language]), html)
+
+    def test_guides_and_documentation_figures_load_shared_viewer_on_demand(self) -> None:
+        assets = ("/assets/demo-walkthrough.css", "/assets/demo-walkthrough.js")
+        for language in ("en", "de"):
+            page = self.pages["en/documentation/sec-2/index.html"] if language == "en" else self.pages[f"{language}/guides/read-results/index.html"]
+            for asset in assets:
+                self.assertEqual(page.count(asset), 1)
+
+        builder = build_site.SiteBuilder()
+        original = "/content/example-original.PNG?view=full#figure"
+        preview = "/content/example-preview.webp"
+        body = ('<article class="prose"><figure><a href="' + original
+                + '" target="_blank" rel="noopener noreferrer"><img src="' + preview
+                + '" alt="Scientific evidence" loading="lazy"></a>'
+                + '<figcaption>Existing figure context.</figcaption></figure></article>')
+        builder.page("en", "documentation/viewer-contract/", "Figure contract", body, "docs")
+        rendered = builder.pages["en/documentation/viewer-contract/index.html"]
+        for asset in assets:
+            self.assertEqual(rendered.count(asset), 1)
+        inventory = build_site.LinkInventory()
+        inventory.feed(rendered)
+        self.assertIn(original, inventory.links)
+        self.assertIn(preview, [image.get("src") for image in inventory.images])
+        self.assertNotIn(original, [image.get("src") for image in inventory.images])
+        self.assertNotIn('href="' + original + '" rel="preload"', rendered)
+        self.assertIn("Existing figure context.", rendered)
+
+        builder.page("en", "documentation/text-contract/", "Text contract", "<p>Text only.</p>", "docs")
+        text_only = builder.pages["en/documentation/text-contract/index.html"]
+        for asset in assets:
+            self.assertNotIn(asset, text_only, "header artwork alone must not load the figure viewer")
+
+    def test_manual_figures_only_add_illustrations_and_keep_legacy_guide_destinations(self) -> None:
+        builder = self.builder
+        source = builder.manuals["en"]
+        illustrated = builder.illustrated_manual(source, "en")
+        pattern = r'<figure class="figure-block manual-figure">.*?</figure>\n\n'
+        figures = re.findall(pattern, illustrated, re.DOTALL)
+        self.assertEqual(len(figures), 4)
+        self.assertEqual(re.sub(pattern, '', illustrated, flags=re.DOTALL), source)
+        self.assertEqual(builder.illustrated_manual(builder.manuals["de"], "de"), builder.manuals["de"])
+        for suffix in ("sec-2/", "full/"):
+            page = self.pages["en/documentation/" + suffix + "index.html"]
+            self.assertEqual(page.count('class="figure-block manual-figure"'), 4)
+            for figure in figures:
+                inventory = build_site.LinkInventory()
+                inventory.feed(figure)
+                self.assertEqual(len(inventory.images), 1)
+                links = re.findall(r'<a[^>]*href="([^"]+)"', figure)
+                self.assertEqual(len(links), 2)
+                self.assertIn(links[0], page)
+                self.assertIn(links[1], page)
+        redirect = self.pages["en/guides/read-results/index.html"]
+        self.assertIn('location.replace(', redirect)
+        for stage in ("map-view", "segment-inspector", "station-insights", "drill-down"):
+            self.assertIn(builder.result_step_url("en", stage), redirect)
+        self.assertNotIn('guide-section', redirect)
 
     def test_all_four_practical_guide_stages_use_the_corresponding_live_capture(self) -> None:
         class GuideInventory(HTMLParser):
@@ -1528,14 +2235,78 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.sections.pop()
 
         expected_stages = {"map-view": "map", "segment-inspector": "segment", "station-insights": "stations", "drill-down": "drilldown"}
-        for language in ("en", "de"):
+        published_ids = {demo["id"] for demo in self.builder.published_demos}
+        for language in ("de",):
             inventory = GuideInventory()
             inventory.feed(self.pages[f"{language}/guides/read-results/index.html"])
             for section, stage in expected_stages.items():
                 with self.subTest(language=language, section=section):
-                    captures = [item for item in self.builder.screenshots if item.get("stage") == stage]
+                    captures = [item for item in self.builder.screenshots
+                                if item.get("stage") == stage and item["demo_id"] in published_ids]
                     self.assertTrue(captures, f"No reviewed live capture for {stage}")
                     self.assertEqual(inventory.images.get(section), ["/content/" + captures[0]["asset_path"]])
+
+
+class DemoSupplementManifestTests(TemporarySiteTests):
+    """Reviewed downloads are exact, bounded, and independent of app hosting."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.supplements = self.root / "source" / "assets" / "demos"
+        self.name = "example/report.pdf"
+        self.payload = b"%PDF-1.7\nreviewed fixture\n%%EOF\n"
+        self.write("source/assets/demos/" + self.name, self.payload)
+        self.record = {"bytes": len(self.payload), "sha256": hashlib.sha256(self.payload).hexdigest()}
+        self.manifest = {"schema_version": 1, "files": {self.name: self.record}}
+        self.save_manifest()
+
+    def save_manifest(self) -> None:
+        self.write("source/assets/demos/manifest.json", json.dumps(self.manifest))
+
+    def test_only_reviewed_pdf_bytes_are_published(self) -> None:
+        self.write("source/assets/demos/unreviewed.pdf", b"%PDF-1.7\nnot published")
+        self.write("source/assets/demos/private.txt", "not published")
+        self.assertEqual(build_site.demo_supplement_files(self.supplements), {"assets/demos/" + self.name: self.payload})
+
+    def test_modified_pdf_or_hash_is_rejected(self) -> None:
+        for field, value in (("bytes", len(self.payload) + 1), ("sha256", "0" * 64)):
+            with self.subTest(field=field):
+                self.manifest["files"][self.name] = {**self.record, field: value}
+                self.save_manifest()
+                with self.assertRaisesRegex(ValueError, "Demo supplement PDF hash mismatch"):
+                    build_site.demo_supplement_files(self.supplements)
+
+    def test_matching_html_response_is_not_accepted_as_pdf(self) -> None:
+        payload = b"<html>Unavailable PDF</html>"
+        self.write("source/assets/demos/" + self.name, payload)
+        self.manifest["files"][self.name] = {"bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+        self.save_manifest()
+        with self.assertRaisesRegex(ValueError, "Demo supplement PDF signature missing"):
+            build_site.demo_supplement_files(self.supplements)
+
+    def test_escaping_noncanonical_and_non_pdf_paths_are_rejected(self) -> None:
+        for name in ("../report.pdf", "/report.pdf", "folder\\report.pdf", "./report.pdf", "folder//report.pdf", "report.html"):
+            with self.subTest(name=name):
+                self.manifest["files"] = {name: self.record}
+                self.save_manifest()
+                with self.assertRaisesRegex(ValueError, "Unsafe demo supplement PDF path"):
+                    build_site.demo_supplement_files(self.supplements)
+
+    def test_unknown_schema_and_invalid_records_are_rejected(self) -> None:
+        for manifest in ([], {"schema_version": True, "files": {}}, {"schema_version": 2, "files": {}},
+                         {"schema_version": 1, "files": []}, {"schema_version": 1, "files": {}, "copy_all": True}):
+            with self.subTest(manifest=manifest):
+                self.manifest = manifest
+                self.save_manifest()
+                with self.assertRaisesRegex(ValueError, "Invalid demo supplement PDF manifest"):
+                    build_site.demo_supplement_files(self.supplements)
+        for record in (None, {"bytes": True, "sha256": "0" * 64}, {"bytes": 1, "sha256": "invalid"},
+                       {**self.record, "publish": True}):
+            with self.subTest(record=record):
+                self.manifest = {"schema_version": 1, "files": {self.name: record}}
+                self.save_manifest()
+                with self.assertRaisesRegex(ValueError, "Invalid demo supplement PDF record"):
+                    build_site.demo_supplement_files(self.supplements)
 
 
 class StaleBuildCheckTests(TemporarySiteTests):
@@ -1543,32 +2314,69 @@ class StaleBuildCheckTests(TemporarySiteTests):
 
     def setUp(self) -> None:
         super().setUp()
-        self.site = self.root / "site"
-        self.content = self.root / "content"
-        self.output = self.root / "dist"
-        self.write("site/site.css", "body {color: white;}\n")
-        self.write("site/landing.css", ".landing {color: white;}\n")
-        self.write("site/print.css", "@media print {body {color: black;}}\n")
-        self.write("site/print.js", "'use strict';\n")
-        self.write("site/site.js", "'use strict';\n")
-        self.write("site/entry.js", "'use strict';\n")
-        self.write("site/demo-walkthrough.css", ".case-study {color: white;}\n")
-        self.write("site/demo-walkthrough.js", "'use strict';\n")
-        self.write("site/assets/landing/web/icons/tx-station.svg", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2v20"/></svg>')
-        self.write("content/manual.en.md", "Original manual\n")
+        self.source = self.root / "source"
+        self.content = self.root / "source" / "imported" / "app"
+        self.output = self.root / "generated"
+        self.supplements = self.root / "source" / "assets" / "demos"
+        self.pdf = b"%PDF-1.7\nreviewed fixture\n%%EOF\n"
+        self.write("source/assets/demos/reference/report.pdf", self.pdf)
+        self.write("source/assets/demos/manifest.json", json.dumps({"schema_version": 1, "files": {
+            "reference/report.pdf": {"bytes": len(self.pdf), "sha256": hashlib.sha256(self.pdf).hexdigest()}}}))
+        renderer = {
+            "source_sha256": {"docs/pdf_generator.py": "a" * 64, "i18n.py": "b" * 64},
+            "dependencies": {"python": "test"}, "fonts_sha256": {"DejaVuSans.ttf": "c" * 64},
+        }
+        logo_hash = "d" * 64
+        documentation_files = {}
+        for language, manual in (("en", "Original manual\n"), ("de", "Originales Handbuch\n")):
+            name = f"WSPRadar_Doc_{language.upper()}.pdf"
+            self.write("source/assets/documentation/" + name, self.pdf)
+            documentation_files[name] = {
+                "bytes": len(self.pdf), "sha256": hashlib.sha256(self.pdf).hexdigest(),
+                "language": language, "manual_sha256": hashlib.sha256(manual.encode("utf-8")).hexdigest(),
+                "app_version": "test",
+            }
+            identity = {
+                "language": language, "manual_sha256": documentation_files[name]["manual_sha256"],
+                "app_version": "test", "logo_sha256": logo_hash, "renderer": renderer,
+            }
+            identity_bytes = (json.dumps(identity, ensure_ascii=False, indent=2, sort_keys=True,
+                                         allow_nan=False) + "\n").encode("utf-8")
+            documentation_files[name]["render_key"] = hashlib.sha256(identity_bytes).hexdigest()
+        self.write("source/assets/documentation/manifest.json", json.dumps({
+            "schema_version": 1, "logo_sha256": logo_hash, "renderer": renderer,
+            "files": documentation_files}))
+        self.write("source/theme/styles/site.css", "body {color: white;}\n")
+        self.write("source/theme/styles/landing.css", ".landing {color: white;}\n")
+        self.write("source/theme/styles/print.css", "@media print {body {color: black;}}\n")
+        self.write("source/theme/scripts/print.js", "'use strict';\n")
+        self.write("source/theme/scripts/site.js", "'use strict';\n")
+        self.write("source/theme/scripts/entry.js", "'use strict';\n")
+        self.write("source/theme/scripts/product-navigation.js", "'use strict';\n")
+        self.write("source/theme/styles/demo-walkthrough.css", ".case-study {color: white;}\n")
+        self.write("source/theme/scripts/demo-walkthrough.js", "'use strict';\n")
+        self.write("source/theme/styles/demos-index.css", ".demos-landing {color: white;}\n")
+        self.write("source/theme/scripts/demos-index.js", "'use strict';\n")
+        self.write("source/assets/landing/originals/icons/neon/tx-station.svg", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2v20"/></svg>')
+        self.write("source/assets/brand/WSPRadar-2x1.png", b"Reviewed legacy logo fixture")
+        self.write("source/imported/app/manual.en.md", "Original manual\n")
         source_bytes = (self.content / "manual.en.md").read_bytes()
         manifest = {"schema_version": 1, "app_version": "test", "source_revision": "a" * 40,
                     "source_dirty": False, "files": {"manual.en.md": {
                         "bytes": len(source_bytes), "sha256": hashlib.sha256(source_bytes).hexdigest()}}}
-        self.write("content/manifest.json", json.dumps(manifest))
+        self.write("source/imported/app/manifest.json", json.dumps(manifest))
         self.fake_builder = SimpleNamespace(
-            brand={"fonts": []}, demos=[{"id": "example"}], figures=[], screenshots=[],
+            brand={"fonts": [], "app_version": "test"}, manuals={"en": "Original manual\n", "de": "Originales Handbuch\n"},
+            demos=[{"id": "example"}], published_demos=[], figures=[], screenshots=[],
             landing_assets={"publish_files": ["web/icons/tx-station.svg"]},
+            landing_payload={"web/icons/tx-station.svg": (self.source / "assets/landing/originals/icons/neon/tx-station.svg").read_bytes()},
             manifest=manifest, content=self.content,
-            demo_root=self.site / "demos", demo_walkthroughs={"demos": {}},
+            documentation_pdfs={f"assets/documentation/WSPRadar_Doc_{language.upper()}.pdf": self.pdf
+                                for language in ("en", "de")},
+            demo_root=self.source / "pages" / "demos", demo_asset_root=self.source / "assets" / "demos", demo_walkthroughs={"demos": {}},
             render=lambda: {"en/index.html": '<main id="main">Current page</main>'},
         )
-        for name, value in (("SITE", self.site), ("CONTENT", self.content), ("OUTPUT", self.output)):
+        for name, value in (("SOURCE", self.source), ("CONTENT", self.content), ("OUTPUT", self.output), ("DEMO_SUPPLEMENTS", self.supplements)):
             manager = patch.object(build_site, name, value)
             manager.start()
             self.addCleanup(manager.stop)
@@ -1630,28 +2438,49 @@ class StaleBuildCheckTests(TemporarySiteTests):
         self.assertIn("1 redirected", output.getvalue())
 
     def test_stale_stylesheet_is_rejected(self) -> None:
-        self.write("site/site.css", "body {color: green;}\n")
+        self.write("source/theme/styles/site.css", "body {color: green;}\n")
         with self.assertRaises(ValueError):
             self.check()
         self.external_check.assert_not_called()
 
     def test_landing_assets_are_copied_exactly_and_checked_for_staleness(self) -> None:
         relative = "web/icons/tx-station.svg"
-        source = self.site / "assets/landing" / relative
+        source = self.source / "assets/landing/originals/icons/neon/tx-station.svg"
         published = self.output / "assets/landing" / relative
         self.assertEqual(published.read_bytes(), source.read_bytes())
         source.write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding="utf-8")
+        self.fake_builder.landing_payload[relative] = source.read_bytes()
         with self.assertRaisesRegex(ValueError, "Missing or stale built file"):
             self.check()
         self.external_check.assert_not_called()
 
     def test_modified_copied_content_is_rejected(self) -> None:
-        self.write("dist/content/manual.en.md", "Tampered published manual\n")
+        self.write("generated/content/manual.en.md", "Tampered published manual\n")
         with self.assertRaises(ValueError):
             self.check()
 
+    def test_demo_supplement_is_copied_exactly_and_checked_for_staleness(self) -> None:
+        published = self.output / "assets/demos/reference/report.pdf"
+        self.assertEqual(published.read_bytes(), self.pdf)
+        self.assertFalse((self.output / "assets/demos/manifest.json").exists())
+        published.write_bytes(b"%PDF-1.7\ntampered output")
+        with self.assertRaisesRegex(ValueError, "Missing or stale built file: assets/demos/reference/report.pdf"):
+            self.check()
+        self.external_check.assert_not_called()
+
+    def test_demo_resources_cannot_overwrite_supplement_routes(self) -> None:
+        with patch.object(build_site, "resource_files", return_value={
+                "assets/demos/reference/report.pdf": b"different resource"}):
+            with self.assertRaisesRegex(ValueError, "Duplicate demo supplement output"):
+                build_site.output_files(self.fake_builder)
+
+    def test_legacy_logo_keeps_its_public_img_route(self) -> None:
+        source = self.source / "assets" / "brand" / "WSPRadar-2x1.png"
+        published = self.output / "img" / "WSPRadar-2x1.png"
+        self.assertEqual(published.read_bytes(), source.read_bytes())
+
     def test_obsolete_html_page_is_rejected(self) -> None:
-        self.write("dist/en/obsolete/index.html", "<main>Obsolete public page</main>")
+        self.write("generated/en/obsolete/index.html", "<main>Obsolete public page</main>")
         with self.assertRaises(ValueError):
             self.check()
 

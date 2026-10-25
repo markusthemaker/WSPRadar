@@ -1,0 +1,2 @@
+id,sign,grid,km,az,T,E,opps,snr,first,last,rate,heard,distance_exact,azimuth_exact,direction,distance_bin,distance_bin_1000,ring
+ZL4KT (RE54GD),ZL4KT,RE54GD,19194,49.6,3,58,61,-33.0,2017-04-04 05:24:00+00:00,2017-04-21 09:14:00+00:00,4.918032786885246,True,19193.97928305915,49.64003088356592,NE,17500,19000,15000–20000

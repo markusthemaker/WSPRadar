@@ -1,0 +1,29 @@
+{
+  "old_distance_cap": 10000,
+  "old_rows": 636673,
+  "new_rows_below_old_cap": 636673,
+  "old_scope_rows_exactly_equal_ordered": false,
+  "old_scope_rows_exactly_equal_sorted": true,
+  "selected_csv_bytes_identical": true,
+  "selected_csv_values_identical": true,
+  "old_identity_count": 1950,
+  "old_identities_missing_new": 0,
+  "new_identities": 157,
+  "added_scope": {
+    "stations": 157.0,
+    "heard_stations": 27.0,
+    "reach": 17.197452229299362,
+    "successes": 208.0,
+    "misses": 36530.0,
+    "opportunities": 36738.0,
+    "station_balanced_rate": 2.092889625041881,
+    "opportunity_level_rate": 0.5661712668082095,
+    "station_median_success_snr": -30.5,
+    "snr_station_count": 27.0
+  },
+  "old_visible_station_table_rows": 969,
+  "new_visible_station_table_rows": 996,
+  "new_visible_station_table_successes": 114086,
+  "new_visible_station_table_misses": 391200,
+  "old_station_table_values_preserved": true
+}

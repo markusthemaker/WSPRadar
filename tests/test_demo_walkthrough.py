@@ -25,7 +25,7 @@ DEMO_ONE_LAUNCH_URL = (
     "&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark"
     "&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91"
     "&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000"
-    "&min_opportunities=3&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT"
+    "&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT"
     "#wspradar-results-inspection"
 )
 
@@ -98,31 +98,31 @@ class DemoWalkthroughTests(unittest.TestCase):
         return self.pages[f"{language}/demos/{identity}/index.html"]
 
     def cases(self):
-        for demo in self.builder.demos:
+        for demo in self.builder.published_demos:
             for language in ("en", "de"):
                 yield demo, language, self.page(demo["id"], language)
 
-    def explicitly_placed_media(self, identity):
+    def explicitly_placed_media(self, identity, language):
         config = self.configurations[identity]
         return {config.get("setup_media_key"),
-                *(key for section in self.configured_sections(config["sections"])
+                *(key for section in self.configured_sections(demo_walkthrough.demo_sections(config, language))
                   if section.get("layout") != "full" for key in section.get("media_keys", []))} - {None}
 
-    def imported_media(self, identity):
+    def imported_media(self, identity, language):
         config = self.configurations[identity]
         excluded = set(config.get("excluded_media_keys", []))
-        placed = self.explicitly_placed_media(identity)
+        placed = self.explicitly_placed_media(identity, language)
         return [item for item in [*self.builder.figures, *self.builder.screenshots]
                 if item["demo_id"] == identity and item["key"] not in excluded
                 and item["key"] in placed]
 
-    def resource_media(self, identity):
+    def resource_media(self, identity, language):
         config = self.configurations[identity]
         if not config.get("resource_manifest"):
             return []
-        path = safe_path(self.builder.demo_root, config["resource_manifest"])
+        path = safe_path(self.builder.demo_asset_root, config["resource_manifest"])
         excluded = set(config.get("excluded_media_keys", []))
-        placed = self.explicitly_placed_media(identity)
+        placed = self.explicitly_placed_media(identity, language)
         return [item for item in json.loads(path.read_text(encoding="utf-8")).get("figures", [])
                 if item["key"] not in excluded
                 and item["key"] in placed]
@@ -132,15 +132,15 @@ class DemoWalkthroughTests(unittest.TestCase):
             yield section
             yield from self.configured_sections(section.get("subsections", []))
 
-    def test_all_seven_demos_use_shared_layout_and_bilingual_markdown(self) -> None:
-        self.assertEqual(len(self.builder.demos), 7)
-        self.assertEqual(set(self.configurations), {demo["id"] for demo in self.builder.demos})
+    def test_all_published_demos_use_shared_layout_and_bilingual_markdown(self) -> None:
+        self.assertEqual(len(self.builder.published_demos), 6)
+        self.assertEqual(set(self.configurations), {demo["id"] for demo in self.builder.published_demos})
         for demo, language, page in self.cases():
             with self.subTest(demo=demo["id"], language=language):
                 config = self.configurations[demo["id"]]
                 self.assertEqual(set(config["markdown_paths"]), {"en", "de"})
                 sections = read_sections(safe_path(self.builder.demo_root, config["markdown_paths"][language]))
-                self.assertTrue({"hero", "setup", *(item["id"] for item in self.configured_sections(config["sections"]))}.issubset(sections))
+                self.assertTrue({"hero", "setup", *(item["id"] for item in self.configured_sections(demo_walkthrough.demo_sections(config, language)))}.issubset(sections))
                 document = Document(page)
                 self.assertEqual(len(document.find(css_class="case-study")), 1)
                 self.assertEqual(len(document.find(css_class="case-hero")), 1)
@@ -148,16 +148,145 @@ class DemoWalkthroughTests(unittest.TestCase):
                 self.assertIn('/assets/demo-walkthrough.css', page)
                 self.assertIn('/assets/demo-walkthrough.js', page)
 
+    def test_demo_index_and_routes_exclude_retired_guided_pages(self) -> None:
+        published_ids = ["griffiths_squibb_fig3", "griffiths_squibb_rx_performance", "vanhamel_rx_calibration",
+                         "vanhamel_rx_buddy", "zander_tx_buddy", "milazzo_tx_buddy"]
+        retired_ids = {"griffiths_squibb_fig6"}
+        self.assertEqual([demo["id"] for demo in self.builder.published_demos], published_ids)
+        self.assertEqual(len(self.builder.demos), 7)
+        self.assertTrue(retired_ids.issubset(self.builder.demo_by_id))
+        for language in ("en", "de"):
+            with self.subTest(language=language):
+                document = Document(self.pages[f"{language}/demos/index.html"])
+                cards = document.find(css_class="demo-card")
+                card_order = ([card["id"] for card in self.builder.demos_index[language]["cards"]]
+                              if language in self.builder.demos_index else published_ids)
+                self.assertEqual([anchor.attributes["href"] for card in cards
+                                  for anchor in card.descendants("a")
+                                  if not anchor.attributes["href"].startswith("/assets/demos/")],
+                                 [f"/{language}/demos/{identity}/" for identity in card_order])
+                if language in self.builder.demos_index:
+                    self.assertEqual([node.text for node in document.find(identity="demo-count")], ["6 guided demos"])
+                else:
+                    status = [node for node in document.find(tag="p")
+                              if "data-filter-status" in node.attributes]
+                    self.assertEqual([node.text for node in status], ["6 / 6"])
+                for identity in retired_ids:
+                    self.assertNotIn(f"{language}/demos/{identity}/index.html", self.pages)
+
+    def test_english_discovery_components_are_scoped_to_index(self) -> None:
+        for path, page in self.pages.items():
+            with self.subTest(path=path):
+                expected = path == "en/demos/index.html"
+                self.assertEqual('/assets/demos-index.css?v=' in page, expected)
+                self.assertEqual('/assets/demos-index.js?v=' in page, expected)
+                self.assertEqual('class="demos-landing"' in page, expected)
+        english = Document(self.pages["en/demos/index.html"])
+        controls = [node for node in english.find() if "data-demo-controls" in node.attributes]
+        self.assertTrue(controls)
+        self.assertTrue(all("hidden" in node.attributes for node in controls))
+        cards = english.find(css_class="demo-card")
+        self.assertEqual(len(cards), 6)
+        self.assertTrue(all("hidden" not in card.attributes for card in cards))
+        self.assertEqual(len(english.find(css_class="placeholder-label")), 0)
+        self.assertEqual(len(english.find(css_class="evidence-thumbnail")), 6)
+        self.assertEqual(len(english.find(css_class="card-subtitle")), 6)
+        self.assertNotIn("data-filter-input", self.pages["en/demos/index.html"])
+        self.assertNotIn("data-demo-search", self.pages["en/demos/index.html"])
+        self.assertNotIn("Find a demo by name, station, or topic", self.pages["en/demos/index.html"])
+        self.assertIn("data-filter-input", self.pages["de/demos/index.html"])
+
+    def test_rx_performance_route_retains_complete_guide_and_canonical_run(self) -> None:
+        identity = "griffiths_squibb_rx_performance"
+        demo = self.builder.demo_by_id[identity]
+        config = self.configurations[identity]
+        expected_blocks = {
+            "hero", "summary", "setup", "load-demo", "performance-map",
+            "performance-evidence", "snr-deviation", "temporal-evidence", "stations",
+            "selected-station-snr", "selected-station-evidence", "drill-down", "takeaways",
+        }
+        expected_figures = {
+            "rx-performance-" + suffix for suffix in (
+                "performance-map", "performance-evidence", "snr-deviation",
+                "temporal-evidence", "selected-station-snr", "selected-station-evidence",
+            )
+        }
+        benchmark_keys = {
+            "reference", "benchmark_design", "reference_snr_correction",
+            "min_spot_pairs_per_station", "min_decode_event_share_percent",
+            "delta_snr_outlier_reporting",
+        }
+        expected_launch = demo_walkthrough.demo_launch_url(demo)
+        query = parse_qs(urlsplit(expected_launch).query)
+        self.assertEqual(query["mode"], ["performance"])
+        self.assertEqual(demo["settings"]["advanced_parameters"]["max_peer_distance_km"], 22000)
+        self.assertEqual(query["direction"], ["rx"])
+        self.assertEqual(query["selected_station"], ["HB0QRP@JN47"])
+        self.assertEqual(query["segment_bin"], ["12h"])
+        self.assertEqual(query["station_bin"], ["12h"])
+        self.assertTrue((benchmark_keys | {"reference_qth", "snr_correction_mode",
+                                         "snr_correction_db", "min_spot_pairs"}).isdisjoint(query))
+        self.assertEqual(demo["settings"]["comparison_parameters"], {"mode": "none"})
+        resources = resource_files(self.builder.demo_asset_root, {identity: config},
+                                   source_root=build_site.SOURCE)
+        evidence_paths = {
+            f"/assets/demos/{identity}/source/original_export.zip",
+            f"/assets/demos/{identity}/evidence/verified_claims.md",
+        }
+        documentation = "/en/documentation/full/#sec-3-rx-performance"
+        documentation_target = Document(self.pages["en/documentation/full/index.html"])
+        self.assertEqual(len(documentation_target.find(identity="sec-3-rx-performance")), 1)
+        summary = {row["key"]: row for row in demo["settings_summary"]}
+        self.assertTrue(benchmark_keys.isdisjoint(summary))
+        for language in ("en", "de"):
+            with self.subTest(language=language):
+                source = safe_path(self.builder.demo_root, config["markdown_paths"][language])
+                self.assertEqual(set(read_sections(source)), expected_blocks)
+                page = self.page(identity, language)
+                document = Document(page)
+                self.assertIsNone(re.search(r"\{\{\s*[a-z_][a-z_0-9]*\s*\}\}", page))
+                self.assertEqual(document.find(css_class="case-placeholder"), [])
+                figures = document.find(css_class="case-figure")
+                self.assertEqual(Counter(figure.attributes["id"] for figure in figures),
+                                 Counter("case-media-" + key for key in expected_figures))
+                links = {node.attributes.get("href") for node in document.find(tag="a")}
+                self.assertIn(expected_launch, links)
+                self.assertEqual((evidence_paths | {documentation}) - links, set())
+                for destination in evidence_paths:
+                    self.assertIn(destination.lstrip("/"), resources)
+                    self.assertTrue(resources[destination.lstrip("/")])
+                selections = config["settings_tables"][language]["rows"]
+                self.assertTrue(benchmark_keys.isdisjoint(row["key"] for row in selections))
+                table = document.find(identity="load-demo")[0].descendants("table")[0]
+                rows = table.descendants("tr")[1:]
+                self.assertEqual(len(rows), len(selections))
+                for actual, selected in zip(rows, selections):
+                    canonical = summary[selected["key"]]
+                    self.assertEqual([cell.text for cell in actual.descendants("td")][:2],
+                                     [canonical["label"][language], canonical["value"][language]])
+
+    def test_demo_one_keeps_figure_six_paper_evidence_after_retirement(self) -> None:
+        pdf = "/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf"
+        self.assertIn(pdf.lstrip("/"), build_site.demo_supplement_files(build_site.DEMO_SUPPLEMENTS))
+        document = Document(self.page(self.demo_id, "en"))
+        links = [node.attributes for node in document.find(tag="a")
+                 if node.attributes.get("href") == pdf]
+        self.assertTrue(links)
+        for attributes in links:
+            self.assertEqual(attributes.get("target"), "_blank")
+            self.assertTrue({"noopener", "noreferrer"}.issubset(attributes.get("rel", "").split()))
+
     def test_demo_one_keeps_the_user_approved_english_hero(self) -> None:
         document = Document(self.page(self.demo_id, "en"))
         hero = document.find(css_class="case-hero")[0]
         self.assertEqual([node.text for node in hero.descendants("h1")],
-                         ["#1 Low Dipole vs Radial-Free Vertical"])
-        self.assertEqual(document.find(css_class="eyebrow")[0].text, "Demo walkthrough / #1")
+                         ["Low Dipole vs Radial-Free Vertical"])
+        self.assertEqual(document.find(css_class="eyebrow")[0].text, "Guided Demo")
         self.assertEqual(document.find(css_class="case-meta")[0].text,
                          "G3ZIL (IO90HW) / G4HZX (IO91) · 40m · April 2017 · RX Benchmark")
-        self.assertEqual(document.find(css_class="case-intro")[0].text.strip(),
-                         "A low dipole versus a vertical on 40 m — a real-world comparison using WSPR data.")
+        intro = document.find(css_class="case-intro")[0].text.strip()
+        self.assertIn("A low dipole versus a vertical on 40 m — a real-world comparison using WSPR data.", intro)
+        self.assertIn("Does a better signal-to-noise ratio also mean more signals decoded?", intro)
 
     def test_authored_hero_title_is_used_in_page_metadata_and_demo_cards(self) -> None:
         for demo, language, page in self.cases():
@@ -171,22 +300,41 @@ class DemoWalkthroughTests(unittest.TestCase):
                 destination = f'/{language}/demos/{demo["id"]}/'
                 card = next(card for card in cards
                             if any(link.attributes.get("href") == destination for link in card.descendants("a")))
-                self.assertEqual([heading.text for heading in card.descendants("h2")], [title])
-                self.assertIn(title, card.attributes["data-filter-text"])
+                if language in self.builder.demos_index:
+                    display = next(item for item in self.builder.demos_index[language]["cards"]
+                                   if item["id"] == demo["id"])
+                    self.assertEqual([heading.text for heading in card.descendants("h3")], [display["title"]])
+                    self.assertNotIn("data-demo-search-text", card.attributes)
+                else:
+                    self.assertEqual([heading.text for heading in card.descendants("h2")], [title])
+                    self.assertIn(title, card.attributes["data-filter-text"])
+
+    def test_english_demo_identity_numbers_are_removed_from_visible_copy(self) -> None:
+        for demo in self.builder.published_demos:
+            with self.subTest(demo=demo["id"]):
+                document = Document(self.page(demo["id"], "en"))
+                hero = document.find(css_class="case-hero")[0]
+                self.assertNotRegex(hero.descendants("h1")[0].text, r"^#\d+\b")
+                self.assertNotRegex(document.find(css_class="eyebrow")[0].text, r"#\d+\b")
+                self.assertNotRegex(document.find(css_class="case-study")[0].text, r"(?i)\bdemo\s*#\d+\b")
+        landing = Document(self.pages["en/demos/index.html"])
+        for card in landing.find(css_class="demo-card"):
+            self.assertNotRegex(card.text, r"(?i)\bdemo\s*#\d+\b")
 
     def test_hero_period_visibility_preserves_other_metadata_and_launch_settings(self) -> None:
         config = deepcopy(self.configurations[self.demo_id])
-        launch_url = config["launch_url"]
         for language in ("en", "de"):
             with self.subTest(language=language):
+                launch_url = demo_walkthrough.demo_launch_url(self.demo)
                 config["show_hero_period"] = False
                 hidden = render_demo(self.builder, language, self.demo, config,
                                      build_site.button, build_site.route, build_site.APP_URL)
                 document = Document(hidden)
                 self.assertEqual(document.find(css_class="case-meta")[0].text,
                                  "G3ZIL (IO90HW) / G4HZX (IO91) · 40m · " + config["languages"][language]["mode"])
+                hero = document.find(css_class="case-hero")[0]
                 self.assertEqual(sum(link.attributes.get("href") == launch_url
-                                     for link in document.find(tag="a")), 1)
+                                     for link in hero.descendants("a")), 1)
                 config["show_hero_period"] = True
                 shown = render_demo(self.builder, language, self.demo, config,
                                     build_site.button, build_site.route, build_site.APP_URL)
@@ -203,18 +351,60 @@ class DemoWalkthroughTests(unittest.TestCase):
                     render_demo(self.builder, "en", self.demo, config,
                                 build_site.button, build_site.route, build_site.APP_URL)
 
-    def test_demo_one_keeps_the_exact_user_supplied_full_configuration_url(self) -> None:
-        self.assertEqual(self.configurations[self.demo_id]["launch_url"], DEMO_ONE_LAUNCH_URL)
+    def test_demo_one_launches_the_canonical_settings_in_both_languages(self) -> None:
+        self.assertNotIn("launch_url", self.configurations[self.demo_id])
+        self.assertNotIn("launch_urls", self.configurations[self.demo_id])
         for language in ("en", "de"):
             with self.subTest(language=language):
                 links = Document(self.page(self.demo_id, language)).find(tag="a")
-                self.assertEqual(sum(link.attributes.get("href") == DEMO_ONE_LAUNCH_URL for link in links), 2)
+                expected = demo_walkthrough.demo_launch_url(self.demo)
+                self.assertEqual(sum(link.attributes.get("href") == expected for link in links), 2 if language == "en" else 1)
+                query = parse_qs(urlsplit(expected).query)
+                self.assertNotIn("operation_confirmed", query)
+                self.assertEqual(query["v"], ["1"])
+                # The canonical launch omits the default minimum of one pair.
+                self.assertNotIn("min_spot_pairs", query)
+                self.assertNotIn("min_joint", query)
+                self.assertNotIn("filter_joint", query)
+        advanced = self.demo["settings"]["advanced_parameters"]
+        self.assertEqual(advanced["min_spot_pairs_per_station"], 1)
+        self.assertEqual(advanced["min_qualifying_stations_per_map_segment"], 5)
+        self.assertEqual(advanced["min_decode_event_share_percent"], 1.0)
+        self.assertNotIn("min_decode_events_per_station", advanced)
+        self.assertNotIn("min_decode_stations_per_map_segment", advanced)
+
+    def test_demo_one_settings_table_uses_canonical_labels_and_values(self) -> None:
+        table = Document(self.page(self.demo_id, "en")).find(css_class="case-settings-complete")[0].descendants("table")[0]
+        rows = table.descendants("tr")[1:]
+        selection = self.configurations[self.demo_id]["settings_tables"]["en"]["rows"]
+        summary = {row["key"]: row for row in self.demo["settings_summary"]}
+        if "min_joint_spots_per_station" in summary:
+            summary.setdefault("min_spot_pairs_per_station", summary["min_joint_spots_per_station"])
+        self.assertEqual(len(rows), len(selection))
+        for actual, selected in zip(rows, selection):
+            row = summary[selected["key"]]
+            meaning = Document(self.builder.md(selected["meaning"], "en")).find(tag="p")[0].text
+            self.assertEqual([cell.text for cell in actual.descendants("td")],
+                             [row["label"]["en"], row["value"]["en"], meaning])
+        self.assertTrue({"min_spot_pairs_per_station", "min_qualifying_stations_per_map_segment",
+                         "min_decode_event_share_percent",
+                         "delta_snr_outlier_reporting"}.issubset({row["key"] for row in selection}))
+        self.assertTrue({"min_decode_events_per_station", "min_decode_stations_per_map_segment"}.isdisjoint(
+            {row["key"] for row in selection}))
+
+    def test_demo_one_footer_links_the_current_canonical_configuration(self) -> None:
+        footer = Document(self.page(self.demo_id, "en")).find(identity="takeaways")[0]
+        current = [link for link in footer.descendants("a")
+                   if link.text == "Run this comparison in WSPRadar ↗"]
+        self.assertEqual(len(current), 1)
+        self.assertEqual(current[0].attributes["href"], build_site.demo_launch_url(self.demo))
+        self.assertNotIn("button", (current[0].attributes.get("class") or "").split())
 
     def test_demo_one_setup_uses_its_reviewed_schematic_once_instead_of_a_placeholder(self) -> None:
         key = "demo1-setup-network-schematic"
         config = self.configurations[self.demo_id]
         self.assertEqual(config["setup_media_key"], key)
-        resource = next(item for item in self.resource_media(self.demo_id) if item["key"] == key)
+        resource = next(item for item in self.resource_media(self.demo_id, "en") if item["key"] == key)
         self.assertEqual(sorted(item["width"] for item in resource["variants"]), [520, 1040, 1600])
         self.assertTrue(resource["path"].endswith(".webp"))
         for language in ("en", "de"):
@@ -226,7 +416,7 @@ class DemoWalkthroughTests(unittest.TestCase):
                 self.assertEqual(len(document.find(identity="case-media-" + key)), 1)
                 self.assertNotIn("case-placeholder", figures[0].attributes.get("class", "").split())
                 self.assertEqual(figures[0].descendants("img")[0].attributes["alt"], resource["alt"][language])
-        manifest_path = safe_path(self.builder.demo_root, config["resource_manifest"])
+        manifest_path = safe_path(self.builder.demo_asset_root, config["resource_manifest"])
         declared = {entry["path"] for entry in json.loads(manifest_path.read_text(encoding="utf-8"))["files"]}
         self.assertNotIn("source/setup-network-original.png", declared)
 
@@ -280,17 +470,65 @@ class DemoWalkthroughTests(unittest.TestCase):
             render_demo(self.builder, "en", self.demo, config,
                         build_site.button, build_site.route, build_site.APP_URL)
 
-    def test_walkthrough_starts_directly_with_setup_and_omits_summary_metric_cards(self) -> None:
+    def test_walkthrough_places_optional_summary_before_setup_and_omits_legacy_metrics(self) -> None:
         for demo, language, page in self.cases():
             with self.subTest(demo=demo["id"], language=language):
+                config = self.configurations[demo["id"]]
+                sections = read_sections(safe_path(self.builder.demo_root, config["markdown_paths"][language]))
                 document = Document(page)
                 case = document.find(css_class="case-study")[0]
                 content = [node for node in case.children
                            if isinstance(node, Element) and node.tag != "svg"]
                 self.assertIn("case-hero", content[0].attributes.get("class", "").split())
-                self.assertEqual(content[1].attributes.get("id"), "setup")
+                if "summary" in sections:
+                    self.assertEqual(content[1].attributes.get("id"), "summary")
+                    self.assertEqual(content[2].attributes.get("id"), "setup")
+                else:
+                    self.assertEqual(content[1].attributes.get("id"), "setup")
+                    self.assertEqual(document.find(css_class="case-summary"), [])
                 for removed_class in ("case-introduction", "case-glance", "case-metrics"):
                     self.assertEqual(document.find(css_class=removed_class), [])
+
+    def test_optional_summary_preserves_content_and_local_links_without_changing_steps(self) -> None:
+        config = self.configurations[self.demo_id]
+        sections = read_sections(safe_path(self.builder.demo_root, config["markdown_paths"]["en"]))
+        sections.pop("summary", None)
+        with patch.object(demo_walkthrough, "read_sections", return_value=sections):
+            without_summary = render_demo(self.builder, "en", self.demo, config,
+                                          build_site.button, build_site.route, build_site.APP_URL)
+            sections["summary"] = (
+                '## Findings <reviewed>\n\n'
+                '- [**First result**](#stations)\n\n'
+                '    Complete supporting explanation.\n\n'
+                '- [**Second result**](#drill-down)\n\n'
+                '    Further retained evidence.\n\n'
+                'A final qualification.'
+            )
+            with_summary = render_demo(self.builder, "en", self.demo, config,
+                                       build_site.button, build_site.route, build_site.APP_URL)
+        document = Document(with_summary)
+        summary = document.find(identity="summary")[0]
+        self.assertEqual(summary.attributes["aria-label"], "Findings <reviewed>")
+        self.assertEqual(summary.descendants("h2")[0].text, "Findings <reviewed>")
+        self.assertEqual([link.attributes["href"] for link in summary.descendants("a")],
+                         ["#stations", "#drill-down"])
+        self.assertEqual(len(summary.descendants("li")), 2)
+        self.assertIn("Complete supporting explanation.", summary.text)
+        self.assertIn("Further retained evidence.", summary.text)
+        self.assertIn("A final qualification.", summary.text)
+        transition = '<p>' + escape(config["languages"]["en"]["evidence_intro"]) + '</p>'
+        self.assertEqual(with_summary.count(transition), 1)
+        self.assertIn(transition, re.search(r'<section class="case-summary".*?</section>',
+                                          with_summary, re.DOTALL).group())
+        self.assertEqual(re.sub(r'<section class="case-summary".*?</section>', '', with_summary,
+                                count=1, flags=re.DOTALL), without_summary.replace(transition, '', 1))
+
+    def test_summary_anchor_cannot_be_reused_by_an_evidence_section(self) -> None:
+        config = deepcopy(self.configurations[self.demo_id])
+        config["sections_by_language"]["en"][0]["aliases"] = ["summary"]
+        with self.assertRaisesRegex(ValueError, "Duplicate or reserved demo section ID or alias: summary"):
+            render_demo(self.builder, "en", self.demo, config,
+                        build_site.button, build_site.route, build_site.APP_URL)
 
     def test_configured_setup_summaries_and_hero_paper_links_remain(self) -> None:
         self.assertIs(self.configurations[self.demo_id]["show_setup_summary"], False)
@@ -320,7 +558,14 @@ class DemoWalkthroughTests(unittest.TestCase):
             with self.subTest(demo=demo["id"], language=language):
                 document = Document(page)
                 case = document.find(css_class="case-study")[0]
-                self.assertEqual(case.descendants("details"), [])
+                disclosures = case.descendants("details")
+                config = self.configurations[demo["id"]]
+                configured = language in config.get("settings_table_disclosure", {})
+                source = safe_path(self.builder.demo_root, config["markdown_paths"][language]).read_text(encoding="utf-8")
+                retained_evidence = source.count('<details class="case-evidence-details">')
+                self.assertEqual(len(disclosures), int(configured) + retained_evidence)
+                self.assertTrue(all(item.attributes.get("class") in {"case-settings-details", "case-evidence-details"}
+                                    for item in disclosures))
                 for anchor in ("experiment", "figures", "screenshots"):
                     self.assertEqual(document.find(identity=anchor), [])
                     self.assertNotIn('href="#' + anchor + '"', page)
@@ -329,8 +574,9 @@ class DemoWalkthroughTests(unittest.TestCase):
         for demo, language, page in self.cases():
             config = self.configurations[demo["id"]]
             sections = read_sections(safe_path(self.builder.demo_root, config["markdown_paths"][language]))
+            settings_table = demo_walkthrough.demo_settings_table(demo, config, language)
             document = Document(page)
-            keys = ["setup", *(item["id"] for item in self.configured_sections(config["sections"]))]
+            keys = ["setup", *(item["id"] for item in self.configured_sections(demo_walkthrough.demo_sections(config, language)))]
             for key in keys:
                 with self.subTest(demo=demo["id"], language=language, section=key):
                     heading, body = demo_walkthrough.heading_and_body(sections[key], 2)
@@ -338,7 +584,14 @@ class DemoWalkthroughTests(unittest.TestCase):
                     headings = [node.text for node in section.descendants()
                                 if node.tag in {"h2", "h3"}]
                     self.assertEqual(headings.count(heading), 1)
-                    rendered = build_site.open_pdf_links_in_new_tabs(self.builder.md(body, language))
+                    expanded = demo_walkthrough.expand_demo_markdown(body, demo, settings_table)
+                    rendered = build_site.open_pdf_links_in_new_tabs(self.builder.md(expanded, language))
+                    disclosure = demo_walkthrough.settings_table_disclosure(
+                        settings_table, config, language, lambda value: self.builder.md(value, language))
+                    if disclosure is not None and "{{demo_settings_table}}" in body:
+                        rendered = rendered.replace(self.builder.md(settings_table, language), disclosure, 1)
+                    rendered = build_site.apply_product_navigation_link_policy(
+                        rendered, self.builder.navigation, current_suffix=f"demos/{demo['id']}/")
                     self.assertEqual(page.count(rendered), 1)
 
     def test_imported_media_stay_once_and_only_declared_resources_are_added(self) -> None:
@@ -347,8 +600,8 @@ class DemoWalkthroughTests(unittest.TestCase):
             with self.subTest(demo=identity, language=language):
                 case = Document(page).find(css_class="case-study")[0]
                 images = case.descendants("img")
-                imported = self.imported_media(identity)
-                resources = self.resource_media(identity)
+                imported = self.imported_media(identity, language)
+                resources = self.resource_media(identity, language)
                 self.assertEqual(Counter(image.attributes.get("src") for image in images
                                          if image.attributes.get("src", "").startswith("/content/")),
                                  Counter("/content/" + item["asset_path"] for item in imported))
@@ -395,7 +648,7 @@ class DemoWalkthroughTests(unittest.TestCase):
             with self.subTest(demo=demo["id"], language=language):
                 expected = int(config.get("show_setup_media", True) and not config.get("setup_media_key")) + sum(
                     not section.get("media_keys") and section.get("layout") != "full"
-                    for section in self.configured_sections(config["sections"]))
+                    for section in self.configured_sections(demo_walkthrough.demo_sections(config, language)))
                 placeholders = document.find(css_class="case-placeholder")
                 self.assertEqual(len(placeholders), expected)
                 for placeholder in placeholders:
@@ -406,7 +659,7 @@ class DemoWalkthroughTests(unittest.TestCase):
                     self.assertEqual(len(accessible), 1)
                     self.assertTrue(accessible[0].attributes.get("aria-label"))
                     self.assertIn(accessible[0].attributes["aria-label"], placeholder.text)
-                for section in self.configured_sections(config["sections"]):
+                for section in self.configured_sections(demo_walkthrough.demo_sections(config, language)):
                     if not section.get("media_keys") and section.get("layout") != "full":
                         block = document.find(identity=section["id"])[0]
                         self.assertIn("Figure to follow" if language == "en" else "Abbildung folgt", block.text)
@@ -415,11 +668,11 @@ class DemoWalkthroughTests(unittest.TestCase):
         original = self.configurations[self.demo_id]
         foreign = next(item["key"] for item in [*self.builder.figures, *self.builder.screenshots]
                        if item["demo_id"] != self.demo_id)
-        first_key = original["sections"][1]["media_keys"][0]
+        first_key = demo_walkthrough.demo_sections(original, "en")[1]["media_keys"][0]
         for keys in (["unknown-review-asset"], [foreign], [first_key, first_key]):
             with self.subTest(keys=keys):
                 config = deepcopy(original)
-                config["sections"][1]["media_keys"] = keys
+                config["sections_by_language"]["en"][1]["media_keys"] = keys
                 with self.assertRaisesRegex(ValueError, "Unknown or duplicate case-study media"):
                     render_demo(self.builder, "en", self.demo, config,
                                 build_site.button, build_site.route, build_site.APP_URL)
@@ -456,8 +709,22 @@ class DemoWalkthroughTests(unittest.TestCase):
                     self.assertEqual([node.text for node in child.descendants("h3")], [heading])
                     self.assertEqual(page.count(build_site.open_pdf_links_in_new_tabs(self.builder.md(body, language))), 1)
                 figure_order = [figure.attributes.get("id") for figure in temporal[0].descendants("figure")]
-                self.assertEqual(figure_order, ["case-media-fresh-demo1-time",
+                self.assertEqual(figure_order, ["case-media-demo1-temporal-delta-snr-typography-en-20261024" if language == "en" else "case-media-fresh-demo1-time",
                                                "case-media-griffiths-figure3-comparison"])
+
+    def test_figure_three_comparison_links_keep_expected_website_pdf_destinations(self) -> None:
+        figure_three_pdf = "/assets/demos/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3.pdf"
+        figure_six_pdf = "/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf"
+        expected_by_language = {"en": [figure_three_pdf, figure_six_pdf], "de": [figure_three_pdf]}
+        for language in ("en", "de"):
+            with self.subTest(language=language):
+                section = Document(self.page(self.demo_id, language)).find(identity="published-figure3")[0]
+                links = [node.attributes for node in section.descendants("a")
+                         if urlsplit(node.attributes.get("href", "")).path.lower().endswith(".pdf")]
+                self.assertEqual([node["href"] for node in links], expected_by_language[language])
+                for attributes in links:
+                    self.assertEqual(attributes["target"], "_blank")
+                    self.assertEqual(set(attributes["rel"].split()), {"noopener", "noreferrer"})
 
     def test_excluded_diagnostic_never_returns_in_retained_or_supplemental_media(self) -> None:
         key = "griffiths-figure3-pairing-diagnostic"
@@ -648,29 +915,99 @@ class DemoWalkthroughTests(unittest.TestCase):
     def test_drilldown_is_text_only_without_a_missing_figure_placeholder(self) -> None:
         for language in ("en", "de"):
             with self.subTest(language=language):
-                section = Document(self.page(self.demo_id, language)).find(identity="drilldown")[0]
+                section = Document(self.page(self.demo_id, language)).find(identity="drill-down" if language == "en" else "drilldown")[0]
                 self.assertEqual(section.descendants("figure"), [])
                 self.assertTrue(section.descendants("p"))
 
-    def test_demo_one_uses_existing_number_badges_without_duplicate_heading_prefixes(self) -> None:
-        for language in ("en", "de"):
-            document = Document(self.page(self.demo_id, language))
-            config = self.configurations[self.demo_id]
-            for number, section in enumerate(config["sections"], 1):
-                with self.subTest(language=language, section=section["id"]):
+    def test_all_demos_number_setup_first_and_preserve_figure_positions(self) -> None:
+        for demo, language, page in self.cases():
+            document = Document(page)
+            config = self.configurations[demo["id"]]
+            setup_badges = [node for node in document.find(identity="setup")[0].descendants()
+                            if "case-number" in (node.attributes.get("class") or "").split()]
+            self.assertEqual([badge.text for badge in setup_badges], ["01"])
+            for index, section in enumerate(demo_walkthrough.demo_sections(config, language), 1):
+                with self.subTest(demo=demo["id"], language=language, section=section["id"]):
                     group = document.find(identity=section["id"])[0]
                     row = next(child for child in group.children if isinstance(child, Element)
                                and "case-row" in (child.attributes.get("class") or "").split())
                     badges = [node for node in row.descendants()
                               if "case-number" in (node.attributes.get("class") or "").split()]
-                    self.assertEqual([badge.text for badge in badges], [f"{number:02d}"])
+                    self.assertEqual([badge.text for badge in badges], [f"{index + 1:02d}"])
+                    self.assertEqual("case-row-reverse" in row.attributes["class"].split(), index % 2 == 0)
                     heading = row.descendants("h3")[0].text
                     self.assertIsNone(re.match(r"^\d+\.\d+(?:\.|\s)", heading))
+                    for child in section.get("subsections", []):
+                        child_group = document.find(identity=child["id"])[0]
+                        child_badges = [node for node in child_group.descendants()
+                                        if "case-number" in (node.attributes.get("class") or "").split()]
+                        self.assertEqual([badge.text for badge in child_badges], ["↳"])
+
+    def test_objective_follows_title_and_is_the_first_navigation_target(self) -> None:
+        for demo, language, page in self.cases():
+            with self.subTest(demo=demo["id"], language=language):
+                document = Document(page)
+                objective = document.find(identity="objective")[0]
+                hero_copy = document.find(css_class="case-hero-copy")[0]
+                children = [child for child in hero_copy.children if isinstance(child, Element)]
+                title_index = next(index for index, child in enumerate(children) if child.tag == "h1")
+                self.assertIs(children[title_index + 1], objective)
+                self.assertIn("case-intro", objective.attributes["class"].split())
+                self.assertEqual(objective.attributes["aria-label"], "Objective" if language == "en" else "Ziel")
+                source = read_sections(safe_path(self.builder.demo_root,
+                                       self.configurations[demo["id"]]["markdown_paths"][language]))
+                _, intro = demo_walkthrough.heading_and_body(source["hero"], 1)
+                rendered = build_site.open_pdf_links_in_new_tabs(self.builder.md(intro, language))
+                self.assertIn(rendered, page)
+                links = document.find(css_class="case-nav")[0].descendants("a")
+                self.assertEqual([link.attributes["href"] for link in links[:2]], ["#objective", "#setup"])
+                self.assertEqual(links[0].text, objective.attributes["aria-label"])
+                self.assertEqual(document.find(css_class="case-section-heading"), [])
+
+    def test_paper_evidence_navigation_preserves_other_demo_links_and_numbering(self) -> None:
+        paper_sections = {
+            self.demo_id: ("time", "published-figure3", ["published-figure3"]),
+            "vanhamel_rx_buddy": ("stations", "published-figure6", ["published-figure6", "station-decodes"]),
+            "zander_tx_buddy": ("difference", "published-figure4", ["published-figure4"]),
+        }
+        for demo, language, page in self.cases():
+            with self.subTest(demo=demo["id"], language=language):
+                config = self.configurations[demo["id"]]
+                sections = demo_walkthrough.demo_sections(config, language)
+                expected = [
+                    ("#objective", "Objective" if language == "en" else "Ziel"),
+                    ("#setup", config["languages"][language]["nav_setup"]),
+                    *(("#" + item["id"], item["nav_label"][language]) for item in sections),
+                ]
+                document = Document(page)
+                if language == "en" and demo["id"] in paper_sections:
+                    parent_id, child_id, child_order = paper_sections[demo["id"]]
+                    parent_index = next(index for index, item in enumerate(expected) if item[0] == "#" + parent_id)
+                    expected.insert(parent_index + 1, ("#" + child_id, "Paper Evidence"))
+                    parent_config = next(item for item in sections if item["id"] == parent_id)
+                    self.assertEqual([item["id"] for item in parent_config["subsections"]], child_order)
+                    paper_config = parent_config["subsections"][0]
+                    self.assertIs(paper_config["show_in_nav"], True)
+                    self.assertEqual(paper_config["nav_label"][language], "Paper Evidence")
+                    parent = document.find(identity=parent_id)[0]
+                    child = document.find(identity=child_id)[0]
+                    self.assertIn(child, parent.descendants("section"))
+                    direct_children = [node for node in parent.children
+                                       if isinstance(node, Element) and node.tag == "section"]
+                    self.assertEqual([node.attributes.get("id") for node in direct_children], child_order)
+                    if demo["id"] == self.demo_id:
+                        self.assertEqual(child.descendants("h3")[0].text,
+                                         "Verifying WSPRadar against published research")
+                    badges = [node.text for node in child.descendants()
+                              if "case-number" in (node.attributes.get("class") or "").split()]
+                    self.assertEqual(badges, ["↳"])
+                links = document.find(css_class="case-nav")[0].descendants("a")
+                self.assertEqual([(link.attributes["href"], link.text) for link in links], expected)
 
     def test_figures_precede_their_related_prose_inside_the_wrapping_container(self) -> None:
         for demo, language, page in self.cases():
             document = Document(page)
-            for section in self.configured_sections(self.configurations[demo["id"]]["sections"]):
+            for section in self.configured_sections(demo_walkthrough.demo_sections(self.configurations[demo["id"]], language)):
                 if not section.get("media_keys") or section.get("layout") == "full":
                     continue
                 with self.subTest(demo=demo["id"], language=language, section=section["id"]):
@@ -680,7 +1017,10 @@ class DemoWalkthroughTests(unittest.TestCase):
                     copy = next(child for child in row.children if isinstance(child, Element)
                                 and "case-copy" in (child.attributes.get("class") or "").split())
                     children = [child for child in copy.children if isinstance(child, Element)]
-                    self.assertEqual(children[0].tag, "h3")
+                    self.assertIn("case-step-heading", children[0].attributes.get("class", "").split())
+                    self.assertEqual(len(children[0].descendants("h3")), 1)
+                    self.assertEqual(len([node for node in children[0].descendants()
+                                          if "case-number" in node.attributes.get("class", "").split()]), 1)
                     self.assertIn("case-media", (children[1].attributes.get("class") or "").split())
                     self.assertTrue(children[1].descendants("figure"))
                     self.assertGreater(len(children), 2)
@@ -690,7 +1030,7 @@ class DemoWalkthroughTests(unittest.TestCase):
             with self.subTest(demo=demo["id"], language=language):
                 document = Document(page)
                 anchors = [node for node in document.find(tag="a") if "data-case-lightbox" in node.attributes]
-                self.assertEqual(len(anchors), len(self.imported_media(demo["id"])) + len(self.resource_media(demo["id"])))
+                self.assertEqual(len(anchors), len(self.imported_media(demo["id"], language)) + len(self.resource_media(demo["id"], language)))
                 action_text = self.builder.copy[language]["full_size"] + " ↗"
                 self.assertFalse(any(action_text in caption.text for caption in document.find(tag="figcaption")))
                 ids = {node.attributes["id"] for node in document.root.descendants() if "id" in node.attributes}
@@ -723,15 +1063,35 @@ class DemoWalkthroughTests(unittest.TestCase):
                     self.assertTrue(anchor.attributes.get("href", "").startswith("#"))
                     self.assertIn(anchor.attributes["href"][1:], ids)
                 other = "de" if language == "en" else "en"
-                self.assertIn(f'href="/{other}/demos/{identity}/"', page)
+                self.assertIn(f"{other}/demos/{identity}/index.html", self.pages)
+                switches = document.find(tag="a", css_class="language-option")
+                self.assertEqual(
+                    [(link.attributes.get("hreflang"), link.attributes.get("href")) for link in switches],
+                    [("en", f"/en/demos/{identity}/")],
+                )
+                self.assertCountEqual(
+                    [(link.attributes.get("hreflang"), link.attributes.get("href"))
+                     for link in document.find(tag="link") if link.attributes.get("rel") == "alternate"],
+                    [(alternate, f"{build_site.SITE_URL}/{alternate}/demos/{identity}/")
+                     for alternate in ("en", "de")],
+                )
                 self.assertIn(f'<link rel="canonical" href="{build_site.SITE_URL}/{language}/demos/{identity}/">', page)
-                config_links = [anchor for anchor in document.find(tag="a")
+                case_hero = document.find(css_class="case-hero")[0]
+                config_links = [anchor for anchor in case_hero.descendants("a")
                                 if anchor.attributes.get("href") == "/content/" + demo["config_path"]]
                 self.assertEqual(config_links, [])
-                case_hero = document.find(css_class="case-hero")[0]
-                launch_blocks = [document.find(css_class="site-header")[0], case_hero]
                 expected_label = "Run in WSPRadar App" if language == "en" else "In WSPRadar App starten"
-                expected_url = self.configurations[identity]["launch_url"]
+                expected_url = demo_walkthrough.demo_launch_url(demo)
+                config = self.configurations[identity]
+                actions = demo_walkthrough.language_override(config, "launch_actions", language, None)
+                expected_launches = ([(expected_url, expected_label)] if actions is None else [
+                    (demo_walkthrough.demo_launch_url(demo, action["variant"]), action["label"])
+                    for action in actions
+                ])
+                header = document.find(css_class="site-header")[0]
+                self.assertFalse(any(anchor.attributes.get("href") == expected_url
+                                     for anchor in header.descendants("a")))
+                self.assertLess(page.index('id="objective"'), page.index(expected_url.replace("&", "&amp;")))
                 core = demo["settings"]["core_parameters"]
                 comparison = demo["settings"]["comparison_parameters"]
                 query = parse_qs(urlsplit(expected_url).query)
@@ -750,16 +1110,24 @@ class DemoWalkthroughTests(unittest.TestCase):
                     self.assertEqual(query["benchmark_design"], [comparison["mode"]])
                     self.assertEqual(query["reference"], [comparison["reference_callsign"]])
                     self.assertEqual(query["reference_qth"], [comparison["reference_qth"]])
-                for block in launch_blocks:
-                    buttons = [anchor for anchor in block.descendants("a")
-                               if "button" in (anchor.attributes.get("class") or "").split()
-                               and anchor.attributes.get("href") == expected_url]
-                    self.assertEqual(len(buttons), 1)
-                    launch = buttons[0]
+                buttons = [anchor for anchor in case_hero.descendants("a")
+                           if "button" in (anchor.attributes.get("class") or "").split()]
+                self.assertEqual([(anchor.attributes["href"], anchor.text) for anchor in buttons],
+                                 [(url, label + " ↗") for url, label in expected_launches])
+                launches = [anchor for anchor in document.find(css_class="case-study")[0].descendants("a")
+                            if anchor.attributes.get("href") in {
+                                demo_walkthrough.demo_launch_url(demo),
+                                *demo.get("launch_variants", {}).values(),
+                            }]
+                self.assertGreaterEqual(len(launches), len(buttons))
+                for launch in launches:
+                    self.assertEqual(launch.attributes.get("target"), "_blank")
+                    self.assertTrue({"noopener", "noreferrer"}.issubset(
+                        launch.attributes.get("rel", "").split()))
+                for launch in buttons:
                     target = urlsplit(launch.attributes["href"])
                     self.assertEqual((target.scheme, target.netloc, target.path, target.fragment),
                                      ("https", "wspradar.org", "/", "wspradar-results-inspection"))
-                    self.assertEqual(launch.text.removesuffix(" ↗"), expected_label)
                 self.assertEqual(document.find(css_class="case-launch-note"), [])
 
 
@@ -823,17 +1191,30 @@ class DemoSourceValidationTests(unittest.TestCase):
         self.write("demo/private-note.txt", "Not declared for publication")
         self.assertEqual(resource_files(self.root, configurations), {"assets/demos/demo/image.png": payload})
 
+    def test_archived_resource_is_read_from_the_selected_source_tree(self) -> None:
+        payload, entry, configurations = self.resource_fixture()
+        entry["source_path"] = "archive/reviewed-image.png"
+        self.write("source/archive/reviewed-image.png", payload)
+        self.write("demo/resources.json", json.dumps({"files": [entry]}))
+        self.assertEqual(
+            resource_files(self.root, configurations, source_root=self.root / "source"),
+            {"assets/demos/demo/image.png": payload},
+        )
+        self.write("source/archive/reviewed-image.png", b"Different source-tree image")
+        with self.assertRaisesRegex(ValueError, "Browser asset hash mismatch"):
+            resource_files(self.root, configurations, source_root=self.root / "source")
+
     def test_resource_hash_and_length_mismatches_are_rejected(self) -> None:
         payload, entry, configurations = self.resource_fixture()
         for field, invalid in (("sha256", "0" * 64), ("bytes", len(payload) + 1)):
             with self.subTest(field=field):
                 modified = {**entry, field: invalid}
                 self.write("demo/resources.json", json.dumps({"files": [modified]}))
-                with self.assertRaisesRegex(ValueError, "Demo resource hash mismatch"):
+                with self.assertRaisesRegex(ValueError, "Browser asset hash mismatch"):
                     resource_files(self.root, configurations)
         self.write("demo/resources.json", json.dumps({"files": [entry]}))
         self.write("demo/image.png", b"X" * len(payload))
-        with self.assertRaisesRegex(ValueError, "Demo resource hash mismatch"):
+        with self.assertRaisesRegex(ValueError, "Browser asset hash mismatch"):
             resource_files(self.root, configurations)
 
     def test_resource_manifest_and_asset_paths_cannot_escape(self) -> None:
@@ -842,7 +1223,7 @@ class DemoSourceValidationTests(unittest.TestCase):
             resource_files(self.root, {"demo": {"resource_manifest": "../private.json"}})
         entry["path"] = "../outside.png"
         self.write("demo/resources.json", json.dumps({"files": [entry]}))
-        with self.assertRaisesRegex(ValueError, "Unsafe demo source path"):
+        with self.assertRaisesRegex(ValueError, "Unsafe browser asset path"):
             resource_files(self.root, configurations)
 
 

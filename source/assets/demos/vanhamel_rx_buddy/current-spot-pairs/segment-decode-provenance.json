@@ -1,0 +1,411 @@
+{
+  "schema_version": 1,
+  "language": "en",
+  "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+  "source_evidence": {
+    "filename": "analysis_cache.parquet",
+    "bytes": 86858,
+    "sha256": "ee7db5e47d44cf269bc66cd84f782bbcc4f597ad8b31e9ec88506b1fc2169a50"
+  },
+  "source_metadata": {
+    "filename": "run_metadata.json",
+    "bytes": 6303,
+    "sha256": "b73a291deb3cf5396d0a32a4b41c8cf7db1f1ea570aff49533dd6a2e68c841c8"
+  },
+  "source_configuration": {
+    "filename": "wspradar_config.config",
+    "bytes": 8589,
+    "sha256": "97d2e10bb3315d3a490cb9b8d7f964cd10015bc1af4b5d9a9969eea472bab00f"
+  },
+  "configuration": {
+    "filename": "current-demo.config",
+    "bytes": 8501,
+    "sha256": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de"
+  },
+  "analysis_context": {
+    "run_mode": "RX",
+    "callsign": "ON4AWM0",
+    "qth": "JO20OT",
+    "band": "160m",
+    "comparison_mode": "reference_station",
+    "reference_callsign": "ON4AWM1",
+    "reference_qth": "JO20",
+    "benchmark_evidence_mode": "controlled",
+    "benchmark_operation_confirmed": true,
+    "benchmark_historical_replay_confirmed": false,
+    "reference_snr_correction_db": 1.6,
+    "solar_state": "all",
+    "max_peer_distance_km": 5000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_spot_pairs_per_station": 3,
+    "min_confirmed_opportunities_per_peer": 5,
+    "min_qualifying_stations_per_map_segment": 3,
+    "min_decode_event_share_percent": 1.0
+  },
+  "scope": "full completed analysis; selected station retains full-run evidence",
+  "selection": {
+    "callsign": "M7AEO",
+    "locator": "IO82"
+  },
+  "bins": {
+    "segment": "12h",
+    "selected": "12h"
+  },
+  "decode_summary": {
+    "decode_val": 12.477078848760264,
+    "decode_cnt": 75,
+    "decode_total_events": 7164,
+    "decode_paired_events": 5379,
+    "decode_target_only_events": 1675,
+    "decode_reference_only_events": 110,
+    "decode_target_total": 7054,
+    "decode_reference_total": 5489,
+    "decode_net_events": 1565
+  },
+  "selected_decode_summary": {
+    "decode_val": 3.402268178785857,
+    "decode_cnt": 1,
+    "decode_total_events": 1557,
+    "decode_paired_events": 1441,
+    "decode_target_only_events": 109,
+    "decode_reference_only_events": 7,
+    "decode_target_total": 1550,
+    "decode_reference_total": 1448,
+    "decode_net_events": 102
+  },
+  "station_reach_formula": "100*(target_distinct-reference_distinct)/(target_distinct+reference_distinct)",
+  "spot_decode_formula": "100*(T-R)/(2*J+T+R)",
+  "station_fold": "Classify per UTC date-hour and exact station identity; ratio of summed daily side totals",
+  "cumulative_snr": {
+    "minimum_db": -34,
+    "maximum_db": 14,
+    "step_db": 1,
+    "spots": {
+      "paired": {
+        "target_count": 5379,
+        "reference_count": 5379,
+        "either_count": 5379
+      },
+      "one_sided": {
+        "target_count": 1675,
+        "reference_count": 110,
+        "either_count": 1785
+      },
+      "total": {
+        "target_count": 7054,
+        "reference_count": 5489,
+        "either_count": 7164
+      }
+    },
+    "stations": {
+      "paired": {
+        "target_count": 60,
+        "reference_count": 60,
+        "either_count": 60
+      },
+      "one_sided": {
+        "target_count": 13,
+        "reference_count": 2,
+        "either_count": 15,
+        "exclusive_target_count": 13,
+        "exclusive_reference_count": 2,
+        "async_count": 0
+      },
+      "total": {
+        "target_count": 73,
+        "reference_count": 62,
+        "either_count": 75
+      }
+    }
+  },
+  "map_support": {
+    "minimum_spot_pairs_per_station": 3,
+    "minimum_qualifying_stations_per_segment": 3,
+    "minimum_decode_event_share_percent": 1.0
+  },
+  "figures": [
+    {
+      "path": "figure_segment_temporal_delta_decode_dark.png",
+      "width": 3817,
+      "height": 1641,
+      "bytes": 505796,
+      "sha256": "4f32d49e56c996d0f717adf8d7dc0b178d25fa65e9c7b8848269d64261048828",
+      "variants": [
+        {
+          "path": "figure_segment_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 258,
+          "bytes": 85602,
+          "sha256": "e5f1055fcfec07e845bce3f579c8098b3fb7df5f411c515274128e98862468ab"
+        },
+        {
+          "path": "figure_segment_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 516,
+          "bytes": 183086,
+          "sha256": "74a408d819767b602afa20ecec76ad54f5ba38c5ebd15878e097216063503a7f"
+        }
+      ],
+      "renderer": "ui.plots.benchmark_evidence_figures.render_compare_temporal_coverage_export_figure",
+      "recipe_schema_version": 7
+    }
+  ],
+  "renderer_sources": {
+    "core/plot_engine.py": {
+      "bytes": 51239,
+      "sha256": "7c65cfa6a859cfa4d625405e915ec43a8de28b2f71defc22a45c8fb80537ba9a"
+    },
+    "core/figure_footer.py": {
+      "bytes": 4883,
+      "sha256": "1a121196887f60482e01016995df9e929a19fb378a2234a365d462e678472912"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 17223,
+      "sha256": "b10f346047cc363911feef612c268cb87ac210e8079e5cd91f9b3d2dd7232ede"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 35733,
+      "sha256": "2b4083f855f03c3aadd8dd38e07a9a89fc9abd0fffd8ff7ae4105b1bc1fad3e5"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 112406,
+      "sha256": "cfdb3b4cb1de64e71ba984a9b698f65fd879a4f6d057bc24aa18d2a8e8915ff6"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 24126,
+      "sha256": "b66c9e2e050cccf15f223ebfbf75882062192a3302b9ae86b070ea647b2e573f"
+    },
+    "ui/plots/temporal_layout.py": {
+      "bytes": 9542,
+      "sha256": "15bf631c8f8538af30caaa111aee7980dec1ae89d7412c7b064fc8a32fd9f53a"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 91243,
+      "sha256": "28f8d833a76f7dfc1492a9deb2e92371c93c31fa1a87cecc063753d89d197634"
+    },
+    "ui/inspector/presentation.py": {
+      "bytes": 24144,
+      "sha256": "696c7021162cd11631e4adcd6915b9ca243f609e292d15dc430a5c502d3a95bf"
+    },
+    "i18n.py": {
+      "bytes": 357272,
+      "sha256": "ce1a1cb5c542dcaf630c7d89936575bd37a190b98d74ea1ef41cf0ccdec56df9"
+    },
+    "scripts/internal/render_benchmark_temporal_refresh.py": {
+      "bytes": 19042,
+      "sha256": "df5899e64d7e90002c87f035ecd97c9f10fe4b8a10890ac705e8c9bb0026a9bf"
+    },
+    "scripts/internal/render_current_demo_walkthrough.py": {
+      "bytes": 7914,
+      "sha256": "61027f272a41fd018c4cd225ba71d92fdfb01baa7911ad49570859e3c616b0e3"
+    },
+    "scripts/internal/render_vanhamel_rotation_walkthrough.py": {
+      "bytes": 436,
+      "sha256": "f166754405eacea5877f8af5c10409a3c49c142489ef2234f58ab4861e042d65"
+    },
+    "scripts/internal/prepare_retained_figure_evidence.py": {
+      "bytes": 7085,
+      "sha256": "caf2993d3cb7465880067478059b0b2ff90d81d676ccfb396d1aad03f23ad28b"
+    }
+  },
+  "browser_derivatives": {
+    "tool": "Pillow 12.2.0",
+    "encoding": "lossless WebP; quality=100; method=4; exact=True",
+    "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+    "decoded_pixels_equal_resized_source": true
+  },
+  "limitations": "Offline retained evidence refresh; source metadata does not prove historical common operation or missing-both transmissions. No fresh provider retrieval.",
+  "demo_id": "vanhamel_rx_buddy",
+  "current_demo": {
+    "path": "source/archive/spot-pair-renderers/pre-typography-runtime/frozen-runtime-source.zip",
+    "bytes": 8501,
+    "sha256": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de",
+    "render_document": {
+      "format": "wspradar.config",
+      "schema_version": 1,
+      "profile": {
+        "id": "vanhamel_rx_buddy",
+        "title": {
+          "en": "#5 Dr. Vanhamel et al. RX Antenna Rotation: Reproducing Figure 6’s 3 dB ΔSNR Step",
+          "de": "#5 Dr. Vanhamel et al.: Empfangsantenne drehen – Rekonstruktion des 3-dB-ΔSNR-Sprungs aus Abbildung 6"
+        },
+        "description": {
+          "en": "[Publication: Vanhamel, J., Machiels, W., & Lamy, H. (2022). Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band](https://doi.org/10.1155/2022/4809313)\n\n**What changes when one receiving antenna is turned through 90°?** This demo revisits Figure 6, comparing **ON4AWM0 with an ITA LWA II long-wire antenna** against **ON4AWM1 with an adapted shorted dipole** on **160 m during 1–15 May 2021**. The long-wire antenna stayed fixed; the authors rotated the dipole after the first week.\n\n**M7AEO (IO82) is preselected in Station Insights**, matching the transmitting station in Figure 6. WSPRadar compares signals from that transmitter decoded by both receivers in the same two-minute WSPR cycle. Each matched observation is a **spot pair**. The difference is **ΔSNR = ON4AWM0 − corrected ON4AWM1**: positive values favour the long-wire receiving station, and negative values favour the dipole receiving station.\n\nOpen **Selected Station Evidence → Δ SNR over Time (12h bins)**. Look for the upward change around **8 May**. Across the **1 441 spot pairs**, the median is **−0.6 dB for the first 750 observations** and **+2.4 dB for the remaining observations**: a **3 dB shift** consistent with the upward transition in the paper. This is a change in relative reception on the sampled path, not a measurement of antenna gain in every direction.\n\nThe markers show the median in each time interval; the shaded band, where shown, covers the middle 50% of observations. The colours show where observations are concentrated. Read the vertical axis by its labelled dB values: its spacing is nonlinear. For the broader pattern across transmitters, use **Segment Inspector → Temporal Evidence** with all ranges and directions selected; this pooled view gives more weight to transmitters with more Spot pairs.\n\n[**Figure 6 comparison (PDF)**](https://wspradar.org/assets/demos/vanhamel_fig6_rotation_v1/WSPRadar_Demo_Vanhamel_Figure6.pdf): Compare the publication in **Panel A**, individual reconstructed receptions in **Panel B**, the matching density bins behind the black ΔSNR curve in **Panel C**, and WSPRadar’s native UTC view in **Panel D**. Matching bin numbers link Panels C and D: each numbered column spans reception numbers in Panel C and elapsed time in Panel D. Reception numbers count successive observations; they do not measure elapsed time. Seven marked peaks and troughs agree with the publication to within one reception and 0.1 dB, within the graphical readout tolerances.\n\nThis demo applies a **+1.6 dB Reference SNR Correction**, rounding the **1.57 dB** calibration documented on the [authors’ website](https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-antenna-comparison-instrument). The paper’s text reports **1.2 dB**, as explored in demo #4. The +1.6 dB reconstruction closely matches Figure 6, without establishing which correction was used to create the published figure. A constant correction moves the entire ΔSNR curve vertically; it does not change the size of the step.",
+          "de": "[Publikation: Vanhamel, J., Machiels, W., & Lamy, H. (2022). Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band](https://doi.org/10.1155/2022/4809313)\n\n**Was ändert sich, wenn eine Empfangsantenne um 90° gedreht wird?** Diese Demo greift Abbildung 6 auf und vergleicht **ON4AWM0 mit einer Langdrahtantenne ITA LWA II** mit **ON4AWM1 mit einem modifizierten kurzgeschlossenen Dipol** auf **160 m im Zeitraum vom 1. bis 15. Mai 2021**. Die Langdrahtantenne blieb unverändert ausgerichtet; den Dipol drehten die Autoren nach der ersten Woche.\n\n**M7AEO (IO82) ist in Station Insights vorausgewählt** und entspricht damit der sendenden Station in Abbildung 6. WSPRadar vergleicht Signale dieses Senders, die beide Empfänger im selben zweiminütigen WSPR-Zyklus decodiert haben. Jede so gepaarte Beobachtung ist ein **Joint Spot**. Die Differenz lautet **ΔSNR = ON4AWM0 − korrigiertes ON4AWM1**: Positive Werte fallen zugunsten der Empfangsstation mit Langdrahtantenne aus, negative zugunsten der Empfangsstation mit Dipol.\n\nÖffne **Evidenz der ausgewählten Station → Δ SNR im Zeitverlauf (12h-Intervalle)**. Achte auf den Anstieg um den **8. Mai**. Bei insgesamt **1 441 Joint Spots** beträgt der Median **−0,6 dB für die ersten 750 Beobachtungen** und **+2,4 dB für die übrigen Beobachtungen**: eine **Verschiebung um 3 dB**, die mit dem Anstieg in der Publikation im Einklang steht. Dies beschreibt eine Änderung des relativen Empfangs auf dem durch die Beobachtungen erfassten Funkweg, keine Messung des Antennengewinns in allen Richtungen.\n\nDie Markierungen zeigen den Median jedes Zeitintervalls; das schattierte Band umfasst, sofern dargestellt, die mittleren 50 % der Beobachtungen. Die Farben zeigen, wo sich Beobachtungen konzentrieren. Lies die senkrechte Achse anhand der beschrifteten dB-Werte ab: Ihre Teilung ist nichtlinear. Für das übergreifende Muster über mehrere Sender nutze **Segment-Inspektor → Zeitliche Evidenz** und wähle alle Entfernungsbereiche und Richtungen aus. In dieser zusammengefassten Ansicht erhalten Sender mit mehr Joint Spots ein höheres Gewicht.\n\n[**Vergleich mit Abbildung 6 (PDF)**](https://wspradar.org/assets/demos/vanhamel_fig6_rotation_v1/WSPRadar_Demo_Vanhamel_Figure6.pdf): Vergleiche die Publikation in **Panel A**, die einzeln rekonstruierten Empfangsbeobachtungen in **Panel B**, die zugehörigen Dichte-Bins hinter der schwarzen ΔSNR-Kurve in **Panel C** und die native UTC-Ansicht von WSPRadar in **Panel D**. Übereinstimmende Bin-Nummern verbinden die Panels C und D: Jede nummerierte Spalte umfasst in Panel C Empfangsnummern und in Panel D verstrichene Zeit. Die Empfangsnummern zählen aufeinanderfolgende Beobachtungen; sie messen keine verstrichene Zeit. Sieben markierte Maxima und Minima weichen um höchstens eine Empfangsbeobachtung und höchstens 0,1 dB von der Publikation ab und liegen damit innerhalb der grafischen Ablesetoleranzen.\n\nDiese Demo wendet eine **SNR-Korrektur der Referenz von +1,6 dB** an. Dies ist der gerundete Wert der Kalibrierung von **1,57 dB**, die auf der [Website der Autoren](https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-antenna-comparison-instrument) dokumentiert ist. Der Text der Publikation nennt **1,2 dB**, wie in Demo #4 untersucht. Die Rekonstruktion mit +1,6 dB stimmt eng mit Abbildung 6 überein, belegt jedoch nicht, welche Korrektur bei der Erstellung der veröffentlichten Abbildung verwendet wurde. Eine konstante Korrektur verschiebt die gesamte ΔSNR-Kurve senkrecht; sie verändert nicht die Höhe des Sprungs."
+        }
+      },
+      "settings": {
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "callsign": "ON4AWM0",
+          "qth": "JO20OT",
+          "band": "160m",
+          "time_selection": {
+            "start_utc": "2021-05-01T17:15Z",
+            "end_utc": "2021-05-15T07:00Z"
+          }
+        },
+        "comparison_parameters": {
+          "mode": "reference_station",
+          "operation_confirmed": true,
+          "reference_callsign": "ON4AWM1",
+          "snr_correction_mode": "established_offset",
+          "snr_correction_db": 1.6,
+          "reference_qth": "JO20",
+          "evidence_mode": "controlled",
+          "historical_replay_acknowledged": false
+        },
+        "advanced_parameters": {
+          "solar_state": "all",
+          "max_peer_distance_km": 5000,
+          "exclude_special_callsigns": false,
+          "exclude_moving_stations": false,
+          "min_spot_pairs_per_station": 3,
+          "min_qualifying_stations_per_map_segment": 3,
+          "min_decode_event_share_percent": 1.0,
+          "delta_snr_outlier_reporting": false
+        },
+        "results_view": {
+          "benchmark": {
+            "selected_ranges": "all",
+            "selected_directions": "all",
+            "show_unpaired": false,
+            "segment_evidence_time_bin": "12h",
+            "station_evidence_time_bin": "12h",
+            "selected_stations": [
+              {
+                "callsign": "M7AEO",
+                "locator": "IO82"
+              }
+            ]
+          }
+        }
+      },
+      "extensions": {}
+    },
+    "source_kind": "zip-member",
+    "archive_sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754",
+    "archive_member": "config/demos/02_vanhamel_rx_ab.config"
+  },
+  "source_inputs": {
+    "run_metadata.json": {
+      "archive": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_buddy\\20261021-export\\vanhamel-rotation-guided-demo-package.zip",
+      "archive_identity": {
+        "bytes": 8913377,
+        "sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb"
+      },
+      "member": "vanhamel-guided-demo/source/run_metadata.json",
+      "bytes": 6303,
+      "sha256": "b73a291deb3cf5396d0a32a4b41c8cf7db1f1ea570aff49533dd6a2e68c841c8"
+    },
+    "wspradar_config.config": {
+      "archive": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_buddy\\20261021-export\\vanhamel-rotation-guided-demo-package.zip",
+      "archive_identity": {
+        "bytes": 8913377,
+        "sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb"
+      },
+      "member": "vanhamel-guided-demo/source/wspradar_config.config",
+      "bytes": 8589,
+      "sha256": "97d2e10bb3315d3a490cb9b8d7f964cd10015bc1af4b5d9a9969eea472bab00f"
+    },
+    "table_drilldown_all_stations_current_segment.csv": {
+      "archive": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_buddy\\20261021-export\\vanhamel-rotation-guided-demo-package.zip",
+      "archive_identity": {
+        "bytes": 8913377,
+        "sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb"
+      },
+      "member": "vanhamel-guided-demo/source/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 496692,
+      "sha256": "eee947170b7d56be1e7f7f26ef427e4c8438e0699b97457db0da4d9e3aa52889"
+    },
+    "source_rows.csv": {
+      "path": "WSPRadarApp/tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1/source_rows.csv",
+      "bytes": 1836860,
+      "sha256": "84ab229a22555a365fc16ba707a16fd12c8a7b9b75f5b557768790ea2c07cf28",
+      "source_kind": "canonical frozen raw fixture"
+    }
+  },
+  "full_precision_replay": {
+    "recipe": "scripts\\internal\\prepare_retained_figure_evidence.py",
+    "sources": {
+      "run_metadata.json": {
+        "archive": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_buddy\\20261021-export\\vanhamel-rotation-guided-demo-package.zip",
+        "archive_identity": {
+          "bytes": 8913377,
+          "sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb"
+        },
+        "member": "vanhamel-guided-demo/source/run_metadata.json",
+        "bytes": 6303,
+        "sha256": "b73a291deb3cf5396d0a32a4b41c8cf7db1f1ea570aff49533dd6a2e68c841c8"
+      },
+      "wspradar_config.config": {
+        "archive": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_buddy\\20261021-export\\vanhamel-rotation-guided-demo-package.zip",
+        "archive_identity": {
+          "bytes": 8913377,
+          "sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb"
+        },
+        "member": "vanhamel-guided-demo/source/wspradar_config.config",
+        "bytes": 8589,
+        "sha256": "97d2e10bb3315d3a490cb9b8d7f964cd10015bc1af4b5d9a9969eea472bab00f"
+      },
+      "table_drilldown_all_stations_current_segment.csv": {
+        "archive": "C:\\Users\\marku\\Code\\WSPRadar\\source\\archive\\demos\\vanhamel_rx_buddy\\20261021-export\\vanhamel-rotation-guided-demo-package.zip",
+        "archive_identity": {
+          "bytes": 8913377,
+          "sha256": "537741ba103dc21d399d32d8179d3e10a289b927fc8e7c6ae0c31eae467a99eb"
+        },
+        "member": "vanhamel-guided-demo/source/table_drilldown_all_stations_current_segment.csv",
+        "bytes": 496692,
+        "sha256": "eee947170b7d56be1e7f7f26ef427e4c8438e0699b97457db0da4d9e3aa52889"
+      },
+      "source_rows.csv": {
+        "path": "WSPRadarApp/tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1/source_rows.csv",
+        "bytes": 1836860,
+        "sha256": "84ab229a22555a365fc16ba707a16fd12c8a7b9b75f5b557768790ea2c07cf28",
+        "source_kind": "canonical frozen raw fixture"
+      }
+    },
+    "observed_station_cycles": 7164,
+    "spot_pairs": 5379,
+    "endpoint_ledger": "Every identity, cycle, side-presence, displayed normalized SNR and ΔSNR matched; no CSV values used as plot inputs",
+    "scientific_values": "Full precision production output from retained raw reports",
+    "selected_station": {
+      "callsign": "M7AEO",
+      "locator": "IO82"
+    },
+    "source_sql_sha256": "bf14b2352a7e5c808aaaf4f3de36738bf47ed5974adbc4d43a6665d8064caf86",
+    "limitations": "Offline SQLite adapter; no native ClickHouse or live provider check"
+  },
+  "walkthrough_selection": "M7AEO (IO82) and 12h bins from the current demo configuration.",
+  "output_aliases": [
+    {
+      "file": "temporal-coverage.en.png",
+      "bytes": 505796,
+      "sha256": "4f32d49e56c996d0f717adf8d7dc0b178d25fa65e9c7b8848269d64261048828",
+      "dimensions": [
+        3817,
+        1641
+      ]
+    },
+    {
+      "file": "temporal-coverage.en-520.webp",
+      "bytes": 74346,
+      "sha256": "80d07383f6809a51440bf6149da27605243449c963dbd720b1be5873922368a9"
+    },
+    {
+      "file": "temporal-coverage.en-1040.webp",
+      "bytes": 159740,
+      "sha256": "5819345b462de11d3c93f2fdda4d3010d7c3142e7599c6dbf68ebd484b804df1"
+    }
+  ],
+  "originating_provenance_sha256": "a3096ab822386a87ac4965c2ba724ce70a5f425c922255e4f0f6745ad8dfc011",
+  "frozen_runtime_source_archive": {
+    "path": "source/archive/spot-pair-renderers/pre-typography-runtime/frozen-runtime-source.zip",
+    "sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+  },
+  "frozen_runtime_source_manifest": {
+    "path": "source/archive/spot-pair-renderers/pre-typography-runtime/provenance/media-source-manifest.json",
+    "sha256": "8db80225f3a50e781c3b6502b4f2082854cce686a8807714ce15c26dedc22ec4"
+  }
+}

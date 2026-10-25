@@ -1,0 +1,5 @@
+Date/Time (UTC),TX Station,Locator,km,Azimuth,Outcome,Target (T),Elsewhere (E),Target SNR (dB @ 30 dBm)
+09-Apr-2017 18:08:00,HB0QRP,JN47,844,112.9,T - Target,1,0,-8.0
+09-Apr-2017 18:12:00,HB0QRP,JN47,844,112.9,Target-only,1,0,-8.0
+09-Apr-2017 18:16:00,HB0QRP,JN47,844,112.9,T - Target,1,0,0.0
+09-Apr-2017 18:20:00,HB0QRP,JN47,844,112.9,E - Elsewhere,0,1,

@@ -1,0 +1,384 @@
+{
+  "schema_version": 1,
+  "language": "en",
+  "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+  "source_evidence": {
+    "filename": "analysis_cache.parquet",
+    "bytes": 1445197,
+    "sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed"
+  },
+  "source_metadata": {
+    "filename": "run_metadata.json",
+    "bytes": 4018,
+    "sha256": "b3f2197a6c32d238b960bbb8e75a37ae1976bc320160950a3b81d548c798c37c"
+  },
+  "source_configuration": {
+    "filename": "wspradar_config.config",
+    "bytes": 6726,
+    "sha256": "bd0c60f77ead0eaa058b0590b1a1128d87f9ea9b414a88a56405d6f2a5886f2a"
+  },
+  "configuration": {
+    "filename": "00a_griffiths_squibb_fig3.config",
+    "bytes": 6605,
+    "sha256": "c8c9deb39a2d8dc20b1e9d6007b5b3360fef0a927dfbfa8a92f4f84b2db2b442"
+  },
+  "analysis_context": {
+    "run_mode": "RX",
+    "callsign": "G3ZIL",
+    "qth": "IO90HW",
+    "band": "40m",
+    "comparison_mode": "reference_station",
+    "reference_callsign": "G4HZX",
+    "reference_qth": "IO91",
+    "benchmark_evidence_mode": "controlled",
+    "benchmark_operation_confirmed": true,
+    "benchmark_historical_replay_confirmed": false,
+    "reference_snr_correction_db": 0.0,
+    "solar_state": "all",
+    "max_peer_distance_km": 10000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_joint_spots_per_station": 1,
+    "min_confirmed_opportunities_per_peer": 5,
+    "min_qualifying_stations_per_map_segment": 5,
+    "min_decode_event_share_percent": 1.0
+  },
+  "scope": "full completed analysis; selected station retains full-run evidence",
+  "selection": {
+    "callsign": "DJ0ABR",
+    "locator": "JN68NT"
+  },
+  "bins": {
+    "segment": "24h",
+    "selected": "12h"
+  },
+  "decode_summary": {
+    "decode_val": 24.425894099353467,
+    "decode_cnt": 1132,
+    "decode_total_events": 125518,
+    "decode_joint_events": 57767,
+    "decode_target_only_events": 56260,
+    "decode_reference_only_events": 11491,
+    "decode_target_total": 114027,
+    "decode_reference_total": 69258,
+    "decode_net_events": 44769
+  },
+  "selected_decode_summary": {
+    "decode_val": 4.663422546634226,
+    "decode_cnt": 1,
+    "decode_total_events": 2598,
+    "decode_joint_events": 2334,
+    "decode_target_only_events": 247,
+    "decode_reference_only_events": 17,
+    "decode_target_total": 2581,
+    "decode_reference_total": 2351,
+    "decode_net_events": 230
+  },
+  "station_reach_formula": "100*(target_distinct-reference_distinct)/(target_distinct+reference_distinct)",
+  "spot_decode_formula": "100*(T-R)/(2*J+T+R)",
+  "station_fold": "Classify per UTC date-hour and exact station identity; ratio of summed daily side totals",
+  "cumulative_snr": {
+    "minimum_db": -34,
+    "maximum_db": 25,
+    "step_db": 1,
+    "spots": {
+      "joint": {
+        "target_count": 57767,
+        "reference_count": 57767,
+        "either_count": 57767
+      },
+      "one_sided": {
+        "target_count": 56260,
+        "reference_count": 11491,
+        "either_count": 67751
+      },
+      "total": {
+        "target_count": 114027,
+        "reference_count": 69258,
+        "either_count": 125518
+      }
+    },
+    "stations": {
+      "joint": {
+        "target_count": 792,
+        "reference_count": 792,
+        "either_count": 792
+      },
+      "one_sided": {
+        "target_count": 256,
+        "reference_count": 49,
+        "either_count": 305,
+        "exclusive_target_count": 256,
+        "exclusive_reference_count": 49,
+        "async_count": 35
+      },
+      "total": {
+        "target_count": 1083,
+        "reference_count": 876,
+        "either_count": 1132
+      }
+    }
+  },
+  "map_support": {
+    "minimum_joint_spots_per_station": 1,
+    "minimum_qualifying_stations_per_segment": 5,
+    "minimum_decode_event_share_percent": 1.0
+  },
+  "figures": [
+    {
+      "path": "figure_map_delta_snr_dark.png",
+      "width": 3423,
+      "height": 3511,
+      "bytes": 1435038,
+      "sha256": "e0789ea35dd7d06dce0f439771c4729453883db1756ba0f4e576eb988a291e6a",
+      "variants": [
+        {
+          "path": "figure_map_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 615,
+          "bytes": 118104,
+          "sha256": "99733023fe7463d9b9a97430bb200f53f9d734e1456d67f1addef140d05e2ca0"
+        },
+        {
+          "path": "figure_map_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 1231,
+          "bytes": 315490,
+          "sha256": "0681523d08db1d6a57f7ec95f03a663224091cd75208ee26793b69582610f396"
+        }
+      ],
+      "renderer": "core.plot_engine.render_map_figure",
+      "benchmark_metric": "delta_snr",
+      "recipe_schema_version": null
+    },
+    {
+      "path": "figure_decodes_over_snr_dark.png",
+      "width": 3819,
+      "height": 2453,
+      "bytes": 409799,
+      "sha256": "6ecb88ef58e741f55d83baca2de031adcb88681249387b23e1ca273a333a728f",
+      "variants": [
+        {
+          "path": "figure_decodes_over_snr_dark-600.webp",
+          "width": 600,
+          "height": 385,
+          "bytes": 55592,
+          "sha256": "0d8ebc57ecf12e5d0db3e4d4acc071d3d34fc85da99004eaa6e669db2d19c574"
+        },
+        {
+          "path": "figure_decodes_over_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 771,
+          "bytes": 135524,
+          "sha256": "b7392b6c899fb1eb44e6423f8a6e7bf9fcda5d32133ba94353f00c51a19ab5aa"
+        }
+      ],
+      "renderer": "ui.plots.snr_reach_figures.render_snr_reach_figure",
+      "recipe_schema_version": 3
+    },
+    {
+      "path": "figure_map_delta_decode_dark.png",
+      "width": 3459,
+      "height": 3511,
+      "bytes": 1433637,
+      "sha256": "7ab70beebb111aed1e5a7becb25236e90409dc96771b5fcb51097fd8683bff3d",
+      "variants": [
+        {
+          "path": "figure_map_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 609,
+          "bytes": 113216,
+          "sha256": "eaa55897a69cb89af38e857b9ac92ab3a3cfdca761fc5954e841548883d1f188"
+        },
+        {
+          "path": "figure_map_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 1218,
+          "bytes": 303186,
+          "sha256": "8d41613c94d259af7a07753b9b2af9d7fff522b66904a1507d192eb1bcfe371f"
+        }
+      ],
+      "renderer": "core.plot_engine.render_map_figure",
+      "benchmark_metric": "delta_decode",
+      "recipe_schema_version": null
+    },
+    {
+      "path": "figure_segment_statistics_dark.png",
+      "width": 3852,
+      "height": 1657,
+      "bytes": 319708,
+      "sha256": "9361de593715bcdd2f1d06b5af917b76e32dc759bfd5a6393640dffafa14a61d",
+      "variants": [
+        {
+          "path": "figure_segment_statistics_dark-600.webp",
+          "width": 600,
+          "height": 258,
+          "bytes": 40842,
+          "sha256": "92b9c349cb7c0a20c1e6c7d317ecd1c84cb67229ae410624068e4d6b8539d3dd"
+        },
+        {
+          "path": "figure_segment_statistics_dark-1200.webp",
+          "width": 1200,
+          "height": 516,
+          "bytes": 100416,
+          "sha256": "4788ef3a7d3fb753bbf50f53fc51bf8941ca7d9136adfd04a95fc1825e297f33"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+      "recipe_schema_version": 8
+    },
+    {
+      "path": "figure_segment_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1731,
+      "bytes": 519561,
+      "sha256": "2b70b4ebf449339fde9936f24bdf171c896788159c39c7c12bb0ad556df7cad5",
+      "variants": [
+        {
+          "path": "figure_segment_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 273,
+          "bytes": 81632,
+          "sha256": "594ea572bec07eb0b1ad0f853ab83f5a09a271adad8e58090126a8e241625096"
+        },
+        {
+          "path": "figure_segment_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 545,
+          "bytes": 168922,
+          "sha256": "6c9d6274eff71440d295ae5e0c6c4945bef6b7d7c3138d1596d4e613737ffe1d"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_segment_temporal_evidence_export_figure",
+      "recipe_schema_version": 8
+    },
+    {
+      "path": "figure_segment_temporal_delta_decode_dark.png",
+      "width": 3840,
+      "height": 1641,
+      "bytes": 397237,
+      "sha256": "ecd0a7adbcc817a8e14fe3800bc707a1ff7e4ba398188dae432668c6c57c8687",
+      "variants": [
+        {
+          "path": "figure_segment_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 256,
+          "bytes": 69398,
+          "sha256": "ed5ea0d106c4093606ac5dbe0e5388de781fcc4fa31be4cddab72aa820f23bc8"
+        },
+        {
+          "path": "figure_segment_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 513,
+          "bytes": 131482,
+          "sha256": "76ed10ac8ccbbac57ae2360f7b3f411ff1c3e874001c60554a884cece1f18c4e"
+        }
+      ],
+      "renderer": "ui.plots.benchmark_evidence_figures.render_compare_temporal_coverage_export_figure",
+      "recipe_schema_version": 5
+    },
+    {
+      "path": "figure_selected_station_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1816,
+      "bytes": 767485,
+      "sha256": "d3b4db2ee647cef652196f9fbfdef07cbea11c9d76a8fec4aaf21a8f1bb7d489",
+      "variants": [
+        {
+          "path": "figure_selected_station_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 286,
+          "bytes": 110210,
+          "sha256": "4730593baac9ebf9408c8bcdf6c654757ce3b73a0414119e06534df27f8f4f20"
+        },
+        {
+          "path": "figure_selected_station_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 572,
+          "bytes": 243800,
+          "sha256": "0cdfa9bf21cd1212ad0edc72b7814be8b30307061b07b3638f6b1700573196c0"
+        }
+      ],
+      "renderer": "ui.plots.evidence_figures.render_selected_evidence_export_figure",
+      "recipe_schema_version": 8
+    },
+    {
+      "path": "figure_selected_station_temporal_delta_decode_dark.png",
+      "width": 3793,
+      "height": 1717,
+      "bytes": 326847,
+      "sha256": "79ff412312c20997a336ca72afa4ae96c9b6c8bd4a01954f7573d535e6f77fd4",
+      "variants": [
+        {
+          "path": "figure_selected_station_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 272,
+          "bytes": 46150,
+          "sha256": "3a63e44c6f8be86a0c7094a7f9d0d840dc58610f3f7f86d8e5bcc7d7160c0762"
+        },
+        {
+          "path": "figure_selected_station_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 543,
+          "bytes": 91658,
+          "sha256": "a0d8b98b7fbd8bf36926c154297622a24d69c6d830ea0f702a28cc79af23c442"
+        }
+      ],
+      "renderer": "ui.plots.benchmark_evidence_figures.render_selected_compare_coverage_export_figure",
+      "recipe_schema_version": 5
+    }
+  ],
+  "renderer_sources": {
+    "core/plot_engine.py": {
+      "bytes": 50661,
+      "sha256": "a84102e254b585d7983a5537296a68e84f66c4e1ac71466dd4296784e9cea98d"
+    },
+    "core/figure_footer.py": {
+      "bytes": 4851,
+      "sha256": "7c66e4b3a7b16ab0fdee86c7c83f6e3a4d1bafebc8b7fd1139ad62d917edec01"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 14123,
+      "sha256": "c9e585e748738ad917ff97f427aad510ee84e76f584efb4a54112723fbe3884a"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 35632,
+      "sha256": "a002158aa0ee26314250e386f65b7aec76a280e0f3553d5d89e8f338b86966ba"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 112221,
+      "sha256": "30739a3d26fa58fac2b79844b87defe055b94ddcd3dc21e965371121f99fe18f"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 24010,
+      "sha256": "c4829d027c17166a3f2354bd8642aee1f3822a19fb7ff89710d244bd08066f5f"
+    },
+    "ui/plots/temporal_layout.py": {
+      "bytes": 8899,
+      "sha256": "43313470abd54f7e239d8c90368b75f1c3c08a34bf2dcc86c92843202717b6ac"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 92371,
+      "sha256": "ae00ea2dbc3d5bb5f1bc14bf5b07c30bbc72328c510f6886b501b8ee15bc6d80"
+    },
+    "ui/inspector/presentation.py": {
+      "bytes": 23755,
+      "sha256": "7f47483861362deeec878ff1f23f6dbe90e2d6d0a03b8a6c1aea87d6a7be0af8"
+    },
+    "i18n.py": {
+      "bytes": 348593,
+      "sha256": "e727130b1f2765d9af135446678d79f90caa7006e64b23bedc5cb4110dffc55d"
+    },
+    "scripts/internal/render_benchmark_temporal_refresh.py": {
+      "bytes": 18480,
+      "sha256": "cb87c261ff16317e33432e18405a1deaa6061c1dc4553ba1497830882cabf3a7"
+    }
+  },
+  "browser_derivatives": {
+    "tool": "Pillow 12.2.0",
+    "encoding": "lossless WebP; quality=100; method=4; exact=True",
+    "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+    "decoded_pixels_equal_resized_source": true
+  },
+  "limitations": "Offline retained evidence refresh; source metadata does not prove historical common operation or missing-both transmissions. No fresh provider retrieval."
+}

@@ -1,0 +1,324 @@
+{
+  "en": {
+    "home": "Introduction",
+    "why": "Why WSPRadar",
+    "docs": "Documentation",
+    "demos": "Guided Demo",
+    "community": "Community",
+    "bug": "Report a Bug",
+    "nav_demos": "Guided Demo",
+    "open": "Open WSPRadar App",
+    "start_analysis": "Start analysis",
+    "skip": "Skip to content",
+    "menu": "Menu",
+    "language": "Language",
+    "change_language": "Change language",
+    "eyebrow": {
+      "$text": "home.en.md#shared.eyebrow"
+    },
+    "hero": {
+      "$text": "home.en.md#shared.hero"
+    },
+    "intro": {
+      "$text": "home.en.md#shared.intro"
+    },
+    "hero_note": {
+      "$text": "home.en.md#shared.hero_note"
+    },
+    "start": "Explore a worked example",
+    "follow": "Follow the evidence",
+    "choose_title": {
+      "$text": "home.en.md#shared.choose_title"
+    },
+    "choose_body": {
+      "$text": "home.en.md#shared.choose_body"
+    },
+    "choose_link": "Choose your analysis",
+    "experiment_title": {
+      "$text": "home.en.md#shared.experiment_title"
+    },
+    "experiment_body": {
+      "$text": "home.en.md#shared.experiment_body"
+    },
+    "experiment_link": "Prepare your station",
+    "run_title": {
+      "$text": "home.en.md#shared.run_title"
+    },
+    "run_body": {
+      "$text": "home.en.md#shared.run_body"
+    },
+    "benchmark": "Compare a station or setup",
+    "benchmark_body": {
+      "$text": "home.en.md#shared.benchmark_body"
+    },
+    "performance": "Understand station performance",
+    "performance_body": {
+      "$text": "home.en.md#shared.performance_body"
+    },
+    "demo_feature": "Explore the experiments behind the app",
+    "demo_context": {
+      "$text": "demos-index.en.md#shared.demo_context"
+    },
+    "demo_summary": {
+      "$text": "demos-index.en.md#shared.demo_summary"
+    },
+    "browse_demos": "Browse all guided demos",
+    "all_docs": "The complete documentation",
+    "full_manual": "Read the complete manual",
+    "download_documentation_pdf": "Download documentation (PDF)",
+    "manual_start_title": {
+      "$text": "documentation.en.md#shared.manual_start_title"
+    },
+    "manual_start_body": {
+      "$text": "documentation.en.md#shared.manual_start_body"
+    },
+    "manual_start_link": "Read Why WSPRadar?",
+    "connect": "Connect with the community",
+    "connect_body": {
+      "$text": "home.en.md#shared.connect_body"
+    },
+    "improve": "Help improve WSPRadar",
+    "improve_body": {
+      "$text": "home.en.md#shared.improve_body"
+    },
+    "experiment": "Experimental station analysis",
+    "disclaimer": "Experimental Use & Disclaimer",
+    "content_version": "Documentation for",
+    "demo_title": {
+      "$text": "demos-index.en.md#shared.demo_title"
+    },
+    "demo_intro": {
+      "$text": "demos-index.en.md#shared.demo_intro"
+    },
+    "filter": "Find a demo by name, station, or topic",
+    "walkthrough": "Explore guided demo",
+    "no_figures": {
+      "$text": "demos-index.en.md#shared.no_figures"
+    },
+    "download_config": "Download demo configuration",
+    "run_demo": "Run in WSPRadar App",
+    "original_description": "Experiment and interpretation",
+    "walkthrough_steps": "Work through the result",
+    "figures": "Publication and reconstruction figures",
+    "screenshots": "Inside the running app",
+    "contents": "On this page",
+    "full_size": "Open full-size image",
+    "english_capture": "Captured from the English app interface.",
+    "guides_title": {
+      "$text": "guide-introduction.en.md#shared.guides_title"
+    },
+    "guides_intro": {
+      "$text": "guide-introduction.en.md#shared.guides_intro"
+    },
+    "read_manual": "Read the full explanation",
+    "related_demo": "Explore a worked example",
+    "community_title": {
+      "$text": "community.en.md#shared.community_title"
+    },
+    "community_intro": {
+      "$text": "community.en.md#shared.community_intro"
+    },
+    "participation": {
+      "$text": "community.en.md#shared.participation"
+    },
+    "share_experiment": "Share an experiment",
+    "questions": "Ask a question",
+    "questions_body": {
+      "$text": "community.en.md#shared.questions_body"
+    },
+    "experiments": "Discuss your experiments",
+    "experiments_body": {
+      "$text": "community.en.md#shared.experiments_body"
+    },
+    "ask": "Ask a question",
+    "feature": "Ideas and feature requests",
+    "feature_body": {
+      "$text": "community.en.md#shared.feature_body"
+    },
+    "report_category": "Report a bug or concern",
+    "scientific_body": {
+      "$text": "report.en.md#shared.scientific_body"
+    },
+    "report_summary": {
+      "$text": "report.en.md#shared.report_summary"
+    },
+    "bug_intro": {
+      "$text": "report.en.md#shared.bug_intro"
+    },
+    "report_body": {
+      "$text": "report.en.md#shared.report_body"
+    },
+    "report_followup": {
+      "$text": "report.en.md#shared.report_followup"
+    },
+    "continue": "Start a discussion",
+    "print": "Print / save as PDF using your browser",
+    "previous": "Previous",
+    "next": "Next",
+    "manual_intro": {
+      "$text": "documentation.en.md#shared.manual_intro"
+    },
+    "preview": "First website implementation · review preview"
+  },
+  "de": {
+    "home": "Einführung",
+    "why": "Warum WSPRadar",
+    "docs": "Dokumentation",
+    "demos": "Geführte Demo",
+    "community": "Community",
+    "bug": "Fehler melden",
+    "nav_demos": "Geführte Demo",
+    "open": "WSPRadar App öffnen",
+    "start_analysis": "Analyse starten",
+    "skip": "Zum Inhalt",
+    "menu": "Menü",
+    "language": "Sprache",
+    "change_language": "Sprache ändern",
+    "eyebrow": {
+      "$text": "home.de.md#shared.eyebrow"
+    },
+    "hero": {
+      "$text": "home.de.md#shared.hero"
+    },
+    "intro": {
+      "$text": "home.de.md#shared.intro"
+    },
+    "hero_note": {
+      "$text": "home.de.md#shared.hero_note"
+    },
+    "start": "Ein Beispiel durcharbeiten",
+    "follow": "Der Evidenz folgen",
+    "choose_title": {
+      "$text": "home.de.md#shared.choose_title"
+    },
+    "choose_body": {
+      "$text": "home.de.md#shared.choose_body"
+    },
+    "choose_link": "Wähle deine Analyse",
+    "experiment_title": {
+      "$text": "home.de.md#shared.experiment_title"
+    },
+    "experiment_body": {
+      "$text": "home.de.md#shared.experiment_body"
+    },
+    "experiment_link": "Bereite deine Station vor",
+    "run_title": {
+      "$text": "home.de.md#shared.run_title"
+    },
+    "run_body": {
+      "$text": "home.de.md#shared.run_body"
+    },
+    "benchmark": "Stationen oder Aufbauten vergleichen",
+    "benchmark_body": {
+      "$text": "home.de.md#shared.benchmark_body"
+    },
+    "performance": "Das Verhalten deiner Station verstehen",
+    "performance_body": {
+      "$text": "home.de.md#shared.performance_body"
+    },
+    "demo_feature": "Die Experimente hinter der Anwendung erkunden",
+    "demo_context": {
+      "$text": "demos-index.de.md#shared.demo_context"
+    },
+    "demo_summary": {
+      "$text": "demos-index.de.md#shared.demo_summary"
+    },
+    "browse_demos": "Alle geführten Demos ansehen",
+    "all_docs": "Die vollständige Dokumentation",
+    "full_manual": "Das vollständige Handbuch lesen",
+    "download_documentation_pdf": "Dokumentation als PDF herunterladen",
+    "manual_start_title": {
+      "$text": "documentation.de.md#shared.manual_start_title"
+    },
+    "manual_start_body": {
+      "$text": "documentation.de.md#shared.manual_start_body"
+    },
+    "manual_start_link": "Lies „Warum WSPRadar?“",
+    "connect": "Mit der Community austauschen",
+    "connect_body": {
+      "$text": "home.de.md#shared.connect_body"
+    },
+    "improve": "WSPRadar gemeinsam verbessern",
+    "improve_body": {
+      "$text": "home.de.md#shared.improve_body"
+    },
+    "experiment": "Experimentelle Stationsanalyse",
+    "disclaimer": "Experimentelle Nutzung und Haftungsausschluss",
+    "content_version": "Dokumentation für",
+    "demo_title": {
+      "$text": "demos-index.de.md#shared.demo_title"
+    },
+    "demo_intro": {
+      "$text": "demos-index.de.md#shared.demo_intro"
+    },
+    "filter": "Demo nach Name, Station oder Thema suchen",
+    "walkthrough": "Anleitung ansehen",
+    "no_figures": {
+      "$text": "demos-index.de.md#shared.no_figures"
+    },
+    "download_config": "Demo-Konfiguration herunterladen",
+    "run_demo": "In WSPRadar App starten",
+    "original_description": "Experiment und Interpretation",
+    "walkthrough_steps": "Das Ergebnis Schritt für Schritt untersuchen",
+    "figures": "Abbildungen aus Veröffentlichung und Rekonstruktion",
+    "screenshots": "Ansichten der laufenden Anwendung",
+    "contents": "Auf dieser Seite",
+    "full_size": "Bild in voller Größe öffnen",
+    "english_capture": "Aufnahme der englischen Benutzeroberfläche.",
+    "guides_title": {
+      "$text": "guide-introduction.de.md#shared.guides_title"
+    },
+    "guides_intro": {
+      "$text": "guide-introduction.de.md#shared.guides_intro"
+    },
+    "read_manual": "Die vollständige Erklärung lesen",
+    "related_demo": "Ein Beispiel durcharbeiten",
+    "community_title": {
+      "$text": "community.de.md#shared.community_title"
+    },
+    "community_intro": {
+      "$text": "community.de.md#shared.community_intro"
+    },
+    "participation": {
+      "$text": "community.de.md#shared.participation"
+    },
+    "share_experiment": "Ein Experiment vorstellen",
+    "questions": "Eine Frage stellen",
+    "questions_body": {
+      "$text": "community.de.md#shared.questions_body"
+    },
+    "experiments": "Experimente diskutieren",
+    "experiments_body": {
+      "$text": "community.de.md#shared.experiments_body"
+    },
+    "ask": "Eine Frage stellen",
+    "feature": "Ideen und Funktionswünsche",
+    "feature_body": {
+      "$text": "community.de.md#shared.feature_body"
+    },
+    "report_category": "Fehler oder Bedenken melden",
+    "scientific_body": {
+      "$text": "report.de.md#shared.scientific_body"
+    },
+    "report_summary": {
+      "$text": "report.de.md#shared.report_summary"
+    },
+    "bug_intro": {
+      "$text": "report.de.md#shared.bug_intro"
+    },
+    "report_body": {
+      "$text": "report.de.md#shared.report_body"
+    },
+    "report_followup": {
+      "$text": "report.de.md#shared.report_followup"
+    },
+    "continue": "Eine Diskussion beginnen",
+    "print": "Über den Browser drucken oder als PDF speichern",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "manual_intro": {
+      "$text": "documentation.de.md#shared.manual_intro"
+    },
+    "preview": "Erste Website-Umsetzung · Vorschau zur Prüfung"
+  }
+}

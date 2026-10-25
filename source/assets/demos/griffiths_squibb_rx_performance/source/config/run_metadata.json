@@ -1,0 +1,78 @@
+{
+  "app": "WSPRadar.org",
+  "version": "v1.0 RC3",
+  "export_signature": "4d53866c6385c4ced2e88587884cc0b1833f8e23ccc83cbf9e8bed805cceaaa6",
+  "exported_utc": "2026-10-24T20:01:00Z",
+  "language": "en",
+  "run_mode": "RX",
+  "database_source": "wd2",
+  "blocks_present": {
+    "benchmark": false,
+    "performance": true
+  },
+  "callsign": "G3ZIL",
+  "reference_or_benchmark_mode": "none",
+  "band": "40m",
+  "time_window": {
+    "start_utc": "2017-04-01T00:00Z",
+    "end_utc": "2017-05-01T00:00Z"
+  },
+  "benchmark_snr_correction_mode": null,
+  "benchmark_snr_correction_db": null,
+  "thresholds_and_filters": {
+    "solar_state": "all",
+    "max_peer_distance_km": 22000,
+    "exclude_special_callsigns": false,
+    "exclude_moving_stations": false,
+    "min_qualifying_stations_per_map_segment": 1,
+    "min_confirmed_opportunities_per_peer": 3
+  },
+  "result_blocks": [
+    {
+      "analysis_id": "rx_performance",
+      "title": "RX Performance: G3ZIL — Heard by Target vs. Heard by Others Only",
+      "folder": "performance",
+      "result_mode": "performance",
+      "decode_filter_mode": "legacy_no_code",
+      "analysis_cache_file": "performance/analysis_cache.parquet",
+      "selected_segment": "Full Range | All Directions",
+      "selected_distance": "Full Range",
+      "selected_direction": "All Directions",
+      "selected_ranges": [
+        "Full Range"
+      ],
+      "selected_directions": [
+        "All Directions"
+      ],
+      "selected_stations": [
+        "HB0QRP (JN47)"
+      ],
+      "station_browsing": {
+        "scope": "inspector",
+        "selected_ranges": [
+          "Full Range"
+        ],
+        "selected_directions": [
+          "All Directions"
+        ],
+        "filters": {},
+        "table": "table_station_insights_current_segment.csv"
+      },
+      "selected_station_label": "HB0QRP (JN47)",
+      "selected_station_context": "HB0QRP (JN47) · 844 km · 113° ESE\n7 762 confirmed opportunities · Decode Rate 44.0% · Median Target SNR −15.0 dB",
+      "selected_station_count": 1,
+      "selected_station_role": "TX",
+      "selected_evidence_weighting": "Single selected path",
+      "selected_evidence_figures": {
+        "figure_selected_station_snr_evidence.png": "RX Performance Selected Station SNR Evidence: HB0QRP (JN47)",
+        "figure_selected_station_temporal_evidence.png": "RX Performance Selected Station Temporal Evidence: HB0QRP (JN47)"
+      },
+      "benchmark_evidence_figures": {},
+      "show_unpaired": false,
+      "show_zero_target": false,
+      "evidence_time_bin": "12h",
+      "segment_evidence_time_bin": "12h",
+      "performance_method_version": "opportunity-v3"
+    }
+  ]
+}

@@ -1,0 +1,830 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "evidence/2017-04-09_1820_Target_activity_witnesses.csv",
+      "bytes": 620,
+      "sha256": "78e0a6ce26edd5614cb8eba929d4237d61b171e1e4f8f29979b3ba06ed56ad68"
+    },
+    {
+      "path": "evidence/audit_rx.py",
+      "bytes": 14152,
+      "sha256": "3a31ecb4ddedcf9b8f6dd977e9fcd0d08ffcd564f9988514a1fa067b6ea5b2fa"
+    },
+    {
+      "path": "evidence/baseline_comparison.json",
+      "bytes": 934,
+      "sha256": "d5a61b5ae8a9514ce0746905514331f4d06ce9e625bd62db9add6c6beda3a203"
+    },
+    {
+      "path": "evidence/claim_change_ledger.csv",
+      "bytes": 520,
+      "sha256": "993476ca4375b5a51784cf491f49c4ddefcadcd9d906e947b1cbe8e20d68288e"
+    },
+    {
+      "path": "evidence/distance.csv",
+      "bytes": 1102,
+      "sha256": "5d5500b31a449090305bebad9222df5ba2eafc3836240f8426681d05feb1f3be"
+    },
+    {
+      "path": "evidence/farthest_heard_station.csv",
+      "bytes": 322,
+      "sha256": "e89f866f59c4597fad69a197ad96757abb96f0f91a7c15594af84b558c1eaa5a"
+    },
+    {
+      "path": "evidence/farthest_heard_success_rows.csv",
+      "bytes": 302,
+      "sha256": "97952b991ad5ce49e5669ec9f5c097277b72c36be3c8d8869d6abb7336aca7eb"
+    },
+    {
+      "path": "evidence/global_12h.csv",
+      "bytes": 6322,
+      "sha256": "850b5eec85bf553810ce0a916f4d890826e0f929ba2e401c049d9b7172ce1611"
+    },
+    {
+      "path": "evidence/global_hourly.csv",
+      "bytes": 2914,
+      "sha256": "6cc986947e208cf356e747aa6d8d5978b975357767ce86f575b17425c2ceee4e"
+    },
+    {
+      "path": "evidence/HB0QRP_12h.csv",
+      "bytes": 5815,
+      "sha256": "5901c24e23f31d1354557833f8c5d5a2e91596995af1a456519f3d91afba9661"
+    },
+    {
+      "path": "evidence/HB0QRP_hourly.csv",
+      "bytes": 2581,
+      "sha256": "291043974d908f4bbdbaf126677da580c9c2189c204a4e3fa5e2b4c79d7832c3"
+    },
+    {
+      "path": "evidence/map_segments.csv",
+      "bytes": 5390,
+      "sha256": "ea7a2d5f7127c3ffa65e90db9c69b2ff4de084d23ba30e9626fba4c8d5dab38a"
+    },
+    {
+      "path": "evidence/overview.json",
+      "bytes": 2063,
+      "sha256": "bb2e9b709fc81ba6f90d106988e0bafad7b515230aee7b0b7eff3db4d7a09f4c"
+    },
+    {
+      "path": "evidence/recommended_drilldown_rows.csv",
+      "bytes": 355,
+      "sha256": "ac161a1d129626bc5fca3599f5cdbf98886e500bdd31db807f62e9c5b3f74ca1"
+    },
+    {
+      "path": "evidence/stations.csv",
+      "bytes": 369582,
+      "sha256": "67dcb9662f6e3601fb37e26248eac17544d077ce1d8488b924356792692a0539"
+    },
+    {
+      "path": "evidence/verified_claims.md",
+      "bytes": 16349,
+      "sha256": "4f53a4162836ab952b10df0b72f5c70cf296e29f5b6a4247e0cec056028f62c8"
+    },
+    {
+      "path": "source/original_export.zip",
+      "bytes": 17414442,
+      "sha256": "ba2e68b9cb82d000eaf472ba9da4504dae1114afa05c23e198eae842390385ae"
+    },
+    {
+      "path": "source/config/wspradar_config.config",
+      "bytes": 3713,
+      "sha256": "b84efedf6f704c81ec8659204faf8e240f591c0df7c3466ce9ba9e8eba20fe7c"
+    },
+    {
+      "path": "source/config/run_metadata.json",
+      "bytes": 2670,
+      "sha256": "7d93e7b2a7d74af1b5d0fc784842603244446c4d8d96f054d2bf46d563a0dde4"
+    },
+    {
+      "path": "source/README.md",
+      "bytes": 271138,
+      "sha256": "111a9afcd0eed3a633a1878b4e3980d6fe0e19889e94a403e826800f324bd091"
+    },
+    {
+      "path": "source/disclaimer.txt",
+      "bytes": 1430,
+      "sha256": "4d425b26f22d9c4d4d6faf098de16905b0a7ff298c204f2083b98ddb73145c25"
+    },
+    {
+      "path": "config/G3ZIL_RX_Performance.config",
+      "bytes": 3714,
+      "sha256": "473d8b59f7d21285f7e63dae906af4211cabc8d864aacc8e8155b723d6f53df1"
+    },
+    {
+      "path": "handoff/figure_manifest.json",
+      "bytes": 6001,
+      "sha256": "2063c0f68359fa029b0bd659433b16bcde2feacb402d2201025e1caebc25b223"
+    },
+    {
+      "path": "assets/figure_map_highres.png",
+      "bytes": 1423302,
+      "sha256": "522e536d70ecd63baefec7a107a91f593b98e0b978ce1c3465d11504d7f1517c"
+    },
+    {
+      "path": "assets/figure_map_highres_dark.png",
+      "bytes": 1614713,
+      "sha256": "74ba985511363aa82853d35707eb6ff6f287baab9f15d2242095a0708b822891"
+    },
+    {
+      "path": "assets/figure_map_highres_dark-520.webp",
+      "bytes": 123892,
+      "sha256": "3719654999b30c7d463838c57104164738732172d3c3097e89d6290bb5c346a9",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark.png",
+        "source_sha256": "74ba985511363aa82853d35707eb6ff6f287baab9f15d2242095a0708b822891",
+        "source_bytes": 1614713,
+        "width": 520,
+        "height": 531,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_map_highres_dark-1040.webp",
+      "bytes": 320836,
+      "sha256": "56bcea09232d57d0f61c0bfa30e0bdf0e5832a3bb9ec69001e3eb73e8b64c367",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark.png",
+        "source_sha256": "74ba985511363aa82853d35707eb6ff6f287baab9f15d2242095a0708b822891",
+        "source_bytes": 1614713,
+        "width": 1040,
+        "height": 1063,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_map_highres_dark-1584.webp",
+      "bytes": 556598,
+      "sha256": "3fe9bb5e86a89f56075a0bd29ef0d82068b9c630c8d161df65658b2136d73434",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark.png",
+        "source_sha256": "74ba985511363aa82853d35707eb6ff6f287baab9f15d2242095a0708b822891",
+        "source_bytes": 1614713,
+        "width": 1584,
+        "height": 1619,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_insight.png",
+      "bytes": 623625,
+      "sha256": "8a9096a2021ebeb42f443a44cbf44966d916b98e1d9249233eee35ae6dc6e6dd"
+    },
+    {
+      "path": "assets/figure_segment_insight_dark.png",
+      "bytes": 697069,
+      "sha256": "e55af58c443a7c36ae9a8fea2bd088c2d0b31ee0f60771728bf2d65465f47b9f"
+    },
+    {
+      "path": "assets/figure_segment_insight_dark-520.webp",
+      "bytes": 63122,
+      "sha256": "b330ffe7fac3dc7f835015794721c9d8bb254ffc5f9c0485e1cd408d8f184157",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark.png",
+        "source_sha256": "e55af58c443a7c36ae9a8fea2bd088c2d0b31ee0f60771728bf2d65465f47b9f",
+        "source_bytes": 697069,
+        "width": 520,
+        "height": 292,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_insight_dark-1040.webp",
+      "bytes": 159330,
+      "sha256": "4b94a4086dac09d4f55e085ce0586538c6fac86f3c45a5bbab09eefa0e3ca728",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark.png",
+        "source_sha256": "e55af58c443a7c36ae9a8fea2bd088c2d0b31ee0f60771728bf2d65465f47b9f",
+        "source_bytes": 697069,
+        "width": 1040,
+        "height": 585,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_insight_dark-1584.webp",
+      "bytes": 265650,
+      "sha256": "856ed56a459ed7be5ebffe8bc07c43bb43ed6078cfc001914c566863f46cc3ec",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark.png",
+        "source_sha256": "e55af58c443a7c36ae9a8fea2bd088c2d0b31ee0f60771728bf2d65465f47b9f",
+        "source_bytes": 697069,
+        "width": 1584,
+        "height": 891,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_temporal_snr_deviation.png",
+      "bytes": 458082,
+      "sha256": "08c9652201800bfaf5e9f3887e8e1f062ea92dbc45323f8afae3397c649eeded"
+    },
+    {
+      "path": "assets/figure_segment_temporal_snr_deviation_dark.png",
+      "bytes": 604633,
+      "sha256": "8f12da2c40685b3817c689825e2bb1f4ad753182cbf683156e92fb2bd34fe07f"
+    },
+    {
+      "path": "assets/figure_segment_temporal_snr_deviation_dark-520.webp",
+      "bytes": 92738,
+      "sha256": "662cb5c35c34359626219e17f9c2ab23f7e2526ebf358855a087f8735168ab06",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark.png",
+        "source_sha256": "8f12da2c40685b3817c689825e2bb1f4ad753182cbf683156e92fb2bd34fe07f",
+        "source_bytes": 604633,
+        "width": 520,
+        "height": 249,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_temporal_snr_deviation_dark-1040.webp",
+      "bytes": 222704,
+      "sha256": "2add0f023a64cc29f5b230901a0ca809a31b8ab948bbbcc0f132641c261c34c2",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark.png",
+        "source_sha256": "8f12da2c40685b3817c689825e2bb1f4ad753182cbf683156e92fb2bd34fe07f",
+        "source_bytes": 604633,
+        "width": 1040,
+        "height": 498,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_temporal_snr_deviation_dark-1584.webp",
+      "bytes": 339878,
+      "sha256": "1061c8600404f4f494ea2f54024be27a43b3718d7699bdef10c9d9ce89f4af99",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark.png",
+        "source_sha256": "8f12da2c40685b3817c689825e2bb1f4ad753182cbf683156e92fb2bd34fe07f",
+        "source_bytes": 604633,
+        "width": 1584,
+        "height": 758,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_temporal_evidence.png",
+      "bytes": 441188,
+      "sha256": "31d266c9337ccc86ac608d36eae6d21f8de830a10f6ab88b8088dcbb3fef9981"
+    },
+    {
+      "path": "assets/figure_segment_temporal_evidence_dark.png",
+      "bytes": 510002,
+      "sha256": "68ffcfb80044099d7a3675e8d68e4075dc933ca7e624fdef9c427d0892e6c2b2"
+    },
+    {
+      "path": "assets/figure_segment_temporal_evidence_dark-520.webp",
+      "bytes": 82972,
+      "sha256": "ccd3122f99a2c354c189195548cf20417449de4d445749ae498eddca3e2c5e95",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark.png",
+        "source_sha256": "68ffcfb80044099d7a3675e8d68e4075dc933ca7e624fdef9c427d0892e6c2b2",
+        "source_bytes": 510002,
+        "width": 520,
+        "height": 244,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_temporal_evidence_dark-1040.webp",
+      "bytes": 173082,
+      "sha256": "c11f4cc2b32f6fb019908d2f23a30b5961230d6b42b4e4d1291df0f9780c7aa5",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark.png",
+        "source_sha256": "68ffcfb80044099d7a3675e8d68e4075dc933ca7e624fdef9c427d0892e6c2b2",
+        "source_bytes": 510002,
+        "width": 1040,
+        "height": 489,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_segment_temporal_evidence_dark-1584.webp",
+      "bytes": 259806,
+      "sha256": "f63b029f72447df69ac05268694477fdc4881eeef2ff265da18a3f1b1340e3a4",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark.png",
+        "source_sha256": "68ffcfb80044099d7a3675e8d68e4075dc933ca7e624fdef9c427d0892e6c2b2",
+        "source_bytes": 510002,
+        "width": 1584,
+        "height": 744,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_selected_station_snr_evidence.png",
+      "bytes": 515703,
+      "sha256": "e9e579d993e57c283f829cb35c0bb72bab84c1286696f6c5f4a51553feb47427"
+    },
+    {
+      "path": "assets/figure_selected_station_snr_evidence_dark.png",
+      "bytes": 723560,
+      "sha256": "34b7f856825b85a93754881c1ec74ea68a7fc90d58e787932ee6ab588d3ac643"
+    },
+    {
+      "path": "assets/figure_selected_station_snr_evidence_dark-520.webp",
+      "bytes": 90476,
+      "sha256": "171112e73e72bbc8ff45dc2d9479c145e25988c9dffe005395bcbecfe77225ed",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark.png",
+        "source_sha256": "34b7f856825b85a93754881c1ec74ea68a7fc90d58e787932ee6ab588d3ac643",
+        "source_bytes": 723560,
+        "width": 520,
+        "height": 262,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_selected_station_snr_evidence_dark-1040.webp",
+      "bytes": 210936,
+      "sha256": "4f5550c2450550787d0a2fc1865c94daa68b4b6ebc629821600985944dcc72eb",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark.png",
+        "source_sha256": "34b7f856825b85a93754881c1ec74ea68a7fc90d58e787932ee6ab588d3ac643",
+        "source_bytes": 723560,
+        "width": 1040,
+        "height": 525,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_selected_station_snr_evidence_dark-1584.webp",
+      "bytes": 334330,
+      "sha256": "2cbd3c112259e844687135415efd50b0cef0e79d0b6f283228ce650451ca781d",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark.png",
+        "source_sha256": "34b7f856825b85a93754881c1ec74ea68a7fc90d58e787932ee6ab588d3ac643",
+        "source_bytes": 723560,
+        "width": 1584,
+        "height": 799,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_selected_station_temporal_evidence.png",
+      "bytes": 493749,
+      "sha256": "07f26818bb8cb2fb22bd536b564353c063ad710e8731dec25f53580c6afc7888"
+    },
+    {
+      "path": "assets/figure_selected_station_temporal_evidence_dark.png",
+      "bytes": 570682,
+      "sha256": "b3c3aa13f7b578dde80f5481f32ef01bfde7d57d9b1d24cb313c20a28ee4de6e"
+    },
+    {
+      "path": "assets/figure_selected_station_temporal_evidence_dark-520.webp",
+      "bytes": 83540,
+      "sha256": "a41ddea723ddac2fff9368952928a6bdabb6052eb88b0af6eed4c0ed6abb2c61",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark.png",
+        "source_sha256": "b3c3aa13f7b578dde80f5481f32ef01bfde7d57d9b1d24cb313c20a28ee4de6e",
+        "source_bytes": 570682,
+        "width": 520,
+        "height": 252,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_selected_station_temporal_evidence_dark-1040.webp",
+      "bytes": 179458,
+      "sha256": "2a0702eff87c7149875006aa8f4248cb0a958e4f7786a42c1e818b5d733b647c",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark.png",
+        "source_sha256": "b3c3aa13f7b578dde80f5481f32ef01bfde7d57d9b1d24cb313c20a28ee4de6e",
+        "source_bytes": 570682,
+        "width": 1040,
+        "height": 505,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "assets/figure_selected_station_temporal_evidence_dark-1584.webp",
+      "bytes": 283200,
+      "sha256": "3bbebb8ef7ee39412f4dedb6bcd2bdbc2d69e06d94d2baa92916f9d09fef74b9",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark.png",
+        "source_sha256": "b3c3aa13f7b578dde80f5481f32ef01bfde7d57d9b1d24cb313c20a28ee4de6e",
+        "source_bytes": 570682,
+        "width": 1584,
+        "height": 769,
+        "format": "WEBP",
+        "mode": "RGB",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    }
+  ],
+  "figures": [
+    {
+      "key": "rx-performance-performance-map",
+      "path": "assets/figure_map_highres_dark.png",
+      "title": {
+        "en": "RX Performance Decode Rate map",
+        "de": "RX Performance Decode Rate map"
+      },
+      "caption": {
+        "en": "*G3ZIL's April reception in the worldwide 22,000 km scope. Sector colors describe Decode Rate; individual markers describe at-least-once reception. The map's outer distance guide is labelled 20,000 km; distances are great-circle separations calculated from locators.*",
+        "de": "*G3ZIL's April reception in the worldwide 22,000 km scope. Sector colors describe Decode Rate; individual markers describe at-least-once reception. The map's outer distance guide is labelled 20,000 km; distances are great-circle separations calculated from locators.*"
+      },
+      "alt": {
+        "en": "RX Performance map centered on G3ZIL, with station-balanced Decode Rate by direction and distance and transmitter markers distinguishing heard at least once from heard only elsewhere.",
+        "de": "RX Performance map centered on G3ZIL, with station-balanced Decode Rate by direction and distance and transmitter markers distinguishing heard at least once from heard only elsewhere."
+      },
+      "width": 3443,
+      "height": 3518,
+      "variants": [
+        {
+          "path": "assets/figure_map_highres_dark-520.webp",
+          "width": 520,
+          "height": 531
+        },
+        {
+          "path": "assets/figure_map_highres_dark-1040.webp",
+          "width": 1040,
+          "height": 1063
+        },
+        {
+          "path": "assets/figure_map_highres_dark-1584.webp",
+          "width": 1584,
+          "height": 1619
+        }
+      ],
+      "provenance": {
+        "kind": "Unchanged native WSPRadar figure supplied in the RX Performance package",
+        "source_archive": "RX_Performance_Guided_Demo_Codex_Package(2).zip",
+        "source_archive_sha256": "a5348bc5e47b0cd0cce87ebbb5221c79347a005cb2b06feb9ed093244acf6729",
+        "supplied_original_path": "assets/figure_map_highres_dark.png",
+        "native_source_sha256": "74ba985511363aa82853d35707eb6ff6f287baab9f15d2242095a0708b822891",
+        "light_original_path": "assets/figure_map_highres.png",
+        "light_original_sha256": "522e536d70ecd63baefec7a107a91f593b98e0b978ce1c3465d11504d7f1517c",
+        "image_px": [
+          3443,
+          3518
+        ],
+        "derivatives": "Lanczos resizing from supplied native dark PNG; lossless WebP, no recoloring or label changes.",
+        "theme": "Supplied native dark figure for the existing dark website; original light/dark pair retained unchanged.",
+        "language": "English original; German narrative translation pending."
+      }
+    },
+    {
+      "key": "rx-performance-performance-evidence",
+      "path": "assets/figure_segment_insight_dark.png",
+      "title": {
+        "en": "RX Performance Statistics",
+        "de": "RX Performance Statistics"
+      },
+      "caption": {
+        "en": "*The distance profiles use 2,500 km bins in this worldwide view, with a final 20,000–22,000 km interval. They group all directions together; the map separates direction as well as distance.*",
+        "de": "*The distance profiles use 2,500 km bins in this worldwide view, with a final 20,000–22,000 km interval. They group all directions together; the map separates direction as well as distance.*"
+      },
+      "alt": {
+        "en": "Three distance profiles showing at-least-once transmitter reach, station-balanced and opportunity-level Decode Rates, and successful Target SNR normalized to 1 W.",
+        "de": "Three distance profiles showing at-least-once transmitter reach, station-balanced and opportunity-level Decode Rates, and successful Target SNR normalized to 1 W."
+      },
+      "width": 3853,
+      "height": 2167,
+      "variants": [
+        {
+          "path": "assets/figure_segment_insight_dark-520.webp",
+          "width": 520,
+          "height": 292
+        },
+        {
+          "path": "assets/figure_segment_insight_dark-1040.webp",
+          "width": 1040,
+          "height": 585
+        },
+        {
+          "path": "assets/figure_segment_insight_dark-1584.webp",
+          "width": 1584,
+          "height": 891
+        }
+      ],
+      "provenance": {
+        "kind": "Unchanged native WSPRadar figure supplied in the RX Performance package",
+        "source_archive": "RX_Performance_Guided_Demo_Codex_Package(2).zip",
+        "source_archive_sha256": "a5348bc5e47b0cd0cce87ebbb5221c79347a005cb2b06feb9ed093244acf6729",
+        "supplied_original_path": "assets/figure_segment_insight_dark.png",
+        "native_source_sha256": "e55af58c443a7c36ae9a8fea2bd088c2d0b31ee0f60771728bf2d65465f47b9f",
+        "light_original_path": "assets/figure_segment_insight.png",
+        "light_original_sha256": "8a9096a2021ebeb42f443a44cbf44966d916b98e1d9249233eee35ae6dc6e6dd",
+        "image_px": [
+          3853,
+          2167
+        ],
+        "derivatives": "Lanczos resizing from supplied native dark PNG; lossless WebP, no recoloring or label changes.",
+        "theme": "Supplied native dark figure for the existing dark website; original light/dark pair retained unchanged.",
+        "language": "English original; German narrative translation pending."
+      }
+    },
+    {
+      "key": "rx-performance-snr-deviation",
+      "path": "assets/figure_segment_temporal_snr_deviation_dark.png",
+      "title": {
+        "en": "Successful RX SNR Deviation over Time",
+        "de": "Successful RX SNR Deviation over Time"
+      },
+      "caption": {
+        "en": "*Left: the sequence of April's 12-hour bins. Right: matching one-hour UTC periods combined across 30 dates.*",
+        "de": "*Left: the sequence of April's 12-hour bins. Right: matching one-hour UTC periods combined across 30 dates.*"
+      },
+      "alt": {
+        "en": "Chronological and UTC-hour profiles of each transmitter path's successful SNR relative to its own full-run median, with density, median and middle-half spread.",
+        "de": "Chronological and UTC-hour profiles of each transmitter path's successful SNR relative to its own full-run median, with density, median and middle-half spread."
+      },
+      "width": 3808,
+      "height": 1822,
+      "variants": [
+        {
+          "path": "assets/figure_segment_temporal_snr_deviation_dark-520.webp",
+          "width": 520,
+          "height": 249
+        },
+        {
+          "path": "assets/figure_segment_temporal_snr_deviation_dark-1040.webp",
+          "width": 1040,
+          "height": 498
+        },
+        {
+          "path": "assets/figure_segment_temporal_snr_deviation_dark-1584.webp",
+          "width": 1584,
+          "height": 758
+        }
+      ],
+      "provenance": {
+        "kind": "Unchanged native WSPRadar figure supplied in the RX Performance package",
+        "source_archive": "RX_Performance_Guided_Demo_Codex_Package(2).zip",
+        "source_archive_sha256": "a5348bc5e47b0cd0cce87ebbb5221c79347a005cb2b06feb9ed093244acf6729",
+        "supplied_original_path": "assets/figure_segment_temporal_snr_deviation_dark.png",
+        "native_source_sha256": "8f12da2c40685b3817c689825e2bb1f4ad753182cbf683156e92fb2bd34fe07f",
+        "light_original_path": "assets/figure_segment_temporal_snr_deviation.png",
+        "light_original_sha256": "08c9652201800bfaf5e9f3887e8e1f062ea92dbc45323f8afae3397c649eeded",
+        "image_px": [
+          3808,
+          1822
+        ],
+        "derivatives": "Lanczos resizing from supplied native dark PNG; lossless WebP, no recoloring or label changes.",
+        "theme": "Supplied native dark figure for the existing dark website; original light/dark pair retained unchanged.",
+        "language": "English original; German narrative translation pending."
+      }
+    },
+    {
+      "key": "rx-performance-temporal-evidence",
+      "path": "assets/figure_segment_temporal_evidence_dark.png",
+      "title": {
+        "en": "Evidence over Time and by UTC Hour",
+        "de": "Evidence over Time and by UTC Hour"
+      },
+      "caption": {
+        "en": "*Upper row: station-balanced support and rate. Lower row: confirmed-opportunity counts and pooled rate. Right-hand bars show average daily hourly support.*",
+        "de": "*Upper row: station-balanced support and rate. Lower row: confirmed-opportunity counts and pooled rate. Right-hand bars show average daily hourly support.*"
+      },
+      "alt": {
+        "en": "Station-balanced and opportunity-level support and Decode Rates over April and by UTC hour, with green success support, gray miss support and Decode Rate lines with circular markers.",
+        "de": "Station-balanced and opportunity-level support and Decode Rates over April and by UTC hour, with green success support, gray miss support and Decode Rate lines with circular markers."
+      },
+      "width": 3799,
+      "height": 1785,
+      "variants": [
+        {
+          "path": "assets/figure_segment_temporal_evidence_dark-520.webp",
+          "width": 520,
+          "height": 244
+        },
+        {
+          "path": "assets/figure_segment_temporal_evidence_dark-1040.webp",
+          "width": 1040,
+          "height": 489
+        },
+        {
+          "path": "assets/figure_segment_temporal_evidence_dark-1584.webp",
+          "width": 1584,
+          "height": 744
+        }
+      ],
+      "provenance": {
+        "kind": "Unchanged native WSPRadar figure supplied in the RX Performance package",
+        "source_archive": "RX_Performance_Guided_Demo_Codex_Package(2).zip",
+        "source_archive_sha256": "a5348bc5e47b0cd0cce87ebbb5221c79347a005cb2b06feb9ed093244acf6729",
+        "supplied_original_path": "assets/figure_segment_temporal_evidence_dark.png",
+        "native_source_sha256": "68ffcfb80044099d7a3675e8d68e4075dc933ca7e624fdef9c427d0892e6c2b2",
+        "light_original_path": "assets/figure_segment_temporal_evidence.png",
+        "light_original_sha256": "31d266c9337ccc86ac608d36eae6d21f8de830a10f6ab88b8088dcbb3fef9981",
+        "image_px": [
+          3799,
+          1785
+        ],
+        "derivatives": "Lanczos resizing from supplied native dark PNG; lossless WebP, no recoloring or label changes.",
+        "theme": "Supplied native dark figure for the existing dark website; original light/dark pair retained unchanged.",
+        "language": "English original; German narrative translation pending."
+      }
+    },
+    {
+      "key": "rx-performance-selected-station-snr",
+      "path": "assets/figure_selected_station_snr_evidence_dark.png",
+      "title": {
+        "en": "HB0QRP successful SNR",
+        "de": "HB0QRP successful SNR"
+      },
+      "caption": {
+        "en": "*These are HB0QRP's actual successful normalized SNR values. Unlike the earlier segment view, the graph does not subtract a path baseline.*",
+        "de": "*These are HB0QRP's actual successful normalized SNR values. Unlike the earlier segment view, the graph does not subtract a path baseline.*"
+      },
+      "alt": {
+        "en": "Successful SNR from HB0QRP at G3ZIL, normalized to 1 W, shown chronologically in 12-hour bins and by UTC hour across April.",
+        "de": "Successful SNR from HB0QRP at G3ZIL, normalized to 1 W, shown chronologically in 12-hour bins and by UTC hour across April."
+      },
+      "width": 3808,
+      "height": 1921,
+      "variants": [
+        {
+          "path": "assets/figure_selected_station_snr_evidence_dark-520.webp",
+          "width": 520,
+          "height": 262
+        },
+        {
+          "path": "assets/figure_selected_station_snr_evidence_dark-1040.webp",
+          "width": 1040,
+          "height": 525
+        },
+        {
+          "path": "assets/figure_selected_station_snr_evidence_dark-1584.webp",
+          "width": 1584,
+          "height": 799
+        }
+      ],
+      "provenance": {
+        "kind": "Unchanged native WSPRadar figure supplied in the RX Performance package",
+        "source_archive": "RX_Performance_Guided_Demo_Codex_Package(2).zip",
+        "source_archive_sha256": "a5348bc5e47b0cd0cce87ebbb5221c79347a005cb2b06feb9ed093244acf6729",
+        "supplied_original_path": "assets/figure_selected_station_snr_evidence_dark.png",
+        "native_source_sha256": "34b7f856825b85a93754881c1ec74ea68a7fc90d58e787932ee6ab588d3ac643",
+        "light_original_path": "assets/figure_selected_station_snr_evidence.png",
+        "light_original_sha256": "e9e579d993e57c283f829cb35c0bb72bab84c1286696f6c5f4a51553feb47427",
+        "image_px": [
+          3808,
+          1921
+        ],
+        "derivatives": "Lanczos resizing from supplied native dark PNG; lossless WebP, no recoloring or label changes.",
+        "theme": "Supplied native dark figure for the existing dark website; original light/dark pair retained unchanged.",
+        "language": "English original; German narrative translation pending."
+      }
+    },
+    {
+      "key": "rx-performance-selected-station-evidence",
+      "path": "assets/figure_selected_station_temporal_evidence_dark.png",
+      "title": {
+        "en": "HB0QRP reception opportunities",
+        "de": "HB0QRP reception opportunities"
+      },
+      "caption": {
+        "en": "*For one selected transmitter, the two rate weightings coincide. The upper row expresses station support; the lower row shows the number of confirmed opportunities.*",
+        "de": "*For one selected transmitter, the two rate weightings coincide. The upper row expresses station support; the lower row shows the number of confirmed opportunities.*"
+      },
+      "alt": {
+        "en": "HB0QRP success and miss support and Decode Rate over April and by UTC hour, with 12-hour chronological bins.",
+        "de": "HB0QRP success and miss support and Decode Rate over April and by UTC hour, with 12-hour chronological bins."
+      },
+      "width": 3811,
+      "height": 1850,
+      "variants": [
+        {
+          "path": "assets/figure_selected_station_temporal_evidence_dark-520.webp",
+          "width": 520,
+          "height": 252
+        },
+        {
+          "path": "assets/figure_selected_station_temporal_evidence_dark-1040.webp",
+          "width": 1040,
+          "height": 505
+        },
+        {
+          "path": "assets/figure_selected_station_temporal_evidence_dark-1584.webp",
+          "width": 1584,
+          "height": 769
+        }
+      ],
+      "provenance": {
+        "kind": "Unchanged native WSPRadar figure supplied in the RX Performance package",
+        "source_archive": "RX_Performance_Guided_Demo_Codex_Package(2).zip",
+        "source_archive_sha256": "a5348bc5e47b0cd0cce87ebbb5221c79347a005cb2b06feb9ed093244acf6729",
+        "supplied_original_path": "assets/figure_selected_station_temporal_evidence_dark.png",
+        "native_source_sha256": "b3c3aa13f7b578dde80f5481f32ef01bfde7d57d9b1d24cb313c20a28ee4de6e",
+        "light_original_path": "assets/figure_selected_station_temporal_evidence.png",
+        "light_original_sha256": "07f26818bb8cb2fb22bd536b564353c063ad710e8731dec25f53580c6afc7888",
+        "image_px": [
+          3811,
+          1850
+        ],
+        "derivatives": "Lanczos resizing from supplied native dark PNG; lossless WebP, no recoloring or label changes.",
+        "theme": "Supplied native dark figure for the existing dark website; original light/dark pair retained unchanged.",
+        "language": "English original; German narrative translation pending."
+      }
+    }
+  ]
+}

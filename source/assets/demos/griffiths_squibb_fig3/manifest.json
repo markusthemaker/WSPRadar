@@ -1,0 +1,3757 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "WSPRadar_export_2026_10_15__10_39.zip",
+      "bytes": 5425501,
+      "sha256": "a69366ae97a0b4ad612385f0b711bcd9a7510c3baa6872d359fcb99bd6843aef"
+    },
+    {
+      "path": "demo1_verified_export_summary.json",
+      "bytes": 15397,
+      "sha256": "f08f3f1b216aaeccb7881e33411c815366f24165e508457d757c90b713c01edb"
+    },
+    {
+      "path": "export/benchmark/figure_map_highres.png",
+      "bytes": 1513590,
+      "sha256": "0b3e390c0731524d89cf457604ad6313b0c84ec30b7a7b025121139247a5d3c6"
+    },
+    {
+      "path": "export/benchmark/figure_segment_insight.png",
+      "bytes": 312098,
+      "sha256": "ea76deecb0e35b6519dd4ba40fea0f4a46c0dba6d113c3b04d6936f8ecab0914"
+    },
+    {
+      "path": "export/benchmark/figure_segment_temporal_coverage.png",
+      "bytes": 484262,
+      "sha256": "73bd4f105178d3c5d96b92e6393471418de293c475bc0d59512f7e76e44a6965"
+    },
+    {
+      "path": "export/benchmark/figure_segment_temporal_evidence.png",
+      "bytes": 442017,
+      "sha256": "370b7a65733ff1db5a6d04ffd4dfa923017f91cec74e9fa7d1dcd64059a67a4a"
+    },
+    {
+      "path": "export/benchmark/figure_selected_station_coverage.png",
+      "bytes": 404948,
+      "sha256": "e41c206f12459857a204b22c499bbf529124bf5c2f8a073226ddf6e93c5b9fd6"
+    },
+    {
+      "path": "export/benchmark/figure_selected_station_evidence.png",
+      "bytes": 552396,
+      "sha256": "9577870a0b0f395e4458cc63d46bad2317538338b29799f81cf4aa1a58390ec4"
+    },
+    {
+      "path": "export/benchmark/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 8438672,
+      "sha256": "4745a69b81852f5d5d312c5dfb5564f61fbfa9499079620b9d51600b7f58ac32"
+    },
+    {
+      "path": "export/benchmark/table_drilldown_selected_stations.csv",
+      "bytes": 161186,
+      "sha256": "197a342fbc4e2e7ab817607625732b505cf6064b93a60cc1ff0c870161ae15ed"
+    },
+    {
+      "path": "export/benchmark/table_station_insights_current_segment.csv",
+      "bytes": 27762,
+      "sha256": "873f7d6a7d8b5ae5762bedab08379b00fb71cc21ad142e52c995b06406b2e172"
+    },
+    {
+      "path": "export/config/run_metadata.json",
+      "bytes": 2256,
+      "sha256": "506496cf0042a3f59479a01e207cf1a998ce0ada4533d1a8debd5d765e403349"
+    },
+    {
+      "path": "export/config/wspradar_config.config",
+      "bytes": 6517,
+      "sha256": "353eb8d9ea5a409abcb94a973b8e6be88cdc4197f9258b6f3ee2f559ef0f66c0"
+    },
+    {
+      "path": "fresh/WSPRadar_export_2026_10_15__17_39.zip",
+      "bytes": 5239218,
+      "sha256": "9f8bc1952bd26d5b04ec56b9be250af921d7c1a79b0a0a982cfd4139cb0bfcc3"
+    },
+    {
+      "path": "fresh/comparison_with_supplied_export.json",
+      "bytes": 4630,
+      "sha256": "2c4bfae29e7310bad8ba9f95fcfd07335342f9cc49cc7c78453b45dcdaf5f70f"
+    },
+    {
+      "path": "fresh/coverage.png",
+      "bytes": 171197,
+      "sha256": "dc900e8b83d1091ba8870fd7010df34ca0ac8324f29fbc2fa966e7a8f79874a5"
+    },
+    {
+      "path": "fresh/demo1_verified_export_summary.json",
+      "bytes": 15397,
+      "sha256": "c8cfb53636c15089fd5dbfea6c4f84b0d85fdbf9e3575f60e30157c58da13b3e"
+    },
+    {
+      "path": "fresh/difference.png",
+      "bytes": 134962,
+      "sha256": "197fcb4dfa6801e3044865b93eaf21b2f5d600066045ad0c56b17b395808e436"
+    },
+    {
+      "path": "fresh/export/benchmark/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 8563295,
+      "sha256": "dca352d43b443a63ada0d9d4c8f6849b027a6f39292b3a80d24d567b19c9c1d1"
+    },
+    {
+      "path": "fresh/export/benchmark/table_drilldown_selected_stations.csv",
+      "bytes": 163521,
+      "sha256": "1d527cbd72a195d7ad8903bb82169b664e0e5e193421b24beef4bab3acd4f7a6"
+    },
+    {
+      "path": "fresh/export/benchmark/table_station_insights_current_segment.csv",
+      "bytes": 28555,
+      "sha256": "403e1e23f76acb74ff099715d6b18085e50f2ccc4cd7e312f6519dcabc8ca993"
+    },
+    {
+      "path": "fresh/export/config/run_metadata.json",
+      "bytes": 2256,
+      "sha256": "9fc5bee0479a7f66938717f443fc86ee7b37a9e3b5b93241ae0d8644331acee6"
+    },
+    {
+      "path": "fresh/export/config/wspradar_config.config",
+      "bytes": 6517,
+      "sha256": "f76773ddb9c92b0c7bdfb03c8a8296e08110d9141c26ffc383fdd5c0031e40e2"
+    },
+    {
+      "path": "fresh/map.png",
+      "bytes": 441687,
+      "sha256": "ec0df6d4ea60aab67839d183da57cd2768c5e0b45c40d95f1474d573de031e08"
+    },
+    {
+      "path": "fresh/provenance.json",
+      "bytes": 5593,
+      "sha256": "b3cdb10a34aa30f593a52ae06373c41754ed2500f82580adc4817cd21ca7b5e5"
+    },
+    {
+      "path": "fresh/station-coverage.png",
+      "bytes": 146258,
+      "sha256": "2e6710daaa2b5585907436d80066b1790fa115ce1c48943db6f38e4bfc1c4794"
+    },
+    {
+      "path": "fresh/station.png",
+      "bytes": 239410,
+      "sha256": "56901fa43b6853353afea24b76f5ed001d565b57c5300f0174681849cd296650"
+    },
+    {
+      "path": "fresh/time.png",
+      "bytes": 189507,
+      "sha256": "75d01580fbbf7fd6bfd5eb856554cc6bdc209fc64425a8b8bf5a06e422d0ffad"
+    },
+    {
+      "path": "fresh/web/coverage-1200.webp",
+      "bytes": 137192,
+      "sha256": "d54d126ea7b7a8d8dc113a7a01915485f91de133d67d68bd478c1dd7c4aa4e22",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/coverage-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/coverage-600.webp",
+      "bytes": 66988,
+      "sha256": "58a182ba925ff5c84eac0b62f6971bd7f95fdfd1356ea0a6fe2a6e85f96fada2",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/coverage-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/difference-1200.webp",
+      "bytes": 85948,
+      "sha256": "2081f4d6719f5013bdeacbb4418b597422669cbed12f0759adde2a8b05c9021a",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/difference-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/difference-600.webp",
+      "bytes": 33474,
+      "sha256": "056287581a587353cf8c89628dc4abe9eb27f5808576f1addfe27edc86c9f981",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/difference-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/map-1200.webp",
+      "bytes": 141812,
+      "sha256": "c398c379acc50cc37d6c5ff43bab9ec365d2f7dd702ac21bb793db948fb5108b",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/map-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/map-600.webp",
+      "bytes": 99792,
+      "sha256": "52751c3134bb0448b4f11b0653b386980f9e694a6934ac86c6d4b55d0e51bda4",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/map-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/station-1200.webp",
+      "bytes": 216518,
+      "sha256": "ed81bbe1cd5a174823577954a9aeae9fabbf73bef4484ea3f04147960ce745d9",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/station-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/station-600.webp",
+      "bytes": 98150,
+      "sha256": "91d8989290b68e597943adb9b1ff66899f74efaada5a468e27a9a0df657fd32e",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/station-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/station-coverage-1200.webp",
+      "bytes": 97342,
+      "sha256": "c3e54ba48f6e7cee5f04933707cabfadfa1c4b7618af66cbd8487710e07fbe24",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/station-coverage-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/station-coverage-600.webp",
+      "bytes": 44514,
+      "sha256": "4a16b8fdb8cf916a73996ad5f156491be89550ac03c5fac0bccad63fab77c043",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/station-coverage-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/time-1200.webp",
+      "bytes": 151890,
+      "sha256": "52b7c90a22dc7e2b269f08ed61ebef4ab7cc48adb25e6c7f324782501ffdfe4d",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/time-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "fresh/web/time-600.webp",
+      "bytes": 73868,
+      "sha256": "457fdb5dd84a2ba04715e4e505a4ac9fc0bc199b3c2a5d006480a1c606d32962",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/fresh/web/time-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "setup/setup-network-520.webp",
+      "bytes": 32144,
+      "sha256": "509c41c64607097730aacf8025bc5685a566255d3b2b2e835a2048c332e6d1df",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/setup/setup-network-520.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "setup/setup-network-1040.webp",
+      "bytes": 88856,
+      "sha256": "334578636ba3e724012f2d57111d58a1d631184c97f882c564acb4a16c616aed",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/setup/setup-network-1040.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "setup/setup-network-1600.webp",
+      "bytes": 153214,
+      "sha256": "5ef10cdb7be3a12ef1dde7d2710bcf036fd868cfdde23d55b737a01afadccd86",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/setup/setup-network-1600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "rc3/assets/01_delta_snr_map_dark.png",
+      "bytes": 1438474,
+      "sha256": "548258d61647cc44f4316c3a18aff7a4002c40afe8ef567d8524e46a6c0d0373"
+    },
+    {
+      "path": "rc3/assets/02_decoding_reach_dark.png",
+      "bytes": 185841,
+      "sha256": "8426863c63bafa7597ef8e95c4e183078e50e431f0d3cd5851b77c2a774f1f48"
+    },
+    {
+      "path": "rc3/assets/03_delta_decode_map_dark.png",
+      "bytes": 1464816,
+      "sha256": "cca258577e7f16e702061981a6713c661ae78391abe313d228ed54b094b348fd"
+    },
+    {
+      "path": "rc3/assets/04_benchmark_difference_dark.png",
+      "bytes": 323408,
+      "sha256": "dc5d8bd8468678f077ab0fc1b7b78d3c32cba6e64d5149b34eea6f0f4c5ae310"
+    },
+    {
+      "path": "rc3/assets/05_temporal_snr_dark.png",
+      "bytes": 507481,
+      "sha256": "9523dc8090382a5d334d93460c1302356e7ad8376964df3b910d35311a1a3c82"
+    },
+    {
+      "path": "rc3/assets/06_temporal_coverage_dark.png",
+      "bytes": 392505,
+      "sha256": "81d763dadd059ec0529b3a73648be0490ae2b0c87fcdfd71c4f67ea1be6c5e62"
+    },
+    {
+      "path": "rc3/assets/07_dj0abr_snr_dark.png",
+      "bytes": 727783,
+      "sha256": "d09d072cff03a01609908a16c8cf490d5da3b71741d11e6dd689d5cb634f7191"
+    },
+    {
+      "path": "rc3/assets/08_dj0abr_coverage_dark.png",
+      "bytes": 342154,
+      "sha256": "0092495916b5555cfb03e610556fc368f27719c03e7d9467dbc90b124ec6121c"
+    },
+    {
+      "path": "rc3/source/analysis_cache.parquet",
+      "bytes": 1445197,
+      "sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed"
+    },
+    {
+      "path": "rc3/source/export_disclaimer.txt",
+      "bytes": 1430,
+      "sha256": "4d425b26f22d9c4d4d6faf098de16905b0a7ff298c204f2083b98ddb73145c25"
+    },
+    {
+      "path": "rc3/source/run_metadata.json",
+      "bytes": 4018,
+      "sha256": "b3f2197a6c32d238b960bbb8e75a37ae1976bc320160950a3b81d548c798c37c"
+    },
+    {
+      "path": "rc3/source/table_drilldown_all_stations_current_segment.csv",
+      "bytes": 8625866,
+      "sha256": "95a014b8376a69b15833d7d17adefe8f5276efbed93fc7e79d3223daeaa8ff0a"
+    },
+    {
+      "path": "rc3/source/table_drilldown_selected_stations.csv",
+      "bytes": 163521,
+      "sha256": "1d527cbd72a195d7ad8903bb82169b664e0e5e193421b24beef4bab3acd4f7a6"
+    },
+    {
+      "path": "rc3/source/table_station_insights_current_segment.csv",
+      "bytes": 32397,
+      "sha256": "739949c559373842030114795abbde6a51f6b2171aac31ba42b18f8623443f77"
+    },
+    {
+      "path": "rc3/source/wspradar_config.config",
+      "bytes": 6726,
+      "sha256": "bd0c60f77ead0eaa058b0590b1a1128d87f9ea9b414a88a56405d6f2a5886f2a"
+    },
+    {
+      "path": "rc3/web/map-600.webp",
+      "bytes": 108300,
+      "sha256": "5c92bb3b2a5eceaa9b6cbf36f0e57cf7b2d9798e93592ab88b02242c5bf4609c",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/rc3/web/map-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "rc3/web/map-1200.webp",
+      "bytes": 285674,
+      "sha256": "db76fbfae448c626d118c452faffe2e0b967a5a6b93380c5b92d05687f0bfe0d",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/rc3/web/map-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "rc3/web/reach-600.webp",
+      "bytes": 46358,
+      "sha256": "1993d6c6dd8a8dfcab1b4782df63db9ddd45c311edfa8ea41696f6b9a5d34b38",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/rc3/web/reach-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "rc3/web/reach-1200.webp",
+      "bytes": 110176,
+      "sha256": "b13dd9c768bd89e17bb96b28e8be13bde5f28e62790fcfb0fec4a22a76f5954b",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/rc3/web/reach-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "rc3/web/decode-map-600.webp",
+      "bytes": 112626,
+      "sha256": "bddc3f447f4b5da2aa20b7109a8858f3ae3cf1d56a6dd41d9c35c1ce18a2ba0a",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/03_delta_decode_map_dark.png",
+        "source_bytes": 1464816,
+        "source_sha256": "cca258577e7f16e702061981a6713c661ae78391abe313d228ed54b094b348fd",
+        "width": 600,
+        "height": 605,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/decode-map-600.webp"
+    },
+    {
+      "path": "rc3/web/decode-map-1200.webp",
+      "bytes": 293088,
+      "sha256": "f64974766f4ef3651ab1b37b33bc8a7a7704a302acbb26953865770d71a02240",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/03_delta_decode_map_dark.png",
+        "source_bytes": 1464816,
+        "source_sha256": "cca258577e7f16e702061981a6713c661ae78391abe313d228ed54b094b348fd",
+        "width": 1200,
+        "height": 1209,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/decode-map-1200.webp"
+    },
+    {
+      "path": "rc3/web/difference-600.webp",
+      "bytes": 36360,
+      "sha256": "d5080a6fa286da87d1672f2f9de7d17290414f5bccc54c6d7610f50c7350d2b0",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/04_benchmark_difference_dark.png",
+        "source_bytes": 323408,
+        "source_sha256": "dc5d8bd8468678f077ab0fc1b7b78d3c32cba6e64d5149b34eea6f0f4c5ae310",
+        "width": 600,
+        "height": 286,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/difference-600.webp"
+    },
+    {
+      "path": "rc3/web/difference-1200.webp",
+      "bytes": 96184,
+      "sha256": "8645f2dee204429215d487239e2e6ffc88a2b46d7bd945084a8aca3e17373014",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/04_benchmark_difference_dark.png",
+        "source_bytes": 323408,
+        "source_sha256": "dc5d8bd8468678f077ab0fc1b7b78d3c32cba6e64d5149b34eea6f0f4c5ae310",
+        "width": 1200,
+        "height": 572,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/difference-1200.webp"
+    },
+    {
+      "path": "rc3/web/time-600.webp",
+      "bytes": 75794,
+      "sha256": "713b235416cc9a3bf6d3c765af6614c5fc77e268ad35b4677a9e050d24b52a4a",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/05_temporal_snr_dark.png",
+        "source_bytes": 507481,
+        "source_sha256": "9523dc8090382a5d334d93460c1302356e7ad8376964df3b910d35311a1a3c82",
+        "width": 600,
+        "height": 285,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/time-600.webp"
+    },
+    {
+      "path": "rc3/web/time-1200.webp",
+      "bytes": 151806,
+      "sha256": "4d9ebc7e2901de5e0fa7da3c6765b9aa376f58fd207f86f4a1257409ff1a2f4d",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/05_temporal_snr_dark.png",
+        "source_bytes": 507481,
+        "source_sha256": "9523dc8090382a5d334d93460c1302356e7ad8376964df3b910d35311a1a3c82",
+        "width": 1200,
+        "height": 569,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/time-1200.webp"
+    },
+    {
+      "path": "rc3/web/coverage-600.webp",
+      "bytes": 67312,
+      "sha256": "05bef21d82f122867857c1bf69b9e5069ca0abad223a4e9c0a6bd96eb6b77584",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/06_temporal_coverage_dark.png",
+        "source_bytes": 392505,
+        "source_sha256": "81d763dadd059ec0529b3a73648be0490ae2b0c87fcdfd71c4f67ea1be6c5e62",
+        "width": 600,
+        "height": 254,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/coverage-600.webp"
+    },
+    {
+      "path": "rc3/web/coverage-1200.webp",
+      "bytes": 133220,
+      "sha256": "cce6b30b9bd00785e27a47273c648bb6c34acecb4a66e02e98660fdc644d2c56",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/06_temporal_coverage_dark.png",
+        "source_bytes": 392505,
+        "source_sha256": "81d763dadd059ec0529b3a73648be0490ae2b0c87fcdfd71c4f67ea1be6c5e62",
+        "width": 1200,
+        "height": 508,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/coverage-1200.webp"
+    },
+    {
+      "path": "rc3/web/station-600.webp",
+      "bytes": 103006,
+      "sha256": "92b31a9adbe7a3385e0b9bdc05a4ef6f718889af77ddba591f278e456bf337f5",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/07_dj0abr_snr_dark.png",
+        "source_bytes": 727783,
+        "source_sha256": "d09d072cff03a01609908a16c8cf490d5da3b71741d11e6dd689d5cb634f7191",
+        "width": 600,
+        "height": 285,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/station-600.webp"
+    },
+    {
+      "path": "rc3/web/station-1200.webp",
+      "bytes": 224030,
+      "sha256": "a129943e20a825fbb74b2697a691c423a5603b7ed6d5dc86d1a6a16813d48833",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/07_dj0abr_snr_dark.png",
+        "source_bytes": 727783,
+        "source_sha256": "d09d072cff03a01609908a16c8cf490d5da3b71741d11e6dd689d5cb634f7191",
+        "width": 1200,
+        "height": 569,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/station-1200.webp"
+    },
+    {
+      "path": "rc3/web/station-coverage-600.webp",
+      "bytes": 41100,
+      "sha256": "cd6901596064bcf82f5ac05b6234bd448d76ba0c465a761b3cf496cbb9557475",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/08_dj0abr_coverage_dark.png",
+        "source_bytes": 342154,
+        "source_sha256": "0092495916b5555cfb03e610556fc368f27719c03e7d9467dbc90b124ec6121c",
+        "width": 600,
+        "height": 254,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/station-coverage-600.webp"
+    },
+    {
+      "path": "rc3/web/station-coverage-1200.webp",
+      "bytes": 87038,
+      "sha256": "93d9c33ee464d17e4bcde1c128fa07d0c6581865d4445659319b228025924eaa",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/rc3/assets/08_dj0abr_coverage_dark.png",
+        "source_bytes": 342154,
+        "source_sha256": "0092495916b5555cfb03e610556fc368f27719c03e7d9467dbc90b124ec6121c",
+        "width": 1200,
+        "height": 508,
+        "format": "WEBP",
+        "lossless": true,
+        "quality": 100,
+        "method": 6,
+        "exact": true
+      },
+      "approved_master": "archive/browser-assets/demos/griffiths_squibb_fig3/rc3/web/station-coverage-1200.webp"
+    },
+    {
+      "path": "decode-advantage/figure_map_decode_highres_dark-1200.webp",
+      "bytes": 274946,
+      "sha256": "a2100f70b3139024a98fc0168cc5f4139bf2df39c38c8c55f9ef57a03743a9b1",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/decode-advantage/figure_map_decode_highres_dark-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "decode-advantage/figure_map_decode_highres_dark-600.webp",
+      "bytes": 104694,
+      "sha256": "58d0879221081404f99e56ce2d85f0072185e6128726cf03258c6865eb91089f",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/decode-advantage/figure_map_decode_highres_dark-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "decode-advantage/figure_map_decode_highres_dark.png",
+      "bytes": 1443689,
+      "sha256": "c12c2067871358f1940e6b5e53a27b69ae57de28949f7c3306f0ec4df1960f9d"
+    },
+    {
+      "path": "decode-advantage/provenance.json",
+      "bytes": 2625,
+      "sha256": "4e71cf1e33f03f84670a51b9c8f98ded6e6744488a596362a8bde0dcef98a07f"
+    },
+    {
+      "path": "decode-advantage/sector_decode_advantage.csv",
+      "bytes": 4541,
+      "sha256": "7d242591e230d26600c8cd8adf34e29de00a52ea4c448bac4b248da3bc20d86d"
+    },
+    {
+      "path": "decode-distribution/figure_segment_insight_dark-1200.webp",
+      "bytes": 95996,
+      "sha256": "e183eb1aa4293c31a3500d0165a03df4257be31748fb5596bf453774eb438ba4",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/decode-distribution/figure_segment_insight_dark-1200.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "decode-distribution/figure_segment_insight_dark-600.webp",
+      "bytes": 38304,
+      "sha256": "3a7bd31dfcee4692098f484cf7b1710732b1f59098be7d1924bcca57d009204f",
+      "source_path": "assets/browser-assets/demos/griffiths_squibb_fig3/decode-distribution/figure_segment_insight_dark-600.webp",
+      "source_role": "Reviewed encoded master; complete executable encoding settings were not retained."
+    },
+    {
+      "path": "decode-distribution/figure_segment_insight_dark.png",
+      "bytes": 293469,
+      "sha256": "da01de71578a2c43af24e6ef4db141feea0ba8b13d2ced813f407e98ef212a45"
+    },
+    {
+      "path": "decode-distribution/provenance.json",
+      "bytes": 1908,
+      "sha256": "e8e41abf879b5e36138fa7765ecd61294db9e580e4a40a2ae775c422a89e1d17"
+    },
+    {
+      "path": "temporal-decode/figure_segment_statistics_dark.png",
+      "bytes": 345510,
+      "sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_statistics_dark-3f9b0e7ff318.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_segment_statistics_dark-600.webp",
+      "bytes": 57958,
+      "sha256": "e6fadaa84fc9ed876cbe2374bc2f5164cf680e6aa8614996af168bf233ffef8c",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_statistics_dark-3f9b0e7ff318.png",
+        "source_bytes": 345510,
+        "source_sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+        "width": 600,
+        "height": 259,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_segment_statistics_dark-1200.webp",
+      "bytes": 140818,
+      "sha256": "6f4aa904da0b5be913dd034d19dba7122f9f497f4dca3ee309ecf099a21fd6a9",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_statistics_dark-3f9b0e7ff318.png",
+        "source_bytes": 345510,
+        "source_sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+        "width": 1200,
+        "height": 518,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_segment_temporal_delta_snr_dark.png",
+      "bytes": 541716,
+      "sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_snr_dark-ae0ebd3d606e.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_segment_temporal_delta_snr_dark-600.webp",
+      "bytes": 104812,
+      "sha256": "70b5524ef836754fccd5b169f00d32347300591f1ea1fdc42741a16118bb3917",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_snr_dark-ae0ebd3d606e.png",
+        "source_bytes": 541716,
+        "source_sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+        "width": 600,
+        "height": 280,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_segment_temporal_delta_snr_dark-1200.webp",
+      "bytes": 222388,
+      "sha256": "8f685f1da84b9af69b2198bdcd009f4a751dfcf23d9325d4f7a6ecce16ea44f8",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_snr_dark-ae0ebd3d606e.png",
+        "source_bytes": 541716,
+        "source_sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+        "width": 1200,
+        "height": 559,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_segment_temporal_delta_decode_dark.png",
+      "bytes": 445364,
+      "sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-da06e27f6635.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_segment_temporal_delta_decode_dark-600.webp",
+      "bytes": 98428,
+      "sha256": "04365e5b41e0ebafe1e8c58d3cdfb3959e467f48e08f045ddd6a99734c63bf80",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-da06e27f6635.png",
+        "source_bytes": 445364,
+        "source_sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+        "width": 600,
+        "height": 256,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_segment_temporal_delta_decode_dark-1200.webp",
+      "bytes": 183640,
+      "sha256": "57e08b9889db2578ad01fc3edd6e2ea98a16b64bb53548edb18e4a3b62644e1e",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-da06e27f6635.png",
+        "source_bytes": 445364,
+        "source_sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+        "width": 1200,
+        "height": 513,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark.png",
+      "bytes": 804376,
+      "sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_snr_dark-22f1db91864a.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark-600.webp",
+      "bytes": 137020,
+      "sha256": "c7923151a2cf7f594e8dbd00b3e5ba467c2ee27510d23176d2104458da5a7d82",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_snr_dark-22f1db91864a.png",
+        "source_bytes": 804376,
+        "source_sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+        "width": 600,
+        "height": 291,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark-1200.webp",
+      "bytes": 308034,
+      "sha256": "bed87c6048d46a7153a60d42cb0cdccf786820791c9c8c1bb550715a5cf7337a",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_snr_dark-22f1db91864a.png",
+        "source_bytes": 804376,
+        "source_sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+        "width": 1200,
+        "height": 581,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark.png",
+      "bytes": 362322,
+      "sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_decode_dark-966d3d7590e7.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark-600.webp",
+      "bytes": 64812,
+      "sha256": "d5e0bc50f91a62c721200b27c17dfb9bf11d28a0fb47d60751dd52e664bf5d8b",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_decode_dark-966d3d7590e7.png",
+        "source_bytes": 362322,
+        "source_sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+        "width": 600,
+        "height": 273,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark-1200.webp",
+      "bytes": 135750,
+      "sha256": "ac89ba6960bf5e11f5d668b274ead818a9993a2069a931e32d5b860ffb84d69c",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_decode_dark-966d3d7590e7.png",
+        "source_bytes": 362322,
+        "source_sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+        "width": 1200,
+        "height": 545,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/provenance.json",
+      "bytes": 13361,
+      "sha256": "6b2246a6b3ff0f2f78058e04f93b25b8d8632c0abd09e8d4e9cc6c435dec97f2"
+    },
+    {
+      "path": "temporal-decode/figure_map_delta_snr_dark.png",
+      "bytes": 1524294,
+      "sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_snr_dark-f0402bf6035c.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_map_delta_snr_dark-600.webp",
+      "bytes": 143560,
+      "sha256": "170d076a24d69627d3d07761bfd807e783183c6d0257b093b861719c85a70779",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_snr_dark-f0402bf6035c.png",
+        "source_bytes": 1524294,
+        "source_sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+        "width": 600,
+        "height": 615,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_map_delta_snr_dark-1200.webp",
+      "bytes": 378322,
+      "sha256": "41a1e5d93c6ebcfdf7873ae140fdbc4226dbef13e797347d6f782cbb35e07033",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_snr_dark-f0402bf6035c.png",
+        "source_bytes": 1524294,
+        "source_sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+        "width": 1200,
+        "height": 1231,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_decodes_over_snr_dark.png",
+      "bytes": 460389,
+      "sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_decodes_over_snr_dark-c18537e3c03d.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_decodes_over_snr_dark-600.webp",
+      "bytes": 89780,
+      "sha256": "461c6ab829ec1ce2a2365881af65b01bc4cf4e9324742a079240cda58e11c28a",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_decodes_over_snr_dark-c18537e3c03d.png",
+        "source_bytes": 460389,
+        "source_sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+        "width": 600,
+        "height": 389,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_decodes_over_snr_dark-1200.webp",
+      "bytes": 213274,
+      "sha256": "cf43548181e6e6a0f45fa125fd2530f1afc22ee8ae851ba7d6eb265b91fb29fd",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_decodes_over_snr_dark-c18537e3c03d.png",
+        "source_bytes": 460389,
+        "source_sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+        "width": 1200,
+        "height": 778,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_map_delta_decode_dark.png",
+      "bytes": 1523489,
+      "sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+      "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_decode_dark-ea15b2688415.png",
+      "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+    },
+    {
+      "path": "temporal-decode/figure_map_delta_decode_dark-600.webp",
+      "bytes": 138900,
+      "sha256": "12649dc23892b04250c790a6a14d49e937be73b6b1089c9844e75f91ed6dc8a7",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_decode_dark-ea15b2688415.png",
+        "source_bytes": 1523489,
+        "source_sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+        "width": 600,
+        "height": 609,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "temporal-decode/figure_map_delta_decode_dark-1200.webp",
+      "bytes": 366996,
+      "sha256": "2d926d2104b45a87588785f827a59c76d0a65e3d90d2ab9c368318915577f997",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_decode_dark-ea15b2688415.png",
+        "source_bytes": 1523489,
+        "source_sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+        "width": 1200,
+        "height": 1218,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_map_delta_snr_dark.png",
+      "bytes": 1533483,
+      "sha256": "171ae71f7296f752933600ebf8b6072bcd461c3e528af70f96efb0ae5dbe967d",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_snr_dark-171ae71f7296.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_map_delta_snr_dark-600.webp",
+      "bytes": 148732,
+      "sha256": "e2d2ac6a3557a84af7de7108857921d6fabe45b18367dee6ba0046e8fedbd33c",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_snr_dark-171ae71f7296.png",
+        "source_bytes": 1533483,
+        "source_sha256": "171ae71f7296f752933600ebf8b6072bcd461c3e528af70f96efb0ae5dbe967d",
+        "width": 600,
+        "height": 619
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_map_delta_snr_dark-1200.webp",
+      "bytes": 389032,
+      "sha256": "5e195219f7ac1680c880bb63b6257a1d2e909b372758c798a74688e3916106a2",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_snr_dark-171ae71f7296.png",
+        "source_bytes": 1533483,
+        "source_sha256": "171ae71f7296f752933600ebf8b6072bcd461c3e528af70f96efb0ae5dbe967d",
+        "width": 1200,
+        "height": 1238
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark.png",
+      "bytes": 462362,
+      "sha256": "110b1e6717430f68380d173686b50866998a158904393d68d00c3c4fbf259f09",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_decodes_over_snr_dark-110b1e671743.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark-600.webp",
+      "bytes": 88388,
+      "sha256": "ad1da6d2dcd8b4c0ef111972217799d91794667c4d3b4c54223d728e5cc7ba12",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_decodes_over_snr_dark-110b1e671743.png",
+        "source_bytes": 462362,
+        "source_sha256": "110b1e6717430f68380d173686b50866998a158904393d68d00c3c4fbf259f09",
+        "width": 600,
+        "height": 390
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark-1200.webp",
+      "bytes": 212738,
+      "sha256": "ef10c030cc75eb0c4b7f28868a35286a6ff2327d100c066ea5a4a92850b3ee89",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_decodes_over_snr_dark-110b1e671743.png",
+        "source_bytes": 462362,
+        "source_sha256": "110b1e6717430f68380d173686b50866998a158904393d68d00c3c4fbf259f09",
+        "width": 1200,
+        "height": 780
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_map_delta_decode_dark.png",
+      "bytes": 1533506,
+      "sha256": "5033bae237ab2a30d59f3e38258daedf00afa967e635d53adfe9a4ceeae1747f",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_decode_dark-5033bae237ab.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_map_delta_decode_dark-600.webp",
+      "bytes": 142036,
+      "sha256": "a95c034fe6955f98b3b85807893f6b0c947780e34156a4749fc34868e48c0975",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_decode_dark-5033bae237ab.png",
+        "source_bytes": 1533506,
+        "source_sha256": "5033bae237ab2a30d59f3e38258daedf00afa967e635d53adfe9a4ceeae1747f",
+        "width": 600,
+        "height": 612
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_map_delta_decode_dark-1200.webp",
+      "bytes": 377790,
+      "sha256": "db419d5af75b67857d0425557658eb6b71c630b4ab39ab95be8abd46ee0276f8",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_decode_dark-5033bae237ab.png",
+        "source_bytes": 1533506,
+        "source_sha256": "5033bae237ab2a30d59f3e38258daedf00afa967e635d53adfe9a4ceeae1747f",
+        "width": 1200,
+        "height": 1223
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark.png",
+      "bytes": 354955,
+      "sha256": "902c68bae9837bcb2eec4cb7d4d895bbdace98e7a7f01c891891d36ac4cff128",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_statistics_dark-902c68bae983.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark-600.webp",
+      "bytes": 59402,
+      "sha256": "29362f410a13ac56a303ce0ff9809bf38ea0489a6d85385314d2dfecac5576d3",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_statistics_dark-902c68bae983.png",
+        "source_bytes": 354955,
+        "source_sha256": "902c68bae9837bcb2eec4cb7d4d895bbdace98e7a7f01c891891d36ac4cff128",
+        "width": 600,
+        "height": 272
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_statistics_dark-1200.webp",
+      "bytes": 145214,
+      "sha256": "d6881505f560f7108d6228367cc3fe8778e0ae0776eaf252ae6c0513bb8dc11e",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_statistics_dark-902c68bae983.png",
+        "source_bytes": 354955,
+        "source_sha256": "902c68bae9837bcb2eec4cb7d4d895bbdace98e7a7f01c891891d36ac4cff128",
+        "width": 1200,
+        "height": 545
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark.png",
+      "bytes": 530055,
+      "sha256": "8d9a310c5cf782a0ebd5a2886d2667bb2910b66d5247cd6775389c31de24c93b",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-8d9a310c5cf7.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-600.webp",
+      "bytes": 106318,
+      "sha256": "ca157e2abd8ad09fcb4a7f758af5c5166d6652f57deb76c48c6f75a35d4ac75b",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-8d9a310c5cf7.png",
+        "source_bytes": 530055,
+        "source_sha256": "8d9a310c5cf782a0ebd5a2886d2667bb2910b66d5247cd6775389c31de24c93b",
+        "width": 600,
+        "height": 291
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-1200.webp",
+      "bytes": 222016,
+      "sha256": "f1a1b6e9fa0fabf10973183b12078aa7aea46abdcffa88e3f895e0cc3119da96",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-8d9a310c5cf7.png",
+        "source_bytes": 530055,
+        "source_sha256": "8d9a310c5cf782a0ebd5a2886d2667bb2910b66d5247cd6775389c31de24c93b",
+        "width": 1200,
+        "height": 581
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_decode_dark.png",
+      "bytes": 459282,
+      "sha256": "550a6028a3c13686033ec812e4e7c9db3902f4b0e6fa6dcc3d0270fcac7a1212",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_decode_dark-550a6028a3c1.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_decode_dark-600.webp",
+      "bytes": 96954,
+      "sha256": "59df27024b39b42b7e887a346b4750e25bd14af8ebc0bcc16a30249ecfb9975c",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_decode_dark-550a6028a3c1.png",
+        "source_bytes": 459282,
+        "source_sha256": "550a6028a3c13686033ec812e4e7c9db3902f4b0e6fa6dcc3d0270fcac7a1212",
+        "width": 600,
+        "height": 257
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_segment_temporal_delta_decode_dark-1200.webp",
+      "bytes": 198926,
+      "sha256": "9f0e51b246c9eaae1b1bcc49058244ced09587cb920127f1f6018d5335576501",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_decode_dark-550a6028a3c1.png",
+        "source_bytes": 459282,
+        "source_sha256": "550a6028a3c13686033ec812e4e7c9db3902f4b0e6fa6dcc3d0270fcac7a1212",
+        "width": 1200,
+        "height": 513
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark.png",
+      "bytes": 794387,
+      "sha256": "b9d3e77d3ebba9b432a7969048cfa621c6349eb9b143b49c52d09d0d88db5f7b",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_snr_dark-b9d3e77d3ebb.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-600.webp",
+      "bytes": 138068,
+      "sha256": "662a120cafeafb6d3bc59b67ed0e47783553a047465338fc5aceccf23dfdde17",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_snr_dark-b9d3e77d3ebb.png",
+        "source_bytes": 794387,
+        "source_sha256": "b9d3e77d3ebba9b432a7969048cfa621c6349eb9b143b49c52d09d0d88db5f7b",
+        "width": 600,
+        "height": 303
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-1200.webp",
+      "bytes": 310824,
+      "sha256": "2e903a3618954e19d7d30423203005d0907b2e124f71c063a1b2a0fabe58f64a",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_snr_dark-b9d3e77d3ebb.png",
+        "source_bytes": 794387,
+        "source_sha256": "b9d3e77d3ebba9b432a7969048cfa621c6349eb9b143b49c52d09d0d88db5f7b",
+        "width": 1200,
+        "height": 605
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark.png",
+      "bytes": 371504,
+      "sha256": "90fb3b56c0f21272d47837bf6203a8f1bed6115778df3db09588743fdd90506b",
+      "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_decode_dark-90fb3b56c0f2.png",
+      "source_role": "Reviewed current native English typography; prior sources and aliases retained."
+    },
+    {
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-600.webp",
+      "bytes": 64874,
+      "sha256": "2a36e0f02d68cd9bd80f3715baba4bfeb81e3c19fcd70e822831fc18ad92edca",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_decode_dark-90fb3b56c0f2.png",
+        "source_bytes": 371504,
+        "source_sha256": "90fb3b56c0f21272d47837bf6203a8f1bed6115778df3db09588743fdd90506b",
+        "width": 600,
+        "height": 272
+      }
+    },
+    {
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-1200.webp",
+      "bytes": 139392,
+      "sha256": "148b0537a9cffaee8b08754c20af485e1ea11e2e4c9d61f9d4ca6904877f41ed",
+      "recipe": {
+        "kind": "image",
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 100,
+        "method": 4,
+        "exact": true,
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_decode_dark-90fb3b56c0f2.png",
+        "source_bytes": 371504,
+        "source_sha256": "90fb3b56c0f21272d47837bf6203a8f1bed6115778df3db09588743fdd90506b",
+        "width": 1200,
+        "height": 544
+      }
+    }
+  ],
+  "figures": [
+    {
+      "key": "fresh-demo1-map",
+      "path": "fresh/map.png",
+      "width": 1200,
+      "height": 1250,
+      "title": {
+        "en": "Map View: the April comparison",
+        "de": "Kartenansicht: der April-Vergleich"
+      },
+      "alt": {
+        "en": "Complete dark RX Benchmark map for G3ZIL versus G4HZX, with sector colors, direction and distance ranges, scale, decode outcomes and evidence counts.",
+        "de": "Vollständige dunkle RX-Benchmark-Karte für G3ZIL gegenüber G4HZX mit Sektorfarben, Richtungen und Entfernungsbereichen, Skala, Empfangskategorien und Beobachtungszahlen."
+      },
+      "caption": {
+        "en": "Sector colors show station-balanced median ΔSNR for G3ZIL minus G4HZX.",
+        "de": "Die Sektorfarben zeigen das stationsgleichgewichtete mediane ΔSNR für G3ZIL minus G4HZX."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/map-600.webp",
+          "width": 600,
+          "height": 625
+        },
+        {
+          "path": "fresh/web/map-1200.webp",
+          "width": 1200,
+          "height": 1250
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-difference",
+      "path": "fresh/difference.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Benchmark Evidence",
+        "de": "Benchmark-Evidenz"
+      },
+      "alt": {
+        "en": "Complete dark Benchmark Evidence panels for decode outcomes, station-median ΔSNR and spot-pair ΔSNR, with +6.5 dB and +7.0 dB medians.",
+        "de": "Vollständige dunkle Benchmark-Evidenzdiagramme für Empfangskategorien, ΔSNR der Stationsmediane und Joint-Spot-ΔSNR mit Medianen von +6,5 dB und +7,0 dB."
+      },
+      "caption": {
+        "en": "Read decode outcomes alongside the station-balanced median of +6.5 dB and spot-pair median of +7.0 dB.",
+        "de": "Lies die Empfangskategorien zusammen mit dem stationsgleichgewichteten Median von +6,5 dB und dem Joint-Spot-Median von +7,0 dB."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/difference-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/difference-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-time",
+      "path": "fresh/time.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Temporal Evidence",
+        "de": "Zeitliche Evidenz"
+      },
+      "alt": {
+        "en": "Complete dark chronological and UTC-hour ΔSNR charts, preserving median markers, middle-50-percent bands, density colors, nonlinear axes and overall +7 dB median.",
+        "de": "Vollständige dunkle ΔSNR-Diagramme im Zeitverlauf und nach UTC-Stunde mit Medianmarkierungen, Bändern der mittleren 50 Prozent, Dichtefarben, nichtlinearen Achsen und dem Gesamtmedian von +7 dB."
+      },
+      "caption": {
+        "en": "The chronological view uses 24-hour bins; the UTC-hour view combines different dates.",
+        "de": "Die chronologische Ansicht verwendet 24-Stunden-Intervalle; die Ansicht nach UTC-Stunde fasst verschiedene Tage zusammen."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/time-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/time-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-coverage",
+      "path": "fresh/coverage.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Temporal Evidence Coverage",
+        "de": "Zeitliche Evidenzabdeckung"
+      },
+      "alt": {
+        "en": "Complete dark temporal coverage charts showing station and transmitter-cycle counts, Paired Evidence Share lines and the Target-activity qualification.",
+        "de": "Vollständige dunkle Diagramme der zeitlichen Evidenzabdeckung mit Stations- und Senderzykluszahlen, Joint-Evidence-Share-Linien und dem Hinweis zur Target-Aktivität."
+      },
+      "caption": {
+        "en": "Station and transmitter-cycle counts show the supporting evidence. Paired Evidence Share is not a receiver success rate. Native dark app figure rendered on 15 October 2026.",
+        "de": "Stations- und Senderzykluszahlen zeigen die unterstützende Evidenz. Joint Evidence Share ist keine Empfangserfolgsquote. Native dunkle App-Abbildung vom 15. Oktober 2026."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/coverage-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/coverage-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-station",
+      "path": "fresh/station.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Selected Station Evidence: DJ0ABR",
+        "de": "Evidenz der ausgewählten Station: DJ0ABR"
+      },
+      "alt": {
+        "en": "Complete dark selected-station ΔSNR evidence for DJ0ABR at JN68nt, with 12-hour chronological bins, UTC-hour folding and the +25 dB point on 20 April.",
+        "de": "Vollständige dunkle ΔSNR-Evidenz für DJ0ABR in JN68nt mit chronologischen 12-Stunden-Intervallen, Zusammenfassung nach UTC-Stunde und dem Punkt bei +25 dB am 20. April."
+      },
+      "caption": {
+        "en": "Across 2 334 spot pairs, G3ZIL shows a median SNR advantage of **+5 dB**. After little difference in early April, the advantage increases, with most 12-hour medians around **+5 to +8 dB**.\n\nLate-night observations (00:00–03:00 UTC) are sparse, possibly reflecting 40 m propagation change on this ~1 060 km path.",
+        "de": "Über 2 334 Joint Spots zeigt G3ZIL einen medianen SNR-Vorteil von **+5 dB**. Nach geringen Unterschieden Anfang April nimmt der Vorteil zu, wobei die meisten 12-Stunden-Mediane bei etwa **+5 bis +8 dB** liegen.\n\nIn den späten Nachtstunden (00:00–03:00 UTC) gibt es nur wenige Beobachtungen, was möglicherweise mit einer Änderung der Ausbreitungsbedingungen auf 40 m über diesen ~1 060 km langen Funkweg zusammenhängt."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/station-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/station-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "fresh-demo1-station-coverage",
+      "path": "fresh/station-coverage.png",
+      "width": 1300,
+      "height": 560,
+      "title": {
+        "en": "Selected Path Evidence Coverage: DJ0ABR",
+        "de": "Evidenzabdeckung des ausgewählten Funkwegs: DJ0ABR"
+      },
+      "alt": {
+        "en": "Complete dark coverage charts for DJ0ABR at JN68nt, showing retained WSPR cycles and Paired Evidence Share in 12-hour chronological bins and by UTC hour.",
+        "de": "Vollständige dunkle Abdeckungsdiagramme für DJ0ABR in JN68nt mit berücksichtigten WSPR-Zyklen und Joint Evidence Share in chronologischen 12-Stunden-Intervallen und nach UTC-Stunde."
+      },
+      "caption": {
+        "en": "During 20 April, 12:00–24:00 UTC, the path has one spot pair and three Target-only observations.",
+        "de": "Am 20. April von 12:00 bis 24:00 UTC hat der Funkweg einen Joint Spot und drei reine Target-Beobachtungen."
+      },
+      "variants": [
+        {
+          "path": "fresh/web/station-coverage-600.webp",
+          "width": 600,
+          "height": 258
+        },
+        {
+          "path": "fresh/web/station-coverage-1200.webp",
+          "width": 1200,
+          "height": 517
+        }
+      ]
+    },
+    {
+      "key": "demo1-setup-network-schematic",
+      "path": "setup/setup-network-1600.webp",
+      "width": 1600,
+      "height": 900,
+      "title": {
+        "en": "Two receivers, shared WSPR signals",
+        "de": "Zwei Empfänger, gemeinsame WSPR-Signale"
+      },
+      "alt": {
+        "en": "Schematic world map of WSPR transmitters and a UK inset showing the G3ZIL low dipole and G4HZX vertical, their receivers, WSJT-X and uploaded reception reports.",
+        "de": "Schematische Weltkarte mit WSPR-Sendern und einem UK-Ausschnitt mit dem niedrigen Dipol von G3ZIL, der Vertikalantenne von G4HZX, ihren Empfängern, WSJT-X und hochgeladenen Empfangsmeldungen."
+      },
+      "caption": {
+        "en": "Illustrative setup and reporting flow; transmitter positions and signal paths are schematic.",
+        "de": "Illustration des Aufbaus und Meldewegs; Senderpositionen und Signalwege sind schematisch."
+      },
+      "variants": [
+        {
+          "path": "setup/setup-network-520.webp",
+          "width": 520,
+          "height": 293
+        },
+        {
+          "path": "setup/setup-network-1040.webp",
+          "width": 1040,
+          "height": 585
+        },
+        {
+          "path": "setup/setup-network-1600.webp",
+          "width": 1600,
+          "height": 900
+        }
+      ],
+      "provenance": {
+        "source_filename": "WSPR Global Network Infographic Map (1).png",
+        "source_file": "source/setup-network-original.png",
+        "source_sha256": "1e84b8307d3f1dd5d9c52704b80c2d336e82a3bb7ff0f6fbc307275e1a1c3506",
+        "source_bytes": 1718445,
+        "source_image_px": [
+          1672,
+          941
+        ],
+        "purpose": "User-supplied conceptual illustration for the Demo #1 setup, not observed station locations or measured radio paths.",
+        "conversion": {
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "format": "WebP",
+          "quality": 94,
+          "lossless": false,
+          "method": 6,
+          "resampling": "LANCZOS",
+          "composition": "Complete source image; no cropping, redrawing, relabeling or intentional recoloring; no upscaling."
+        },
+        "original_is_published": false,
+        "review": "Compared lossless and quality-94 encodings. Reviewed the 520, 1040 and 1600 px previews and station/locator, receiver, WSJT-X, report-upload and WSPRnet labels. Quality 94 selected for the clear size saving with readable enlarged labels."
+      }
+    },
+    {
+      "key": "rc3-demo1-map",
+      "path": "temporal-decode/figure_map_delta_snr_dark.png",
+      "width": 3423,
+      "height": 3511,
+      "title": {
+        "en": "ΔSNR (Signal Quality): where is the SNR advantage?"
+      },
+      "alt": {
+        "en": "Dark ΔSNR map centered on G3ZIL, comparing paired reception with G4HZX by direction and distance."
+      },
+      "caption": {
+        "en": "Sector colors show station-balanced median ΔSNR for G3ZIL minus G4HZX. Hatched sectors have observations but insufficient qualifying support; they are not measured zeroes."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_map_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 615
+        },
+        {
+          "path": "temporal-decode/figure_map_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 1231
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_snr_dark-f0402bf6035c.png",
+        "bytes": 1524294,
+        "sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_map_delta_snr_dark.png",
+          "bytes": 1435038,
+          "sha256": "e0789ea35dd7d06dce0f439771c4729453883db1756ba0f4e576eb988a291e6a"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "e0789ea35dd7d06dce0f439771c4729453883db1756ba0f4e576eb988a291e6a",
+          "source_bytes": 1435038,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "core.plot_engine.render_map_figure",
+          "recipe_schema_version": null,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+            "handoff_asset_path": "assets/01_delta_snr_map_dark.png",
+            "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+            "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+            "source_export_asset": "benchmark/figure_map_highres_dark.png",
+            "source_sha256": "548258d61647cc44f4316c3a18aff7a4002c40afe8ef567d8524e46a6c0d0373",
+            "source_bytes": 1438474,
+            "exported_utc": "2026-10-17T23:27:38Z",
+            "method_version": "controlled-pair-v5",
+            "native_png_unchanged": true,
+            "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+            "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+            "browser_derivatives": {
+              "recipe": "scripts/prepare_demo1_rc3_assets.py",
+              "tool": "Pillow",
+              "version": "12.2.0",
+              "webp_version": "1.6.0",
+              "encoding": "lossless WebP; quality=100; method=6; exact=True",
+              "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+              "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+              "comparisons": [
+                {
+                  "path": "rc3/web/map-600.webp",
+                  "width": 600,
+                  "height": 605,
+                  "webp_bytes": 108300,
+                  "equivalent_resized_png_bytes": 234176,
+                  "saving_vs_equivalent_png_percent": 53.75,
+                  "saving_vs_native_png_percent": 92.47,
+                  "decoded_pixels_equal_lanczos_resize": true
+                },
+                {
+                  "path": "rc3/web/map-1200.webp",
+                  "width": 1200,
+                  "height": 1209,
+                  "webp_bytes": 285674,
+                  "equivalent_resized_png_bytes": 642665,
+                  "saving_vs_equivalent_png_percent": 55.55,
+                  "saving_vs_native_png_percent": 80.14,
+                  "decoded_pixels_equal_lanczos_resize": true
+                }
+              ]
+            },
+            "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+            "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+            "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "rc3-demo1-reach",
+      "path": "temporal-decode/figure_decodes_over_snr_dark.png",
+      "width": 3819,
+      "height": 2477,
+      "title": {
+        "en": "Decodes & Stations by SNR"
+      },
+      "alt": {
+        "en": "Cumulative raw-SNR curves for Paired, one-sided and all observations, with spots above and distinct station entries below."
+      },
+      "caption": {
+        "en": "G3ZIL is magenta; G4HZX is cyan. At the endpoints, G3ZIL has 44 769 more decoded spots and 207 more observed station entries. The Paired spots curves finish at the same report counts, representing the same spot pairs."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_decodes_over_snr_dark-600.webp",
+          "width": 600,
+          "height": 389
+        },
+        {
+          "path": "temporal-decode/figure_decodes_over_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 778
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_decodes_over_snr_dark-c18537e3c03d.png",
+        "bytes": 460389,
+        "sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_decodes_over_snr_dark.png",
+          "bytes": 409799,
+          "sha256": "6ecb88ef58e741f55d83baca2de031adcb88681249387b23e1ca273a333a728f"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "6ecb88ef58e741f55d83baca2de031adcb88681249387b23e1ca273a333a728f",
+          "source_bytes": 409799,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "ui.plots.snr_reach_figures.render_snr_reach_figure",
+          "recipe_schema_version": 3,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_file": "demo1_snr_reach_inline_en_dark.png",
+            "source_sha256": "8426863c63bafa7597ef8e95c4e183078e50e431f0d3cd5851b77c2a774f1f48",
+            "source_bytes": 185841,
+            "native_png_unchanged": true,
+            "figure_generation": "User-supplied replacement dark figure, copied unchanged. Website preparation does not rerun scientific calculations.",
+            "browser_derivatives": {
+              "recipe": "scripts/prepare_demo1_rc3_assets.py",
+              "tool": "Pillow",
+              "version": "12.2.0",
+              "webp_version": "1.6.0",
+              "encoding": "lossless WebP; quality=100; method=6; exact=True",
+              "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+              "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+              "comparisons": [
+                {
+                  "path": "rc3/web/reach-600.webp",
+                  "width": 600,
+                  "height": 378,
+                  "webp_bytes": 46358,
+                  "equivalent_resized_png_bytes": 100617,
+                  "saving_vs_equivalent_png_percent": 53.93,
+                  "saving_vs_native_png_percent": 75.06,
+                  "decoded_pixels_equal_lanczos_resize": true
+                },
+                {
+                  "path": "rc3/web/reach-1200.webp",
+                  "width": 1200,
+                  "height": 757,
+                  "webp_bytes": 110176,
+                  "equivalent_resized_png_bytes": 246687,
+                  "saving_vs_equivalent_png_percent": 55.34,
+                  "saving_vs_native_png_percent": 40.71,
+                  "decoded_pixels_equal_lanczos_resize": true
+                }
+              ]
+            },
+            "replaced_figure_provenance": {
+              "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+              "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+              "handoff_asset_path": "assets/02_decoding_reach_dark.png",
+              "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+              "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+              "source_export_asset": "benchmark/figure_snr_reach_highres_dark.png",
+              "source_sha256": "bc2b372bf683d943fc4463ca2562dfa22630b34c04d8f3485a68fe2585de6e5a",
+              "source_bytes": 379684,
+              "exported_utc": "2026-10-17T23:27:38Z",
+              "method_version": "controlled-pair-v5",
+              "native_png_unchanged": true,
+              "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+              "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+              "browser_derivatives": {
+                "recipe": "scripts/prepare_demo1_rc3_assets.py",
+                "tool": "Pillow",
+                "version": "12.2.0",
+                "webp_version": "1.6.0",
+                "encoding": "lossless WebP; quality=100; method=6; exact=True",
+                "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+                "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+                "comparisons": [
+                  {
+                    "path": "rc3/web/reach-600.webp",
+                    "width": 600,
+                    "height": 378,
+                    "webp_bytes": 41894,
+                    "equivalent_resized_png_bytes": 91322,
+                    "saving_vs_equivalent_png_percent": 54.12,
+                    "saving_vs_native_png_percent": 88.97,
+                    "decoded_pixels_equal_lanczos_resize": true
+                  },
+                  {
+                    "path": "rc3/web/reach-1200.webp",
+                    "width": 1200,
+                    "height": 757,
+                    "webp_bytes": 101382,
+                    "equivalent_resized_png_bytes": 221956,
+                    "saving_vs_equivalent_png_percent": 54.32,
+                    "saving_vs_native_png_percent": 73.3,
+                    "decoded_pixels_equal_lanczos_resize": true
+                  }
+                ]
+              },
+              "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+              "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+              "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+            }
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "rc3-demo1-decode-map",
+      "path": "rc3/assets/03_delta_decode_map_dark.png",
+      "width": 3546,
+      "height": 3573,
+      "title": {
+        "en": "Decoding Advantage: where are additional signals decoded?"
+      },
+      "alt": {
+        "en": "Dark ΔDecode map centered on G3ZIL, showing station-balanced differences in observed decoding shares relative to G4HZX."
+      },
+      "caption": {
+        "en": "Positive percentage-point values favor G3ZIL; negative values favor G4HZX. This map includes qualifying one-sided-only stations, even where no paired ΔSNR is available."
+      },
+      "variants": [
+        {
+          "path": "rc3/web/decode-map-600.webp",
+          "width": 600,
+          "height": 605
+        },
+        {
+          "path": "rc3/web/decode-map-1200.webp",
+          "width": 1200,
+          "height": 1209
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+        "handoff_asset_path": "assets/03_delta_decode_map_dark.png",
+        "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+        "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+        "source_export_asset": "benchmark/figure_map_decode_highres_dark.png",
+        "source_sha256": "cca258577e7f16e702061981a6713c661ae78391abe313d228ed54b094b348fd",
+        "source_bytes": 1464816,
+        "exported_utc": "2026-10-17T23:27:38Z",
+        "method_version": "controlled-pair-v5",
+        "native_png_unchanged": true,
+        "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+        "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+        "browser_derivatives": {
+          "recipe": "scripts/prepare_demo1_rc3_assets.py",
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "webp_version": "1.6.0",
+          "encoding": "lossless WebP; quality=100; method=6; exact=True",
+          "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+          "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+          "comparisons": [
+            {
+              "path": "rc3/web/decode-map-600.webp",
+              "width": 600,
+              "height": 605,
+              "webp_bytes": 112626,
+              "equivalent_resized_png_bytes": 233593,
+              "saving_vs_equivalent_png_percent": 51.79,
+              "saving_vs_native_png_percent": 92.31,
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            {
+              "path": "rc3/web/decode-map-1200.webp",
+              "width": 1200,
+              "height": 1209,
+              "webp_bytes": 293088,
+              "equivalent_resized_png_bytes": 629391,
+              "saving_vs_equivalent_png_percent": 53.43,
+              "saving_vs_native_png_percent": 79.99,
+              "decoded_pixels_equal_lanczos_resize": true
+            }
+          ]
+        },
+        "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+        "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+        "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+      }
+    },
+    {
+      "key": "rc3-demo1-difference",
+      "path": "rc3/assets/04_benchmark_difference_dark.png",
+      "width": 3885,
+      "height": 1851,
+      "title": {
+        "en": "Benchmark Evidence"
+      },
+      "alt": {
+        "en": "Benchmark Evidence with station and spot outcome shares, the distribution of station-median ΔSNR, and the distribution of all qualifying spot-pair differences."
+      },
+      "caption": {
+        "en": "The overall station-balanced median is +6.5 dB; the median across paired observations is +7.0 dB. Outcome shares show the additional evidence outside that paired comparison."
+      },
+      "variants": [
+        {
+          "path": "rc3/web/difference-600.webp",
+          "width": 600,
+          "height": 286
+        },
+        {
+          "path": "rc3/web/difference-1200.webp",
+          "width": 1200,
+          "height": 572
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+        "handoff_asset_path": "assets/04_benchmark_difference_dark.png",
+        "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+        "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+        "source_export_asset": "benchmark/figure_segment_insight_dark.png",
+        "source_sha256": "dc5d8bd8468678f077ab0fc1b7b78d3c32cba6e64d5149b34eea6f0f4c5ae310",
+        "source_bytes": 323408,
+        "exported_utc": "2026-10-17T23:27:38Z",
+        "method_version": "controlled-pair-v5",
+        "native_png_unchanged": true,
+        "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+        "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+        "browser_derivatives": {
+          "recipe": "scripts/prepare_demo1_rc3_assets.py",
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "webp_version": "1.6.0",
+          "encoding": "lossless WebP; quality=100; method=6; exact=True",
+          "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+          "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+          "comparisons": [
+            {
+              "path": "rc3/web/difference-600.webp",
+              "width": 600,
+              "height": 286,
+              "webp_bytes": 36360,
+              "equivalent_resized_png_bytes": 80039,
+              "saving_vs_equivalent_png_percent": 54.57,
+              "saving_vs_native_png_percent": 88.76,
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            {
+              "path": "rc3/web/difference-1200.webp",
+              "width": 1200,
+              "height": 572,
+              "webp_bytes": 96184,
+              "equivalent_resized_png_bytes": 204434,
+              "saving_vs_equivalent_png_percent": 52.95,
+              "saving_vs_native_png_percent": 70.26,
+              "decoded_pixels_equal_lanczos_resize": true
+            }
+          ]
+        },
+        "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+        "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+        "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+      }
+    },
+    {
+      "key": "rc3-demo1-time",
+      "path": "rc3/assets/05_temporal_snr_dark.png",
+      "width": 3834,
+      "height": 1818,
+      "title": {
+        "en": "Temporal Evidence"
+      },
+      "alt": {
+        "en": "Temporal paired ΔSNR evidence over April in 24-hour bins, with a pooled UTC-hour profile and the middle-50-percent bands."
+      },
+      "caption": {
+        "en": "The chronological view uses 24-hour bins; the UTC-hour view combines different dates. These panels summarize paired observations, not one-sided outcomes."
+      },
+      "variants": [
+        {
+          "path": "rc3/web/time-600.webp",
+          "width": 600,
+          "height": 285
+        },
+        {
+          "path": "rc3/web/time-1200.webp",
+          "width": 1200,
+          "height": 569
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+        "handoff_asset_path": "assets/05_temporal_snr_dark.png",
+        "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+        "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+        "source_export_asset": "benchmark/figure_segment_temporal_evidence_dark.png",
+        "source_sha256": "9523dc8090382a5d334d93460c1302356e7ad8376964df3b910d35311a1a3c82",
+        "source_bytes": 507481,
+        "exported_utc": "2026-10-17T23:27:38Z",
+        "method_version": "controlled-pair-v5",
+        "native_png_unchanged": true,
+        "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+        "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+        "browser_derivatives": {
+          "recipe": "scripts/prepare_demo1_rc3_assets.py",
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "webp_version": "1.6.0",
+          "encoding": "lossless WebP; quality=100; method=6; exact=True",
+          "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+          "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+          "comparisons": [
+            {
+              "path": "rc3/web/time-600.webp",
+              "width": 600,
+              "height": 285,
+              "webp_bytes": 75794,
+              "equivalent_resized_png_bytes": 125008,
+              "saving_vs_equivalent_png_percent": 39.37,
+              "saving_vs_native_png_percent": 85.06,
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            {
+              "path": "rc3/web/time-1200.webp",
+              "width": 1200,
+              "height": 569,
+              "webp_bytes": 151806,
+              "equivalent_resized_png_bytes": 263231,
+              "saving_vs_equivalent_png_percent": 42.33,
+              "saving_vs_native_png_percent": 70.09,
+              "decoded_pixels_equal_lanczos_resize": true
+            }
+          ]
+        },
+        "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+        "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+        "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+      }
+    },
+    {
+      "key": "rc3-demo1-coverage",
+      "path": "rc3/assets/06_temporal_coverage_dark.png",
+      "width": 3834,
+      "height": 1623,
+      "title": {
+        "en": "Temporal Evidence Coverage"
+      },
+      "alt": {
+        "en": "Station-balanced and outcome-level temporal evidence coverage, with symmetric Paired, Target-only and Reference-only contributions and Paired Evidence Share."
+      },
+      "caption": {
+        "en": "Green is paired observations, magenta is Target-only and cyan is Reference-only. The white lines show Paired Evidence Share. Coverage supplies a complementary reception result, not only support for the SNR chart."
+      },
+      "variants": [
+        {
+          "path": "rc3/web/coverage-600.webp",
+          "width": 600,
+          "height": 254
+        },
+        {
+          "path": "rc3/web/coverage-1200.webp",
+          "width": 1200,
+          "height": 508
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+        "handoff_asset_path": "assets/06_temporal_coverage_dark.png",
+        "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+        "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+        "source_export_asset": "benchmark/figure_segment_temporal_coverage_dark.png",
+        "source_sha256": "81d763dadd059ec0529b3a73648be0490ae2b0c87fcdfd71c4f67ea1be6c5e62",
+        "source_bytes": 392505,
+        "exported_utc": "2026-10-17T23:27:38Z",
+        "method_version": "controlled-pair-v5",
+        "native_png_unchanged": true,
+        "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+        "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+        "browser_derivatives": {
+          "recipe": "scripts/prepare_demo1_rc3_assets.py",
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "webp_version": "1.6.0",
+          "encoding": "lossless WebP; quality=100; method=6; exact=True",
+          "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+          "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+          "comparisons": [
+            {
+              "path": "rc3/web/coverage-600.webp",
+              "width": 600,
+              "height": 254,
+              "webp_bytes": 67312,
+              "equivalent_resized_png_bytes": 114296,
+              "saving_vs_equivalent_png_percent": 41.11,
+              "saving_vs_native_png_percent": 82.85,
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            {
+              "path": "rc3/web/coverage-1200.webp",
+              "width": 1200,
+              "height": 508,
+              "webp_bytes": 133220,
+              "equivalent_resized_png_bytes": 244266,
+              "saving_vs_equivalent_png_percent": 45.46,
+              "saving_vs_native_png_percent": 66.06,
+              "decoded_pixels_equal_lanczos_resize": true
+            }
+          ]
+        },
+        "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+        "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+        "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+      }
+    },
+    {
+      "key": "rc3-demo1-station",
+      "path": "rc3/assets/07_dj0abr_snr_dark.png",
+      "width": 3834,
+      "height": 1818,
+      "title": {
+        "en": "Selected Station Evidence: DJ0ABR"
+      },
+      "alt": {
+        "en": "Selected Station Evidence for DJ0ABR, showing 2 334 spot pairs, chronological paired ΔSNR and the UTC-hour profile."
+      },
+      "caption": {
+        "en": "DJ0ABR at JN68nt is approximately 1 064 km from G3ZIL, at an azimuth of 97°. Its overall paired median is +5 dB, but its reception pattern changes with time."
+      },
+      "variants": [
+        {
+          "path": "rc3/web/station-600.webp",
+          "width": 600,
+          "height": 285
+        },
+        {
+          "path": "rc3/web/station-1200.webp",
+          "width": 1200,
+          "height": 569
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+        "handoff_asset_path": "assets/07_dj0abr_snr_dark.png",
+        "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+        "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+        "source_export_asset": "benchmark/figure_selected_station_evidence_dark.png",
+        "source_sha256": "d09d072cff03a01609908a16c8cf490d5da3b71741d11e6dd689d5cb634f7191",
+        "source_bytes": 727783,
+        "exported_utc": "2026-10-17T23:27:38Z",
+        "method_version": "controlled-pair-v5",
+        "native_png_unchanged": true,
+        "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+        "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+        "browser_derivatives": {
+          "recipe": "scripts/prepare_demo1_rc3_assets.py",
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "webp_version": "1.6.0",
+          "encoding": "lossless WebP; quality=100; method=6; exact=True",
+          "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+          "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+          "comparisons": [
+            {
+              "path": "rc3/web/station-600.webp",
+              "width": 600,
+              "height": 285,
+              "webp_bytes": 103006,
+              "equivalent_resized_png_bytes": 155236,
+              "saving_vs_equivalent_png_percent": 33.65,
+              "saving_vs_native_png_percent": 85.85,
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            {
+              "path": "rc3/web/station-1200.webp",
+              "width": 1200,
+              "height": 569,
+              "webp_bytes": 224030,
+              "equivalent_resized_png_bytes": 354103,
+              "saving_vs_equivalent_png_percent": 36.73,
+              "saving_vs_native_png_percent": 69.22,
+              "decoded_pixels_equal_lanczos_resize": true
+            }
+          ]
+        },
+        "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+        "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+        "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+      }
+    },
+    {
+      "key": "rc3-demo1-station-coverage",
+      "path": "rc3/assets/08_dj0abr_coverage_dark.png",
+      "width": 3834,
+      "height": 1623,
+      "title": {
+        "en": "Selected Path Evidence Coverage: DJ0ABR"
+      },
+      "alt": {
+        "en": "Selected Path Evidence Coverage for DJ0ABR, showing Paired and one-sided reception in 12-hour and UTC-hour bins."
+      },
+      "caption": {
+        "en": "Across April: 2 334 Paired, 247 G3ZIL-only and 17 G4HZX-only events. The one-sided evidence is particularly informative around the less consistently observed late-night hours."
+      },
+      "variants": [
+        {
+          "path": "rc3/web/station-coverage-600.webp",
+          "width": 600,
+          "height": 254
+        },
+        {
+          "path": "rc3/web/station-coverage-1200.webp",
+          "width": 1200,
+          "height": 508
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+        "handoff_asset_path": "assets/08_dj0abr_coverage_dark.png",
+        "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+        "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+        "source_export_asset": "benchmark/figure_selected_station_coverage_dark.png",
+        "source_sha256": "0092495916b5555cfb03e610556fc368f27719c03e7d9467dbc90b124ec6121c",
+        "source_bytes": 342154,
+        "exported_utc": "2026-10-17T23:27:38Z",
+        "method_version": "controlled-pair-v5",
+        "native_png_unchanged": true,
+        "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+        "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+        "browser_derivatives": {
+          "recipe": "scripts/prepare_demo1_rc3_assets.py",
+          "tool": "Pillow",
+          "version": "12.2.0",
+          "webp_version": "1.6.0",
+          "encoding": "lossless WebP; quality=100; method=6; exact=True",
+          "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+          "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+          "comparisons": [
+            {
+              "path": "rc3/web/station-coverage-600.webp",
+              "width": 600,
+              "height": 254,
+              "webp_bytes": 41100,
+              "equivalent_resized_png_bytes": 85931,
+              "saving_vs_equivalent_png_percent": 52.17,
+              "saving_vs_native_png_percent": 87.99,
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            {
+              "path": "rc3/web/station-coverage-1200.webp",
+              "width": 1200,
+              "height": 508,
+              "webp_bytes": 87038,
+              "equivalent_resized_png_bytes": 190830,
+              "saving_vs_equivalent_png_percent": 54.39,
+              "saving_vs_native_png_percent": 74.56,
+              "decoded_pixels_equal_lanczos_resize": true
+            }
+          ]
+        },
+        "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+        "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+        "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+      }
+    },
+    {
+      "key": "demo1-decode-advantage-map",
+      "path": "temporal-decode/figure_map_delta_decode_dark.png",
+      "width": 3459,
+      "height": 3511,
+      "title": {
+        "en": "ΔDecode (Decoding Advantage): where are additional signals decoded?"
+      },
+      "alt": {
+        "en": "Dark pooled ΔDecode map comparing G3ZIL and G4HZX total decodes with an adaptive fold-ratio legend; eleven sectors meet the 1% event-share minimum."
+      },
+      "caption": {
+        "en": "ΔDecode compares pooled Target and Reference decode totals. Warm colors favor G3ZIL; blue favors G4HZX. Ratio labels mark the color boundaries, with 1× at equality. A sector needs at least 1% of the retained observed events (1 256 here)."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_map_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 609
+        },
+        {
+          "path": "temporal-decode/figure_map_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 1218
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_decode_dark-ea15b2688415.png",
+        "bytes": 1523489,
+        "sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_map_delta_decode_dark.png",
+          "bytes": 1433637,
+          "sha256": "7ab70beebb111aed1e5a7becb25236e90409dc96771b5fcb51097fd8683bff3d"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "7ab70beebb111aed1e5a7becb25236e90409dc96771b5fcb51097fd8683bff3d",
+          "source_bytes": 1433637,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "core.plot_engine.render_map_figure",
+          "recipe_schema_version": null,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English only; German adaptation pending",
+            "method_version": "pooled-total-decodes-v1",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "c12c2067871358f1940e6b5e53a27b69ae57de28949f7c3306f0ec4df1960f9d",
+            "source_bytes": 1443689,
+            "native_png_unchanged": true,
+            "figure_generation": "Production WSPRadar ΔDecode renderer using retained RC3 observations and pooled total-decode advantage; original RC3 exports are unchanged.",
+            "formula": "100*(T-R)/(2*J+T+R)",
+            "min_decode_event_share_percent": 1.0,
+            "minimum_events": 1256,
+            "active_sectors": 11,
+            "recipe": "WSPRadarApp/scripts/internal/render_decode_advantage_map.py",
+            "numerical_provenance": "decode-advantage/provenance.json",
+            "browser_derivatives": {
+              "encoding": "lossless WebP",
+              "resampling": "LANCZOS directly from native PNG; no cropping, recoloring, or upscaling",
+              "decoded_pixels_equal_lanczos_resize": true
+            },
+            "render_version": 7,
+            "legend": "Adaptive fold-ratio boundary labels; finest fitting preset; equal-width discrete swatches"
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "demo1-decode-distribution",
+      "path": "decode-distribution/figure_segment_insight_dark.png",
+      "width": 3828,
+      "height": 1626,
+      "title": {
+        "en": "Benchmark Evidence: decode volume and paired SNR"
+      },
+      "alt": {
+        "en": "Benchmark Evidence with a decode-volume-weighted station ΔDecode histogram on the left, qualifying spot-pair ΔSNR in the middle, and qualifying station-median ΔSNR on the right. Purple favors G3ZIL; blue favors G4HZX in the decode panel."
+      },
+      "caption": {
+        "en": "The pooled decode result is G3ZIL 1.65×. The spot-pair ΔSNR median is +7.0 dB; the station-balanced median is +6.5 dB."
+      },
+      "variants": [
+        {
+          "path": "decode-distribution/figure_segment_insight_dark-600.webp",
+          "width": 600,
+          "height": 255
+        },
+        {
+          "path": "decode-distribution/figure_segment_insight_dark-1200.webp",
+          "width": 1200,
+          "height": 510
+        }
+      ],
+      "provenance": {
+        "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+        "source_sha256": "da01de71578a2c43af24e6ef4db141feea0ba8b13d2ced813f407e98ef212a45",
+        "source_bytes": 293469,
+        "native_png_unchanged": true,
+        "figure_generation": "Production WSPRadar Segment Insight renderer using retained RC3 observations; original RC3 exports are unchanged.",
+        "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+        "recipe_schema_version": 8,
+        "numerical_provenance": "decode-distribution/provenance.json",
+        "browser_derivatives": {
+          "encoding": "lossless WebP",
+          "resampling": "LANCZOS directly from native PNG; no cropping, recoloring, or upscaling",
+          "decoded_pixels_equal_lanczos_resize": true
+        }
+      }
+    },
+    {
+      "key": "demo1-benchmark-statistics",
+      "path": "temporal-decode/figure_segment_statistics_dark.png",
+      "width": 3852,
+      "height": 1663,
+      "title": {
+        "en": "Benchmark Statistics: decode volume and paired SNR"
+      },
+      "alt": {
+        "en": "Benchmark Statistics showing the decode-volume-weighted station ΔDecode distribution, qualifying spot-pair ΔSNR, and qualifying station-median ΔSNR."
+      },
+      "caption": {
+        "en": "The pooled decode result is G3ZIL 1.65×. The spot-pair ΔSNR median is +7.0 dB; the station-balanced median is +6.5 dB. These current application figures reuse the retained April observations."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_segment_statistics_dark-600.webp",
+          "width": 600,
+          "height": 259
+        },
+        {
+          "path": "temporal-decode/figure_segment_statistics_dark-1200.webp",
+          "width": 1200,
+          "height": 518
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_statistics_dark-3f9b0e7ff318.png",
+        "bytes": 345510,
+        "sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_segment_statistics_dark.png",
+          "bytes": 319708,
+          "sha256": "9361de593715bcdd2f1d06b5af917b76e32dc759bfd5a6393640dffafa14a61d"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "9361de593715bcdd2f1d06b5af917b76e32dc759bfd5a6393640dffafa14a61d",
+          "source_bytes": 319708,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+          "recipe_schema_version": 8,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "demo1-temporal-delta-snr",
+      "path": "temporal-decode/figure_segment_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1775,
+      "title": {
+        "en": "ΔSNR Temporal Coverage"
+      },
+      "alt": {
+        "en": "Paired ΔSNR through April in 24-hour bins and by UTC hour, showing bin medians, the middle-50-percent bands, and spot-pair density."
+      },
+      "caption": {
+        "en": "The chronological view uses 24-hour bins; the UTC-hour view pools observations across dates. Both summarize qualifying spot pairs, while one-sided observations remain in the following ΔDecode figure."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_segment_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 280
+        },
+        {
+          "path": "temporal-decode/figure_segment_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 559
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_snr_dark-ae0ebd3d606e.png",
+        "bytes": 541716,
+        "sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_segment_temporal_delta_snr_dark.png",
+          "bytes": 519561,
+          "sha256": "2b70b4ebf449339fde9936f24bdf171c896788159c39c7c12bb0ad556df7cad5"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "2b70b4ebf449339fde9936f24bdf171c896788159c39c7c12bb0ad556df7cad5",
+          "source_bytes": 519561,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "ui.plots.evidence_figures.render_segment_temporal_evidence_export_figure",
+          "recipe_schema_version": 8,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "demo1-temporal-delta-decode",
+      "path": "temporal-decode/figure_segment_temporal_delta_decode_dark.png",
+      "width": 3840,
+      "height": 1641,
+      "title": {
+        "en": "ΔDecode Temporal Coverage"
+      },
+      "alt": {
+        "en": "Distinct-station coverage above native station-cycle coverage, with Station Reach Advantage and pooled ΔDecode curves in 24-hour and UTC-hour panels."
+      },
+      "caption": {
+        "en": "The upper row counts distinct stations as Both observed, Only Target or Only Reference; the lower counts all native paired observations in one green category and the one-sided spots. White curves favor G3ZIL above 1× (0) and G4HZX below. UTC-hour station membership is classified separately for each date before averaging."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_segment_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 256
+        },
+        {
+          "path": "temporal-decode/figure_segment_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 513
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-da06e27f6635.png",
+        "bytes": 445364,
+        "sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/segment-decode-provenance.json",
+          "sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+          "review": "Native 1200 px visual QA: explicit Both observed (stations) / Paired (spots) shared green key fits; labels, axes, scientific panels and footer unobstructed.",
+          "settings": "Current demo scientific settings; segment bins 24h; selected bins 12h; selected identity {\"callsign\": \"DJ0ABR\", \"locator\": \"JN68NT\"}.",
+          "frozen_runtime_source_manifest": "source/archive/spot-pair-renderers/pre-typography-runtime/provenance/media-source-manifest.json",
+          "frozen_runtime_source_manifest_sha256": "8db80225f3a50e781c3b6502b4f2082854cce686a8807714ce15c26dedc22ec4",
+          "capture_source_fingerprint_sha256": "c99f6766f709561c0b6c2a74664d19db4d9ecc5e036ed735b6d23e3aa36cafa8",
+          "source_policy": "Exact pre-typography working-tree source snapshot shared with the genuine UI captures. Canonical source files may now include independent typography work; source hashes must resolve to the archived snapshot.",
+          "native_provenance_sha256": "dd81cb94fad746097964802908bdf4fac6438ce707425def9151a0f3be18eadd",
+          "frozen_runtime_source_archive": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/frozen-runtime-source.zip",
+            "sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+          }
+        },
+        "evidence_preservation": "All fourteen retained-source/scientific provenance fields are exactly equal to the prior accepted current native render, including source Parquet bytes, full analysis context, selected station, both bin choices, all count summaries, cumulative SNR data and map support.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_segment_temporal_delta_decode_dark.png",
+          "bytes": 439384,
+          "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-82b5a653a10a.png",
+          "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+        },
+        "previous_figure_provenance": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-82b5a653a10a.png",
+          "bytes": 439384,
+          "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_segment_temporal_delta_decode_dark.png",
+            "bytes": 397237,
+            "sha256": "ecd0a7adbcc817a8e14fe3800bc707a1ff7e4ba398188dae432668c6c57c8687"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "ecd0a7adbcc817a8e14fe3800bc707a1ff7e4ba398188dae432668c6c57c8687",
+            "source_bytes": 397237,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "ui.plots.benchmark_evidence_figures.render_compare_temporal_coverage_export_figure",
+            "recipe_schema_version": 5,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "demo1-selected-temporal-delta-snr",
+      "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1844,
+      "title": {
+        "en": "DJ0ABR (JN68nt) ΔSNR Temporal Coverage"
+      },
+      "alt": {
+        "en": "DJ0ABR at JN68nt: full-run paired ΔSNR in 12-hour bins and by UTC hour, based on 2 334 spot pairs."
+      },
+      "caption": {
+        "en": "DJ0ABR at JN68nt is approximately 1 064 km from G3ZIL, at an azimuth of 97°. Its overall paired median is +5 dB, with changing temporal behavior. Station-list browsing filters do not narrow this full-run selected evidence."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 291
+        },
+        {
+          "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 581
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_snr_dark-22f1db91864a.png",
+        "bytes": 804376,
+        "sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark.png",
+          "bytes": 767485,
+          "sha256": "d3b4db2ee647cef652196f9fbfdef07cbea11c9d76a8fec4aaf21a8f1bb7d489"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "d3b4db2ee647cef652196f9fbfdef07cbea11c9d76a8fec4aaf21a8f1bb7d489",
+          "source_bytes": 767485,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "ui.plots.evidence_figures.render_selected_evidence_export_figure",
+          "recipe_schema_version": 8,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "demo1-selected-temporal-delta-decode",
+      "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark.png",
+      "width": 3793,
+      "height": 1724,
+      "title": {
+        "en": "DJ0ABR (JN68nt) ΔDecode Temporal Coverage"
+      },
+      "alt": {
+        "en": "DJ0ABR's Paired and one-sided spot counts in 12-hour and UTC-hour bins, with pooled ΔDecode on a directional ratio axis."
+      },
+      "caption": {
+        "en": "Across April: 2 334 Paired, 247 G3ZIL-only and 17 G4HZX-only events; 2 581 Target versus 2 351 Reference decodes. The white line shows this station's pooled ΔDecode in each interval, not a station-reach statistic."
+      },
+      "variants": [
+        {
+          "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 273
+        },
+        {
+          "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 545
+        }
+      ],
+      "provenance": {
+        "kind": "Native WSPRadar spot-pair terminology refresh",
+        "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_decode_dark-966d3d7590e7.png",
+        "bytes": 362322,
+        "sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+        "recipe": {
+          "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+          "sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+          "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+          "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+          "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+        },
+        "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+        "previous_native_file_record": {
+          "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark.png",
+          "bytes": 326847,
+          "sha256": "79ff412312c20997a336ca72afa4ae96c9b6c8bd4a01954f7573d535e6f77fd4"
+        },
+        "previous_figure_provenance": {
+          "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+          "source_evidence": "rc3/source/analysis_cache.parquet",
+          "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+          "source_sha256": "79ff412312c20997a336ca72afa4ae96c9b6c8bd4a01954f7573d535e6f77fd4",
+          "source_bytes": 326847,
+          "native_png_unchanged": true,
+          "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+          "renderer": "ui.plots.benchmark_evidence_figures.render_selected_compare_coverage_export_figure",
+          "recipe_schema_version": 5,
+          "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+          "numerical_provenance": "temporal-decode/provenance.json",
+          "browser_derivatives": {
+            "tool": "Pillow 12.2.0",
+            "encoding": "lossless WebP; quality=100; method=4; exact=True",
+            "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+            "decoded_pixels_equal_resized_source": true
+          }
+        },
+        "browser_derivatives": {
+          "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+          "decoded_pixels_equal_resized_source": true
+        },
+        "retained_historical_renderer_sources": {
+          "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+          "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+          "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+        }
+      }
+    },
+    {
+      "key": "rc3-demo1-map-typography-en-20261024",
+      "path": "typography-en-20261024/figure_map_delta_snr_dark.png",
+      "width": 3411,
+      "height": 3518,
+      "title": {
+        "en": "ΔSNR (Signal Quality): where is the SNR advantage?"
+      },
+      "alt": {
+        "en": "Dark ΔSNR map centered on G3ZIL, comparing paired reception with G4HZX by direction and distance."
+      },
+      "caption": {
+        "en": "Sector colors show station-balanced median ΔSNR for G3ZIL minus G4HZX. Hatched sectors have observations but insufficient qualifying support; they are not measured zeroes."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_map_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 619
+        },
+        {
+          "path": "typography-en-20261024/figure_map_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 1238
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_snr_dark-171ae71f7296.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3411,
+          3518
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_snr_dark-f0402bf6035c.png",
+          "bytes": 1524294,
+          "sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "f0402bf6035ca7eac8f16cd36bfddb48fb356d56a122ff6b41500a42f84b6fa1",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_map_delta_snr_dark.png",
+            "bytes": 1435038,
+            "sha256": "e0789ea35dd7d06dce0f439771c4729453883db1756ba0f4e576eb988a291e6a"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "e0789ea35dd7d06dce0f439771c4729453883db1756ba0f4e576eb988a291e6a",
+            "source_bytes": 1435038,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "core.plot_engine.render_map_figure",
+            "recipe_schema_version": null,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            },
+            "previous_figure_provenance": {
+              "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+              "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+              "handoff_asset_path": "assets/01_delta_snr_map_dark.png",
+              "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+              "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+              "source_export_asset": "benchmark/figure_map_highres_dark.png",
+              "source_sha256": "548258d61647cc44f4316c3a18aff7a4002c40afe8ef567d8524e46a6c0d0373",
+              "source_bytes": 1438474,
+              "exported_utc": "2026-10-17T23:27:38Z",
+              "method_version": "controlled-pair-v5",
+              "native_png_unchanged": true,
+              "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+              "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+              "browser_derivatives": {
+                "recipe": "scripts/prepare_demo1_rc3_assets.py",
+                "tool": "Pillow",
+                "version": "12.2.0",
+                "webp_version": "1.6.0",
+                "encoding": "lossless WebP; quality=100; method=6; exact=True",
+                "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+                "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+                "comparisons": [
+                  {
+                    "path": "rc3/web/map-600.webp",
+                    "width": 600,
+                    "height": 605,
+                    "webp_bytes": 108300,
+                    "equivalent_resized_png_bytes": 234176,
+                    "saving_vs_equivalent_png_percent": 53.75,
+                    "saving_vs_native_png_percent": 92.47,
+                    "decoded_pixels_equal_lanczos_resize": true
+                  },
+                  {
+                    "path": "rc3/web/map-1200.webp",
+                    "width": 1200,
+                    "height": 1209,
+                    "webp_bytes": 285674,
+                    "equivalent_resized_png_bytes": 642665,
+                    "saving_vs_equivalent_png_percent": 55.55,
+                    "saving_vs_native_png_percent": 80.14,
+                    "decoded_pixels_equal_lanczos_resize": true
+                  }
+                ]
+              },
+              "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+              "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+              "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "rc3-demo1-reach-typography-en-20261024",
+      "path": "typography-en-20261024/figure_decodes_over_snr_dark.png",
+      "width": 3819,
+      "height": 2482,
+      "title": {
+        "en": "Decodes & Stations by SNR"
+      },
+      "alt": {
+        "en": "Cumulative raw-SNR curves for Paired, one-sided and all observations, with spots above and distinct station entries below."
+      },
+      "caption": {
+        "en": "G3ZIL is magenta; G4HZX is cyan. At the endpoints, G3ZIL has 44 769 more decoded spots and 207 more observed station entries. The Paired spots curves finish at the same report counts, representing the same spot pairs."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_decodes_over_snr_dark-600.webp",
+          "width": 600,
+          "height": 390
+        },
+        {
+          "path": "typography-en-20261024/figure_decodes_over_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 780
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_decodes_over_snr_dark-110b1e671743.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3819,
+          2482
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_decodes_over_snr_dark-c18537e3c03d.png",
+          "bytes": 460389,
+          "sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "c18537e3c03d068b74cfd8d5092785b19e68ffd45c5563bfde709ebd463af90a",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_decodes_over_snr_dark.png",
+            "bytes": 409799,
+            "sha256": "6ecb88ef58e741f55d83baca2de031adcb88681249387b23e1ca273a333a728f"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "6ecb88ef58e741f55d83baca2de031adcb88681249387b23e1ca273a333a728f",
+            "source_bytes": 409799,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "ui.plots.snr_reach_figures.render_snr_reach_figure",
+            "recipe_schema_version": 3,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            },
+            "previous_figure_provenance": {
+              "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+              "source_file": "demo1_snr_reach_inline_en_dark.png",
+              "source_sha256": "8426863c63bafa7597ef8e95c4e183078e50e431f0d3cd5851b77c2a774f1f48",
+              "source_bytes": 185841,
+              "native_png_unchanged": true,
+              "figure_generation": "User-supplied replacement dark figure, copied unchanged. Website preparation does not rerun scientific calculations.",
+              "browser_derivatives": {
+                "recipe": "scripts/prepare_demo1_rc3_assets.py",
+                "tool": "Pillow",
+                "version": "12.2.0",
+                "webp_version": "1.6.0",
+                "encoding": "lossless WebP; quality=100; method=6; exact=True",
+                "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+                "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+                "comparisons": [
+                  {
+                    "path": "rc3/web/reach-600.webp",
+                    "width": 600,
+                    "height": 378,
+                    "webp_bytes": 46358,
+                    "equivalent_resized_png_bytes": 100617,
+                    "saving_vs_equivalent_png_percent": 53.93,
+                    "saving_vs_native_png_percent": 75.06,
+                    "decoded_pixels_equal_lanczos_resize": true
+                  },
+                  {
+                    "path": "rc3/web/reach-1200.webp",
+                    "width": 1200,
+                    "height": 757,
+                    "webp_bytes": 110176,
+                    "equivalent_resized_png_bytes": 246687,
+                    "saving_vs_equivalent_png_percent": 55.34,
+                    "saving_vs_native_png_percent": 40.71,
+                    "decoded_pixels_equal_lanczos_resize": true
+                  }
+                ]
+              },
+              "replaced_figure_provenance": {
+                "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+                "source_archive": "WSPRadar_Demo1_Codex_handoff_20261018.zip",
+                "handoff_asset_path": "assets/02_decoding_reach_dark.png",
+                "source_export": "WSPRadar_export_2026_10_18__01_27.zip",
+                "source_export_sha256": "6f4412a3b5c7cc623fe57abab3f7d81632cf16a9dfef43341d74a57c84ff03c9",
+                "source_export_asset": "benchmark/figure_snr_reach_highres_dark.png",
+                "source_sha256": "bc2b372bf683d943fc4463ca2562dfa22630b34c04d8f3485a68fe2585de6e5a",
+                "source_bytes": 379684,
+                "exported_utc": "2026-10-17T23:27:38Z",
+                "method_version": "controlled-pair-v5",
+                "native_png_unchanged": true,
+                "figure_generation": "Supplied native WSPRadar v1.0 RC3 dark figure. Website preparation does not rerun scientific calculations.",
+                "source_manifest": "source/rc3-verification/PACKAGE_MANIFEST.json",
+                "browser_derivatives": {
+                  "recipe": "scripts/prepare_demo1_rc3_assets.py",
+                  "tool": "Pillow",
+                  "version": "12.2.0",
+                  "webp_version": "1.6.0",
+                  "encoding": "lossless WebP; quality=100; method=6; exact=True",
+                  "resampling": "LANCZOS; directly from each native PNG; no upscaling",
+                  "composition": "Complete source image; no cropping, relabeling, redrawing, or recoloring. Native PNG retained for enlargement.",
+                  "comparisons": [
+                    {
+                      "path": "rc3/web/reach-600.webp",
+                      "width": 600,
+                      "height": 378,
+                      "webp_bytes": 41894,
+                      "equivalent_resized_png_bytes": 91322,
+                      "saving_vs_equivalent_png_percent": 54.12,
+                      "saving_vs_native_png_percent": 88.97,
+                      "decoded_pixels_equal_lanczos_resize": true
+                    },
+                    {
+                      "path": "rc3/web/reach-1200.webp",
+                      "width": 1200,
+                      "height": 757,
+                      "webp_bytes": 101382,
+                      "equivalent_resized_png_bytes": 221956,
+                      "saving_vs_equivalent_png_percent": 54.32,
+                      "saving_vs_native_png_percent": 73.3,
+                      "decoded_pixels_equal_lanczos_resize": true
+                    }
+                  ]
+                },
+                "handoff_archive_sha256": "fcc63ead0c81ce539e227fd4ff3ad88b04171659f200065028b27f7cd1d8322f",
+                "package_manifest_sha256": "46178d9304fdb09579f6d30dad107788f9c5f7eb94d2b9d16c004e78a0cd414b",
+                "source_export_identity_verification": "Source export archive name and hash are supplied package metadata; the handoff archive and native PNG hashes were independently checked during website integration."
+              }
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "demo1-decode-advantage-map-typography-en-20261024",
+      "path": "typography-en-20261024/figure_map_delta_decode_dark.png",
+      "width": 3451,
+      "height": 3518,
+      "title": {
+        "en": "ΔDecode (Decoding Advantage): where are additional signals decoded?"
+      },
+      "alt": {
+        "en": "Dark pooled ΔDecode map comparing G3ZIL and G4HZX total decodes with an adaptive fold-ratio legend; eleven sectors meet the 1% event-share minimum."
+      },
+      "caption": {
+        "en": "ΔDecode compares pooled Target and Reference decode totals. Warm colors favor G3ZIL; blue favors G4HZX. Ratio labels mark the color boundaries, with 1× at equality. A sector needs at least 1% of the retained observed events (1 256 here)."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_map_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 612
+        },
+        {
+          "path": "typography-en-20261024/figure_map_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 1223
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_map_delta_decode_dark-5033bae237ab.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3451,
+          3518
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_map_delta_decode_dark-ea15b2688415.png",
+          "bytes": 1523489,
+          "sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "ea15b2688415f396f56bb5ca36562816fbd585f55dfe7b433013c8f8a9fd8db0",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_map_delta_decode_dark.png",
+            "bytes": 1433637,
+            "sha256": "7ab70beebb111aed1e5a7becb25236e90409dc96771b5fcb51097fd8683bff3d"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "7ab70beebb111aed1e5a7becb25236e90409dc96771b5fcb51097fd8683bff3d",
+            "source_bytes": 1433637,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "core.plot_engine.render_map_figure",
+            "recipe_schema_version": null,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            },
+            "previous_figure_provenance": {
+              "language_scope": "English only; German adaptation pending",
+              "method_version": "pooled-total-decodes-v1",
+              "source_evidence": "rc3/source/analysis_cache.parquet",
+              "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+              "source_sha256": "c12c2067871358f1940e6b5e53a27b69ae57de28949f7c3306f0ec4df1960f9d",
+              "source_bytes": 1443689,
+              "native_png_unchanged": true,
+              "figure_generation": "Production WSPRadar ΔDecode renderer using retained RC3 observations and pooled total-decode advantage; original RC3 exports are unchanged.",
+              "formula": "100*(T-R)/(2*J+T+R)",
+              "min_decode_event_share_percent": 1.0,
+              "minimum_events": 1256,
+              "active_sectors": 11,
+              "recipe": "WSPRadarApp/scripts/internal/render_decode_advantage_map.py",
+              "numerical_provenance": "decode-advantage/provenance.json",
+              "browser_derivatives": {
+                "encoding": "lossless WebP",
+                "resampling": "LANCZOS directly from native PNG; no cropping, recoloring, or upscaling",
+                "decoded_pixels_equal_lanczos_resize": true
+              },
+              "render_version": 7,
+              "legend": "Adaptive fold-ratio boundary labels; finest fitting preset; equal-width discrete swatches"
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "demo1-benchmark-statistics-typography-en-20261024",
+      "path": "typography-en-20261024/figure_segment_statistics_dark.png",
+      "width": 3852,
+      "height": 1748,
+      "title": {
+        "en": "Benchmark Statistics: decode volume and paired SNR"
+      },
+      "alt": {
+        "en": "Benchmark Statistics showing the decode-volume-weighted station ΔDecode distribution, qualifying spot-pair ΔSNR, and qualifying station-median ΔSNR."
+      },
+      "caption": {
+        "en": "The pooled decode result is G3ZIL 1.65×. The spot-pair ΔSNR median is +7.0 dB; the station-balanced median is +6.5 dB. These current application figures reuse the retained April observations."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_segment_statistics_dark-600.webp",
+          "width": 600,
+          "height": 272
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_statistics_dark-1200.webp",
+          "width": 1200,
+          "height": 545
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_statistics_dark-902c68bae983.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3852,
+          1748
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_statistics_dark-3f9b0e7ff318.png",
+          "bytes": 345510,
+          "sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "3f9b0e7ff318ffca5c7f1f8de865be56ce489ca72e090e32dfe1b599f0599424",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_segment_statistics_dark.png",
+            "bytes": 319708,
+            "sha256": "9361de593715bcdd2f1d06b5af917b76e32dc759bfd5a6393640dffafa14a61d"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "9361de593715bcdd2f1d06b5af917b76e32dc759bfd5a6393640dffafa14a61d",
+            "source_bytes": 319708,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+            "recipe_schema_version": 8,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "demo1-temporal-delta-snr-typography-en-20261024",
+      "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1844,
+      "title": {
+        "en": "ΔSNR Temporal Coverage"
+      },
+      "alt": {
+        "en": "Paired ΔSNR through April in 24-hour bins and by UTC hour, showing bin medians, the middle-50-percent bands, and spot-pair density."
+      },
+      "caption": {
+        "en": "The chronological view uses 24-hour bins; the UTC-hour view pools observations across dates. Both summarize qualifying spot pairs, while one-sided observations remain in the following ΔDecode figure."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 291
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 581
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_snr_dark-8d9a310c5cf7.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3808,
+          1844
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_snr_dark-ae0ebd3d606e.png",
+          "bytes": 541716,
+          "sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "ae0ebd3d606e8d1bb953d13fc90be89f73af899416b765282ba029ef4407539f",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_segment_temporal_delta_snr_dark.png",
+            "bytes": 519561,
+            "sha256": "2b70b4ebf449339fde9936f24bdf171c896788159c39c7c12bb0ad556df7cad5"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "2b70b4ebf449339fde9936f24bdf171c896788159c39c7c12bb0ad556df7cad5",
+            "source_bytes": 519561,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "ui.plots.evidence_figures.render_segment_temporal_evidence_export_figure",
+            "recipe_schema_version": 8,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "demo1-temporal-delta-decode-typography-en-20261024",
+      "path": "typography-en-20261024/figure_segment_temporal_delta_decode_dark.png",
+      "width": 3832,
+      "height": 1639,
+      "title": {
+        "en": "ΔDecode Temporal Coverage"
+      },
+      "alt": {
+        "en": "Distinct-station coverage above native station-cycle coverage, with Station Reach Advantage and pooled ΔDecode curves in 24-hour and UTC-hour panels."
+      },
+      "caption": {
+        "en": "The upper row counts distinct stations as Both observed, Only Target or Only Reference; the lower counts all native paired observations in one green category and the one-sided spots. White curves favor G3ZIL above 1× (0) and G4HZX below. UTC-hour station membership is classified separately for each date before averaging."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 257
+        },
+        {
+          "path": "typography-en-20261024/figure_segment_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 513
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_segment_temporal_delta_decode_dark-550a6028a3c1.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3832,
+          1639
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-da06e27f6635.png",
+          "bytes": 445364,
+          "sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/segment-decode-provenance.json",
+            "sha256": "da06e27f6635fbb9f7fb01d0cf0d36796a3f459b24139863e6e4a73d05370c1b",
+            "review": "Native 1200 px visual QA: explicit Both observed (stations) / Paired (spots) shared green key fits; labels, axes, scientific panels and footer unobstructed.",
+            "settings": "Current demo scientific settings; segment bins 24h; selected bins 12h; selected identity {\"callsign\": \"DJ0ABR\", \"locator\": \"JN68NT\"}.",
+            "frozen_runtime_source_manifest": "source/archive/spot-pair-renderers/pre-typography-runtime/provenance/media-source-manifest.json",
+            "frozen_runtime_source_manifest_sha256": "8db80225f3a50e781c3b6502b4f2082854cce686a8807714ce15c26dedc22ec4",
+            "capture_source_fingerprint_sha256": "c99f6766f709561c0b6c2a74664d19db4d9ecc5e036ed735b6d23e3aa36cafa8",
+            "source_policy": "Exact pre-typography working-tree source snapshot shared with the genuine UI captures. Canonical source files may now include independent typography work; source hashes must resolve to the archived snapshot.",
+            "native_provenance_sha256": "dd81cb94fad746097964802908bdf4fac6438ce707425def9151a0f3be18eadd",
+            "frozen_runtime_source_archive": {
+              "path": "source/archive/spot-pair-renderers/pre-typography-runtime/frozen-runtime-source.zip",
+              "sha256": "152065fcc6bb2809affa331d135e35945acd6e2c0f1e4b9c8889b8b98eaae754"
+            }
+          },
+          "evidence_preservation": "All fourteen retained-source/scientific provenance fields are exactly equal to the prior accepted current native render, including source Parquet bytes, full analysis context, selected station, both bin choices, all count summaries, cumulative SNR data and map support.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_segment_temporal_delta_decode_dark.png",
+            "bytes": 439384,
+            "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec",
+            "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-82b5a653a10a.png",
+            "source_role": "Native WSPRadar rendering with spot-pair terminology from the same retained evidence; the previous source remains preserved."
+          },
+          "previous_figure_provenance": {
+            "kind": "Native WSPRadar spot-pair terminology refresh",
+            "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_segment_temporal_delta_decode_dark-82b5a653a10a.png",
+            "bytes": 439384,
+            "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec",
+            "recipe": {
+              "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+              "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+              "sha256": "82b5a653a10ac731c3b02f17e89dc28ccb41a5580ebfc9b5695709ddda3d21ec",
+              "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+              "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+              "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+            },
+            "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+            "previous_native_file_record": {
+              "path": "temporal-decode/figure_segment_temporal_delta_decode_dark.png",
+              "bytes": 397237,
+              "sha256": "ecd0a7adbcc817a8e14fe3800bc707a1ff7e4ba398188dae432668c6c57c8687"
+            },
+            "previous_figure_provenance": {
+              "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+              "source_evidence": "rc3/source/analysis_cache.parquet",
+              "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+              "source_sha256": "ecd0a7adbcc817a8e14fe3800bc707a1ff7e4ba398188dae432668c6c57c8687",
+              "source_bytes": 397237,
+              "native_png_unchanged": true,
+              "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+              "renderer": "ui.plots.benchmark_evidence_figures.render_compare_temporal_coverage_export_figure",
+              "recipe_schema_version": 5,
+              "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+              "numerical_provenance": "temporal-decode/provenance.json",
+              "browser_derivatives": {
+                "tool": "Pillow 12.2.0",
+                "encoding": "lossless WebP; quality=100; method=4; exact=True",
+                "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+                "decoded_pixels_equal_resized_source": true
+              }
+            },
+            "browser_derivatives": {
+              "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+              "decoded_pixels_equal_resized_source": true
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "demo1-selected-temporal-delta-snr-typography-en-20261024",
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark.png",
+      "width": 3808,
+      "height": 1921,
+      "title": {
+        "en": "DJ0ABR (JN68nt) ΔSNR Temporal Coverage"
+      },
+      "alt": {
+        "en": "DJ0ABR at JN68nt: full-run paired ΔSNR in 12-hour bins and by UTC hour, based on 2 334 spot pairs."
+      },
+      "caption": {
+        "en": "DJ0ABR at JN68nt is approximately 1 064 km from G3ZIL, at an azimuth of 97°. Its overall paired median is +5 dB, with changing temporal behavior. Station-list browsing filters do not narrow this full-run selected evidence."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-600.webp",
+          "width": 600,
+          "height": 303
+        },
+        {
+          "path": "typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-1200.webp",
+          "width": 1200,
+          "height": 605
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_snr_dark-b9d3e77d3ebb.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3808,
+          1921
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_snr_dark-22f1db91864a.png",
+          "bytes": 804376,
+          "sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "22f1db91864a2f3f154f4e89eb00d30576c436a19ab027fbe183614c7a325d18",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_selected_station_temporal_delta_snr_dark.png",
+            "bytes": 767485,
+            "sha256": "d3b4db2ee647cef652196f9fbfdef07cbea11c9d76a8fec4aaf21a8f1bb7d489"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "d3b4db2ee647cef652196f9fbfdef07cbea11c9d76a8fec4aaf21a8f1bb7d489",
+            "source_bytes": 767485,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "ui.plots.evidence_figures.render_selected_evidence_export_figure",
+            "recipe_schema_version": 8,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    },
+    {
+      "key": "demo1-selected-temporal-delta-decode-typography-en-20261024",
+      "path": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark.png",
+      "width": 3816,
+      "height": 1729,
+      "title": {
+        "en": "DJ0ABR (JN68nt) ΔDecode Temporal Coverage"
+      },
+      "alt": {
+        "en": "DJ0ABR's Paired and one-sided spot counts in 12-hour and UTC-hour bins, with pooled ΔDecode on a directional ratio axis."
+      },
+      "caption": {
+        "en": "Across April: 2 334 Paired, 247 G3ZIL-only and 17 G4HZX-only events; 2 581 Target versus 2 351 Reference decodes. The white line shows this station's pooled ΔDecode in each interval, not a station-reach statistic."
+      },
+      "variants": [
+        {
+          "path": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-600.webp",
+          "width": 600,
+          "height": 272
+        },
+        {
+          "path": "typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-1200.webp",
+          "width": 1200,
+          "height": 544
+        }
+      ],
+      "provenance": {
+        "source_path": "assets/demos/griffiths_squibb_fig3/typography-en-20261024/native/figure_selected_station_temporal_delta_decode_dark-90fb3b56c0f2.png",
+        "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+        "native_provenance": "source/assets/demos/griffiths_squibb_fig3/typography-en-20261024/native-provenance.json",
+        "image_px": [
+          3816,
+          1729
+        ],
+        "previous": {
+          "kind": "Native WSPRadar spot-pair terminology refresh",
+          "source_path": "assets/demos/griffiths_squibb_fig3/current-spot-pairs/figure_selected_station_temporal_delta_decode_dark-966d3d7590e7.png",
+          "bytes": 362322,
+          "sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+          "recipe": {
+            "generator": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "native_provenance": "source/assets/demos/griffiths_squibb_fig3/current-spot-pairs/native-provenance.json",
+            "sha256": "966d3d7590e7364c5f491c8cf60fa5d0a7260347c597732783169d47717e8193",
+            "review": "Native 27-figure contact-sheet visual QA: legible labels and axes, no overlap, complete scientific panels.",
+            "settings": "Current demo scientific settings. Calibration 12h bins and Zander ON5KQ JO10os selected explicitly by current English walkthrough.",
+            "native_provenance_sha256": "83febf8cb29723559fb626aa165dda92b4d16d26d049a147a0e20600d2380822"
+          },
+          "evidence_preservation": "Retained source evidence unchanged. Calibration and rotation full precision generated SQL replay equals every exported ledger row/endpoint; report identities, counts and numeric values preserved.",
+          "previous_native_file_record": {
+            "path": "temporal-decode/figure_selected_station_temporal_delta_decode_dark.png",
+            "bytes": 326847,
+            "sha256": "79ff412312c20997a336ca72afa4ae96c9b6c8bd4a01954f7573d535e6f77fd4"
+          },
+          "previous_figure_provenance": {
+            "language_scope": "English walkthrough only; German retains its existing reviewed resource set",
+            "source_evidence": "rc3/source/analysis_cache.parquet",
+            "source_evidence_sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed",
+            "source_sha256": "79ff412312c20997a336ca72afa4ae96c9b6c8bd4a01954f7573d535e6f77fd4",
+            "source_bytes": 326847,
+            "native_png_unchanged": true,
+            "figure_generation": "Current production WSPRadar renderers using retained RC3 observations. English titles, typography, scope footers and unified Joint coverage use the approved application presentation; historical RC3 exports and publication artwork remain unchanged.",
+            "renderer": "ui.plots.benchmark_evidence_figures.render_selected_compare_coverage_export_figure",
+            "recipe_schema_version": 5,
+            "recipe": "WSPRadarApp/scripts/internal/render_benchmark_temporal_refresh.py",
+            "numerical_provenance": "temporal-decode/provenance.json",
+            "browser_derivatives": {
+              "tool": "Pillow 12.2.0",
+              "encoding": "lossless WebP; quality=100; method=4; exact=True",
+              "resampling": "LANCZOS directly from native PNG; no crop, recolor, or upscaling",
+              "decoded_pixels_equal_resized_source": true
+            }
+          },
+          "browser_derivatives": {
+            "encoding": "Lossless WebP; direct LANCZOS resize from native PNG; no upscaling, recoloring, or repainting",
+            "decoded_pixels_equal_resized_source": true
+          },
+          "retained_historical_renderer_sources": {
+            "path": "source/archive/spot-pair-renderers/pre-typography-runtime/historical/manifest.json",
+            "sha256": "f7303b565c0453cf9e0deecd6d9e342c3d5d5ee0a18337b989dbebd61e753a20",
+            "scope": "Exact historical snapshots where recovered; unavailable revisions remain explicitly identified."
+          }
+        }
+      }
+    }
+  ]
+}

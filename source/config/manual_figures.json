@@ -1,0 +1,32 @@
+{
+  "en": [
+    {
+      "before_anchor": "sec-3-6",
+      "demo_id": "griffiths_squibb_fig3",
+      "media_key": "rc3-demo1-map-typography-en-20261024",
+      "demo_anchor": "delta-snr-map",
+      "caption": "The Griffiths–Squibb comparison shows where G3ZIL has higher paired SNR than G4HZX. Hatched sectors have observations but insufficient qualifying support; they are not measured zeroes."
+    },
+    {
+      "before_anchor": "sec-3-7",
+      "demo_id": "griffiths_squibb_fig3",
+      "media_key": "demo1-benchmark-statistics-typography-en-20261024",
+      "demo_anchor": "difference",
+      "caption": "The same comparison gives a +7.0 dB median across spot pairs and +6.5 dB across station medians. Comparing the distributions shows why observation weighting and station weighting answer different questions."
+    },
+    {
+      "before_anchor": "sec-3-8",
+      "demo_id": "vanhamel_rx_buddy",
+      "media_key": "rotation-20261021-stations-typography-en-20261024",
+      "demo_anchor": "stations",
+      "caption": "In the Vanhamel antenna-rotation example, the M7AEO path shows a clear change around 8 May. Read the dated observations before the combined UTC-hour view; the displayed result includes the preset +1.6 dB Reference correction."
+    },
+    {
+      "before_anchor": "sec-3",
+      "demo_id": "griffiths_squibb_fig3",
+      "media_key": "demo-1-drilldown",
+      "demo_anchor": "drill-down",
+      "caption": "Follow DJ0ABR at JN68nt down to individual cycles. The first displayed pair has −14 dB at G4HZX and +3 dB at G3ZIL, giving ΔSNR = +17 dB; subsequent rows show that the difference varies."
+    }
+  ]
+}
