@@ -2,8 +2,6 @@ name: Build and deploy website
 
 on:
   push:
-    branches: [main, temp]
-  pull_request:
     branches: [main]
   workflow_dispatch:
 

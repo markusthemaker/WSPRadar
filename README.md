@@ -90,8 +90,11 @@ available; illustrative supplied artwork is not used as measured evidence.
 ### Prepared GitHub Pages deployment
 
 The workflow in [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
-builds and validates the public website on pushes to `temp` and `main`, pull
-requests targeting `main`, and manual runs. Only a successful run on `main` in
+builds and validates the public website automatically only on pushes to `main`.
+Pushes to `temp` are intermediate backups and do not run this workflow, including
+when `temp` has an open pull request; pull-request events are not triggers.
+An optional manual run can select `temp`
+for validation without deployment. Only a successful run on `main` in
 `markusthemaker/WSPRadar` can deploy. It uploads the contents of `generated/`, so
 `generated/index.html` becomes `https://wspradar.org/`; generated files remain
 ignored. The build uses this repository and `requirements-site.txt`, with no
@@ -103,7 +106,8 @@ release checks. GitHub Actions are pinned to reviewed commit IDs; review the
 corresponding action definitions when updating those pins.
 
 This workflow is prepared locally; activation is a separate approved step. First
-publish and validate the candidate on `temp`. When deployment is approved, select
+publish the candidate on `temp` and validate it locally before promotion; an
+optional manual workflow run on `temp` can also validate it. When deployment is approved, select
 **Settings > Pages > Build and deployment > Source > GitHub Actions**, retain the
 custom domain **wspradar.org**, and keep **Enforce HTTPS** enabled. Restrict the
 `github-pages` environment to `main`, then promote the verified candidate with

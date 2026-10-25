@@ -13,9 +13,12 @@ The workflow is local `temp` -> GitHub `temp` -> GitHub `main`. GitHub Pages
 publishes `main`; pushing to `temp` alone does not update the website. This
 website publication workflow does not create an application release or tag.
 
-The prepared [Pages workflow](../.github/workflows/deploy-pages.yml) builds and
-validates `temp` and `main`, with deployment restricted to successful canonical
-`main` runs. It publishes only `generated/`; the Git helpers continue to publish
+The prepared [Pages workflow](../.github/workflows/deploy-pages.yml) automatically
+builds and validates only pushes to `main`, with
+deployment restricted to successful canonical `main` runs. Intermediate `temp`
+pushes and pull-request events do not trigger it, even when `temp` has an open
+pull request targeting `main`. An optional manual run on `temp` validates without
+deploying. It publishes only `generated/`; the Git helpers continue to publish
 the permitted source tree and do not build the website or wait for Actions.
 Before the first static-site release, complete the separately approved
 [Pages activation](../README.md#prepared-github-pages-deployment), retaining

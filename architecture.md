@@ -56,8 +56,11 @@ boundary without activating it. Its read-only build job installs the public
 website requirements, builds and checks `generated/` offline, and runs the Python
 and Node.js website contracts. Only a successful `main` run in the canonical
 public repository uploads `generated/` as the Pages artifact and enters the
-separate deployment job. `temp`, pull requests, and manual runs on other branches
-validate without deployment permissions. Only the deployment job receives
+separate deployment job. Automatic runs are restricted to pushes to `main`;
+neither `temp` pushes nor pull-request events start the workflow, including
+updates to an open pull request from `temp` to `main`. Optional manual runs on
+`temp` or other branches validate without deployment
+permissions. Only the deployment job receives
 `pages: write` and `id-token: write`; it uses the `github-pages` environment.
 The deployment checks that Pages uses GitHub Actions, the custom domain remains
 `wspradar.org`, and HTTPS is enforced. It reads those settings without enabling
