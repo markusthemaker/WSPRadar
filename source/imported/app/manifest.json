@@ -897,8 +897,8 @@
       "sha256": "1f0df827baf91729767de817029703d8856d56b472aa63e29cf91ac44499be24"
     },
     "manual.de.md": {
-      "bytes": 296278,
-      "sha256": "1aaf7fddbfa9b38dbfef8630c5ecc3fd7c3b9bf6e451acb81099579a6d073387"
+      "bytes": 296659,
+      "sha256": "e5d161655d59529eac44220483aa1da7ec95bc46ff6047a269f91393b6982eb7"
     },
     "manual.en.md": {
       "bytes": 230019,
@@ -915,15 +915,18 @@
   },
   "manual_source_update": {
     "preserved_nonmanual_payload_files": 71,
-    "previous_bundle_manifest_sha256": "eeeea087d8a685cd50b6f09110075e8d69533bbf177c654279127c99865bcac7",
+    "previous_bundle_manifest_sha256": "c5c567e1846f06bae067207fda9c9387ac530e9cb065ac8676fbefb2cc344529",
     "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
     "scope": [
+      "manual.de.md",
       "manual.en.md"
     ],
     "source_repository": "WSPRadarApp",
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
       "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+      "docs/manual/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
+      "docs/manual/doc_de.py": "cd34a3e75588ce36b498a0a69049beeb1a094e1b3488723401dc51bf45befd5b",
       "docs/manual/doc_en.py": "859021e22a29b32b8df29815edc256dc26c044a7169bd76bc13013d90472c47e"
     }
   },
@@ -1551,6 +1554,20 @@
       "source_text_sha256": {
         "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
         "docs/manual/doc_en.py": "8e380c00bb94988fcf74495c73d3774b848342807e26c6803fe7060c122e4cb6"
+      }
+    },
+    {
+      "preserved_nonmanual_payload_files": 71,
+      "previous_bundle_manifest_sha256": "eeeea087d8a685cd50b6f09110075e8d69533bbf177c654279127c99865bcac7",
+      "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
+      "scope": [
+        "manual.en.md"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+        "docs/manual/doc_en.py": "859021e22a29b32b8df29815edc256dc26c044a7169bd76bc13013d90472c47e"
       }
     }
   ],

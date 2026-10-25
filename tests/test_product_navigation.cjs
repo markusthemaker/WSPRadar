@@ -11,12 +11,21 @@ const canonicalDemo = 'https://wspradar.org/?v=1&run=1&callsign=G3ZIL&ref=G4HZX#
 assert.equal(catalog.items.find(item => item.destination === 'analysis' && item.path === '').new_tab, false);
 assert.equal(catalog.items.find(item => item.id === 'documentation').new_tab, true);
 
-function fixture(url, {port = null, links = [], runEntry = false} = {}) {
+function fixture(url, {port = null, links = [], runEntry = false, target = null,
+                      opener = null, storage = new Map(), blockedStorage = false} = {}) {
   const location = new URL(url);
   let replacement = null;
   location.replace = value => { replacement = value; };
-  const anchors = links.map(href => ({href: new URL(href, location).href}));
+  const navigations = [];
+  location.assign = value => { navigations.push(value); };
+  const anchors = links.map(href => ({href: new URL(href, location).href,
+    hasAttribute: name => false,
+    getAttribute: name => null,
+    closest() { return this; },
+  }));
   const events = new Map();
+  const windowEvents = new Map();
+  const opens = [];
   const document = {
     getElementById(id) {
       assert.equal(id, 'wspradar-product-navigation');
@@ -25,12 +34,27 @@ function fixture(url, {port = null, links = [], runEntry = false} = {}) {
     addEventListener(event, callback) { events.set(event, callback); },
     querySelectorAll(selector) { assert.equal(selector, 'a[href]'); return anchors; },
   };
-  const window = {location};
+  const window = {location, opener,
+    addEventListener(event, callback) { windowEvents.set(event, callback); },
+    open(...args) { opens.push(args); return target; },
+    sessionStorage: {
+      getItem(key) { if (blockedStorage) throw new Error('Storage disabled'); return storage.get(key) ?? null; },
+      setItem(key, value) { if (blockedStorage) throw new Error('Storage disabled'); storage.set(key, value); },
+    },
+  };
   const context = vm.createContext({document, window, URL});
   vm.runInContext(source, context);
   if (runEntry) vm.runInContext(entry, context);
   events.get('DOMContentLoaded')();
-  return {anchors, replacement, navigation: window.WSPRadarNavigation};
+  return {anchors, replacement, navigation: window.WSPRadarNavigation, opens, navigations, window,
+    message(origin, source, data) { windowEvents.get('message')?.({origin, source, data}); },
+    click(index = 0, overrides = {}) {
+      const event = {target: anchors[index], button: 0, defaultPrevented: false,
+        preventDefault() { this.defaultPrevented = true; }, ...overrides};
+      events.get('click')?.(event);
+      return event;
+    },
+  };
 }
 
 let assertions = 2;
@@ -71,3 +95,173 @@ assert.equal(fixture('https://wspradar.org/?v=1&run=1#wspradar-results-inspectio
              catalog.origins.analysis + '?v=1&run=1#wspradar-results-inspection');
 assertions += 5;
 console.log(`Product navigation: ${assertions} local/production routing assertions passed.`);
+
+function application(href = 'about:blank', crossOrigin = false) {
+  const writes = [];
+  const messages = [];
+  let focusCount = 0;
+  const location = {};
+  Object.defineProperty(location, 'href', {
+    get() { if (crossOrigin) throw new Error('Cross-origin location'); return href; },
+    set(value) { writes.push(value); href = value; },
+  });
+  const tab = {location, focus() { focusCount++; }};
+  tab.top = tab;
+  const frame = {top: tab, postMessage(...args) { messages.push(args); }};
+  return {tab, frame, writes, messages, get focusCount() { return focusCount; }};
+}
+
+const protocol = 'wspradar-navigation-v1';
+const appOrigin = new URL(catalog.origins.analysis).origin;
+const token = '0123456789abcdef0123456789abcdef';
+const hello = {protocol, type: 'hello', nonce: token};
+const navigate = url => ({protocol, type: 'navigate', nonce: token, url});
+
+// A first ordinary launch opens one named app; subsequent ordinary launches
+// focus that same tab without assigning its location or discarding an analysis.
+const firstApp = application();
+const firstSite = fixture('https://wspradar.org/en/', {target: firstApp.tab, links: [catalog.origins.analysis]});
+assert.equal(firstSite.window.name, 'wspradar_website');
+assert.equal(firstSite.click().defaultPrevented, true);
+assert.deepEqual(firstSite.opens, [['', 'wspradar_analysis']]);
+assert.deepEqual(firstApp.writes, [catalog.origins.analysis]);
+assert.equal(firstApp.focusCount, 1);
+const runningApp = application(catalog.origins.analysis + '?existing=analysis', true);
+const runningSite = fixture('https://wspradar.org/de/demos/', {target: runningApp.tab, links: [catalog.origins.analysis, canonicalDemo]});
+for (let index = 0; index < 5; index++) runningSite.click();
+assert.equal(runningApp.focusCount, 5);
+assert.deepEqual(runningApp.writes, []);
+runningSite.click(1);
+assert.deepEqual(runningApp.writes, [appOrigin + '/?v=1&run=1&callsign=G3ZIL&ref=G4HZX#wspradar-results-inspection']);
+assert.equal(runningSite.anchors[1].href, canonicalDemo);
+
+// Local preview launches retain complete explicit settings and fragments.
+const localApp = application();
+const localSite = fixture('http://127.0.0.1:8895/en/demos/', {port: 8521, target: localApp.tab, links: [canonicalDemo]});
+localSite.click();
+assert.deepEqual(localApp.writes, ['http://127.0.0.1:8521/?v=1&run=1&callsign=G3ZIL&ref=G4HZX#wspradar-results-inspection']);
+const directApp = application(catalog.origins.analysis, true);
+const directSite = fixture('https://wspradar.org/en/', {target: directApp.tab, links: [appOrigin + '/?state=a%2Bb&v=1#result']});
+directSite.click();
+assert.deepEqual(directApp.writes, [appOrigin + '/?state=a%2Bb&v=1#result']);
+
+// Native modified/middle clicks, downloads and unrelated URLs stay untouched.
+for (const overrides of [{button: 1}, {ctrlKey: true}, {metaKey: true}, {shiftKey: true}, {altKey: true}, {defaultPrevented: true}]) {
+  const native = fixture('https://wspradar.org/en/', {target: firstApp.tab, links: [catalog.origins.analysis]});
+  assert.equal(native.click(0, overrides).defaultPrevented, Boolean(overrides.defaultPrevented));
+  assert.deepEqual(native.opens, []);
+}
+for (const href of ['https://example.org/paper', '/en/documentation/', appOrigin + '/paper.pdf',
+                    'https://wspradar.streamlit.app.example.org/', 'https://user@wspradar.streamlit.app/']) {
+  const native = fixture('https://wspradar.org/en/', {target: firstApp.tab, links: [href]});
+  assert.equal(native.click().defaultPrevented, false);
+  assert.deepEqual(native.opens, []);
+}
+const download = fixture('https://wspradar.org/en/', {target: firstApp.tab, links: [catalog.origins.analysis]});
+download.anchors[0].hasAttribute = name => name === 'download';
+assert.equal(download.click().defaultPrevented, false);
+assert.deepEqual(download.opens, []);
+assert.equal(fixture('https://wspradar.org/en/', {links: [catalog.origins.analysis]}).click().defaultPrevented, false);
+
+// Normal visits to targeted pages remain in the paired website tab. Default
+// and _self anchors keep browser handling, including same-page fragments.
+for (const targetName of ['_blank', 'another_website']) {
+  const docs = fixture('https://wspradar.org/en/', {links: ['/en/documentation/full/?view=1#sec-7']});
+  docs.anchors[0].getAttribute = name => name === 'target' ? targetName : null;
+  assert.equal(docs.click().defaultPrevented, true);
+  assert.deepEqual(docs.navigations, ['https://wspradar.org/en/documentation/full/?view=1#sec-7']);
+  assert.deepEqual(docs.opens, []);
+}
+for (const targetName of [null, '_self']) {
+  const native = fixture('https://wspradar.org/en/', {links: ['#section']});
+  native.anchors[0].getAttribute = name => name === 'target' ? targetName : null;
+  assert.equal(native.click().defaultPrevented, false);
+  assert.deepEqual(native.navigations, []);
+}
+for (const options of [{href: '/en/documentation/', override: {ctrlKey: true}},
+                       {href: '/en/documentation/', override: {button: 1}},
+                       {href: '/en/documentation/', download: true},
+                       {href: '/assets/manual.pdf'}, {href: 'https://example.org/en/'}]) {
+  const native = fixture('https://wspradar.org/en/', {links: [options.href]});
+  native.anchors[0].getAttribute = name => name === 'target' ? '_blank' : null;
+  native.anchors[0].hasAttribute = name => name === 'download' && Boolean(options.download);
+  assert.equal(native.click(0, options.override).defaultPrevented, false);
+  assert.deepEqual(native.navigations, []);
+  assert.deepEqual(native.opens, []);
+}
+
+// The initial hello must come from the acquired app window (including its
+// same-origin Streamlit iframe); subsequent messages require that exact frame.
+const pairingApp = application(catalog.origins.analysis, true);
+const unrelatedApp = application(catalog.origins.analysis, true);
+const storage = new Map();
+const pairingSite = fixture('https://wspradar.org/en/', {storage, target: pairingApp.tab, links: [catalog.origins.analysis]});
+pairingSite.message(appOrigin, unrelatedApp.frame, hello);
+assert.equal(unrelatedApp.messages.length, 0);
+pairingSite.click();
+pairingSite.message('https://evil.example', pairingApp.frame, hello);
+pairingSite.message(appOrigin, pairingApp.frame, {...hello, nonce: 'invalid'});
+pairingSite.message(appOrigin, pairingApp.frame, {...hello, protocol: 'another-protocol'});
+assert.equal(pairingApp.messages.length, 0);
+pairingSite.message(appOrigin, pairingApp.frame, hello);
+assert.equal(pairingApp.messages.length, 1);
+assert.equal(JSON.stringify(pairingApp.messages[0]), JSON.stringify([{protocol, type: 'ack', nonce: token}, appOrigin]));
+pairingSite.message(appOrigin, unrelatedApp.frame, navigate('https://wspradar.org/en/demos/'));
+pairingSite.message('https://evil.example', pairingApp.frame, navigate('https://wspradar.org/en/demos/'));
+pairingSite.message(appOrigin, pairingApp.frame, {...navigate('https://wspradar.org/en/demos/'), nonce: 'f'.repeat(32)});
+for (const url of ['https://evil.example/en/', 'javascript:alert(1)', 'https://wspradar.org/?run=1',
+                   'https://wspradar.org/en/../?run=1', 'https://wspradar.org/en/index.html',
+                   'https://user@wspradar.org/en/', '/en/demos/', null]) {
+  pairingSite.message(appOrigin, pairingApp.frame, navigate(url));
+}
+assert.deepEqual(pairingSite.navigations, []);
+pairingSite.message(appOrigin, pairingApp.frame, navigate('https://wspradar.org/de/documentation/full/?view=1#sec-7'));
+assert.deepEqual(pairingSite.navigations, ['https://wspradar.org/de/documentation/full/?view=1#sec-7']);
+pairingSite.message(appOrigin, pairingApp.frame, navigate('https://wspradar.org/en/'));
+assert.equal(pairingSite.navigations.length, 1); // Same page does not reload.
+
+// Website page reloads retain only the session capability. A fresh hello binds
+// the actual frame again before any navigation is accepted.
+const reloadedSite = fixture('https://wspradar.org/en/community/', {storage});
+reloadedSite.message(appOrigin, pairingApp.frame, navigate('https://wspradar.org/en/demos/'));
+assert.deepEqual(reloadedSite.navigations, []);
+reloadedSite.message(appOrigin, unrelatedApp.frame, {...hello, nonce: 'f'.repeat(32)});
+assert.equal(unrelatedApp.messages.length, 0);
+reloadedSite.message(appOrigin, pairingApp.frame, hello);
+reloadedSite.message(appOrigin, pairingApp.frame, navigate('https://wspradar.org/en/demos/'));
+assert.deepEqual(reloadedSite.navigations, ['https://wspradar.org/en/demos/']);
+
+// App-first navigation pairs via the known opener without storage or polling.
+const openerApp = application(catalog.origins.analysis, true);
+const openedSite = fixture('https://wspradar.org/en/demos/', {opener: openerApp.frame, blockedStorage: true});
+assert.equal(JSON.stringify(openerApp.messages[0]), JSON.stringify([{protocol, type: 'ready'}, appOrigin]));
+openedSite.message(appOrigin, openerApp.frame, hello);
+openedSite.message(appOrigin, openerApp.frame, navigate('https://wspradar.org/de/'));
+assert.deepEqual(openedSite.navigations, ['https://wspradar.org/de/']);
+
+// A live verified app must never be reacquired by name: embedded browsers can
+// navigate an existing named tab to about:blank even for window.open('', name).
+const knownApp = application(appOrigin + '/?existing=analysis', true);
+const replacementApp = application();
+const knownSite = fixture('https://wspradar.org/en/', {opener: knownApp.frame,
+  target: replacementApp.tab, links: [catalog.origins.analysis, canonicalDemo]});
+knownSite.message(appOrigin, knownApp.frame, hello);
+knownSite.click();
+assert.deepEqual(knownSite.opens, []);
+assert.deepEqual(knownApp.writes, []);
+assert.equal(knownApp.focusCount, 1);
+knownSite.click(1);
+assert.deepEqual(knownSite.opens, []);
+assert.deepEqual(knownApp.writes, [appOrigin + '/?v=1&run=1&callsign=G3ZIL&ref=G4HZX#wspradar-results-inspection']);
+knownApp.tab.closed = true;
+knownSite.click();
+assert.deepEqual(knownSite.opens, [['', 'wspradar_analysis']]);
+assert.deepEqual(replacementApp.writes, [catalog.origins.analysis]);
+replacementApp.tab.focus = () => { throw new Error('Focus refused'); };
+assert.equal(knownSite.click().defaultPrevented, true);
+assert.equal(knownSite.opens.length, 1);
+assert.equal(replacementApp.writes.length, 1);
+const redirect = fixture('https://wspradar.org/?v=1&run=1', {opener: openerApp.frame, runEntry: true});
+assert.equal(redirect.window.name, undefined);
+assert.equal(redirect.replacement, appOrigin + '/?v=1&run=1');
+console.log('Paired product navigation: creation, reuse, explicit launches, native clicks, trusted messaging and reload checks passed.');

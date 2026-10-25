@@ -177,8 +177,8 @@ Product navigation uses the app's authoritative bilingual
 `config/product_navigation.json`, exported into source-hashed
 `brand.json:product_navigation` metadata. The shared order is Introduction, Guided Demo,
 WSPRadar App, Documentation, and Community; the existing wordmark and
-language selector surround these links. Product navigation and analysis launches
-stay in the current tab by default. Documentation in the website main navigation
+language selector surround these links. Without the paired-tab JavaScript enhancement,
+product navigation and analysis launches stay in the current tab by default. Documentation in the website main navigation
 also stays in the current tab; other documentation entry links retain their separate-tab policy. Guided demos retain their prepared Run demo action after the short introduction;
 the top-level header has no additional demo-launch button. The final-page renderer applies
 the catalog's WSPRadar App tab policy to generic launches and canonical website-root
@@ -203,6 +203,37 @@ their exact query and fragment. `scripts/build_site.py --local-analysis-port
 8521` explicitly overrides that local preview port without changing production
 destinations or imported canonical demo URLs. Ordinary website links retain their
 current origin; public builds continue to launch wspradar.streamlit.app.
+
+The paired-tab enhancement keeps one website tab (`wspradar_website`) and one
+application tab (`wspradar_analysis`). An ordinary app action focuses a retained
+live application window without assigning its URL, so an existing analysis stays
+loaded. Only a missing or closed handle requires named-window lookup; a newly
+created blank tab receives the app URL. An explicit demo/share
+query or results-inspection launch deliberately assigns its complete query and
+fragment to the app origin. Modified clicks, middle clicks, downloads, PDFs and
+third-party links retain their native HTML behavior and opener protections.
+Ordinary clicks on localized website page links that otherwise target a separate
+tab stay in the current website tab, including documentation entry links.
+Untargeted and `_self` links retain native handling, including in-page anchors;
+retargeted destinations preserve their complete query and fragment.
+Only the trusted website/app pair retains an opener for this cooperation; the
+static HTML policies above remain the fallback when JavaScript or popups are unavailable.
+
+The app's navigation component and the website exchange
+`wspradar-navigation-v1` hello/ack messages with an app-generated random nonce.
+The website validates the exact app origin and known application window/iframe,
+then binds subsequent navigation requests to that frame and nonce. It retains
+the nonce in session storage to re-establish the binding after a full website
+page navigation. App-first visits use an opener ready message; website-first
+visits receive hello after the app opens. No timer or polling is used. Navigation
+messages can only select localized `/en/` or `/de/` directory routes on the
+configured website origin (the current loopback origin in local previews),
+including their query and fragment. They cannot select the root analysis
+redirect, other origins, or credential-bearing URLs. The website navigates
+itself rather than allowing the cross-origin app to assign its location.
+Browsers may limit requests to focus another tab; that does not require reloading
+the app. A manually opened, unrelated tab is paired only when the named-window
+or opener handshake establishes the relationship.
 
 For manual-only updates, run the following from WSPRadarApp:
 
