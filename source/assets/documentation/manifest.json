@@ -5,16 +5,16 @@
       "bytes": 526724,
       "language": "de",
       "manual_sha256": "e5d161655d59529eac44220483aa1da7ec95bc46ff6047a269f91393b6982eb7",
-      "render_key": "77a4254759b2d1d87abaf9a9823300e82e89161121038542627f358795412514",
-      "sha256": "be21250520af379e55eaa3cef674b6cb369144ad337cd1fdae8fa1d336ac8d0c"
+      "render_key": "6033563e2c06fc679af9e4b69db0a5827c0188a380496b7213f1d48b4d9a8bc1",
+      "sha256": "46aac02caeb6b3022f84433a63a64433e0e76826e960e24c26675b5f724327a9"
     },
     "WSPRadar_Doc_EN.pdf": {
       "app_version": "v1.0 RC3",
-      "bytes": 472604,
+      "bytes": 472603,
       "language": "en",
       "manual_sha256": "e49dc6a5d96b43c51d80e7b6515e37f2140a398ea1a70ff793718ab3e00bccef",
-      "render_key": "0354b6ac66a87a0fe10cfe7ca558c39319d593ad82e98d4a21a5707ccb64fbaf",
-      "sha256": "34b152ca69aa65494b5cb831fd495d7cd5b7bc0340320162265b753236f353ca"
+      "render_key": "97a8f4ea23bbc61b0954406bb69020edbe50b0d5747c3467375196d24ea1eda5",
+      "sha256": "437ef2c0fb2b713591f4149842ee1bcf519d2fc7b277f933dbb547ca3d4f9113"
     }
   },
   "renderers": {
@@ -23,12 +23,12 @@
       "renderer": {
         "dependencies": {
           "Markdown": "3.10.2",
-          "Pillow": "12.2.0",
+          "Pillow": "13.0.0",
           "arabic-reshaper": "3.0.1",
           "cssselect2": "0.9.0",
           "html5lib": "1.1",
           "matplotlib": "3.11.0",
-          "pypdf": "6.13.3",
+          "pypdf": "6.21.2",
           "python": "3.12.14",
           "python-bidi": "0.6.10",
           "reportlab": "4.5.1",
@@ -52,8 +52,8 @@
           "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
           "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
           "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
-          "localization/common_de.py": "80632e417b1de322add90b7a294738fd7830501529aab0c9b51dfc4a6d684088",
-          "localization/common_en.py": "9aeff29f2aa628bd39e6460b063d1e1c0c8d9a0f1191e44dcd9f92200aeeec60",
+          "localization/common_de.py": "64b9e9b41ddb5062b782137b0e93796b5524989e31a64edf17d62aa8adf6b163",
+          "localization/common_en.py": "6ce39d94564947898df1b98983e4b34729fa2dbd3786333df0ed64f83c20fe2f",
           "localization/exports_de.py": "0546a2605549d272b5b0c6c19b7a4da0a428c3e6a72ca11a104ab3c02c53fbeb",
           "localization/exports_en.py": "de55283a8852fd05f6ebd31a8a2996165595ee76227c96121ea81d3790af5408",
           "localization/figures_de.py": "56b81bb35a0ce46f364b5cb632e6c9f65b36bb387ce3c6b5d52c6b8e6521b63f",
@@ -64,7 +64,7 @@
           "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
           "localization/inspector_de.py": "b91b5ccbfc136879f2e284149102ef6803a05cc1ac60f668f84bd68e8f678ef7",
           "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
-          "localization/key_order.py": "f71b6f7722315952c9df5fb6878b900f6dd5713808a722943300e302aa6ba7c4",
+          "localization/key_order.py": "f4ddd25a46b513ff590507888beef5d918005091754ebd42e0c60b9ded2bda5b",
           "localization/result_guidance_de.py": "5bb5587f2960b00610f06a3affd89671131aa4d9c14e46d0d0be7fbca62e83ba",
           "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
           "localization/results_de.py": "873f1f79bbef03272cea9623c2ea8f195112a46c9780b0e351af03801bb044a7",
@@ -78,12 +78,12 @@
       "renderer": {
         "dependencies": {
           "Markdown": "3.10.2",
-          "Pillow": "12.2.0",
+          "Pillow": "13.0.0",
           "arabic-reshaper": "3.0.1",
           "cssselect2": "0.9.0",
           "html5lib": "1.1",
           "matplotlib": "3.11.0",
-          "pypdf": "6.13.3",
+          "pypdf": "6.21.2",
           "python": "3.12.14",
           "python-bidi": "0.6.10",
           "reportlab": "4.5.1",
@@ -107,8 +107,8 @@
           "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
           "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
           "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
-          "localization/common_de.py": "80632e417b1de322add90b7a294738fd7830501529aab0c9b51dfc4a6d684088",
-          "localization/common_en.py": "9aeff29f2aa628bd39e6460b063d1e1c0c8d9a0f1191e44dcd9f92200aeeec60",
+          "localization/common_de.py": "64b9e9b41ddb5062b782137b0e93796b5524989e31a64edf17d62aa8adf6b163",
+          "localization/common_en.py": "6ce39d94564947898df1b98983e4b34729fa2dbd3786333df0ed64f83c20fe2f",
           "localization/exports_de.py": "0546a2605549d272b5b0c6c19b7a4da0a428c3e6a72ca11a104ab3c02c53fbeb",
           "localization/exports_en.py": "de55283a8852fd05f6ebd31a8a2996165595ee76227c96121ea81d3790af5408",
           "localization/figures_de.py": "56b81bb35a0ce46f364b5cb632e6c9f65b36bb387ce3c6b5d52c6b8e6521b63f",
@@ -119,7 +119,7 @@
           "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
           "localization/inspector_de.py": "b91b5ccbfc136879f2e284149102ef6803a05cc1ac60f668f84bd68e8f678ef7",
           "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
-          "localization/key_order.py": "f71b6f7722315952c9df5fb6878b900f6dd5713808a722943300e302aa6ba7c4",
+          "localization/key_order.py": "f4ddd25a46b513ff590507888beef5d918005091754ebd42e0c60b9ded2bda5b",
           "localization/result_guidance_de.py": "5bb5587f2960b00610f06a3affd89671131aa4d9c14e46d0d0be7fbca62e83ba",
           "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
           "localization/results_de.py": "873f1f79bbef03272cea9623c2ea8f195112a46c9780b0e351af03801bb044a7",
