@@ -10,11 +10,11 @@
     },
     "WSPRadar_Doc_EN.pdf": {
       "app_version": "v1.0 RC3",
-      "bytes": 472603,
+      "bytes": 472604,
       "language": "en",
-      "manual_sha256": "fd1303e927246cf542772c6b27d75cb5e91d3743367b7a2f5e68bbae90f64bae",
-      "render_key": "a7a68aa2c50f7c369d2e514d27cef2ad64d3259777048313a4780cefea91aab4",
-      "sha256": "6249a7896768552cd6a49f29fa8ea790f12ff4e2e249290709b41ef95fbfe2c2"
+      "manual_sha256": "e49dc6a5d96b43c51d80e7b6515e37f2140a398ea1a70ff793718ab3e00bccef",
+      "render_key": "0354b6ac66a87a0fe10cfe7ca558c39319d593ad82e98d4a21a5707ccb64fbaf",
+      "sha256": "34b152ca69aa65494b5cb831fd495d7cd5b7bc0340320162265b753236f353ca"
     }
   },
   "renderers": {

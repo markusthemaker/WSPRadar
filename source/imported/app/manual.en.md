@@ -607,7 +607,7 @@ If the comparison needs a measured receiving-chain correction, continue with [Ch
 
 **A shared clock does not select shared transmit cycles.** In ordinary WSPR operation, WSJT-X chooses transmit periods randomly according to **Tx Pct**. Two instances set to the same value below `100%` can coincide in some cycles, but that setting does not guarantee a synchronized sparse A/B schedule <a href="#ref-12">[Ref-12]</a>.
 
-With transmission enabled, `Tx Pct = 100%` makes both instances attempt every cycle. A WSPR-2 message lasts about **110.6 seconds** of the 120-second cycle, giving an approximately **92%** <strong class="defined-term">RF key-down duty cycle</strong>—the fraction of time the transmitter is actually emitting RF <a href="#ref-8">[Ref-8]</a>.
+With transmission enabled, `Tx Pct = 100%` makes both instances attempt every cycle. A WSPR-2 message lasts about **110.6 seconds** of the 120-second cycle, giving an approximately **92%** <strong class="defined-term">RF key-down duty cycle</strong> — the fraction of time the transmitter is actually emitting RF <a href="#ref-8">[Ref-8]</a>.
 
 WSPRadar recommends using about **5–20% of available cycles** for this experiment, with the lower end preferred on busy bands or during longer tests. This is an operating recommendation, not a WSPR protocol limit. A percentage of selected cycles and the RF key-down duty cycle are different quantities.
 

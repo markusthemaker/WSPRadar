@@ -857,8 +857,8 @@
       "sha256": "ef24b6d7167fe51cbdcc9adaf9c9ccc868d246bb56bb213f6733e6cc03519f35"
     },
     "brand.json": {
-      "bytes": 18558,
-      "sha256": "ffb24655bed856216a9168b68cd272fd7891fb9ac0bfc9098183e9a80e1c04f7"
+      "bytes": 18600,
+      "sha256": "b6b0091d51767cc2025bfbf150be713a891f0fa91d343d65ac8bfe74ab7ed3fa"
     },
     "configs/griffiths_squibb_fig3.config": {
       "bytes": 3973,
@@ -901,8 +901,8 @@
       "sha256": "e5d161655d59529eac44220483aa1da7ec95bc46ff6047a269f91393b6982eb7"
     },
     "manual.en.md": {
-      "bytes": 230019,
-      "sha256": "fd1303e927246cf542772c6b27d75cb5e91d3743367b7a2f5e68bbae90f64bae"
+      "bytes": 230021,
+      "sha256": "e49dc6a5d96b43c51d80e7b6515e37f2140a398ea1a70ff793718ab3e00bccef"
     },
     "screenshots.json": {
       "bytes": 113047,
@@ -915,7 +915,7 @@
   },
   "manual_source_update": {
     "preserved_nonmanual_payload_files": 71,
-    "previous_bundle_manifest_sha256": "c5c567e1846f06bae067207fda9c9387ac530e9cb065ac8676fbefb2cc344529",
+    "previous_bundle_manifest_sha256": "3b322d0db3bee60a884eff36ae8f7abcfefce13026a1b36b431161cf92cd1edc",
     "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
     "scope": [
       "manual.de.md",
@@ -927,7 +927,7 @@
       "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
       "docs/manual/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
       "docs/manual/doc_de.py": "cd34a3e75588ce36b498a0a69049beeb1a094e1b3488723401dc51bf45befd5b",
-      "docs/manual/doc_en.py": "859021e22a29b32b8df29815edc256dc26c044a7169bd76bc13013d90472c47e"
+      "docs/manual/doc_en.py": "437d897dd28c9fe9b3dbf9f000caae30b7ee4e1d818ec0ab7198f19fc5153b34"
     }
   },
   "manual_source_update_history": [
@@ -1569,6 +1569,37 @@
         "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
         "docs/manual/doc_en.py": "859021e22a29b32b8df29815edc256dc26c044a7169bd76bc13013d90472c47e"
       }
+    },
+    {
+      "preserved_nonmanual_payload_files": 71,
+      "previous_bundle_manifest_sha256": "c5c567e1846f06bae067207fda9c9387ac530e9cb065ac8676fbefb2cc344529",
+      "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
+      "scope": [
+        "manual.de.md",
+        "manual.en.md"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+        "docs/manual/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
+        "docs/manual/doc_de.py": "cd34a3e75588ce36b498a0a69049beeb1a094e1b3488723401dc51bf45befd5b",
+        "docs/manual/doc_en.py": "859021e22a29b32b8df29815edc256dc26c044a7169bd76bc13013d90472c47e"
+      }
+    },
+    {
+      "preserved_nonmanual_payload_files": 71,
+      "previous_bundle_manifest_sha256": "3e8f535d62e46babcd231915769cdb2f293c04750189b0a88bd420d2a9c01154",
+      "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
+      "scope": [
+        "manual.en.md"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+        "docs/manual/doc_en.py": "437d897dd28c9fe9b3dbf9f000caae30b7ee4e1d818ec0ab7198f19fc5153b34"
+      }
     }
   ],
   "numeric_description_source_update": {
@@ -1671,7 +1702,7 @@
     }
   ],
   "product_navigation_source_update": {
-    "previous_bundle_manifest_sha256": "3e8f535d62e46babcd231915769cdb2f293c04750189b0a88bd420d2a9c01154",
+    "previous_bundle_manifest_sha256": "29d7466077adcd4905f43ad80d83f90a78d901ad9b9536eeaf24448657e3c6bc",
     "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:product_navigation"
@@ -1679,7 +1710,7 @@
     "source_repository": "WSPRadarApp",
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
-      "config/product_navigation.json": "ca53ed8b1d02c145401ff9f0cc0aeb0690cd6cd4ae93afff6a01728af1f65e61"
+      "config/product_navigation.json": "1b6882606b9b77d8ced7da6f2a9f7f314081e8d95f7746d692e00509e94b69cd"
     }
   },
   "product_navigation_source_update_history": [
@@ -1729,6 +1760,30 @@
       "source_text_encoding": "UTF-8 with LF line endings",
       "source_text_sha256": {
         "config/product_navigation.json": "515f4a69c274e599b297f47aa3aee8cc7a0aa9d13996dcf874a50be3df0a20a4"
+      }
+    },
+    {
+      "previous_bundle_manifest_sha256": "bf194bd4eaf83697c3b2c4daabbd59758ea206dbeab586e07c6af89c8b53bb2b",
+      "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:product_navigation"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/product_navigation.json": "366f84c99e50944f75e1fb33b7cf352dee09325805a449cfdab793608fb5b394"
+      }
+    },
+    {
+      "previous_bundle_manifest_sha256": "4060636b391191b485729a32d119f9f91629e8b9ecae9e417afe3f024bc39ee4",
+      "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:product_navigation"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/product_navigation.json": "ca53ed8b1d02c145401ff9f0cc0aeb0690cd6cd4ae93afff6a01728af1f65e61"
       }
     }
   ],

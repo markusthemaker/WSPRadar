@@ -2,8 +2,8 @@
 
 Public website entry point for WSPRadar.
 
-- [Open the WSPRadar application](https://markusthemaker-wspradar.hf.space/)
-- [Website address: wspradar.org](https://wspradar.org/)
+- [Open the WSPRadar application](https://app.wspradar.org/)
+- [Website address: www.wspradar.org](https://www.wspradar.org/)
 
 The website redirects visitors to the application while preserving URL query parameters and fragments. Documentation and demos are available inside the application.
 
@@ -96,7 +96,7 @@ when `temp` has an open pull request; pull-request events are not triggers.
 An optional manual run can select `temp`
 for validation without deployment. Only a successful run on `main` in
 `markusthemaker/WSPRadar` can deploy. It uploads the contents of `generated/`, so
-`generated/index.html` becomes `https://wspradar.org/`; generated files remain
+`generated/index.html` becomes `https://www.wspradar.org/`; generated files remain
 ignored. The build uses this repository and `requirements-site.txt`, with no
 private application checkout or credentials.
 
@@ -108,13 +108,23 @@ corresponding action definitions when updating those pins.
 This workflow is prepared locally; activation is a separate approved step. First
 publish the candidate on `temp` and validate it locally before promotion; an
 optional manual workflow run on `temp` can also validate it. When deployment is approved, select
-**Settings > Pages > Build and deployment > Source > GitHub Actions**, retain the
-custom domain **wspradar.org**, and keep **Enforce HTTPS** enabled. Restrict the
+**Settings > Pages > Build and deployment > Source > GitHub Actions**, set the
+custom domain **www.wspradar.org**, and keep **Enforce HTTPS** enabled. Restrict the
 `github-pages` environment to `main`, then promote the verified candidate with
 `scripts/git-release-main.ps1`. The workflow checks the publishing mode, domain,
 and HTTPS setting before deployment and stops if any differ; it does not change
 those settings. A manual run on another branch validates without deploying.
 The existing Git helpers do not change Pages settings or wait for deployment.
+
+The prepared product navigation uses `https://www.wspradar.org/` for the website
+and `https://app.wspradar.org/` for the application. Product pages, documentation,
+generic app links and prepared demo launches use ordinary links in the current
+tab. Modifier and middle clicks retain browser behavior; PDFs and external
+publications retain their separate-tab policies. Existing `wspradar.org` root
+analysis links keep their complete query and fragment when forwarded to the app.
+The website does not exchange application session or resume identifiers. The
+source configuration prepares these hosts; DNS, the Pages custom domain and
+the Hugging Face custom domain must be configured separately before publication.
 
 ### Build and preview
 

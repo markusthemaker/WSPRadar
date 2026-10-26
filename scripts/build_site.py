@@ -46,7 +46,7 @@ APP_URL = "https://wspradar.streamlit.app/"
 # Legacy Community Cloud asset links remain recognized after launch migration.
 # Active application launches come from the exported navigation catalog.
 APP_STATIC_URL = APP_URL + "~/+/app/static/"
-SITE_URL = "https://wspradar.org"
+SITE_URL = "https://www.wspradar.org"
 COMMUNITY_URL = "https://github.com/markusthemaker/WSPRadar/discussions"
 HELP_URL = COMMUNITY_URL + "/new?category=ask-a-question"
 EXPERIMENTS_URL = COMMUNITY_URL + "/new?category=discuss-your-experiments"
@@ -261,7 +261,8 @@ class _WebsiteReferencePDFLinkParser(_PDFLinkPolicyParser):
             return
         prefixes = ("app/static/reference_figures/", "/app/static/reference_figures/",
                     APP_STATIC_URL + "reference_figures/", APP_URL + "app/static/reference_figures/",
-                    "/static/reference_figures/", SITE_URL + "/static/reference_figures/")
+                    "/static/reference_figures/", SITE_URL + "/static/reference_figures/",
+                    "https://wspradar.org/static/reference_figures/")
         prefix = next((value for value in prefixes if href.startswith(value)), None)
         if prefix is None or not unquote(urlsplit(href).path).casefold().endswith(".pdf"):
             return
@@ -289,21 +290,20 @@ def website_reference_pdf_links(html):
 
 
 class _ProductNavigationLinkPolicyParser(_PDFLinkPolicyParser):
-    """Apply shared tab policy while keeping prepared guided demos open."""
+    """Keep product pages and all analysis launches in the current tab."""
 
     def __init__(self, source, catalog, *, current_suffix=""):
         super().__init__(source)
-        self.website = urlsplit(catalog["origins"]["website"])
+        self.website_origins = {
+            (urlsplit(value).scheme, urlsplit(value).netloc)
+            for value in (catalog["origins"]["website"], "https://wspradar.org/")
+        }
         self.analysis_origins = {
             (urlsplit(value).scheme, urlsplit(value).netloc)
             for value in [catalog["origins"]["analysis"], *catalog.get("analysis_aliases", [])]
         }
         self.new_tab = next(item["new_tab"] for item in catalog["items"]
                             if item["destination"] == "analysis" and not item["path"])
-        self.guided_demo = current_suffix.startswith("demos/") and current_suffix != "demos/"
-        self.new_tab_sections = tuple(item["path"] for item in catalog["items"]
-                                      if item["destination"] == "website" and item["new_tab"]
-                                      and item["path"] and not current_suffix.startswith(item["path"]))
         self.same_tab_action = False
 
     def _handle_anchor(self, tag, attrs, *, self_closing):
@@ -317,26 +317,24 @@ class _ProductNavigationLinkPolicyParser(_PDFLinkPolicyParser):
             url = urlsplit(href)
             origin = (url.scheme, url.netloc)
             analysis_root = origin in self.analysis_origins
-            website_root = origin == (self.website.scheme, self.website.netloc)
+            website_root = origin in self.website_origins
             website_link = website_root or (not url.scheme and not url.netloc)
             relative_root = not url.scheme and not url.netloc and url.path == "/"
             launch = (url.path in {"", "/"} and (analysis_root or (
                 (website_root or relative_root)
                 and (url.query or url.fragment == "wspradar-results-inspection")
             )))
-            section_entry = website_link and any(
-                url.path.startswith(f"/{language}/{section}")
-                for section in self.new_tab_sections for language in LANGUAGE_NAMES
+            website_page = website_link and (
+                url.path in {"", "/"}
+                or re.fullmatch(r"/(?:en|de)/(?:[a-zA-Z0-9_-]+/)*", url.path)
             )
         except ValueError:
             return
-        if not launch and not section_entry:
+        if not launch and not website_page:
             return
-        prepared_demo = self.guided_demo and bool(url.query or url.fragment == "wspradar-results-inspection")
-        main_navigation = any(name == "data-product-nav" for name, _value in attrs)
-        new_tab = (self.new_tab or prepared_demo) if launch else not main_navigation
+        new_tab = self.new_tab if launch else False
         classes = {token for name, value in attrs if name == "class" for token in (value or "").split()}
-        self.same_tab_action = launch and not new_tab and not self_closing and bool(classes & {"button", "text-link"})
+        self.same_tab_action = (launch or website_page) and not new_tab and not self_closing and bool(classes & {"button", "text-link"})
         raw = self.get_starttag_text()
         tag_end = re.match(r"<a\b", raw, re.IGNORECASE).end()
         edits = []
@@ -994,7 +992,7 @@ def output_files(builder: SiteBuilder) -> dict[str, bytes]:
     files['assets/fonts.css']=('\n'.join(fonts)+'\n').encode('utf-8')
     for name in (*builder.manifest['files'],'manifest.json'):
         files['content/'+name]=(builder.content/name).read_bytes()
-    files['CNAME']=b'wspradar.org\n'
+    files['CNAME']=b'www.wspradar.org\n'
     files['.nojekyll']=b''
     sitemap='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+SITE_URL+'/'+name.removesuffix('index.html')+'</loc></url>' for name in sorted(pages) if name!='index.html')+'</urlset>\n'
     files['sitemap.xml']=sitemap.encode('utf-8')

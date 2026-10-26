@@ -94,8 +94,10 @@ class ProductNavigationContractTests(unittest.TestCase):
         catalog = build_site.product_navigation_catalog(brand)
         self.assertEqual([item["id"] for item in catalog["items"]],
                          ["overview", "demos", "analysis", "documentation", "community"])
-        self.assertEqual(catalog["origins"]["analysis"], "https://markusthemaker-wspradar.hf.space/")
-        self.assertEqual(catalog["analysis_aliases"], [build_site.APP_URL, "https://markusthemaker-wspradar-test.hf.space/"])
+        self.assertEqual(catalog["origins"]["analysis"], "https://app.wspradar.org/")
+        self.assertEqual(catalog["origins"]["website"], "https://www.wspradar.org/")
+        self.assertEqual(catalog["analysis_aliases"], ["https://markusthemaker-wspradar.hf.space/", build_site.APP_URL, "https://markusthemaker-wspradar-test.hf.space/"])
+        self.assertTrue(all(not item["new_tab"] for item in catalog["items"]))
         self.assertEqual(catalog["local"], {"website_port": 8787, "analysis_port": 8501})
         for mutation in ("path", "language", "duplicate"):
             invalid = deepcopy(brand)
@@ -154,7 +156,7 @@ class ProductNavigationContractTests(unittest.TestCase):
         for anchor in links:
             self.assertNotIn("target", anchor["attributes"])
 
-    def test_all_guided_demo_destinations_keep_the_walkthrough_open(self):
+    def test_all_guided_demo_destinations_stay_in_the_current_tab(self):
         builder = build_site.SiteBuilder()
         for demo in builder.published_demos:
             destinations = [demo["launch_url"], *demo.get("launch_variants", {}).values()]
@@ -172,10 +174,9 @@ class ProductNavigationContractTests(unittest.TestCase):
                     self.assertEqual([anchor["attributes"]["href"] for anchor in launches],
                                      [destination for destination in destinations for _ in range(2)])
                     for anchor in launches:
-                        self.assertEqual(anchor["attributes"]["target"], "_blank")
-                        self.assertTrue({"noopener", "noreferrer"}.issubset(anchor["attributes"]["rel"].split()))
+                        self.assertNotIn("target", anchor["attributes"])
                         if "button" in anchor["attributes"].get("class", "").split():
-                            self.assertEqual(anchor["text"], "Run demo ↗")
+                            self.assertEqual(anchor["text"], "Run demo →")
 
     def test_analysis_tab_policy_preserves_unrelated_markup_and_external_targets(self):
         catalog = build_site.product_navigation_catalog(json.loads(
@@ -183,7 +184,7 @@ class ProductNavigationContractTests(unittest.TestCase):
         ))
         preserved = ('<!-- <a href="https://wspradar.streamlit.app/" target="_blank">comment</a> -->'
                      '<script>const text = \'<a href="https://wspradar.streamlit.app/" target="_blank">literal</a>\';</script>'
-                     '<a href="/en/documentation/" target="_blank" rel="noopener noreferrer">Docs</a>'
+                     '<a href="/en/documentation/">Docs</a>'
                      '<a href="https://example.org/publication" target="_blank" rel="external">Publication</a>'
                      '<a href="https://wspradar.streamlit.app/~/+/app/static/paper.pdf" target="_blank">PDF</a>')
         source = ('<a href="/?v=1&amp;run=1#wspradar-results-inspection" TARGET="_blank" data-preserve="yes">Demo</a>'
@@ -195,7 +196,7 @@ class ProductNavigationContractTests(unittest.TestCase):
         self.assertNotIn('TARGET=', rendered)
         self.assertEqual(build_site.apply_product_navigation_link_policy(rendered, catalog), rendered)
 
-    def test_prepared_guided_demo_launches_open_separately_with_exact_destinations(self):
+    def test_prepared_guided_demo_launches_stay_current_with_exact_destinations(self):
         builder = build_site.SiteBuilder()
         launch = builder.demos[0]["launch_url"]
         suffix = urlsplit(launch)
@@ -216,10 +217,9 @@ class ProductNavigationContractTests(unittest.TestCase):
         self.assertEqual([anchor["attributes"]["href"] for anchor in launches],
                          [launch, relative_launch, direct_launch])
         for anchor in launches:
-            self.assertEqual(anchor["attributes"]["target"], "_blank")
-            self.assertTrue({"noopener", "noreferrer"}.issubset(anchor["attributes"]["rel"].split()))
+            self.assertNotIn("target", anchor["attributes"])
         self.assertIn("external", launches[1]["attributes"]["rel"].split())
-        self.assertEqual(launches[2]["text"], "Run demo ↗")
+        self.assertEqual(launches[2]["text"], "Run demo →")
         self.assertNotIn("target", inventory.anchors[3]["attributes"])
         self.assertIn('<a href="https://example.org/paper" target="_blank">Paper ↗</a>', rendered)
         self.assertEqual(build_site.apply_product_navigation_link_policy(
@@ -232,27 +232,25 @@ class ProductNavigationContractTests(unittest.TestCase):
         for anchor in demo_index.anchors[:4]:
             self.assertNotIn("target", anchor["attributes"])
 
-    def test_documentation_entries_open_a_new_tab_but_main_and_reader_navigation_stay_current(self):
+    def test_website_pages_and_documentation_entries_stay_current(self):
         catalog = build_site.product_navigation_catalog(json.loads(
             (build_site.CONTENT / "brand.json").read_text(encoding="utf-8"),
         ))
         for language in ("en", "de"):
-            source = f'<a href="/{language}/documentation/full/#sec-1" class="button">Documentation →</a>'
-            outside = build_site.apply_product_navigation_link_policy(source, catalog)
-            inventory = AnchorInventory()
-            inventory.feed(outside)
-            self.assertEqual(inventory.anchors[0]["attributes"]["target"], "_blank")
-            self.assertEqual(set(inventory.anchors[0]["attributes"]["rel"].split()), {"noopener", "noreferrer"})
-            self.assertEqual(build_site.apply_product_navigation_link_policy(
-                source, catalog, current_suffix="documentation/full/",
-            ), source)
-            navigation = (f'<a href="/{language}/documentation/" '
-                          'data-product-nav="documentation" target="_blank">Documentation</a>')
-            same_tab = build_site.apply_product_navigation_link_policy(navigation, catalog)
-            inventory = AnchorInventory()
-            inventory.feed(same_tab)
-            self.assertNotIn("target", inventory.anchors[0]["attributes"])
-            self.assertEqual(build_site.apply_product_navigation_link_policy(same_tab, catalog), same_tab)
+            for origin in ("", "https://wspradar.org", "https://www.wspradar.org"):
+                for section in ("", "demos/", "documentation/full/", "community/"):
+                    href = f"{origin}/{language}/{section}?view=1#section"
+                    source = f'<a href="{href}" class="button" target="_blank">Visit ↗</a>'
+                    rendered = build_site.apply_product_navigation_link_policy(source, catalog)
+                    inventory = AnchorInventory()
+                    inventory.feed(rendered)
+                    with self.subTest(href=href):
+                        self.assertEqual(inventory.anchors[0]["attributes"]["href"], href)
+                        self.assertNotIn("target", inventory.anchors[0]["attributes"])
+                        self.assertEqual(inventory.anchors[0]["text"], "Visit →")
+                        self.assertEqual(build_site.apply_product_navigation_link_policy(
+                            rendered, catalog, current_suffix="documentation/full/",
+                        ), rendered)
 
     def test_same_tab_actions_use_forward_arrows_and_publication_arrows_remain(self):
         catalog = build_site.product_navigation_catalog(json.loads(
@@ -748,7 +746,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         entrypoint = (build_site.ROOT / "index.html").read_text(encoding="utf-8")
         for attribute in ('property="og:image"', 'name="twitter:image"'):
             self.assertIn(
-                '<meta ' + attribute + ' content="https://wspradar.org/img/WSPRadar-2x1.png" />',
+                '<meta ' + attribute + ' content="https://www.wspradar.org/img/WSPRadar-2x1.png" />',
                 entrypoint,
             )
 
@@ -920,7 +918,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             self.assertEqual(anchor["attributes"]["target"], "_blank")
             self.assertTrue({"noopener", "noreferrer"}.issubset(anchor["attributes"]["rel"].split()))
 
-    def test_generated_analysis_launches_keep_guided_demos_open(self) -> None:
+    def test_generated_analysis_launches_and_guided_demos_stay_current(self) -> None:
         launches = 0
         guided_launches = 0
         for path, content in self.pages.items():
@@ -934,7 +932,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     *self.builder.navigation.get("analysis_aliases", []),
                 ]}
                 direct_analysis = destination.netloc in analysis_hosts and destination.path in {"", "/"}
-                canonical_launch = (destination.netloc == "wspradar.org" and destination.path in {"", "/"}
+                canonical_launch = (destination.netloc in {"wspradar.org", "www.wspradar.org"} and destination.path in {"", "/"}
                                     and (destination.query or destination.fragment == "wspradar-results-inspection"))
                 if direct_analysis or canonical_launch:
                     launches += 1
@@ -943,34 +941,25 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                         prepared_demo = destination.query or destination.fragment == "wspradar-results-inspection"
                         if guided_demo and prepared_demo:
                             guided_launches += 1
-                            self.assertEqual(attributes.get("target"), "_blank")
-                            self.assertTrue({"noopener", "noreferrer"}.issubset(attributes.get("rel", "").split()))
-                            if {"button", "text-link"} & set(attributes.get("class", "").split()):
-                                self.assertTrue(anchor["text"].endswith(" ↗"))
-                        else:
-                            self.assertNotIn("target", attributes)
+                        self.assertNotIn("target", attributes)
+                        if {"button", "text-link"} & set(attributes.get("class", "").split()):
+                            self.assertFalse(anchor["text"].endswith(" ↗"))
         self.assertGreater(launches, len(self.pages))
         self.assertGreaterEqual(guided_launches, 2 * len(self.builder.published_demos))
 
-    def test_documentation_entries_outside_main_navigation_and_reader_open_in_a_new_tab(self) -> None:
+    def test_documentation_entries_and_reader_navigation_stay_current(self) -> None:
         entries = 0
         for path, content in self.pages.items():
-            if "/documentation/" in path:
-                continue
             inventory = AnchorInventory()
             inventory.feed(content)
             for anchor in inventory.anchors:
                 attributes = anchor["attributes"]
                 destination = urlsplit(attributes.get("href", ""))
-                if destination.netloc not in {"", "wspradar.org"} or not re.match(r"^/(?:en|de)/documentation/", destination.path):
-                    continue
-                if attributes.get("data-product-nav") == "documentation":
-                    self.assertNotIn("target", attributes)
+                if destination.netloc not in {"", "wspradar.org", "www.wspradar.org"} or not re.match(r"^/(?:en|de)/documentation/", destination.path):
                     continue
                 entries += 1
                 with self.subTest(page=path, destination=destination.geturl()):
-                    self.assertEqual(attributes.get("target"), "_blank")
-                    self.assertTrue({"noopener", "noreferrer"}.issubset(attributes.get("rel", "").split()))
+                    self.assertNotIn("target", attributes)
         self.assertGreater(entries, 20)
 
     def test_every_page_has_a_language_counterpart(self) -> None:
@@ -1059,7 +1048,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 inventory = AnchorInventory()
                 inventory.feed(navigation[1])
                 self.assertEqual([anchor["attributes"]["href"] for anchor in inventory.anchors],
-                                 [f"/{language}/", f"/{language}/demos/", "https://markusthemaker-wspradar.hf.space/",
+                                 [f"/{language}/", f"/{language}/demos/", "https://app.wspradar.org/",
                                   f"/{language}/documentation/", f"/{language}/community/"])
                 self.assertEqual([anchor["text"] for anchor in inventory.anchors], labels[language])
                 self.assertEqual(navigation[1].count('<span class="nav-separator" aria-hidden="true">·</span>'), 5)
@@ -1114,7 +1103,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.assertEqual(launch_links, [])
                     self.assertNotIn('class="launch"', header_content)
                 else:
-                    self.assertEqual(sum(anchor["attributes"]["href"] == "https://markusthemaker-wspradar.hf.space/" for anchor in links.anchors), 2 if is_home else 1)
+                    self.assertEqual(sum(anchor["attributes"]["href"] == "https://app.wspradar.org/" for anchor in links.anchors), 2 if is_home else 1)
 
     def test_header_serves_responsive_webp_candidates_and_preserves_english_image_on_mobile(self) -> None:
         class PictureInventory(HTMLParser):
@@ -1286,7 +1275,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 for destination in (
                     f"/{language}/demos/", f"/{language}/community/", f"/{language}/report/",
                     self.builder.anchors[language]["sec-2-2"] + "#sec-2-2",
-                    self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", "https://markusthemaker-wspradar.hf.space/",
+                    self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", "https://app.wspradar.org/",
                 ):
                     self.assertIn(destination, inventory.links)
                 self.assertNotIn("<h1", guidance[1])
@@ -1316,7 +1305,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 route_links.feed(get_started)
                 hrefs = [anchor["attributes"]["href"] for anchor in route_links.anchors]
                 self.assertTrue(any(href.startswith(f"/{language}/demos/") for href in hrefs))
-                self.assertIn("https://markusthemaker-wspradar.hf.space/", hrefs)
+                self.assertIn("https://app.wspradar.org/", hrefs)
 
     def test_landing_hero_contains_the_primary_actions_only_on_home_routes(self) -> None:
         for path, content in self.pages.items():
@@ -1349,7 +1338,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 inventory = AnchorInventory()
                 inventory.feed(actions[1])
                 self.assertEqual([anchor["attributes"]["href"] for anchor in inventory.anchors],
-                                 [f"/{language}/demos/", "https://markusthemaker-wspradar.hf.space/"])
+                                 [f"/{language}/demos/", "https://app.wspradar.org/"])
                 self.assertEqual([anchor["text"] for anchor in inventory.anchors],
                                  [self.builder.landing[language]["try_demo"] + " →", build_site.COPY[language]["start_analysis"] + " →"])
 
@@ -1375,7 +1364,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 routes = re.search(r'<div class="start-grid">(.*?)</div>', panel, re.DOTALL)[1]
                 cards = re.findall(r'<article>(.*?)</article>', routes, re.DOTALL)
                 self.assertEqual(len(cards), 2)
-                for card, prefix, destination in zip(cards, ("demo", "own"), (f"/{language}/demos/", "https://markusthemaker-wspradar.hf.space/")):
+                for card, prefix, destination in zip(cards, ("demo", "own"), (f"/{language}/demos/", "https://app.wspradar.org/")):
                     self.assertIn(escape(copy[prefix + "_title"]), card)
                     self.assertIn(escape(copy[prefix + "_body"]), card)
                     inventory = AnchorInventory()
@@ -2048,7 +2037,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         for language in ("en", "de"):
             paths = [f"{language}/index.html"] + (["index.html"] if language == "en" else [])
             destinations = [self.builder.anchors[language]["sec-2-2"] + "#sec-2-2",
-                            self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", "https://markusthemaker-wspradar.hf.space/"]
+                            self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", "https://app.wspradar.org/"]
             for path in paths:
                 cards = re.findall(r'<article class="journey-card">(.*?)</article>', self.pages[path], re.DOTALL)
                 with self.subTest(path=path):

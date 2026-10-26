@@ -13,6 +13,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
 
+    def test_expected_website_domain_is_www(self):
+        self.assertEqual((WORKFLOW.parents[2] / "CNAME").read_text(encoding="utf-8").strip(),
+                         "www.wspradar.org")
+        self.assertIn(".cname == \"www.wspradar.org\"", self.workflow)
+        self.assertIn('test "$(cat generated/CNAME)" = \'www.wspradar.org\'', self.workflow)
+
     def test_automatic_push_runs_are_main_only(self):
         triggers = re.search(r"(?ms)^on:\n(.*?)(?=^\S)", self.workflow).group(1)
         push = re.search(r"(?ms)^  push:\n(.*?)(?=^  \S|\Z)", triggers).group(1)

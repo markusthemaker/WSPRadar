@@ -9,28 +9,19 @@
   const analysisOrigin = local
     ? `${window.location.protocol}//${window.location.hostname}:${localPort}/`
     : catalog.origins.analysis;
-  const productionWebsite = new URL(catalog.origins.website);
-  const productionAnalysis = new URL(catalog.origins.analysis);
-  const applicationOrigin = new URL(analysisOrigin).origin;
-  const productionAnalysisOrigins = new Set([productionAnalysis.origin,
-    ...(catalog.analysis_aliases ?? []).map(value => new URL(value).origin)]);
-  const trustedAnalysisOrigins = local ? new Set([applicationOrigin]) : productionAnalysisOrigins;
-  const websiteOrigin = local ? window.location.origin : productionWebsite.origin;
-
-  function isAnalysisLaunch(url) {
-    if (url.username || url.password || url.pathname !== '/') return false;
-    return url.origin === applicationOrigin || productionAnalysisOrigins.has(url.origin)
-      || ((url.origin === productionWebsite.origin || url.origin === websiteOrigin)
-        && Boolean(url.search || url.hash === '#wspradar-results-inspection'));
-  }
+  const analysisOrigins = new Set([catalog.origins.analysis,
+    ...(catalog.analysis_aliases ?? [])].map(value => new URL(value).origin));
+  const websiteOrigins = new Set([new URL(catalog.origins.website).origin,
+    'https://wspradar.org']);
+  if (local) websiteOrigins.add(window.location.origin);
 
   function analysisLaunchUrl(value) {
     const url = new URL(value, window.location.href);
-    const isAnalysis = productionAnalysisOrigins.has(url.origin) && url.pathname === '/';
-    const isCanonicalLaunch = url.origin === productionWebsite.origin
-      && url.pathname === '/'
+    if (url.username || url.password || url.pathname !== '/') return url.href;
+    const isAnalysis = analysisOrigins.has(url.origin);
+    const isCanonicalLaunch = websiteOrigins.has(url.origin)
       && (url.search || url.hash === '#wspradar-results-inspection');
-    if (!local || (!isAnalysis && !isCanonicalLaunch)) return url.href;
+    if (!isCanonicalLaunch && !(local && isAnalysis)) return url.href;
     const destination = new URL(analysisOrigin);
     destination.search = url.search;
     destination.hash = url.hash;
@@ -39,114 +30,12 @@
 
   window.WSPRadarNavigation = Object.freeze({analysisOrigin, analysisLaunchUrl});
   document.addEventListener('DOMContentLoaded', () => {
-    if (!local) return;
+    // Set ordinary anchor destinations before interaction. The browser retains
+    // native same-tab navigation, modifier clicks, downloads and history.
     for (const anchor of document.querySelectorAll('a[href]')) {
-      const sourceUrl = new URL(anchor.href, window.location.href);
-      const destination = analysisLaunchUrl(sourceUrl.href);
-      if (destination !== sourceUrl.href) anchor.href = destination;
+      if (anchor.hasAttribute('download')) continue;
+      const destination = analysisLaunchUrl(anchor.href);
+      if (destination !== anchor.href) anchor.href = destination;
     }
   });
-
-  // The entry script owns shared-analysis root redirects. Do not give those
-  // transient pages the website tab's identity before they become the app.
-  if (window.location.origin !== websiteOrigin || (window.location.pathname === '/'
-      && (window.location.search || window.location.hash === '#wspradar-results-inspection'))) return;
-
-  const protocol = 'wspradar-navigation-v1';
-  let appWindow = null;
-  let appSource = null;
-  let appSourceOrigin = null;
-  let nonce = null;
-  function rememberedNonce(origin) {
-    try {
-      const value = window.sessionStorage.getItem(`${protocol}:${origin}`);
-      return /^[a-f0-9]{32}$/.test(value ?? '') ? value : null;
-    } catch (_) { return null; }
-  }
-  window.name = 'wspradar_website';
-
-  function topWindow(sourceWindow) {
-    try { return sourceWindow.top; } catch (_) { return null; }
-  }
-
-  function websiteDestination(value) {
-    if (typeof value !== 'string') return null;
-    try {
-      const url = new URL(value);
-      // Root query links launch analyses. Messages may only select localized
-      // website pages, never arbitrary destinations or the analysis redirect.
-      if (url.origin !== websiteOrigin || url.username || url.password
-          || !/^\/(en|de)\/(?:[a-zA-Z0-9_-]+\/)*$/.test(url.pathname)) return null;
-      return url;
-    } catch (_) { return null; }
-  }
-
-  window.addEventListener('message', event => {
-    const message = event.data;
-    if (!trustedAnalysisOrigins.has(event.origin) || !event.source || !message
-        || message.protocol !== protocol || !/^[a-f0-9]{32}$/.test(message.nonce ?? '')) return;
-    if (message.type === 'hello') {
-      const knownWindow = (appWindow && topWindow(event.source) === appWindow)
-        || event.source === window.opener;
-      // A full website navigation loses WindowProxy references. The nonce is a
-      // session capability already exchanged with this exact application origin.
-      if (!knownWindow && message.nonce !== rememberedNonce(event.origin)) return;
-      appSource = event.source;
-      appSourceOrigin = event.origin;
-      appWindow = topWindow(event.source);
-      nonce = message.nonce;
-      try { window.sessionStorage.setItem(`${protocol}:${appSourceOrigin}`, nonce); } catch (_) { /* Current-page pairing still works. */ }
-      appSource.postMessage({protocol, type: 'ack', nonce}, appSourceOrigin);
-    } else if (message.type === 'navigate' && event.origin === appSourceOrigin
-        && event.source === appSource && message.nonce === nonce) {
-      const destination = websiteDestination(message.url);
-      if (destination && destination.href !== window.location.href) window.location.assign(destination.href);
-    }
-  });
-
-  document.addEventListener('click', event => {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey
-        || event.shiftKey || event.altKey) return;
-    const anchor = event.target?.closest?.('a[href]');
-    if (!anchor || anchor.hasAttribute('download')) return;
-    const destination = new URL(anchor.href, window.location.href);
-    const targetName = anchor.getAttribute('target');
-    if (websiteDestination(destination.href) && targetName && targetName.toLowerCase() !== '_self') {
-      event.preventDefault();
-      // Retarget own HTML pages into this website tab. Location assignment keeps
-      // native fragment navigation; untargeted/_self anchors remain fully native.
-      if (destination.href !== window.location.href) window.location.assign(destination.href);
-      return;
-    }
-    if (!isAnalysisLaunch(destination)) return;
-    let target = appWindow;
-    // A verified live handle avoids asking the browser to reacquire a named
-    // window (which some hosts navigate even when given an empty URL).
-    try {
-      if (!target || target.closed) target = window.open('', 'wspradar_analysis');
-    } catch (_) { return; }
-    if (!target) return; // Keep the native anchor fallback when popups are blocked.
-    event.preventDefault();
-    appWindow = target;
-    let blank = false;
-    try { blank = target.location.href === 'about:blank'; } catch (_) { /* An existing cross-origin app. */ }
-    if (blank || destination.search || destination.hash === '#wspradar-results-inspection') {
-      // An explicit compatibility URL retains its deployment; canonical
-      // website launches select the primary configured application.
-      const launch = new URL(!local && productionAnalysisOrigins.has(destination.origin)
-        ? destination.origin : analysisOrigin);
-      launch.search = destination.search;
-      launch.hash = destination.hash;
-      target.location.href = launch.href;
-    }
-    try { target.focus(); } catch (_) { /* Browsers may refuse a tab focus request. */ }
-  });
-
-  // App-first visits have an opener; its controller answers ready with hello.
-  // Website-first visits receive hello after opening the app. No polling is needed.
-  if (window.opener) {
-    for (const origin of trustedAnalysisOrigins) {
-      window.opener.postMessage({protocol, type: 'ready'}, origin);
-    }
-  }
 })();

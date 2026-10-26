@@ -62,8 +62,8 @@ updates to an open pull request from `temp` to `main`. Optional manual runs on
 `temp` or other branches validate without deployment
 permissions. Only the deployment job receives
 `pages: write` and `id-token: write`; it uses the `github-pages` environment.
-The deployment checks that Pages uses GitHub Actions, the custom domain remains
-`wspradar.org`, and HTTPS is enforced. It reads those settings without enabling
+The deployment checks that Pages uses GitHub Actions, the custom domain is
+`www.wspradar.org`, and HTTPS is enforced. It reads those settings without enabling
 or changing them. Initial activation requires separate approval and the setup
 described in [README.md](README.md#prepared-github-pages-deployment). Live external
 URL validation and freshness against canonical app sources remain release checks.
@@ -180,67 +180,48 @@ Product navigation uses the app's authoritative bilingual
 `config/product_navigation.json`, exported into source-hashed
 `brand.json:product_navigation` metadata. The shared order is Introduction, Guided Demo,
 WSPRadar App, Documentation, and Community; the existing wordmark and
-language selector surround these links. Without the paired-tab JavaScript enhancement,
-product navigation and analysis launches stay in the current tab by default. Documentation in the website main navigation
-also stays in the current tab; other documentation entry links retain their separate-tab policy. Guided demos retain their prepared Run demo action after the short introduction;
-the top-level header has no additional demo-launch button. The final-page renderer applies
-the catalog's WSPRadar App tab policy to generic launches and canonical website-root
+language selector surround these links. Product navigation and analysis launches
+stay in the current tab. Documentation entries and navigation between chapters
+or anchors inside the reader also retain the current tab. Guided demos retain
+their prepared Run demo action after the short introduction; the top-level header
+has no additional demo-launch button. The final-page renderer applies the
+catalog's WSPRadar App tab policy to generic launches and canonical website-root
 demo/share URLs, including Markdown and raw HTML, while preserving complete
 destinations and the separate new-tab policy for PDFs and external publications.
-Prepared analysis launches within individual guided demos open in a new tab or
-window with `noopener noreferrer`, so readers can keep the walkthrough alongside
-the active application. This covers the main Run actions, RX/TX variants,
-section-heading actions, and inline prepared-launch links while retaining their
-complete canonical URLs. Their renderer-supplied arrows point outward (↗).
-Renderer-supplied arrows for other same-tab app/demo actions point forward.
-Documentation entry links outside the documentation section also open a new tab;
-navigation between chapters or anchors inside the reader retains its current tab.
+Prepared analysis launches within individual guided demos use the current tab.
+This covers the main Run actions, RX/TX variants, section-heading actions, and
+inline prepared-launch links while retaining their complete query and fragment.
+Renderer-supplied arrows for same-tab product actions point forward (→).
 The homepage's primary Try a demo now action links to the localized Guided Demos
 index. Its secondary hero action is Start analysis / Analyse starten.
 `--navigation-only` updates only the catalog's brand record and manifest in an
 existing verified bundle; other imported payloads remain byte-exact.
-`source/theme/scripts/product-navigation.js` reads the rendered catalog before `source/theme/scripts/entry.js`.
-On localhost, 127.0.0.1, or IPv6 loopback, generic analysis links and canonical
-demo launches use the current loopback hostname with analysis port 8501, retaining
-their exact query and fragment. `scripts/build_site.py --local-analysis-port
-8521` explicitly overrides that local preview port without changing production
-destinations or imported canonical demo URLs. Ordinary website links retain their
-current origin; public builds launch `https://markusthemaker-wspradar.hf.space/`.
-The explicit Community Cloud and private HF test origins remain trusted aliases
-for existing paired sessions and legacy links; they do not replace the production
-launch destination. Canonical demo/share URLs remain at `wspradar.org` and retain
-their complete query and fragment when forwarded to the application.
+`source/theme/scripts/product-navigation.js` reads the rendered catalog before
+`source/theme/scripts/entry.js`. On localhost, 127.0.0.1, or IPv6 loopback, generic
+analysis links and canonical demo launches use the current loopback hostname
+with analysis port 8501, retaining their exact query and fragment.
+`scripts/build_site.py --local-analysis-port 8521` explicitly overrides that local
+preview port without changing production destinations or imported canonical demo
+URLs. Ordinary website links retain their current origin; the public website's
+canonical host is `https://www.wspradar.org/`, and public app navigation uses
+`https://app.wspradar.org/`. The production and private test HF origins and the
+Community Cloud origin remain explicit compatibility aliases. Direct links to
+those app deployments retain their selected host outside local previews.
+Legacy `wspradar.org` root demo/share links remain supported. Before interaction,
+the website updates those anchors, and equivalent `www.wspradar.org` root launch
+anchors, to the configured app host while preserving their complete query and
+fragment. The root entry script provides the same forwarding contract for direct
+visits. Plain website visits and localized website routes do not redirect.
 
-The paired-tab enhancement keeps one website tab (`wspradar_website`) and one
-application tab (`wspradar_analysis`). An ordinary app action focuses a retained
-live application window without assigning its URL, so an existing analysis stays
-loaded. Only a missing or closed handle requires named-window lookup; a newly
-created blank tab receives the app URL. An explicit demo/share
-query or results-inspection launch deliberately assigns its complete query and
-fragment to the app origin. Modified clicks, middle clicks, downloads, PDFs and
-third-party links retain their native HTML behavior and opener protections.
-Ordinary clicks on localized website page links that otherwise target a separate
-tab stay in the current website tab, including documentation entry links.
-Untargeted and `_self` links retain native handling, including in-page anchors;
-retargeted destinations preserve their complete query and fragment.
-Only the trusted website/app pair retains an opener for this cooperation; the
-static HTML policies above remain the fallback when JavaScript or popups are unavailable.
-
-The app's navigation component and the website exchange
-`wspradar-navigation-v1` hello/ack messages with an app-generated random nonce.
-The website validates the exact app origin and known application window/iframe,
-then binds subsequent navigation requests to that frame and nonce. It retains
-the nonce in session storage to re-establish the binding after a full website
-page navigation. App-first visits use an opener ready message; website-first
-visits receive hello after the app opens. No timer or polling is used. Navigation
-messages can only select localized `/en/` or `/de/` directory routes on the
-configured website origin (the current loopback origin in local previews),
-including their query and fragment. They cannot select the root analysis
-redirect, other origins, or credential-bearing URLs. The website navigates
-itself rather than allowing the cross-origin app to assign its location.
-Browsers may limit requests to focus another tab; that does not require reloading
-the app. A manually opened, unrelated tab is paired only when the named-window
-or opener handshake establishes the relationship.
+Product navigation uses native anchors without named-window lookup, tab focusing,
+cross-window messaging, opener pairing, or click interception. Modified clicks,
+middle clicks, downloads, PDFs and third-party links retain their native HTML
+behavior and opener protections. In-page anchors retain native handling. The
+website never receives or propagates application resume identifiers; application
+restoration is owned entirely by the app. Shared analysis URLs continue to carry
+only their explicit analysis settings and fragment. Source configuration prepares
+the new hosts; DNS and each hosting service's custom-domain setup are separate
+publication steps.
 
 For manual-only updates, run the following from WSPRadarApp:
 

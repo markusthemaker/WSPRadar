@@ -367,6 +367,7 @@
   "product_navigation": {
     "catalog": {
       "analysis_aliases": [
+        "https://markusthemaker-wspradar.hf.space/",
         "https://wspradar.streamlit.app/",
         "https://markusthemaker-wspradar-test.hf.space/"
       ],
@@ -408,7 +409,7 @@
             "de": "Dokumentation",
             "en": "Documentation"
           },
-          "new_tab": true,
+          "new_tab": false,
           "path": "documentation/"
         },
         {
@@ -427,14 +428,14 @@
         "website_port": 8787
       },
       "origins": {
-        "analysis": "https://markusthemaker-wspradar.hf.space/",
-        "website": "https://wspradar.org/"
+        "analysis": "https://app.wspradar.org/",
+        "website": "https://www.wspradar.org/"
       },
       "schema_version": 1
     },
     "schema_version": 1,
     "source_text_sha256": {
-      "config/product_navigation.json": "ca53ed8b1d02c145401ff9f0cc0aeb0690cd6cd4ae93afff6a01728af1f65e61"
+      "config/product_navigation.json": "1b6882606b9b77d8ced7da6f2a9f7f314081e8d95f7746d692e00509e94b69cd"
     }
   },
   "schema_version": 1,
