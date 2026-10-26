@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Guided Demo · Milazzo study · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/demos/milazzo_tx_buddy/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>Guided Demo · Milazzo study · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/demos/milazzo_tx_buddy/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/demos/milazzo_tx_buddy/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/demos/milazzo_tx_buddy/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script><link rel="stylesheet" href="/assets/demo-walkthrough.css"><script src="/assets/demo-walkthrough.js" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="demo-case-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos" aria-current="page">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/demos/milazzo_tx_buddy/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><article class="case-study"><header class="case-hero"><div class="case-hero-copy"><p class="eyebrow">Guided Demo</p><h1>Guided Demo · Milazzo study</h1><div class="case-intro" id="objective" aria-label="Objective"><p><em>Horizontal loop vs GAP Titan on 40 m — follow the reports and check the result.</em></p>
+<p>What makes two WSPR reports comparable? And what can we learn from the reports that do not form a pair?</p>
+<p>This guided demo revisits an early WSPR antenna study with a small enough sample to inspect ourselves. We will start with the published graphs, follow individual reports into WSPRadar, reproduce a few results, and then explore the wider analysis. Along the way, we will see why the WSPR cycle, grid locator and transmit power matter.</p>
+<p>The two measures answer different practical questions. <strong class="defined-term">ΔSNR</strong> compares signal quality on matched observations. <strong class="defined-term">ΔDecode</strong> compares how many reports were actually recorded, including reception observed by only one setup. Understanding both helps you assess your own station.</p></div><p class="case-meta">KP4MD (CM98) / WB6RQN (CM98) · 40m · 19 December 2010, 12:00 – 20 December 2010, 20:00 UTC · RX Benchmark</p><div class="actions"><div class="case-launch-actions"><a class="button" href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=KP4MD&amp;qth=CM98&amp;band=40m&amp;from=2010-12-19T12%3A00Z&amp;to=2010-12-20T20%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;evidence_mode=historical_replay&amp;reference=WB6RQN&amp;reference_qth=CM98&amp;snr_correction_mode=no_offset&amp;snr_correction_db=0&amp;max_distance_km=5000&amp;segment_bin=12h&amp;selected_station=VE6PDQ%40DO34IR&amp;filter_station_callsigns=VE6PDQ#wspradar-results-inspection"  rel="noopener noreferrer">Run in WSPRadar App · RX →</a><a class="button" href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=tx&amp;callsign=KP4MD&amp;qth=CM98&amp;band=40m&amp;from=2010-12-19T12%3A00Z&amp;to=2010-12-20T20%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;evidence_mode=historical_replay&amp;reference=WB6RQN&amp;reference_qth=CM98&amp;snr_correction_mode=no_offset&amp;snr_correction_db=0&amp;max_distance_km=5000&amp;segment_bin=12h&amp;selected_station=VE6PDQ%40DO34IR&amp;filter_station_callsigns=VE6PDQ#wspradar-results-inspection"  rel="noopener noreferrer">Run in WSPRadar App · TX →</a></div><a class="text-link" href="https://www.qsl.net/kp4md/wspr.htm" target="_blank" rel="noopener noreferrer">Original paper ↗</a></div></div><nav class="case-nav" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#objective">Objective</a></li><li><a href="#setup">Setup</a></li><li><a href="#published-figures">Original Figure 6</a></li><li><a href="#load-demo">Load demo</a></li><li><a href="#stations">Station identities</a></li><li><a href="#drill-down">Follow one RX pair</a></li><li><a href="#evidence">Count the RX reports</a></li><li><a href="#tx-comparison">Reverse to TX</a></li><li><a href="#wider-results">Explore other paths</a></li><li><a href="#paper-comparison">What the replay adds</a></li><li><a href="#takeaways">Save and apply the method</a></li></ol></nav></header><section class="case-setup" id="setup"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">01</span><h2>Meet the experiment</h2></div><p>In her 2011 study, <em>Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance</em>, Carol Milazzo, KP4MD, compared a full-wave 40 m horizontal loop, about 5 m above ground, with WB6RQN's GAP Titan DX vertical. The stations were 29 km apart in the Sacramento area. VE6PDQ in Edmonton supplied the selected distant path. <a href="https://www.qsl.net/kp4md/wspr.htm">Read the original study</a>.</p>
+<p>The article examined both <strong>transmission and reception</strong>. It also recorded different operating schedules: WB6RQN used frequency hopping, while KP4MD remained on the frequency under study. Keep that difference in mind when we count reports.</p>
+<p>Our replay covers <strong>19 December 2010, 12:00 UTC to 20 December 2010, 20:00 UTC</strong>, on <strong>40 m</strong>. <strong>KP4MD is always Target; WB6RQN is always Reference.</strong> Their roles change when we reverse the direction:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Example in this guide</th>
+<th style="text-align: left;">Who transmits?</th>
+<th style="text-align: left;">Who receives?</th>
+<th style="text-align: left;">What is compared?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Figure 6 reconstruction — RX</strong></td>
+<td style="text-align: left;">VE6PDQ</td>
+<td style="text-align: left;">KP4MD and WB6RQN</td>
+<td style="text-align: left;">The two receiving setups observing the same remote transmission.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Figure 7 reconstruction — TX</strong></td>
+<td style="text-align: left;">KP4MD and WB6RQN</td>
+<td style="text-align: left;">VE6PDQ</td>
+<td style="text-align: left;">The two transmitted signals observed at the same remote receiving-station entry.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>A note on the historical labels:</strong> the original Figure 6 and 7 titles and captions assign the opposite directions to those established by the matching database records. This guide follows the database's transmitter and receiver fields and the reconciled directions in the comparison PDFs. The original images are retained unchanged. The website displays a dark color adaptation, with the white PDFs still available.</p></div></section><section class="case-evidence" id="walkthrough"><section class="case-evidence-group" id="published-figures"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">02</span><h3>Start with Figure 6: what does the graph show?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-milazzo-figure6-original"><a class="case-image-link" href="/assets/demos/milazzo_tx_buddy/figure6_original.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Figure 6: original publication panel (dark adaptation)" data-caption-id="case-caption-milazzo-figure6-original" aria-label="Open full-size image: Figure 6: original publication panel (dark adaptation)"><img loading="eager" decoding="async" width="1520" height="710" src="/assets/demos/milazzo_tx_buddy/figure6_original-520.webp" srcset="/assets/demos/milazzo_tx_buddy/figure6_original-520.webp 520w, /assets/demos/milazzo_tx_buddy/figure6_original-1040.webp 1040w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Original Figure 6: cyan KP4MD and coral WB6RQN SNR traces over 19–20 December 2010. The reconstruction based on database records identifies these as reports received at the two compared stations."></a><figcaption id="case-caption-milazzo-figure6-original"><strong>Figure 6: original publication panel (dark adaptation)</strong><p>Original Figure 6, retained from the publication. Reconciled direction: <strong>VE6PDQ → KP4MD / WB6RQN</strong>, an RX comparison. Select the image to open it at full size. Colors adapted for the dark website; the white PDF remains unchanged.</p></figcaption></figure></div><p>Read time along the horizontal axis and SNR vertically. A higher SNR means the signal stands out more strongly relative to noise. The cyan and coral traces show how reports from the two setups vary over the period.</p>
+<p>The pattern invites comparison, but the dots do not all occur at the same times. The lines connect observations; they do not supply an SNR measurement between them. WSPRadar therefore checks which actual reports can be compared directly.</p>
+<p>The accompanying PDFs preserve the historical graphs, reconstruct observations from the database and show the paired results and reception counts:</p>
+<ul>
+<li><a href="/assets/demos/milazzo_tx_buddy/references/WSPRadar_Demo_Milazzo_Figure6.pdf" target="_blank" rel="noopener noreferrer"><strong>Figure 6 — RX reconstruction, paired ΔSNR and observed coverage</strong></a></li>
+<li><a href="/assets/demos/milazzo_tx_buddy/references/WSPRadar_Demo_Milazzo_Figure7.pdf" target="_blank" rel="noopener noreferrer"><strong>Figure 7 — TX reconstruction, paired ΔSNR and observed coverage</strong></a></li>
+</ul></div></div></section><section class="case-evidence-group" id="load-demo"><span id="step-1" aria-hidden="true"></span><div class="case-row case-row-full case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">03</span><h3>Open WSPRadar and check the settings</h3></div><p>Begin with a historical RX replay in <a href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=KP4MD&amp;qth=CM98&amp;band=40m&amp;from=2010-12-19T12%3A00Z&amp;to=2010-12-20T20%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;evidence_mode=historical_replay&amp;reference=WB6RQN&amp;reference_qth=CM98&amp;snr_correction_mode=no_offset&amp;snr_correction_db=0&amp;max_distance_km=5000&amp;segment_bin=12h&amp;selected_station=VE6PDQ%40DO34IR&amp;filter_station_callsigns=VE6PDQ#wspradar-results-inspection"><strong>WSPRadar</strong></a>. The prepared link loads the respective RX settings and starts the historical replay. Later, repeat the historical comparison in TX mode with the same Target, Reference, band and time window.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Setting</th>
+<th style="text-align: left;">Value for these worked examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">First comparison</td>
+<td style="text-align: left;">Historical RX replay — RX benchmark</td>
+</tr>
+<tr>
+<td style="text-align: left;">Target</td>
+<td style="text-align: left;"><strong>KP4MD</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Reference</td>
+<td style="text-align: left;"><strong>WB6RQN</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Band</td>
+<td style="text-align: left;"><strong>40 m</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Start</td>
+<td style="text-align: left;"><strong>19 December 2010, 12:00 UTC</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">End</td>
+<td style="text-align: left;"><strong>20 December 2010, 20:00 UTC</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Minimum spot pairs per station for ΔSNR</td>
+<td style="text-align: left;"><strong>1</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Reference SNR correction</td>
+<td style="text-align: left;"><strong>0 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The minimum of <strong>1 spot pair per station</strong> keeps the sparse paired evidence available for inspection. It allows us to check a calculation based on one observation; it does not establish a reliable typical advantage. For a new experiment, collect enough data to examine results with <strong>3, 5 or 10 pairs per station</strong>, across repeated operating periods and several independent paths.</p>
+<p>After the run, go to <strong>Station Insights</strong>. Leave <strong>Filter by selected segment and distance</strong> off so the list uses the completed analysis as its scope. The demo applies <strong>TX Station = VE6PDQ</strong> within that scope. We will start with VE6PDQ, then return to <strong>Global View</strong> and <strong>Segment Inspector</strong> to investigate the other paths.</p></div></div></section><section class="case-evidence-group" id="stations"><span id="step-2" aria-hidden="true"></span><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">04</span><h3>Find the station: the locator is part of its identity</h3></div><p>The demo opens <strong>Station Insights</strong> with <strong>TX Station = VE6PDQ</strong> already applied. The caption reads <strong>Station list: Filtered stations · 2 TX station identities · TX Station = VE6PDQ</strong>. The RX records contain two entries: <strong>VE6PDQ / DO34IR</strong> and <strong>VE6PDQ / DO34</strong>. The database writes the longer locator as <code>DO34ir</code>; the difference in letter case is immaterial. Open <strong>Filter</strong> to inspect, edit or clear the setting.</p>
+<p>A <strong class="defined-term">station entry</strong> in WSPRadar identifies a remote station by its <strong>callsign and full reported grid locator</strong>. A callsign can appear from different locations, potentially hundreds or thousands of kilometres apart, invalidating many metrics and statistics. Keeping the locator prevents those reports from being automatically mixed into one path.</p>
+<p>Here, <strong>DO34IR lies within DO34</strong>. These entries have different reported precision; they do not demonstrate that VE6PDQ moved, or that there were two physical VE6PDQ stations. WSPRadar nevertheless keeps their reported identities separate when matching and summarizing observations. In this case more to illustrate the underlying rationale and reasoning. </p>
+<p><strong>VE6PDQ / DO34IR</strong> is selected initially. <strong>Selected Station Evidence</strong> follows that entry, with the selected-station time aggregation already set to <strong>3h</strong>. In this RX comparison, VE6PDQ is the remote transmitter; KP4MD and WB6RQN remain the receivers being compared.</p>
+<h3>Which reports form a spot pair?</h3>
+<p>For this RX comparison, a <strong class="defined-term">spot pair</strong> occurs when both compared receivers report the <strong>same remote callsign-and-locator entry in the same two-minute WSPR cycle</strong>. We can then subtract their SNRs for that shared transmission.</p>
+<p>A spot pair consists of one retained Target observation and one retained Reference observation matched on band, WSPR cycle, and the remote station’s callsign and full reported locator. Each pair supplies one ΔSNR observation.</p>
+<p>When several reports exist for one setup, remote station, and cycle, WSPRadar consolidates them using its existing SNR-selection rules before forming the comparison.</p>
+<p>If only KP4MD reports that entry in the cycle, it is <strong>Target-only</strong>. If only WB6RQN reports it, it is <strong>Reference-only</strong>. A station may supply paired observations in some cycles and one-sided observations in others.</p>
+<p>These one-sided reports still document reception. They have no second measured SNR to subtract, so they contribute to ΔDecode rather than paired ΔSNR. A missing report does not reveal whether the other setup failed to decode, was operating elsewhere, or did not upload a report.</p></div></div></section><section class="case-evidence-group" id="drill-down"><span id="step-3" aria-hidden="true"></span><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">05</span><h3>Follow one pair into ΔSNR</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-milazzo-figure6-pairs"><a class="case-image-link" href="/assets/demos/milazzo_tx_buddy/figure6_reconstruction_and_pairs.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Figure 6: reconstruction and exact pairs" data-caption-id="case-caption-milazzo-figure6-pairs" aria-label="Open full-size image: Figure 6: reconstruction and exact pairs"><img loading="eager" decoding="async" width="1610" height="1950" src="/assets/demos/milazzo_tx_buddy/figure6_reconstruction_and_pairs-520.webp" srcset="/assets/demos/milazzo_tx_buddy/figure6_reconstruction_and_pairs-520.webp 520w, /assets/demos/milazzo_tx_buddy/figure6_reconstruction_and_pairs-1040.webp 1040w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Figure 6 reconstruction with five exact same-cycle comparisons connected to the paired ΔSNR panel. The accepted differences are +8, +17, +22, +7 and +7 dB."></a><figcaption id="case-caption-milazzo-figure6-pairs"><strong>Figure 6: reconstruction and exact pairs</strong><p>The reconstruction's upper plot uses the common 37 dBm scale; the table below uses 30 dBm. Both sides shift by the same 7 dB in this RX example, so ΔSNR is unchanged. In the lower panel, colour shows relative spot-pair density. Read the dB tick labels on its nonlinear vertical axis. Exact-observation circles and bin-median markers can represent the same evidence.</p></figcaption></figure></div><p>With <strong>VE6PDQ / DO34IR</strong> selected, open <strong>Drill-Down Data</strong> and inspect <strong>19 December at 14:46 UTC</strong>. Check the time and locator before comparing the SNR values.</p>
+<p><strong>Drill-Down Data shows the normalized SNR values</strong> (−5 and −13 dB for this pair). The raw reported SNRs and transmit powers used below are available in the <a href="/assets/demos/milazzo_tx_buddy/evidence/milazzo-six-pair-ledger.csv">verification ledger</a>.</p>
+<p>The two SNRs recorded in the database are <strong>+2 dB at KP4MD</strong> and <strong>−6 dB at WB6RQN</strong>, for VE6PDQ transmitting at a reported <strong>37 dBm</strong>, approximately 5 W. On the common <strong>1 W / 30 dBm</strong> basis used for the paired comparison, both SNRs are reduced by 7 dB, becoming <strong>−5 dB</strong> and <strong>−13 dB</strong>.</p>
+<p><strong>ΔSNR = Target SNR − Reference SNR = −5 − (−13) = +8 dB.</strong></p>
+<p>The positive sign favors KP4MD. For this one shared transmission, its reported signal-to-noise ratio was 8 dB higher. The comparison concerns the installed receiving setups, including their antennas, receiver chains and local noise conditions.</p>
+<p>The Figure 6 reconstruction lets us follow all accepted pairs. Dashed guides connect the reports in the upper plot with their ΔSNR observations below.</p>
+<p>Switch between <strong>VE6PDQ / DO34IR</strong> and <strong>VE6PDQ / DO34</strong> to check the five pairs. Each selected-station view contains only its own locator entry.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">UTC</th>
+<th style="text-align: left;">VE6PDQ locator</th>
+<th style="text-align: right;">Target SNR at 1 W</th>
+<th style="text-align: right;">Reference SNR at 1 W</th>
+<th style="text-align: right;">ΔSNR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">19 Dec, 14:46</td>
+<td style="text-align: left;">DO34IR</td>
+<td style="text-align: right;">−5 dB</td>
+<td style="text-align: right;">−13 dB</td>
+<td style="text-align: right;"><strong>+8 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">20 Dec, 07:46</td>
+<td style="text-align: left;">DO34</td>
+<td style="text-align: right;">−12 dB</td>
+<td style="text-align: right;">−29 dB</td>
+<td style="text-align: right;"><strong>+17 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">20 Dec, 09:04</td>
+<td style="text-align: left;">DO34IR</td>
+<td style="text-align: right;">−12 dB</td>
+<td style="text-align: right;">−34 dB</td>
+<td style="text-align: right;"><strong>+22 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">20 Dec, 15:24</td>
+<td style="text-align: left;">DO34</td>
+<td style="text-align: right;">−13 dB</td>
+<td style="text-align: right;">−20 dB</td>
+<td style="text-align: right;"><strong>+7 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">20 Dec, 15:46</td>
+<td style="text-align: left;">DO34IR</td>
+<td style="text-align: right;">−17 dB</td>
+<td style="text-align: right;">−24 dB</td>
+<td style="text-align: right;"><strong>+7 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><em>All dates are in 2010. Values are power-normalized for comparison, rather than the raw SNRs at which decoding occurred. <a href="/assets/demos/milazzo_tx_buddy/evidence/milazzo-six-pair-ledger.csv">Six-pair verification ledger, including database record IDs</a>.</em></p>
+<p>Sorted from lowest to highest, the five differences are <strong>7, 7, 8, 17, 22 dB</strong>. Their median—the middle value—is <strong>+8 dB</strong>.</p>
+<p><strong>All five spot pairs favor KP4MD's receiving setup, but their differences vary from 7 to 22 dB.</strong> That supports a consistent direction within this small sample. It does not establish a constant 8 dB advantage throughout the 32-hour window.</p>
+<p>Keep the scope of each summary clear:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Selected evidence</th>
+<th style="text-align: right;">Spot pairs</th>
+<th style="text-align: right;">Median ΔSNR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">VE6PDQ / DO34IR</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">+8 dB</td>
+</tr>
+<tr>
+<td style="text-align: left;">VE6PDQ / DO34</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">+12 dB</td>
+</tr>
+<tr>
+<td style="text-align: left;">Both entries' individual pairs pooled, as in the PDF</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">+8 dB</td>
+</tr>
+</tbody>
+</table></div>
+<p>With an even number of observations, the median averages the two middle values; DO34's +12 dB therefore summarizes its +7 and +17 dB pairs.</p>
+<p><strong>The PDF's +8 dB line summarizes the five individual pairs.</strong> A map segment instead summarizes qualifying station medians, giving each station entry one value. These are different ways of weighting the evidence; the pooled five-pair result is not an all-station or map result.</p>
+<details class="case-evidence-details">
+
+<summary>Why the locator matters here: what changes if we match on callsign alone?</summary>
+
+<p>A separate check of these same database records finds three additional same-cycle comparisons if the locator is ignored. In each, one receiver reports VE6PDQ as DO34 and the other as DO34IR. They do not meet the exact callsign-and-locator matching rule.</p>
+
+<p>Including those cross-locator comparisons would change <strong>five pairs to eight</strong> and the pooled median from <strong>+8 dB to +11.5 dB</strong>. This is a different matching assumption, not a correction to WSPRadar's result. The extra comparisons are not proven physically unrelated transmissions; their reported identities differ.</p>
+
+<p>The same endpoint reports still total <strong>31 at KP4MD and 13 at WB6RQN</strong>, so their overall report-count ratio is unchanged. What changes is which observations count as Paired and which enter paired ΔSNR. Identity is part of the measurement definition, not just a label on a map.</p>
+
+<p><a href="/assets/demos/milazzo_tx_buddy/evidence/milazzo-cross-locator-comparisons.csv">Inspect the three cross-locator comparisons and their database IDs.</a></p>
+
+</details></div></div></section><section class="case-evidence-group" id="evidence"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">06</span><h3>Count what else was heard</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-milazzo-figure6-coverage"><a class="case-image-link" href="/assets/demos/milazzo_tx_buddy/figure6_do34ir_coverage.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Figure 6: VE6PDQ / DO34IR observed RX coverage" data-caption-id="case-caption-milazzo-figure6-coverage" aria-label="Open full-size image: Figure 6: VE6PDQ / DO34IR observed RX coverage"><img loading="eager" decoding="async" width="1730" height="810" src="/assets/demos/milazzo_tx_buddy/figure6_do34ir_coverage-520.webp" srcset="/assets/demos/milazzo_tx_buddy/figure6_do34ir_coverage-520.webp 520w, /assets/demos/milazzo_tx_buddy/figure6_do34ir_coverage-1040.webp 1040w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Observed RX coverage for VE6PDQ at DO34IR, showing Paired, KP4MD-only and WB6RQN-only events in three-hour bins, with the decode factor on the right axis."></a><figcaption id="case-caption-milazzo-figure6-coverage"><strong>Figure 6: VE6PDQ / DO34IR observed RX coverage</strong><p>VE6PDQ / DO34IR only. The final interval is 18:00–20:00 UTC. Full bin counts and the separate DO34 entry are on page 2 of the linked PDF.</p></figcaption></figure></div><p>Return to <strong>VE6PDQ / DO34IR</strong> and open its <strong>ΔDecode Temporal Coverage</strong>. Use <strong>3h</strong> to match the reconstruction's time bins.</p>
+<p>The spot-level colours show three outcomes: <strong>Paired in green</strong>, <strong>Target-only in magenta</strong>, and <strong>Reference-only in cyan</strong>. A three-hour bin groups observations for display; pairing still uses the individual WSPR cycle and station identity.</p>
+<p>Across this entry's full window, there are <strong>8 Target-only, 3 Paired and 5 Reference-only</strong> observations. Each paired observation contributes one report to each receiver:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Receiver</th>
+<th style="text-align: left;">Reports counted</th>
+<th style="text-align: right;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">KP4MD — Target</td>
+<td style="text-align: left;">8 Target-only + 3 Paired</td>
+<td style="text-align: right;"><strong>11</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">WB6RQN — Reference</td>
+<td style="text-align: left;">5 Reference-only + 3 Paired</td>
+<td style="text-align: right;"><strong>8</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>11 ÷ 8 = 1.38×:</strong> KP4MD recorded 1.38 times as many reports from this station entry. This is an observed decode-count ratio. It is not the fraction of all attempted transmissions successfully received; cycles with no report from either receiver are absent from this evidence.</p>
+<p>The line uses the right-hand fold scale: <strong>1×</strong> means equal counts; values above or below it name the favored side. <strong>Exclusive</strong> means only one side was observed in that bin. A blank bin has no retained observations, so it supplies no ratio.</p>
+<p>The colours also explain why the SNR plot contains so few points. Many cycles produced a report at only one receiver. Those observations add reception evidence even though they cannot add a paired SNR difference.</p>
+<p>For a useful check, look at <strong>19 December, 15:00–18:00 UTC</strong>. Each receiver has one report, giving <strong>1×</strong>, but there are <strong>zero spot pairs</strong>. Both heard this station entry within the bin, at different times. Equal counts do not create a matched SNR measurement.</p>
+<p>The separate <strong>DO34</strong> entry contributes <strong>20 versus 5 reports</strong>. Adding the two entries gives <strong>31 versus 13</strong>, or <strong>2.38×</strong>, for the selected RX path as represented in the PDF. Selecting either entry alone in WSPRadar will show its own evidence.</p></div></div></section><section class="case-evidence-group" id="tx-comparison"><span id="step-4" aria-hidden="true"></span><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading case-step-heading-with-action"><span class="case-number" aria-hidden="true">07</span><h3>Reverse the direction: Figure 7</h3><a class="button" href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=tx&amp;callsign=KP4MD&amp;qth=CM98&amp;band=40m&amp;from=2010-12-19T12%3A00Z&amp;to=2010-12-20T20%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;evidence_mode=historical_replay&amp;reference=WB6RQN&amp;reference_qth=CM98&amp;snr_correction_mode=no_offset&amp;snr_correction_db=0&amp;max_distance_km=5000&amp;segment_bin=12h&amp;selected_station=VE6PDQ%40DO34IR&amp;filter_station_callsigns=VE6PDQ#wspradar-results-inspection"  rel="noopener noreferrer">Run in WSPRadar App · TX →</a></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-milazzo-figure7-original"><a class="case-image-link" href="/assets/demos/milazzo_tx_buddy/figure7_original.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Figure 7: original publication panel (dark adaptation)" data-caption-id="case-caption-milazzo-figure7-original" aria-label="Open full-size image: Figure 7: original publication panel (dark adaptation)"><img loading="eager" decoding="async" width="1520" height="710" src="/assets/demos/milazzo_tx_buddy/figure7_original-520.webp" srcset="/assets/demos/milazzo_tx_buddy/figure7_original-520.webp 520w, /assets/demos/milazzo_tx_buddy/figure7_original-1040.webp 1040w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Original Figure 7, with adapted display colors: coral WB6RQN and cyan KP4MD SNR traces. The reconstruction based on database records identifies these as transmissions received at VE6PDQ."></a><figcaption id="case-caption-milazzo-figure7-original"><strong>Figure 7: original publication panel (dark adaptation)</strong><p>Original Figure 7. Reconciled direction: <strong>KP4MD / WB6RQN → VE6PDQ</strong>, a TX comparison. Colors adapted for the dark website; the white PDF remains unchanged.</p></figcaption></figure></div><p>Before switching to TX, save the RX results: under <strong>Download Evidence</strong>, select <strong>Prepare All Results for Download</strong>, then <strong>Download Prepared Results</strong>. Use <strong>Save Config</strong> to retain the RX settings too.</p>
+<p>Use <strong>Run in WSPRadar App · TX</strong> beside this section heading to run a historical <strong>TX benchmark</strong> for the same Target, Reference, band, dates and other settings. The prepared TX link filters <strong>Station Insights</strong> to <strong>VE6PDQ</strong> and preselects <strong>VE6PDQ / DO34IR</strong>. VE6PDQ is now the remote receiver reporting the two compared transmitters.</p>
+<p>For a <strong>TX spot pair</strong>, the same remote receiving-station entry must report <strong>both compared transmitters in the same WSPR cycle</strong>. This aligns the receiver and observation time. It does not remove differences between the transmitting installations.</p>
+<p>The selected TX records contain <strong>76 reports but only one spot pair</strong>. Open <strong>Drill-Down Data</strong> at <strong>20 December, 00:22 UTC</strong> to inspect it. Its normalized SNR columns show <strong>−20 and −18 dB</strong>; the raw values and reported powers in the following table come from the linked verification ledger.</p>
+<h3>Check transmit power before subtracting SNR</h3>
+<p>KP4MD's reports specify <strong>37 dBm</strong>, approximately 5 W; WB6RQN's specify <strong>33 dBm</strong>, approximately 2 W. To compare their SNR on a common power basis, WSPRadar accounts for that reported power difference.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Transmitter</th>
+<th style="text-align: right;">Raw reported SNR</th>
+<th style="text-align: right;">Reported TX power</th>
+<th style="text-align: right;">SNR on the common 1 W basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">KP4MD — Target</td>
+<td style="text-align: right;">−13 dB</td>
+<td style="text-align: right;">37 dBm</td>
+<td style="text-align: right;"><strong>−20 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">WB6RQN — Reference</td>
+<td style="text-align: right;">−15 dB</td>
+<td style="text-align: right;">33 dBm</td>
+<td style="text-align: right;"><strong>−18 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Raw subtraction would give <strong>+2 dB</strong>. On the common power basis, <strong>ΔSNR = −20 − (−18) = −2 dB</strong>, favoring WB6RQN for this one paired observation.</p>
+<p>That change of sign shows why the power basis matters. In the PDF's common 37 dBm presentation, the same pair is −13 versus −11 dB and still gives −2 dB. The detailed scale reconstruction remains in the linked PDF.</p>
+<p><strong>One pair can verify a calculation, but cannot establish a typical TX advantage or a time trend.</strong> A median marker and the exact observation may both appear in the chart; they still represent one pair.</p></div></div><section class="case-evidence-group" id="tx-cycle-matching"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Why the nearby points do not form another pair</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-milazzo-figure7-reconstruction"><a class="case-image-link" href="/assets/demos/milazzo_tx_buddy/figure7_reconstruction.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Figure 7: reconstructed database reports" data-caption-id="case-caption-milazzo-figure7-reconstruction" aria-label="Open full-size image: Figure 7: reconstructed database reports"><img loading="eager" decoding="async" width="1530" height="910" src="/assets/demos/milazzo_tx_buddy/figure7_reconstruction-520.webp" srcset="/assets/demos/milazzo_tx_buddy/figure7_reconstruction-520.webp 520w, /assets/demos/milazzo_tx_buddy/figure7_reconstruction-1040.webp 1040w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Figure 7 reconstruction showing all 76 database reports. An annotation identifies KP4MD at 10:34 and WB6RQN at 10:36 on 20 December as nearby observations from different cycles."></a><figcaption id="case-caption-milazzo-figure7-reconstruction"><strong>Figure 7: reconstructed database reports</strong></figcaption></figure></div><p>Look at <strong>20 December, 10:34 UTC</strong> for KP4MD and <strong>10:36 UTC</strong> for WB6RQN. They have equal SNR after power normalization, but belong to different cycles. They therefore supply <strong>no paired comparison</strong>.</p>
+<p>This is what same-cycle pairing means here: use the same WSPR cycle, rather than moving timestamps, pairing the nearest dots or subtracting the connecting lines. The unpaired observations remain useful in the reconstructed traces and in the reception counts.</p>
+<h3>Compare signal margin with the recorded decodes</h3>
+<p>Open the selected receiver's <strong>ΔDecode Temporal Coverage</strong>. Across the window, VE6PDQ reported <strong>57 KP4MD transmissions and 19 WB6RQN transmissions</strong>: <strong>3× as many Target reports</strong>. They comprise <strong>56 Target-only, 1 Paired and 18 Reference-only</strong> events. <a href="/assets/demos/milazzo_tx_buddy/references/WSPRadar_Demo_Milazzo_Figure7.pdf#page=2" target="_blank" rel="noopener noreferrer">See the full TX coverage plot and bin counts</a>.</p>
+<p>The one paired SNR result favors Reference; the total count favors Target. Each result describes its own evidence: comparable signal levels on one matched observation, and accumulated reports across the window.</p>
+<p><strong>The decode counts retain the actual transmit powers and operating schedules.</strong> Normalizing SNR does not change how many reports were received. Here, 5 W versus 2 W and the documented frequency-hopping difference prevent us from attributing the 3× count ratio to the antennas alone.</p></div></div></section></section><section class="case-evidence-group" id="wider-results"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">08</span><h3>Expand from VE6PDQ to the other observed paths</h3></div><p>We have checked one remote callsign, with two RX locator entries and one TX receiving entry. Now ask whether its pattern appears elsewhere in the same analysis.</p>
+<p>Keep the current analysis mode explicit: in RX, the remote entries are transmitters; in TX, they are receivers. The figures and numbers above concern VE6PDQ only. The wider views combine the other retained station entries too.</p></div></div><section class="case-evidence-group" id="delta-snr-map"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Global View: where is there paired evidence?</h3></div><p>Open the <strong>ΔSNR map</strong>. Read a segment's direction, distance, median and support together. A positive value favors KP4MD; a negative value favors WB6RQN.</p>
+<p>Each qualifying station entry contributes its median ΔSNR, and the segment summarizes those station medians. A frequently observed entry therefore cannot dominate simply by supplying more pairs. Check how many entries support the segment, remembering that different locator entries do not necessarily represent different physical stations.</p>
+<p>An unqualified segment gives no displayed ΔSNR conclusion. It need not mean that no signals were heard there. The decoding view can still contain reception evidence from that direction.</p></div></div></section><section class="case-evidence-group" id="decoding-reach"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Decodes &amp; Stations by SNR: what does the paired sample leave out?</h3></div><p>Open <strong>Global View → Decodes &amp; Stations by SNR</strong>. Read from stronger signals on the left toward weaker signals on the right. The upper row accumulates reports; the lower row accumulates distinct station entries. These curves use each side's <strong>raw reported SNR</strong>, rather than the common-power values in our paired calculation.</p>
+<p>In <strong>Paired spots</strong>, the two report curves end at the same count: each accepted pair contains one retained observation from each side. Separation before the endpoint describes different reported SNRs for shared observations. <strong>One-sided spots</strong> add the reports heard by only one side in their respective cycles.</p>
+<p>Ask whether additional reports mainly repeat paths already observed, or also add station entries. A station can contribute both paired and one-sided reports, so extra one-sided spots do not automatically mean extra stations. If the station panels show <strong>Both observed, no pairs</strong>, those entries were heard by both sides during the window, but never in a shared cycle.</p>
+<p>Notice where one-sided reports enter along the SNR axis. Extra weak reports can be consistent with additional reception margin, but this historical comparison also contains different powers and operating opportunities. The curves do not establish why any particular report is missing.</p></div></div></section><section class="case-evidence-group" id="delta-decode-map"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>ΔDecode map: where were more reports recorded?</h3></div><p>Open the <strong>ΔDecode map</strong> and compare the same directions and distances as on the SNR map. Its fold labels express observed report-count advantage, with <strong>1×</strong> representing parity. Check which side the legend favors and how much evidence supports the segment.</p>
+<p>The segment pools the observed counts; it does not average individual stations' ratios. Both maps can agree, or they can emphasize different paths because paired signal quality and total observed reception use different evidence. Use the support information before giving a large factor much weight.</p></div></div></section><section class="case-evidence-group" id="difference"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Segment Inspector: is the summary representative?</h3></div><p>Start with <strong>Segment Inspector → Full Range | All Directions</strong> to inspect the wider sample, then select a geographic segment if you want to narrow the question.</p>
+<p>In <strong>Benchmark Statistics</strong>, compare the distribution of station results with that of individual paired observations. Station summaries give each qualifying entry one value; the spot-pair summary gives more influence to paths that contributed more pairs. Look at the distribution and sample size as well as the median.</p>
+<p>The five-pair Figure 6 median already showed how a small sample can hide considerable variation. A narrow-looking distribution based on very few observations is not evidence of a precisely established antenna advantage.</p></div></div></section><section class="case-evidence-group" id="time"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Both temporal views: does the pattern persist?</h3></div><p>Open <strong>ΔSNR Temporal Coverage</strong> and <strong>ΔDecode Temporal Coverage</strong> for the same scope. Check where paired measurements exist, how their differences vary, and whether reception continues through one-sided reports when the SNR evidence disappears.</p>
+<p>Inspect the chronological view before the profile by UTC hour. This run spans only 32 hours, so an hourly profile contains very few repetitions of each hour. Change the time aggregation to examine the evidence more closely; larger bins combine observations but do not create new pairs or additional operating time.</p>
+<p>Where station-level and spot-level coverage are shown, distinguish their questions. A station can be observed by both sides within a bin at different times; a spot-level Paired event requires the same cycle. The equal-count, zero-pair RX example demonstrated that difference.</p>
+<p>Finally, return to <strong>Station Insights</strong> and clear the <strong>VE6PDQ</strong> callsign filter through <strong>Filter</strong>. Choose another entry with a clear purpose—more paired evidence or a different result—and follow it into <strong>Drill-Down Data</strong>. Use <strong>Include one-sided evidence</strong> if you also want to list entries without paired observations. Check the chart's selected identity and scope before comparing it with VE6PDQ.</p></div></div></section></section><section class="case-evidence-group" id="paper-comparison"><span id="step-5" aria-hidden="true"></span><div class="case-row case-row-full case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">09</span><h3>What does WSPRadar add to the historical comparison?</h3></div><p>The reconstructed traces retain the observed changes and gaps that made the original study informative. The complete PDFs explain their correspondence with the published figures and the power scales used. The database also lets us inspect exact timestamps, reported locators and records that a plotted line cannot explain by itself.</p>
+<p>WSPRadar adds explicit matching, separate treatment of one-sided reception, and summaries whose contributing observations can be inspected. We have independently checked the six accepted pairs and the reception totals against the database records. This verifies the arithmetic and grouping for these selected examples; it does not establish every paper-marker correspondence or validate all possible analysis cases.</p>
+<p>The RX observations favor KP4MD's receiving setup in all five accepted comparisons. The TX sample contains just one common-power comparison, favoring WB6RQN by 2 dB. Those small, differently sampled sets do not demonstrate an antenna advantage reversing between transmission and reception. Their value here is that we can follow precisely what each result measures.</p></div></div></section><section class="case-evidence-group" id="takeaways"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">10</span><h3>Save the evidence and apply the method to your own station</h3></div><p>We can now account for the selected-path results:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Evidence checked</th>
+<th style="text-align: left;">Paired signal-quality result</th>
+<th style="text-align: left;">Observed reception</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">RX, both VE6PDQ locator entries</td>
+<td style="text-align: left;">Five pairs; pooled median <strong>+8 dB</strong> for KP4MD</td>
+<td style="text-align: left;"><strong>31 versus 13 reports</strong>, or <strong>2.38×</strong> as many at KP4MD</td>
+</tr>
+<tr>
+<td style="text-align: left;">TX, VE6PDQ / DO34IR</td>
+<td style="text-align: left;">One pair; <strong>−2 dB</strong> on a common power basis</td>
+<td style="text-align: left;"><strong>57 versus 19 reports</strong>, or <strong>3×</strong> as many for KP4MD</td>
+</tr>
+</tbody>
+</table></div>
+<p>These results become useful because we know their identities, timing, power basis and support. The sparse matched sample and differing operating opportunities limit the antenna conclusions, while leaving the individual calculations fully checkable.</p>
+<p>Under <strong>Download Evidence</strong>, select <strong>Prepare All Results for Download</strong>, then <strong>Download Prepared Results</strong>. Save the RX and TX results separately. <strong>Save Config</strong> preserves the reusable settings, including the active Station Insights filters and selected identity; shared analysis URLs preserve those filters too. Keep operating notes alongside them so a later analysis records which antennas were connected, the powers used and when each setup was active.</p>
+<p>For this manual check, the companion files include the <strong>120 endpoint reports from the database</strong>, their record IDs, the <strong>six-pair ledger</strong>, and the <strong>identity-specific and three-hour count tables</strong>:</p>
+<ul>
+<li><a href="/assets/demos/milazzo_tx_buddy/evidence/Milazzo_Verification_Data.zip"><strong>Download the selected-path verification data</strong></a></li>
+<li><a href="/assets/demos/milazzo_tx_buddy/evidence/README.md">Read the data scope, calculation rules and source query</a></li>
+<li><a href="/assets/demos/milazzo_tx_buddy/references/WSPRadar_Demo_Milazzo_Figure6.pdf" target="_blank" rel="noopener noreferrer">Open the Figure 6 RX comparison PDF</a></li>
+<li><a href="/assets/demos/milazzo_tx_buddy/references/WSPRadar_Demo_Milazzo_Figure7.pdf" target="_blank" rel="noopener noreferrer">Open the Figure 7 TX comparison PDF</a></li>
+</ul>
+<p>For your own experiment, arrange comparable operation on the same band, record transmit powers and receiver changes, and check the reported locators. Collect more paired observations across several periods and paths, then examine whether the result persists when you raise the evidence requirements. If you want to compare decoding performance, make the actual powers and operating opportunities comparable too; SNR normalization cannot do that retrospectively.</p>
+<p>You can now follow a result back to its reports: identify the stations and locators, check the cycle, compare SNR on the appropriate basis, and count the reception outside the paired sample. Use that same sequence whenever a map colour or a large difference catches your attention.</p></div></div></section></section></article></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

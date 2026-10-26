@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="9. Evidence-Matched Claims and Reproducibility · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/documentation/sec-8/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>9. Evidence-Matched Claims and Reproducibility · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/documentation/sec-8/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-8/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-8/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation" aria-current="page">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/documentation/sec-8/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/en/documentation/">Documentation</a> / 9. Evidence-Matched Claims and Reproducibility</p><div class="reader-layout"><details class="reader-index" open><summary>Documentation</summary><a class="part-link" href="/en/documentation/sec-1/">Part 0: Why WSPRadar</a><a class="chapter-link" href="/en/documentation/documentation-toc/">Table of Contents</a><a class="part-link" href="/en/documentation/part-i/">Part I: Operator Guide</a><a class="chapter-link" href="/en/documentation/sec-2/">1. Choose and Prepare the Analysis</a><a class="chapter-link" href="/en/documentation/sec-3/">2. Run and Interpret Your Analysis</a><a class="chapter-link" href="/en/documentation/sec-4/">3. Strengthen and Communicate Your Result</a><a class="part-link" href="/en/documentation/part-iv/">Part II: Practical Setup Guide</a><a class="chapter-link" href="/en/documentation/sec-a/">4. Parallel WSJT-X Instances for Simultaneous RX</a><a class="chapter-link" href="/en/documentation/sec-simultaneous-tx-setup/">5. Simultaneous TX Reference Setup</a><a class="chapter-link" href="/en/documentation/sec-b/">6. Reference SNR Calibration</a><a class="part-link" href="/en/documentation/part-iii/">Part III: Scientific Foundations, Methods and Claims</a><a class="chapter-link" href="/en/documentation/sec-d/">7. Literature, Prior Art and Positioning</a><a class="chapter-link" href="/en/documentation/sec-7/">8. Scientific Methods</a><a class="chapter-link" aria-current="page" href="/en/documentation/sec-8/">9. Evidence-Matched Claims and Reproducibility</a><a class="part-link" href="/en/documentation/part-ii/">Part IV: Controls and Troubleshooting</a><a class="chapter-link" href="/en/documentation/sec-5/">10. Controls and Configuration</a><a class="chapter-link" href="/en/documentation/sec-6/">11. Troubleshooting and Data Quality</a><a class="part-link" href="/en/documentation/sec-ref/">Part V: References</a><a class="part-link" href="/en/documentation/sec-8-5/">Experimental Use &amp; Disclaimer</a></details><article class="prose"><p><a id="sec-8"></a></p>
+<h1>9. Evidence-Matched Claims and Reproducibility</h1>
+<p>A useful report states what was observed, how it was summarized, and what the comparison can establish. Name the included stations, band, UTC window, geographic scope, weighting and supporting counts. Then distinguish the observed result from any proposed explanation. This chapter provides wording examples and the records needed to preserve the result.</p>
+<p><a id="sec-8-1"></a></p>
+<h4>9.1 Claim classes and evidence-matched wording</h4>
+<p>Different statements require different evidence:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Claim class</th>
+<th>What the statement means</th>
+<th>Evidence needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Descriptive</strong></td>
+<td>What appeared in the retained observations.</td>
+<td>Identify the population, scope, metric, weighting and supporting counts.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Comparative</strong></td>
+<td>How Target and Reference differed.</td>
+<td>Describe the Reference and the observed paired and one-sided evidence. State whether common operation was independently established or the run was historical replay.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Component attribution</strong></td>
+<td>The difference follows a particular antenna, feedline, receiver or other tested component.</td>
+<td>A controlled arrangement, appropriate calibration and preferably a crossover or reversal of assignments.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Causal</strong></td>
+<td>The tested change caused the effect.</td>
+<td>A design that controls plausible alternative explanations; WSPRadar summaries alone are insufficient.</td>
+</tr>
+<tr>
+<td><strong>Inferential</strong></td>
+<td>The result generalizes beyond these observations, with a stated confidence or significance.</td>
+<td>A justified model of dependence and an inferential analysis, which WSPRadar does not supply.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Match the statement to the quantity:</p>
+<ul>
+<li><strong>Performance</strong> describes the Target's success within confirmed opportunities and its at-least-once reach during the selected window.</li>
+<li><strong>Benchmark ΔSNR</strong> describes Target-minus-Reference SNR among retained spot pairs. Signals decoded on only one side have no paired SNR difference.</li>
+<li><strong>Decode Outcomes</strong> describe paired and one-sided evidence. <strong>Station Reach Advantage</strong> compares distinct-station totals; <strong>ΔDecode</strong> compares pooled decode totals. Neither advantage is a Target win rate or an absolute decoding probability.</li>
+<li><strong>Direction and distance patterns</strong> describe the observed radio paths, without directly measuring antenna radiation angle or gain pattern.</li>
+</ul>
+<p>A controlled Benchmark relies on independently known common operation. <strong>Historical replay</strong> can describe the reported differences, but unverified schedules, uptime or uploads may explain one-sided counts. Do not present that replay as a controlled comparison of decoding success.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Avoid</th>
+<th>Evidence-matched wording</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>“Antenna A has 3 dB more gain than B.”</td>
+<td>“For this band, UTC window and segment, the median of station-median ΔSNR was +3.0 dB for path A relative to B, supported by [n] qualifying identities and [m] spot pairs.”</td>
+</tr>
+<tr>
+<td>“My receiver sensitivity is 72%.”</td>
+<td>“The Target's station-balanced Decode Rate was 72% across [n] qualifying remote identities during the stated window, using confirmed opportunities.”</td>
+</tr>
+<tr>
+<td>“Performance should be close to 100%.”</td>
+<td>“Decode Rate is conditional on confirmed opportunities; 100% is not an expected baseline.”</td>
+</tr>
+<tr>
+<td>“A is statistically significantly better.”</td>
+<td>“The descriptive median ΔSNR favored A among the selected spot pairs; no significance test was performed.”</td>
+</tr>
+<tr>
+<td>“The antenna has a lower take-off angle.”</td>
+<td>“The observed advantage was concentrated in the specified longer-distance segments; radiation angle was not measured.”</td>
+</tr>
+<tr>
+<td>“A is more efficient because it had more exclusive decodes.”</td>
+<td>“A produced more one-sided decode evidence under the documented power, schedule and network conditions; efficiency was not isolated.”</td>
+</tr>
+</tbody>
+</table></div>
+<p>An SNR difference between complete setups does not identify its component or environmental cause. Keep within-run consistency separate from repeatability in a new, suitably controlled run. Include the applicable operating declaration or historical-replay limitation, applied Reference correction and evidence counts using the checklist in <a href="/en/documentation/sec-8/#sec-8-3">Section 9.3</a>.</p>
+<p><a id="sec-8-2"></a></p>
+<h4>9.2 Interpretation boundaries</h4>
+<p>The calculations describe the evidence selected by the run. Their limits arise from the reports, the selection rules and the physical comparison:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Consequence for interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reported data</strong></td>
+<td>Callsigns, locators and powers can be wrong. Databases contain successful decodes, not every attempted transmission or a complete failure log. Records and availability can change after the run.</td>
+</tr>
+<tr>
+<td><strong>Selection of opportunities and SNR</strong></td>
+<td>Performance is conditioned on observable Target activity and confirmed opportunities. Its successful SNR contains only decoded signals. Benchmark ΔSNR requires usable SNR on both sides; one-sided observations have no missing-side SNR to reconstruct.</td>
+</tr>
+<tr>
+<td><strong>Operating conditions</strong></td>
+<td>Controlled Benchmark requires independently known common operation and retains eligible one-sided evidence symmetrically. Historical replay leaves that operating premise unverified. Neither observed coverage nor a confirmation checkbox independently proves uptime or equal schedules.</td>
+</tr>
+<tr>
+<td><strong>Physical causes</strong></td>
+<td>Hardware, software, terrain, local noise, polarization and propagation remain combined unless the experiment separates them. Simultaneous TX can still include power, frequency-response, isolation and coupling differences.</td>
+</tr>
+<tr>
+<td><strong>Dependence and generalization</strong></td>
+<td>Reports share stations, time periods, geography and propagation. A row count is not an independent sample size. WSPRadar does not supply confidence intervals, significance tests or a causal conclusion.</td>
+</tr>
+</tbody>
+</table></div>
+<p>WSPRadar does not directly measure antenna gain relative to isotropic (<strong>dBi</strong>), radiation efficiency, take-off angle, propagation mode, calibrated receiver sensitivity or absolute field strength. A gain <em>difference</em> is expressed in <strong>dB</strong>, but an observed ΔSNR is not automatically a measurement of that difference.</p>
+<p>Broad evidence, consistent results and repetition under documented controls can support a practical station decision. Keep the claim within what the experiment measured; <a href="/en/documentation/sec-7/#sec-7-claims">Section 8.5</a> explains dependence and experimental control.</p>
+<p><a id="sec-8-3"></a></p>
+<h4>9.3 Reporting and reproducibility checklist</h4>
+<p>Preserve three layers when comparing, publishing or acting on a result. The export supplies much of the analysis definition and evidence; keep physical setup measurements and operating records separately.</p>
+<p><strong>1. Analysis definition</strong></p>
+<ul>
+<li>WSPRadar application version and, where available, source revision;</li>
+<li>database source and original export date;</li>
+<li>RX/TX direction, result type and Benchmark design;</li>
+<li>exact Target and Reference identities and locators;</li>
+<li>band and effective UTC boundaries;</li>
+<li>geographic scope, solar state, exclusions and evidence thresholds;</li>
+<li>Reference correction purpose, signed value and calibration basis;</li>
+<li>applicable common-operation declaration or historical-replay acknowledgement and limitations;</li>
+<li>primary scope chosen before inspecting the result, and any alternative settings or scopes checked; and</li>
+<li>whether the run was exploratory or confirmatory.</li>
+</ul>
+<p>If an outlier candidate contributes to the conclusion, also record that reporting was enabled, the three detector thresholds, detector version, exact path, UTC interval, event class and whether the finding was exploratory or assessed under a previously fixed confirmatory setup.</p>
+<p><strong>2. Evidence supporting the conclusion</strong></p>
+<ul>
+<li>Reported metric and its weighting;</li>
+<li>qualifying identities and confirmed opportunities for Performance;</li>
+<li>stations with paired observations and spot-pair counts for Benchmark;</li>
+<li>station-level and observation-level summaries;</li>
+<li>Station Reach Advantage, pooled ΔDecode and relevant Paired, Target-only and Reference-only counts;</li>
+<li>geographic and temporal scope, including an influential identity or short interval; and</li>
+<li>within-run consistency and any repetition in a separate run.</li>
+</ul>
+<p><strong>3. External experiment record</strong></p>
+<ul>
+<li>Antennas, feedlines and RF-path arrangement;</li>
+<li>switch/splitter connections and the mapping of reporting identities to physical paths;</li>
+<li>transmitter, receiver, decoder and software versions;</li>
+<li>actual transmit power and its WSPR reporting basis;</li>
+<li>calibration measurements and reference plane;</li>
+<li>actual schedules, records supporting the Benchmark operating declaration, interruptions, crossovers and reversed assignments; and</li>
+<li>faults, interference, weather or deliberate changes relevant to interpretation.</li>
+</ul>
+<p>Keep the original export package with these notes. A later retrieval can reflect database corrections or a newer WSPRadar version.</p>
+<p><a id="sec-8-4"></a></p>
+<h4>9.4 Analysis export package</h4>
+<p>Select the geographic scope, station evidence and any focus interval to preserve. <strong>Prepare All Results for Download</strong> builds the ZIP; <strong>Download Prepared Results</strong> saves it. Prepare again after changing those selections.</p>
+<p>The ZIP contains <code>config/</code> and either <code>benchmark/</code> or <code>performance/</code>, according to the analysis. Available figures depend on the retained evidence and current selections. Each available figure is supplied as high-resolution light and dark PNGs showing the same evidence. The light file uses its <code>figure_*.png</code> filename; the dark file adds <code>_dark</code> before <code>.png</code> in the same folder.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Content, scope and availability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Disclaimer</strong></td>
+<td><code>disclaimer.txt</code> contains the complete <a href="/en/documentation/sec-8-5/#sec-disclaimer">Experimental Use &amp; Disclaimer</a> in the application language at export time. It accompanies every package.</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td><code>wspradar_config.config</code> restores analysis settings and supported view choices for another run. It does not contain the original observations.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Run metadata</strong></td>
+<td><code>run_metadata.json</code> records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its evidence mode, applicable operating declaration or historical-replay acknowledgement, and method version. These declarations are not independent proof of operation.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Processed evidence</strong></td>
+<td><code>analysis_cache.parquet</code> contains retained evidence across the completed analysis's full geographic scope after scientific filtering. It is not restricted to the selected segment and is not an untouched database download.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Station Insights CSV</strong></td>
+<td>Benchmark <code>table_station_insights.csv</code> follows the global or optionally Inspector-filtered station list. Performance <code>table_station_insights_current_segment.csv</code> follows its active Inspector scope. Both also follow Station Insights column filters, with scope and filters recorded in metadata. Empty tables retain headers.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Drill-Down CSV files</strong></td>
+<td>Row-level evidence for selected stations or all stations in the active segment. The selected-station table can follow focus and table filters. Both files retain headers when empty.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Outlier CSV files</strong></td>
+<td><code>table_delta_snr_outlier_event_paths.csv</code> summarizes qualifying path events; <code>table_delta_snr_outlier_paired_evidence.csv</code> contains their chronological spot pairs, including corrected Reference SNR. Both cover the active segment and join through IDs valid only within this package. Reporting off: files absent. Reporting on with no findings: headers only. Findings remain candidates, not confirmed physical events.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Map, segment and temporal figures</strong></td>
+<td>The map covers the completed analysis. Segment and temporal figures follow the active segment, including applicable chronological and UTC-hour views.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Selected-station figures</strong></td>
+<td>Benchmark uses the selected identity's full-run evidence; Performance follows its active scope. With outlier reporting enabled, Benchmark can instead show pooled ΔSNR for multiple selected paths.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Drill-Down focus figures</strong></td>
+<td>Additional figures for exactly one selected station and its active focus interval. They preserve individual observations and chronological context alongside the ordinary selected-station figures. Candidate guides apply to the focused episode.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Keep metadata with the evidence: configuration alone cannot reconstruct every selection. Missing data-selection metadata remains unknown; it does not establish that the standard filter was used. See <a href="/en/documentation/sec-6/#sec-6-4">Section 11.4</a>. Inspector scope, station-list scope and selected-station/focus scope are distinct; a Benchmark station figure must not be read as limited to the Inspector's direction and distance.</p>
+<p>Benchmark figure filenames identify their quantities:</p>
+<ul>
+<li><code>figure_map_delta_snr.png</code> and <code>figure_map_delta_decode.png</code>;</li>
+<li><code>figure_decodes_over_snr.png</code> and <code>figure_segment_statistics.png</code>;</li>
+<li><code>figure_segment_temporal_delta_snr.png</code> and <code>figure_segment_temporal_delta_decode.png</code>;</li>
+<li><code>figure_selected_station_temporal_delta_snr.png</code> and <code>figure_selected_station_temporal_delta_decode.png</code>; and</li>
+<li><code>figure_drilldown_zoom_delta_snr.png</code> and <code>figure_drilldown_zoom_delta_decode.png</code>.</li>
+</ul>
+<p>These files are included when the necessary evidence and selections are available. The archive name remains <code>WSPRadar_export_YYYY_MM_DD__HH_MM.zip</code>. Retain the original package together with the external records in <a href="/en/documentation/sec-8/#sec-8-3">Section 9.3</a>; a later query or rerun may produce different records or results.</p>
+<div style="page-break-before: always;"></div><nav class="doc-actions" aria-label="Documentation"><a href="/en/documentation/sec-7/">Previous: 8. Scientific Methods</a><a href="/en/documentation/part-ii/">Next: Part IV: Controls and Troubleshooting</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

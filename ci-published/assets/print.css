@@ -1,0 +1,142 @@
+/* Shared paper layout, loaded after every screen/component stylesheet. */
+@page { margin: 14mm; }
+
+@media print {
+  :root { color-scheme: light; }
+  html, body { background: #fff !important; min-height: 0; overflow: visible !important; }
+  body { font: 11pt/1.45 "Source Sans 3", Arial, sans-serif; }
+
+  /* Keep bitmap/SVG figure data intact; remove the dark HTML surfaces. */
+  body *:not(svg):not(svg *) {
+    color: #111 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: #aaa !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .site-shell { max-width: none; margin: 0; padding: 0; }
+  .skip-link, .navigation, .hero-actions, .reader-index, .demo-contents,
+  .case-nav, .case-dialog, .doc-actions, .search-label, .empty-filter,
+  [data-filter-status], .breadcrumb { display: none !important; }
+
+  /* Only this artwork is a background: the print dialog owns its inclusion.
+     Reserve its space even when Background graphics is off. */
+  .site-header.landing-header { display: block; margin: 0 0 6mm; }
+  .hero-artwork-stage { position: static; margin: 0; }
+  .site-header .radar-artwork {
+    display: block;
+    height: 42mm;
+    background-image: var(--print-header-image) !important;
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+    -webkit-print-color-adjust: economy;
+    print-color-adjust: economy;
+  }
+  .radar-artwork img, .radar-artwork source, .radar-visual::after { display: none !important; }
+  .hero-entry { padding: 0; }
+  .mobile-intro, .hero-reassurance {
+    position: static; width: auto; height: auto; overflow: visible;
+    clip-path: none; white-space: normal; margin: 3mm 0;
+  }
+
+  h1, h2, h3, h4, summary { break-after: avoid; page-break-after: avoid; }
+  h1, .case-study h1, .mobile-intro h1 { font-size: 23pt; }
+  h2, .landing h2, .case-study h2 { font-size: 18pt; margin-top: 7mm; }
+  h3, .landing h3, .case-study h3 { font-size: 14pt; }
+  h4 { font-size: 12pt; }
+  p, li, .prose p, .prose li, .case-study p, .case-row .case-copy > p {
+    font-size: 11pt; line-height: 1.45; orphans: 3; widows: 3;
+  }
+  p { margin-bottom: 3mm; }
+  a { text-decoration: underline; overflow-wrap: anywhere; }
+  .button { min-height: 0; padding: 1mm 2mm; font-size: 10pt; }
+  body .site-shell .button, body .site-shell .button:not(.secondary),
+  body .site-shell .case-metric-note { color: #111 !important; }
+  .actions { display: flex; margin: 3mm 0; }
+  .prose, .case-copy { overflow-wrap: anywhere; }
+
+  /* Scroll containers and desktop columns cannot clip a paper page. */
+  .reader-layout, .demo-layout, .hero, .choices, .manual-index, .support-strip,
+  .journey, .demo-grid, .report-options, .how-panel, .analysis-grid,
+  .why-comparison, .why-panel, .example-showcase, .start-grid, .start-steps,
+  .case-study, .case-hero, .case-copy, .case-row, .case-setup, .case-metrics {
+    display: block !important;
+    max-width: none; min-width: 0;
+    break-inside: auto; page-break-inside: auto;
+  }
+  .landing > section, .landing + .more-guidance { padding-inline: 0; }
+  .case-study { margin: 0; padding: 0; }
+  .case-row, .case-setup, .case-evidence-group .case-evidence-group .case-row {
+    margin: 4mm 0; padding: 4mm 0; position: static;
+  }
+  .case-number { position: static; display: inline-block; min-width: 0; height: auto; padding: 0 2mm; margin-bottom: 3mm; font-size: 14pt; }
+  .case-row .case-copy h3 { padding: 0; min-height: 0; display: block; }
+  .case-row .case-media, .case-row.case-row-reverse .case-media, .case-setup .case-media {
+    float: none; width: 100%; max-width: none; margin: 4mm 0;
+  }
+  .choice, .choice + .choice, .journey-card, .analysis-card, .demo-card,
+  .report-options article, .why-panel, .example-context, .get-started {
+    padding: 3mm; margin-bottom: 4mm;
+  }
+  .journey-card, .demo-card, .report-options article, .example-showcase .example-context { display: block; }
+  .why-panel { grid-row: auto; }
+  .why-network figure { max-width: 55mm; }
+  .why-steps { display: grid; grid-template-columns: 1.25fr 1fr 1fr; }
+  .why-steps > li { break-inside: avoid; }
+  .why-pairs, .why-pairs th { font-size: 8pt; }
+  .why-dot-row i, .why-summary-dots span { border: 1pt solid #111 !important; }
+  .why-dot-row i.median, .why-summary-dots .median { border-width: 2pt !important; }
+  .start-step { margin: 3mm 0; }
+  .start-step::after { content: none !important; }
+  .signal-flow { break-inside: avoid; }
+
+  .table-scroll, .case-copy .table-scroll, .prose pre, mjx-container {
+    overflow: visible !important; max-height: none; height: auto;
+  }
+  .table-scroll { border: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  .prose table, .case-copy table { font-size: 9pt; table-layout: fixed; }
+  .prose th, .prose td, .case-copy th, .case-copy td,
+  .case-study #drilldown th, .case-study #drilldown td {
+    min-width: 0; padding: 1.5mm; white-space: normal;
+    overflow-wrap: anywhere; border-bottom: .2mm solid #aaa;
+  }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr { break-inside: avoid; }
+  pre, code { white-space: pre-wrap; overflow-wrap: anywhere; }
+  mjx-container { break-inside: avoid; }
+
+  figure, .figure-block, .case-study .figure-block {
+    break-inside: avoid; page-break-inside: avoid;
+    overflow: visible; margin: 4mm 0; padding: 0;
+  }
+  .figure-block img, .case-study .figure-block img, .prose img {
+    display: block; max-width: 100%; max-height: 185mm;
+    width: 100%; height: auto; object-fit: contain;
+    filter: none !important; mix-blend-mode: normal;
+  }
+  .case-study .figure-block > a:first-child { overflow: visible; }
+  .case-study .figure-block > a:first-child::after { content: none; }
+  figcaption, .figure-block figcaption, .case-study .figure-block figcaption,
+  .case-study .figure-block figcaption p { font-size: 9pt; line-height: 1.35; }
+  .example-showcase .result-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .result-preview { display: block; grid-row: auto; padding: 3mm; }
+  .result-card-heading { min-height: 0; margin-bottom: 3mm; }
+  .result-crops { mix-blend-mode: normal; }
+  .result-preview figcaption { margin-top: 3mm; }
+
+  /* Print all explanatory text, including collapsed/filtered content. JS opens
+     details on older engines; this also covers modern engines without JS. */
+  .more-guidance { display: block !important; margin-top: 6mm; }
+  main details::details-content { content-visibility: visible; display: block; }
+  main details > summary { list-style: none; }
+  main details > summary::-webkit-details-marker { display: none; }
+  main [data-filter-text][hidden] { display: block !important; }
+  .site-footer { display: block; margin-top: 7mm; padding-top: 3mm; font-size: 9pt; }
+  .site-footer .footer-main, .site-footer .footer-actions { display: block; margin: 0; }
+  .site-footer a { min-height: 0; font-size: 9pt; }
+}

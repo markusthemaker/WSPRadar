@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Macht eine Änderung am Aufbau oder eine neue Antenne einen Unterschied? Wo wird deine Station gehört, und wen hörst du? Erkunde ein ausgearbeitetes Benchmark-Beispiel für den Vergleich mit einer Referenzantenne oder Referenzstation.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="1. Analyse auswählen und vorbereiten · WSPRadar">
+  <meta property="og:description" content="Macht eine Änderung am Aufbau oder eine neue Antenne einen Unterschied? Wo wird deine Station gehört, und wen hörst du? Erkunde ein ausgearbeitetes Benchmark-Beispiel für den Vergleich mit einer Referenzantenne oder Referenzstation.">
+  <meta property="og:url" content="https://www.wspradar.org/de/documentation/sec-2/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>1. Analyse auswählen und vorbereiten · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/de/documentation/sec-2/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-2/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-2/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Zum Inhalt</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menü"><a class="nav-brand" href="/de/" aria-label="WSPRadar.org — Einführung"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menü</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/de/" data-product-nav="overview">Einführung</a><span class="nav-separator" aria-hidden="true">·</span><a href="/de/demos/" data-product-nav="demos">Geführte Demo</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/de/documentation/" data-product-nav="documentation" aria-current="page">Dokumentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/de/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Sprache ändern: Deutsch" title="Sprache ändern"><span class="language-current" lang="de">DE</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Sprache ändern"><a class="language-option" href="/en/documentation/sec-2/" lang="en" hreflang="en"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="de" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="Englisches WSPRadar-Banner: WSPR-Spots werden zu echten Erkenntnissen. Verstehe und vergleiche deine Amateurfunkstation mit weltweiten WSPR-Daten, einfach und kostenlos. Echte Daten, echte Erkenntnisse, bessere Entscheidungen. Gezeichnete Signalwege verbinden eine Station in Europa mit der Welt; die Illustration zeigt kein Messergebnis." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/de/documentation/">Dokumentation</a> / 1. Analyse auswählen und vorbereiten</p><div class="reader-layout"><details class="reader-index" open><summary>Dokumentation</summary><a class="chapter-link" href="/de/documentation/sec-1/">0. Warum WSPRadar?</a><a class="chapter-link" href="/de/documentation/documentation-toc/">Inhaltsverzeichnis</a><a class="part-link" href="/de/documentation/part-i/">Teil I: Leitfaden für den Funkbetrieb</a><a class="chapter-link" aria-current="page" href="/de/documentation/sec-2/">1. Analyse auswählen und vorbereiten</a><a class="chapter-link" href="/de/documentation/sec-3/">2. Analyse durchführen und auswerten</a><a class="chapter-link" href="/de/documentation/sec-4/">3. Ergebnis absichern und kommunizieren</a><a class="part-link" href="/de/documentation/part-ii/">Teil II: Bedienelemente und Fehlersuche</a><a class="chapter-link" href="/de/documentation/sec-5/">4. Bedienelemente und Konfiguration</a><a class="chapter-link" href="/de/documentation/sec-6/">5. Fehlersuche und Datenqualität</a><a class="part-link" href="/de/documentation/part-iii/">Teil III: Wissenschaftliche Grundlagen, Methoden und Aussagen</a><a class="chapter-link" href="/de/documentation/sec-d/">6. Literatur, Vorarbeiten und Einordnung</a><a class="chapter-link" href="/de/documentation/sec-7/">7. Wissenschaftliche Methoden</a><a class="chapter-link" href="/de/documentation/sec-8/">8. Evidenzgerechte Aussagen und Reproduzierbarkeit</a><a class="chapter-link" href="/de/documentation/sec-ref/">Literatur und Quellen</a><a class="part-link" href="/de/documentation/part-iv/">Teil IV: Praktische Ergänzungen</a><a class="chapter-link" href="/de/documentation/sec-a/">Anhang A: Parallele WSJT-X-Instanzen für simultanes RX</a><a class="chapter-link" href="/de/documentation/sec-simultaneous-tx-setup/">Anhang B: Simultanes TX Referenzaufbau/-station praktisch einrichten</a><a class="chapter-link" href="/de/documentation/sec-b/">Anhang C: Referenz-SNR-Kalibrierung</a><a class="part-link" href="/de/documentation/sec-8-5/">Experimentelle Nutzung &amp; Haftungsausschluss</a></details><article class="prose"><p><a id="sec-2"></a></p>
+<h1>1. Analyse auswählen und vorbereiten</h1>
+<p>Beginne mit der Stationsfrage und dem physischen Versuch. Die Auswahl in der Benutzeroberfläche ergibt sich daraus; sie definiert die Fragestellung nicht.</p>
+<p><a id="sec-2-1"></a></p>
+<h4>1.1 Solide Versuchsgrundlage schaffen</h4>
+<p>Beginne mit einem Satz, der festhält, was geprüft wird und welche Beobachtung als Unterstützung gelten würde. Ein explorativer Lauf sucht nach einem möglichen Muster; ein bestätigender Lauf prüft ein bereits erkanntes Muster.</p>
+<p><strong>Beginne mit einer Demo, wenn WSPRadar neu für dich ist.</strong> Öffne <code>Demo laden</code>, wähle ein Profil und anschließend <code>Ausgewaehlte Demo starten</code>. Belasse für den ersten Lauf die vorbereiteten Einstellungen und lies die Versuchsnotizen. Folge dann dem passenden Leitfaden in <a href="/de/documentation/sec-3/#sec-3">Kapitel 2</a>.</p>
+<p><strong>Vom WSPR-Betrieb zur ersten eigenen Analyse:</strong></p>
+<ol>
+<li><strong>Verwertbare WSPR-Meldungen erzeugen.</strong> Richte für RX einen WSPR-fähigen Empfänger und Decoder wie WSJT-X mit korrektem Empfangsrufzeichen, Locator, Band, Audioeingang und synchronisierter Uhr ein. Starte den Empfang und aktiviere den Spot-Upload; ein nur lokal gespeicherter Decode ist für WSPRadar nicht verfügbar. Konfiguriere für TX einen WSPR-Sender mit korrektem Rufzeichen, Locator, Band, synchronisierter Zeitsteuerung und zutreffender Leistungsangabe; entfernte Empfangsstationen liefern seine Spots. Das WSJT-X-Handbuch erklärt Funkgeräte-/Audioeinrichtung und WSPR-Bedienung <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a>.</li>
+<li><strong>Vor der Analyse die Datenbank prüfen.</strong> Kontrolliere erfolgreiche Meldungen unter dem exakten Empfangsrufzeichen bei RX beziehungsweise Senderufzeichen bei TX in WSPRnet und anschließend ihre Verfügbarkeit in der von WSPRadar verwendeten Datenbank. Prüfe gemeldeten Locator und UTC-Zeiten. Warte die Uploads ab und wähle ein abgeschlossenes Zeitfenster mit dem vorgesehenen Betrieb; eine feste Wartezeit garantiert keine Vollständigkeit. Eine schrittweise TX-Vorabprüfung findest du in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">Anhang B.4</a>. <a href="/de/documentation/sec-6/#sec-6-6">Abschnitt 5.6</a> behandelt verzögerte Daten und Quellenstatus.</li>
+<li><strong>Falls erforderlich den Vergleich vorbereiten.</strong> Benchmark benötigt geeignete Beobachtungen von Target und Referenz in denselben WSPR-Zyklen. Prüfe den Betrieb beider Aufbauten unabhängig; Empfangsmeldungen allein beweisen keinen durchgehenden Betrieb. <a href="/de/documentation/sec-3/#sec-3">Kapitel 2</a> hilft bei der Referenzwahl, <a href="/de/documentation/sec-a/#sec-a">Anhang A</a> beim parallelen RX und <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup">Anhang B</a> beim simultanen TX. Performance benötigt keine Referenz.</li>
+<li><strong>Eine klare Analyse eingeben.</strong> Wähle in Guided oder Kompakt RX/TX und Benchmark/Performance, das exakt hochgeladene Target-Rufzeichen, Target-QTH, ein Band und das UTC-Zeitfenster. Wähle bei Benchmark die exakte Referenzidentität und bestätige den gemeinsamen Betrieb. Prüfe Zusammenfassung und eine etwaige Referenzkorrektur und wähle dann <code>RX-Analyse starten</code> oder <code>TX-Analyse starten</code>. <a href="/de/documentation/sec-5/#sec-5">Kapitel 4</a> erklärt die Bedienelemente. Ein Lauf liefert nur das gewählte Ergebnis.</li>
+<li><strong>Ergebnis prüfen und sichern.</strong> Folge dem passenden Leitfaden in <a href="/de/documentation/sec-3/#sec-3">Kapitel 2</a> von der Karte zu einzelnen Stationen. Prüfe bei fehlender oder unerwartet dünner Evidenz zuerst <a href="/de/documentation/sec-6/#sec-6">Kapitel 5</a>, bevor du Schwellen lockerst. Sichere Export und Versuchsnotizen nach <a href="/de/documentation/sec-4/#sec-4-4">Abschnitt 3.4</a>.</li>
+</ol>
+<p><strong>Den physischen Versuch nachvollziehbar halten.</strong> Dokumentiere Antenne, Speiseleitung, Funkgerät, Tuner, Verstärkungs- oder Leistungseinstellungen, Decoder, Softwareversion, Zeitplan und beabsichtigte Änderungen. Halte Variablen außerhalb der Fragestellung so stabil wie praktisch möglich: bei TX tatsächliche und gemeldete Leistung, bei RX Verstärkung, Filterung, Audioführung, Decoder-Einstellungen und Upload-Verhalten. Halte die Uhren während des gesamten Versuchs synchron.</p>
+<p>Lege vor einer bestätigenden Wiederholung Richtung, Band, gegebenenfalls Referenzdesign, Filter, Schwellen, Zeitplan und primären geografischen oder zeitlichen Bereich fest. Bewahre alternative Radien, Zeitfenster oder Bereiche als Sensitivitätsanalysen auf, statt nur das günstige Ergebnis auszuwählen.</p>
+<p><a id="sec-2-2"></a></p>
+<h4>1.2 Die zur Fragestellung passende Analyse wählen</h4>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Betriebliche Fragestellung</th>
+<th>Analyse</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wie unterscheiden sich zwei lokale Empfangspfade, zwei vollständige Empfangsstationen?</td>
+<td><strong>RX Benchmark</strong></td>
+</tr>
+<tr>
+<td>Wie unterscheiden sich zwei lokale Sendepfade, zwei vollständige Sendestationen?</td>
+<td><strong>TX Benchmark</strong></td>
+</tr>
+<tr>
+<td>Welche Signale decodiert mein Empfänger innerhalb bestätigter Gelegenheiten, wo, wann und wie beständig?</td>
+<td><strong>RX Performance</strong></td>
+</tr>
+<tr>
+<td>Wo und wie beständig wird mein Sender von Empfängern decodiert, deren Aktivität nachgewiesen ist?</td>
+<td><strong>TX Performance</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Wähle <strong>Benchmark</strong>, wenn die Frage ausdrücklich relativ zu einer Referenz gestellt wird. Die Referenz bestimmt die Bedeutung des Ergebnisses:</p>
+<p><a id="sec-2-5"></a></p>
+<ul>
+<li><strong>Referenzaufbau/-station</strong> vergleicht das Target mit einer exakten Referenzidentität in denselben WSPR-Zyklen. Ein kontrollierter lokaler Aufbau ist die stärkste Anordnung für eine Frage zu einem Bauteil oder Signalpfad, isoliert dieses Bauteil jedoch nur in dem Maß, in dem die übrigen Pfade kontrolliert sind. Eine unabhängige Referenz vergleicht vollständige installierte Stationen und ihre Betriebsumgebungen. Beide Anordnungen verwenden denselben Paarbildungsalgorithmus.</li>
+</ul>
+<p><strong>Beide Aufbauten müssen nachweislich in Betrieb sein</strong>
+Wähle einen Vergleichszeitraum, in dem beide Aufbauten auf dem ausgewählten Band in Betrieb waren.
+<strong>RX-Benchmark:</strong> Beide Empfänger müssen während des gesamten Vergleichszeitraums empfangen und Empfangsmeldungen hochladen.
+<strong>Simultaner TX-Benchmark:</strong> Beide Sender müssen in denselben WSPR-Zyklen senden.
+Wähle einen Zeitraum ohne bekannte Ausfälle oder Unterbrechungen bei einem der beiden Aufbauten.</p>
+<p>WSPRadar verlässt sich auf deine Bestätigung dieser Betriebsbedingungen. Empfangsmeldungen allein können nicht nachweisen, dass beide Aufbauten in Betrieb waren. Bei RX bedeutet durchgehendes Hochladen, dass der Meldeweg funktionsfähig bleibt; ein erfolgreicher Decode in jedem Zyklus ist nicht erforderlich. Bestätige die Bedingungen vor jedem kontrollierten Benchmark ausdrücklich und bewahre die stützenden Betriebsaufzeichnungen auf. Eine gespeicherte Erklärung dokumentiert die Angabe des Bedieners, keinen unabhängigen Betriebsnachweis.</p>
+<p>Verwende das engste Referenzdesign, das die beabsichtigte Aussage trägt. Aus einem Benchmark vollständiger Stationen lässt sich durch spätere Filterung oder Mittelung kein isolierter Antennengewinn ableiten.</p>
+<p>Wähle <strong>Performance</strong>, wenn das Target selbst Gegenstand der Frage ist und keine Referenz benötigt wird. Sie verbindet Mindestens-einmal-Reichweite, Dekodierrate, erfolgreiches Target-SNR, Geografie, Zeit und stützende Evidenz für die vollständige Target-Station unter den ausgewählten Bedingungen.</p>
+<p><a id="sec-2-3-overview"></a></p>
+<h4>1.3 Dem Evidenzpfad folgen</h4>
+<p>Jedes abgeschlossene Ergebnis folgt demselben betrieblichen Pfad:</p>
+<blockquote>
+<p><strong class="defined-term">Karte → Segment-Inspektor → Performance-/Benchmark-Evidenz → Zeitliche Evidenz → Station Insights → Evidenz der ausgewählten Station → Drill-Down</strong></p>
+</blockquote>
+<p><a id="sec-3-4"></a>
+<a id="sec-3-5"></a></p>
+<p><strong>Karte.</strong> Lokalisiere das grobe Muster nach Entfernung und Richtung. Lies die Sektorfarbe zusammen mit der Anzahl beitragender Stationen und den zutreffenden Anzahlen von Gelegenheiten oder Joint Spots (den in <a href="/de/documentation/sec-3/#sec-3">Kapitel 2</a> definierten Benchmark-Vergleichseinheiten). Ein eingefärbter Sektor ist eine Aufforderung zur näheren Prüfung und noch keine Schlussfolgerung.</p>
+<p><a id="sec-3-6"></a>
+<a id="sec-3-6a"></a>
+<a id="sec-3-6b"></a></p>
+<p><strong>Segment-Inspektor.</strong> Wähle den zur Fragestellung passenden geografischen Bereich. Alle folgenden Evidenzansichten verwenden diesen aktiven Bereich. Dadurch lässt sich ein breites Kartenmuster in entfernungs- und richtungsabhängiges Verhalten aufteilen.</p>
+<p><strong>Performance- oder Benchmark-Evidenz.</strong> Verbinde bei Performance Reichweite, beide Gewichtungen der Dekodierrate und erfolgreiches Target-SNR. Verbinde bei Benchmark stationsgleichgewichtetes und beobachtungsbezogenes ΔSNR, Decode Outcomes und Joint-Evidenzanteil. Diese Größen beantworten unterschiedliche Fragen und sollten nicht zu einer einzigen Kennzahl verdichtet werden.</p>
+<p><strong>Zeitliche Evidenz.</strong> Nutze die chronologische Ansicht, um Veränderungen während des Laufs zu erkennen. Die UTC-Stunden-Ansicht fasst dieselben Stunden verschiedener Tage zusammen; prüfe die einzelnen Tage, bevor du ein Muster als wiederkehrend bezeichnest. Lies Signalpegel zusammen mit den stützenden Stations-, Gelegenheits- oder Joint-Spot-Anzahlen.</p>
+<p><a id="sec-3-7"></a>
+<a id="sec-3-7a"></a>
+<a id="sec-3-7b"></a></p>
+<p><strong>Station Insights.</strong> Prüfe, ob viele Identitäten aus <code>Rufzeichen + Locator</code> das Muster stützen oder ob es sich auf wenige Funkwege konzentriert. Lies jeden stationsbezogenen Wert zusammen mit seinen Evidenzanzahlen.</p>
+<p><strong>Evidenz der ausgewählten Station.</strong> Untersuche einen repräsentativen, überraschenden oder besonders einflussreichen Funkweg. So wird sichtbar, ob die Segmentzusammenfassung auch diesen Pfad beschreibt, ob er intermittierend ist und ob sein zeitliches Muster vom breiteren Bereich abweicht.</p>
+<p><a id="sec-3-8"></a></p>
+<p><strong>Drill-Down.</strong> Prüfe die beibehaltenen Gelegenheiten oder Joint Spots hinter dem Ergebnis. Kontrolliere in den Zeilen exakte Kennungen, Locatorwechsel, Zeitsteuerung, einseitige Evidenz und einzelne Ausreißer. Joint Spots und ihre ΔSNR-Werte werden in <a href="/de/documentation/sec-3/#sec-3">Kapitel 2</a> eingeführt.</p>
+<p>Der übrige Teil von Teil I wendet diesen gemeinsamen Pfad auf jede Analysefrage an, ohne sämtliche Titel, Achsen oder Layoutdetails aufzulisten.</p>
+<hr /><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/part-i/">Zurück: Teil I: Leitfaden für den Funkbetrieb</a><a href="/de/documentation/sec-3/">Weiter: 2. Analyse durchführen und auswerten</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
+  </div>
+</body>
+</html>

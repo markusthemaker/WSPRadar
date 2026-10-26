@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Macht eine Änderung am Aufbau oder eine neue Antenne einen Unterschied? Wo wird deine Station gehört, und wen hörst du? Erkunde ein ausgearbeitetes Benchmark-Beispiel für den Vergleich mit einer Referenzantenne oder Referenzstation.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="4. Bedienelemente und Konfiguration · WSPRadar">
+  <meta property="og:description" content="Macht eine Änderung am Aufbau oder eine neue Antenne einen Unterschied? Wo wird deine Station gehört, und wen hörst du? Erkunde ein ausgearbeitetes Benchmark-Beispiel für den Vergleich mit einer Referenzantenne oder Referenzstation.">
+  <meta property="og:url" content="https://www.wspradar.org/de/documentation/sec-5/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>4. Bedienelemente und Konfiguration · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/de/documentation/sec-5/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-5/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-5/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Zum Inhalt</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menü"><a class="nav-brand" href="/de/" aria-label="WSPRadar.org — Einführung"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menü</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/de/" data-product-nav="overview">Einführung</a><span class="nav-separator" aria-hidden="true">·</span><a href="/de/demos/" data-product-nav="demos">Geführte Demo</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/de/documentation/" data-product-nav="documentation" aria-current="page">Dokumentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/de/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Sprache ändern: Deutsch" title="Sprache ändern"><span class="language-current" lang="de">DE</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Sprache ändern"><a class="language-option" href="/en/documentation/sec-5/" lang="en" hreflang="en"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="de" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="Englisches WSPRadar-Banner: WSPR-Spots werden zu echten Erkenntnissen. Verstehe und vergleiche deine Amateurfunkstation mit weltweiten WSPR-Daten, einfach und kostenlos. Echte Daten, echte Erkenntnisse, bessere Entscheidungen. Gezeichnete Signalwege verbinden eine Station in Europa mit der Welt; die Illustration zeigt kein Messergebnis." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/de/documentation/">Dokumentation</a> / 4. Bedienelemente und Konfiguration</p><div class="reader-layout"><details class="reader-index" open><summary>Dokumentation</summary><a class="chapter-link" href="/de/documentation/sec-1/">0. Warum WSPRadar?</a><a class="chapter-link" href="/de/documentation/documentation-toc/">Inhaltsverzeichnis</a><a class="part-link" href="/de/documentation/part-i/">Teil I: Leitfaden für den Funkbetrieb</a><a class="chapter-link" href="/de/documentation/sec-2/">1. Analyse auswählen und vorbereiten</a><a class="chapter-link" href="/de/documentation/sec-3/">2. Analyse durchführen und auswerten</a><a class="chapter-link" href="/de/documentation/sec-4/">3. Ergebnis absichern und kommunizieren</a><a class="part-link" href="/de/documentation/part-ii/">Teil II: Bedienelemente und Fehlersuche</a><a class="chapter-link" aria-current="page" href="/de/documentation/sec-5/">4. Bedienelemente und Konfiguration</a><a class="chapter-link" href="/de/documentation/sec-6/">5. Fehlersuche und Datenqualität</a><a class="part-link" href="/de/documentation/part-iii/">Teil III: Wissenschaftliche Grundlagen, Methoden und Aussagen</a><a class="chapter-link" href="/de/documentation/sec-d/">6. Literatur, Vorarbeiten und Einordnung</a><a class="chapter-link" href="/de/documentation/sec-7/">7. Wissenschaftliche Methoden</a><a class="chapter-link" href="/de/documentation/sec-8/">8. Evidenzgerechte Aussagen und Reproduzierbarkeit</a><a class="chapter-link" href="/de/documentation/sec-ref/">Literatur und Quellen</a><a class="part-link" href="/de/documentation/part-iv/">Teil IV: Praktische Ergänzungen</a><a class="chapter-link" href="/de/documentation/sec-a/">Anhang A: Parallele WSJT-X-Instanzen für simultanes RX</a><a class="chapter-link" href="/de/documentation/sec-simultaneous-tx-setup/">Anhang B: Simultanes TX Referenzaufbau/-station praktisch einrichten</a><a class="chapter-link" href="/de/documentation/sec-b/">Anhang C: Referenz-SNR-Kalibrierung</a><a class="part-link" href="/de/documentation/sec-8-5/">Experimentelle Nutzung &amp; Haftungsausschluss</a></details><article class="prose"><p><a id="sec-5"></a></p>
+<h1>4. Bedienelemente und Konfiguration</h1>
+<p>WSPRadar unterscheidet Bedienelemente, welche die beibehaltene wissenschaftliche Evidenz verändern, von solchen, die nur die Inspektion bereits abgeschlossener Evidenz beeinflussen.</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Klasse</th>
+<th>Wirkung</th>
+<th>Gespeichert?</th>
+<th>Neuer Lauf erforderlich?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wissenschaftliche Bedienelemente</strong></td>
+<td>Verändern Identität, Band, Zeit, Referenzdesign, Zulässigkeit, Normierung, Filter, Schwellen oder geografische Population.</td>
+<td>Soweit anwendbar</td>
+<td>Ja; das vorherige Ergebnis wird verworfen</td>
+</tr>
+<tr>
+<td><strong>Ansichtsbedienelemente</strong></td>
+<td>Verändern den aktiven Inspektionsbereich, die ausgewählte Station, die Sichtbarkeit von Evidenz oder die Darstellungsaggregation, ohne beibehaltene Evidenz neu zu klassifizieren.</td>
+<td>Nur ausdrücklich unterstützte dauerhafte Einstellungen</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td><strong>Temporäre Ansichtsoptionen</strong></td>
+<td>Verändern nur die aktuelle Bildschirmdarstellung, temporäre Tabellenfilter oder einen vorbereiteten Download.</td>
+<td>Nein</td>
+<td>Nein</td>
+</tr>
+</tbody>
+</table></div>
+<p>Versionierte Konfigurationen speichern die zutreffenden wissenschaftlichen Einstellungen und die unterstützten dauerhaften Ansichtsoptionen. Die exakten Berechnungen stehen in <a href="/de/documentation/sec-7/#sec-7">Kapitel 7</a>; <a href="/de/documentation/sec-8/#sec-8-4">Abschnitt 8.4</a> erklärt, wie der Export Einstellungen und Evidenz bewahrt. Für den vollständigen Feldvertrag gespeicherter Konfigurationen ist das formale JSON-Schema maßgeblich.</p>
+<p><a id="sec-5-1"></a></p>
+<h4>4.1 Ablaufsteuerung</h4>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Bedienelement</th>
+<th>Funktion</th>
+<th>Wichtiges Verhalten</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>WSPRadar Startseite</code></strong></td>
+<td>Öffnet die WSPRadar-Website in der gewählten Sprache.</td>
+<td>Öffnet einen neuen Tab, damit die aktuelle Anwendungssitzung geöffnet bleibt.</td>
+</tr>
+<tr>
+<td><strong><code>EN / DE</code> (Globus-Menü: English / Deutsch)</strong></td>
+<td>Ändert die Anzeigesprache.</td>
+<td>Ein abgeschlossenes Ergebnis wird aus seiner aufbewahrten Evidenz ohne erneute Analyse neu dargestellt. Ohne abgeschlossenes Ergebnis startet ein Sprachwechsel die Analyse nicht automatisch neu; starte sie ausdrücklich erneut. Fehlende oder abgelaufene Evidenz erfordert ebenfalls einen ausdrücklich neu gestarteten Lauf.</td>
+</tr>
+<tr>
+<td><strong><code>Eingabeansicht</code></strong></td>
+<td>Wechselt zwischen <code>Geführt</code> und <code>Kompakt</code>.</td>
+<td>Beide Ansichten bearbeiten dieselbe wissenschaftliche Konfiguration. Die gewählte Eingabeansicht wird nicht gespeichert.</td>
+</tr>
+<tr>
+<td><strong><code>Demo laden</code></strong></td>
+<td>Lädt ein gepflegtes historisches Profil.</td>
+<td>Das Laden startet keine Analyse. Änderungen an Filtern, Evidenzschwellen und Ergebnisansicht behalten den Demo-Kontext; eine Änderung der Versuchsdefinition löst die Konfiguration von der Demo.</td>
+</tr>
+<tr>
+<td><strong><code>Neu starten</code></strong></td>
+<td>Setzt die aktuelle Konfiguration einschließlich UTC-Zeitraum auf die Standardwerte zurück und entfernt die bisherigen Ergebnisse.</td>
+<td>Beginne damit eine neue Einrichtung für deine Station. Sprache und Eingabeansicht bleiben unverändert; eine Analyse startet nicht automatisch.</td>
+</tr>
+<tr>
+<td><strong><code>Konfig laden</code></strong></td>
+<td>Lädt eine versionierte JSON-<code>.config</code>.</td>
+<td>Ungültige Identitäten, Datumswerte, Auswahlwerte, Wertebereiche, doppelte Felder und nicht unterstützte Schemaversionen werden abgelehnt und nicht erraten.</td>
+</tr>
+<tr>
+<td><strong><code>Konfig speichern</code></strong></td>
+<td>Speichert in der geführten und kompakten Eingabe die zutreffenden wissenschaftlichen Eingaben und unterstützten dauerhaften Ansichtseinstellungen aus dem abschließenden Prüfbereich.</td>
+<td>Die Datei enthält absolute UTC-Grenzen, aber keine Ergebniszeilen, externen Versuchsnotizen oder flüchtigen Tabellenfilter. Das Speichern bleibt unverfügbar, bis die Frage und bei einem Benchmark zusätzlich die Benchmark-Eingaben vollständig sind.</td>
+</tr>
+<tr>
+<td><strong><code>RX-Analyse starten</code> / <code>TX-Analyse starten</code></strong></td>
+<td>Führt in der geführten und kompakten Eingabe das ausgewählte Performance- oder Benchmark-Ergebnis aus dem abschließenden Prüfbereich aus.</td>
+<td>In der geführten Eingabe erscheint die Startaktion erst, wenn die zutreffenden Einrichtungsschritte gültig sind und der abschließende Prüfbereich verfügbar ist. In der kompakten Eingabe bleibt Starten verfügbar, um unvollständige oder ungültige Felder mit direkter Korrekturhilfe anzuzeigen. In beiden Ansichten beginnt die Analyse erst nach Klärung aller erforderlichen Eingaben und einer gegebenenfalls nötigen Referenzstandortwahl. Eine Änderung eines wissenschaftlichen Bedienelements nach dem Lauf verwirft das Ergebnis und verlangt einen neuen Lauf.</td>
+</tr>
+<tr>
+<td><strong><code>Alle Ergebnisse zum Download vorbereiten</code></strong></td>
+<td>Erstellt das aktuelle Exportpaket.</td>
+<td>Verwendet die abgeschlossene Evidenz und die aktuellen Inspektor-Auswahlen.</td>
+</tr>
+<tr>
+<td><strong><code>Dokumentation lesen</code></strong></td>
+<td>Öffnet das vollständige Handbuch auf der WSPRadar-Website in der gewählten Sprache.</td>
+<td>Öffnet einen neuen Tab über den Dokumentationsbereich am Ende der App. Die App bettet das vollständige Handbuch nicht ein und erstellt kein Handbuch-PDF. Die kontextbezogene Hilfe <code>So liest du das</code> bleibt direkt bei den Ergebnissen verfügbar.</td>
+</tr>
+</tbody>
+</table></div>
+<p>In der geführten Eingabe prüft <code>Weiter</code> den aktuellen Einrichtungsbereich und öffnet den nächsten, sobald seine erforderlichen Eingaben gültig sind. Die Korrektur eines Feldes entfernt dessen Fehlermeldung; sind alle Fehler in diesem Bereich korrigiert, verschwindet auch seine zusammenfassende Fehlermeldung. Ein früherer erfolgloser Versuch löst keine Fehleranzeigen in späteren, noch nicht geprüften Bereichen aus. Die abschließende Startaktion prüft vor Beginn der Analyse nochmals die vollständige Konfiguration.</p>
+<p><strong>Tastaturbedienung.</strong> In der geführten und kompakten Eingabe wechselst du mit <code>Tab</code> vorwärts durch die nativen Eingabefelder und Aktionen, mit <code>Umschalt+Tab</code> rückwärts. Die separaten <code>?</code>-Hilfesymbole sind ausschließlich mit der Maus bedienbar und werden niemals zum Tab-Stopp; der Fokus auf einem Eingabefeld öffnet keine überlagernde Hilfe. In der geführten Eingabe übernimmt ein vorwärts gerichtetes <code>Tab</code> am Ende des aktiven Einrichtungsbereichs die aktuelle Eingabe und prüft diesen Bereich wie <code>Weiter</code>. Sind die Eingaben gültig, öffnet sich der nächste Bereich und sein erstes Eingabefeld erhält den Fokus; andernfalls bleibt der aktuelle Bereich offen und sein erstes ungültiges Feld erhält den Fokus. Das native Tastaturverhalten innerhalb der Bedienelemente und die Rückwärtsnavigation mit <code>Umschalt+Tab</code> bleiben unverändert. Nach abgeschlossener Einrichtung erhält die Überschrift des Prüfbereichs den Fokus, mit dem nächsten <code>Tab</code> dann die Startaktion; dieser Tastaturwechsel startet keine Analyse automatisch. Meldet <code>Weiter</code> oder die Startaktion ungültige Eingaben, erhält das erste ungültige Feld den Fokus, damit du es direkt korrigieren kannst.</p>
+<p>Beide Eingabeansichten enden mit derselben abschließenden Konfigurationsübersicht. Im Zustand <strong><code>Prüfung — startbereit ✓</code></strong> liegen <code>RX-Analyse starten</code> / <code>TX-Analyse starten</code> und <code>Konfig speichern</code> erst nach gültiger Konfiguration innerhalb dieses Bereichs. Der Prüfbereich bleibt beim Start des Laufs und nach seinem Abschluss geöffnet; auch der Laufstatus bleibt bei <strong><code>Complete</code></strong> geöffnet. In der kompakten Eingabe wird beim Start einer gewöhnlichen Analyse oder einer Demo kein Konfigurationsbereich automatisch geschlossen; einzelne Bereiche lassen sich weiterhin manuell schließen und wieder öffnen. Die geführte Eingabe darf frühere abgeschlossene Schritte weiterhin kompakt darstellen, ihr abschließender Prüfbereich bleibt jedoch geöffnet.</p>
+<p>Nach dem Laden einer Demo in der geführten Eingabe öffnet <code>Einstellungen Schritt für Schritt durchgehen</code> die Einrichtungsschritte zur Prüfung. <code>Direkt zu Prüfen und starten</code> öffnet den abschließenden Prüfbereich und startet die Analyse sofort mit den aktuellen gültigen Einstellungen; ein zweiter Klick auf <code>RX-Analyse starten</code> / <code>TX-Analyse starten</code> ist nicht erforderlich. Die Abkürzung bleibt unverfügbar, solange erforderliche Einstellungen unvollständig sind oder bereits eine Analyse läuft. Das Laden der Demo selbst startet weiterhin keine Analyse.</p>
+<p>Nach dem angenommenen Start einer Analyse springt die Seite zum Laufstatus unterhalb der Prüfung. Sobald das erste Kartenbild bereitsteht, springt sie zu diesem Ergebnis, während Segment-Inspektor und Drill-Down-Daten automatisch weiter vorbereitet werden. Der Status erreicht <strong><code>Complete</code></strong> erst, wenn alle Ergebnisansichten bereitstehen. Jeder automatische Sprung erfolgt einmal pro Startauftrag; wer während der Wartezeit selbst scrollt oder an eine andere Stelle navigiert, verhindert den Sprung zur Karte. Interaktionen mit den Ergebnisansichten und die erneute Anzeige eines abgeschlossenen Laufs lösen diese automatischen Sprünge nicht erneut aus.</p>
+<p><strong>Aktuelles Konfigurationsformat.</strong> Akzeptiert werden ausschließlich das aktuelle Schema gespeicherter Konfigurationen und der aktuelle öffentliche URL-Vertrag; aufgegebene Aliasnamen, Felder und frühere Eingabeformate werden ohne Migration abgelehnt. Gespeicherte Dateien bewahren die Eingaben und dauerhaften Ansichtsoptionen, die für die ausgewählte Analyse gelten. Ungültige oder nicht unterstützte Dateien werden abgelehnt, statt stillschweigend neu interpretiert zu werden. Das formale JSON-Schema (<code>config/wspradar-config.schema.json</code>) ist der maßgebliche vollständige Vertrag gespeicherter Konfigurationen; <a href="/de/documentation/sec-8/#sec-8-4">Abschnitt 8.4</a> beschreibt die exportierten Konfigurations- und Evidenzdateien. Das Laden oder Speichern einer Konfiguration erzeugt kein zusätzliches Ergebnis; ausgeführt wird nur die ausgewählte Performance- oder Benchmark-Analyse.</p>
+<p><strong>Lebenszyklus des Demo-Kontexts.</strong> Eine geladene Demo behält ihren sichtbaren Kontext, wenn nur Populationsfilter, Evidenzschwellen, Inspektor-Bereich oder andere Bedienelemente der Ergebnisansicht geändert werden. Eine angepasste Ansicht lässt sich dadurch weiterhin vor dem Hintergrund des ursprünglichen Beispiels deuten. Änderungen an Frage oder Richtung, Target-Rufzeichen oder -QTH, Band, Messzeitraum, Benchmark-Identität, Betriebserklärung sowie Absicht oder Wert der Korrektur entfernen Demo-Metadaten und Profilidentität aus später gespeicherten Konfigurationen, weil der Aufbau nicht mehr dem dokumentierten Versuch entspricht. Jede wissenschaftliche Änderung beendet außerdem die exakte Demo-Cache-Identität, auch wenn der erklärende Demo-Kontext sichtbar bleibt. Eine wissenschaftliche Änderung der Population oder Evidenz löscht jede vorausgewählte Performance- und Benchmark-Identität in Station Insights, da der Funkweg im neuen Ergebnis fehlen kann. Reine Bedienelemente der Ergebnisansicht löschen diese Auswahl nicht.</p>
+<p><strong>Wiederverwendung von Demo-Daten.</strong> Beim Ausführen einer unveränderten Demo werden fehlende Datenbank-Abfrageergebnisse abgerufen und validierte Zeilen auf dem Datenträger des App-Servers gespeichert. Spätere Läufe verwenden passende Einträge ohne automatischen Ablauf erneut, auch über Sitzungen und App-Neustarts hinweg, solange dieser Datenträger erhalten bleibt. Eine geänderte Abfrage, ein inkompatibles Cache-Format oder fehlende beziehungsweise beschädigte Dateien erfordern einen erneuten Abruf. Weder beim App-Start noch beim Laden einer Demo werden deren Daten vorab abgerufen. Die Wiederverwendung bewahrt die abgerufenen Daten, statt spätere Datenbankkorrekturen automatisch zu übernehmen; jeder Lauf führt die Analyse weiterhin mit dem aktuellen Anwendungscode aus.</p>
+<p><a id="sec-5-2"></a></p>
+<h4>4.2 Frage, Target und Messzeitraum</h4>
+<p>Die Kompakte Eingabe ordnet die wissenschaftliche Konfiguration nach der Fragestellung. Im ersten Bereich <strong><code>Frage</code></strong> muss eine von vier vollständigen Analysen gewählt werden: <code>RX Performance</code>, <code>TX Performance</code>, <code>RX-Benchmark</code> oder <code>TX-Benchmark</code>. Diese eine Auswahl legt sowohl die RX-/TX-Richtung als auch fest, ob der Lauf eigenständige Performance-Evidenz oder einen Target–Referenz-Benchmark erzeugt. Der zweite Bereich <strong><code>Target und Messzeitraum</code></strong> erfasst anschließend wie bisher Target-Identität, QTH, Band und absoluten UTC-Zeitraum. Bei einem Benchmark folgt <strong><code>Benchmark</code></strong> mit Referenzrufzeichen, optionalem bekanntem Referenz-QTH und referenzseitiger SNR-Korrektur. Beide Ergebnistypen zeigen danach <strong><code>Optionale Filter, Analyseumfang und Evidenz</code></strong> und abschließend den Prüfbereich; Performance besitzt damit vier und Benchmark fünf kompakte Bereiche.</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>UI-Bezeichnung</th>
+<th>Standard</th>
+<th>Funktion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Frage</strong></td>
+<td>keine; erforderlich</td>
+<td>Eine Auswahl aus <code>RX Performance</code>, <code>TX Performance</code>, <code>RX-Benchmark</code> oder <code>TX-Benchmark</code>; legt Richtung und Ergebnistyp gemeinsam fest.</td>
+</tr>
+<tr>
+<td><strong>Target-Rufzeichen (Empfänger im Test)</strong> / <strong>Target-Rufzeichen (Sender im Test)</strong></td>
+<td>leer</td>
+<td>Exakte Meldeidentität in der Datenbank. Standardrufzeichen, gültige Varianten mit <code>/</code>, reine Buchstabenkennungen und ein optionales abschließendes alphanumerisches Bindestrich-Suffix sind zulässig.</td>
+</tr>
+<tr>
+<td><strong>Target-QTH (4 oder 6 Zeichen)</strong></td>
+<td>leer</td>
+<td>Target-Zuordnung über Grid-4, Kartenmittelpunkt und Geometrie.</td>
+</tr>
+<tr>
+<td><strong>Frequenzband</strong></td>
+<td><code>20m</code></td>
+<td>Genau eines aus <code>LF</code>, <code>MF</code>, <code>160m</code>, <code>80m</code>, <code>60m</code>, <code>40m</code>, <code>30m</code>, <code>22m</code>, <code>20m</code>, <code>17m</code>, <code>15m</code>, <code>12m</code>, <code>10m</code>, <code>8m</code>, <code>6m</code>, <code>4m</code>, <code>2m</code>, <code>70cm</code> oder <code>23cm</code>.</td>
+</tr>
+<tr>
+<td><strong>UTC-Messzeitraum</strong></td>
+<td>festes 24-Stunden-Fenster bis zur aktuellen UTC-Minute</td>
+<td>Das absolute Evidenzintervall des Laufs.</td>
+</tr>
+<tr>
+<td><strong>Startdatum/-zeit (UTC)</strong> und <strong>Enddatum/-zeit (UTC)</strong></td>
+<td>das wirksame Standardfenster</td>
+<td>Datumswerte beginnen im Jahr 2008; ein Lauf ist auf 31 verstrichene Tage begrenzt. Eingegebene Zeiten bleiben mit Minutengenauigkeit erhalten, ohne Rundung auf 15-Minuten-Grenzen.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Verwende das Rufzeichen oder die Meldekennung exakt so, wie es beziehungsweise sie hochgeladen wurde. Nur als schematische Platzhalter stehen <code>CALL</code>, <code>CALL/1</code>, <code>CALL/2</code>, <code>CALL/P</code>, <code>CALL/QRP</code> und <code>CALL-1</code> für verschiedene exakte Datenbankidentitäten. WSPRadar führt sie weder anhand des Basisrufzeichens zusammen noch wendet es eine verdeckte Präfix- oder Suffixzuordnung an. Die Beispiele zeigen lediglich die Zuordnungssyntax; sie begründen weder die Zuteilung noch die Berechtigung, eine dieser Identitäten zu senden. Verwende nur ein vollständiges Rufzeichen, das für den Bediener und die Betriebsumstände zulässig ist.</p>
+<p>Ein vierstelliger Maidenhead-Locator bezeichnet ein größeres Locator-Feld, sechs Zeichen ein kleineres Unterfeld darin. WSPRadar verwendet das konfigurierte QTH als Kartenmittelpunkt. Performance und Benchmark wählen Target-Zeilen in der Datenbank anhand des exakten Rufzeichens plus der ersten vier Zeichen des Target-QTHs. Das vollständige QTH verankert weiterhin Karte, Entfernung, Azimut und Sonnenstand.</p>
+<p><a id="sec-5-3"></a></p>
+<h4>4.3 Benchmark-Design und -Einstellungen</h4>
+<p>Benchmark verwendet einen <strong>Referenzaufbau/-station</strong> mit einer exakten Meldeidentität. Die Hilfe zum Referenzrufzeichen erläutert die benötigte Identität; die Betriebserklärung legt die Bedingungen fest, unter denen einseitige Evidenz verglichen werden kann. Referenznachbarschaft wird nicht mehr unterstützt. Frühere Nachbarschaftskonfigurationen müssen durch eine ausdrücklich ausgewählte Referenz ersetzt werden; WSPRadar bestimmt keine Ersatzstation.</p>
+<p>Die Betriebsbestätigung ist für deinen eigenen Aufbau anfangs nicht angekreuzt und vor einem kontrollierten Benchmark erforderlich. Änderungen an der Identität eines der Aufbauten, am Band, am Vergleichszeitraum oder an der RX/TX-Richtung setzen die Bestätigung zurück, damit die Betriebsbedingungen erneut geprüft werden müssen. Gespeicherte Einstellungen und Metadaten des abgeschlossenen Laufs halten die Erklärung fest; nach dem Laden einer persönlichen Konfigurationsdatei oder einer gewöhnlichen Analyse-URL ist jedoch eine neue Bestätigung nötig, statt die gespeicherte Erklärung als aktuelle Zustimmung zu behandeln. Integrierte Demos wählen die zu ihrem dokumentierten Evidenzmodus passende Bestätigung vor, sodass ihre Startaktion die Analyse ohne zusätzlichen Bestätigungsschritt unmittelbar starten kann. Diese Vorauswahl gehört zur dokumentierten Demo-Konfiguration; sie ist kein neuer unabhängiger Nachweis des historischen Betriebs.</p>
+<p><strong>Historische Beobachtungswiedergabe</strong> ist ein gesonderter Weg für das gepflegte historische Milazzo-Beispiel und seine gespeicherten Wiedergabekonfigurationen. Er erfordert die Bestätigung der Grenzen historischer Evidenz statt einer Behauptung nachgewiesenen gemeinsamen Betriebs. Seine einseitigen Anzahlen können Zeitpläne, Ausfälle, Unterbrechungen des Meldewegs oder Empfangsunterschiede widerspiegeln. Ergebnis und Export kennzeichnen dies als deskriptive historische Evidenz und nicht als kontrollierten Vergleich. Beim Laden einer Wiedergabe aus einer persönlichen Konfigurationsdatei oder einer Analyse-URL ohne automatische Startanforderung ist eine neue Bestätigung erforderlich. Ein Link zur historischen Wiedergabe mit <code>run=1</code> wählt die Bestätigung der historischen Evidenzgrenzen vor und startet den Lauf automatisch. Die integrierte Milazzo-Demo wählt ausschließlich die Bestätigung der historischen Evidenzgrenzen vor; eine Bestätigung kontrollierten Betriebs wird nicht gesetzt. Für beide Modi gelten dieselben Berechnungen beobachteter Outcomes und des Joint-ΔSNR; die experimentelle Voraussetzung und die zulässige Interpretation unterscheiden sich.</p>
+<p>Bei <code>RX Performance</code> und <code>TX Performance</code> entfällt der Bereich <strong><code>Benchmark</code></strong> vollständig, weil Performance keine Referenz verwendet. Der abschließende Prüfbereich erscheint nach dem gemeinsamen Bereich <strong><code>Optionale Filter, Analyseumfang und Evidenz</code></strong>. Beim Start werden ungültige oder unvollständige Felder direkt mit roter Rückmeldung und konkreter Korrekturhilfe markiert; die Korrektur eines Feldes entfernt dessen Hinweis. Fehler beim Datenbankzugriff werden von einem ungültigen Rufzeichen oder einem leeren Meldezeitfenster getrennt ausgewiesen. Performance und Benchmark sind sich gegenseitig ausschließende Ergebnistypen: Ein Lauf erzeugt nur das ausgewählte Ergebnis. <a href="/de/documentation/sec-8/#sec-8-4">Abschnitt 8.4</a> beschreibt die im Export enthaltenen Einstellungen, Evidenz und Abbildungen.</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>UI-Bezeichnung</th>
+<th>Standard / Wertebereich</th>
+<th>Gilt für</th>
+<th>Wissenschaftliche Wirkung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gibt es einen ermittelten Target–Referenz-<br>Offset?</strong></td>
+<td><code>Kein ermittelter Offset — 0,0 dB verwenden</code></td>
+<td>Geführtes Referenzaufbau/<br>-station</td>
+<td>Unterscheidet keinen ermittelten Offset, die Verwendung einer ermittelten Korrektur und einen gezielten Offset-Ermittlungslauf.</td>
+</tr>
+<tr>
+<td><strong>Referenzseitige SNR-Korrektur (dB)</strong></td>
+<td>leer = <code>0.0</code>; <code>-99.9</code> bis <code>+99.9 dB</code></td>
+<td>Benchmark</td>
+<td>Wird zum Referenz-SNR addiert, bevor ΔSNR Target minus Referenz berechnet wird. Dezimalwerte werden mit Punkt eingegeben, beispielsweise <code>1.2</code>.</td>
+</tr>
+<tr>
+<td><strong>Referenz-<br>Rufzeichen</strong></td>
+<td>leer</td>
+<td>Referenzaufbau/<br>-station</td>
+<td>Exakte Meldeidentität der Referenz.</td>
+</tr>
+<tr>
+<td><strong>Referenzstandort</strong></td>
+<td>aus der ausgewählten Datenbank ermittelt</td>
+<td>Referenzaufbau/<br>-station</td>
+<td>Ein beobachtetes Grid-4 wird automatisch aufgelöst; bei mehreren gemeldeten Grid-4 ist eine ausdrückliche Auswahl nötig. Alternativ kann ein unabhängig bekanntes vierstelliges Referenz-QTH eingegeben werden, auch wenn keine Referenzmeldungen vorliegen.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Beim Wechsel der Frage werden nicht zutreffende Bedienelemente ausgeblendet. Gespeicherte Konfigurationen enthalten nur die Eingaben, die für die ausgewählte Analyse gelten. Werte, deren wissenschaftliche Bedeutung sich in der neuen Analyse ändern würde, werden gelöscht statt umgedeutet.</p>
+<p>Gib das exakte Referenzrufzeichen ein. Lasse <strong>Bekanntes Referenz-QTH (4 Zeichen, optional)</strong> leer, um den Standort aus Meldungen zu ermitteln, oder gib den unabhängig bekannten vierstelligen Locator ein. Das ist eine Standortangabe, kein Betriebsnachweis. Das Target-QTH bleibt der Ursprung für Karte, Entfernung, Azimut und Sonnenstand. Die Referenzstandortsuche gilt für die ausgewählte Rolle, das Band, das effektive UTC-Zeitfenster und die Datenbank. Ein beobachtetes Grid-4 wird automatisch aufgelöst; bei mehreren Kandidaten ist deine Auswahl erforderlich. Angezeigt werden die vollständigen Locatorvarianten, Meldungszahlen sowie erste und letzte Meldezeit. Eine erfolgreiche Suche ohne passende Meldungen ist von einem Datenquellenfehler getrennt. Dieselbe Datenbank liefert die anschließende Analyse; das aufgelöste Grid-4 bleibt in der gespeicherten Analysedefinition erhalten.</p>
+<p>Beim TX-Benchmark mit Referenzaufbau/-station erscheint ein Hinweis zur Prüfung der Nachrichtenfolgen, wenn ein Rufzeichen einen Schrägstrich enthält und das andere nicht. Der Hinweis verhindert den Start nicht und gilt auch bei unterschiedlichen Basisrufzeichen. Die Eingabeprüfung kann weder Firmwareeinstellungen noch Sendezeitpläne überprüfen; beachte die Hinweise zum kontrollierten TX-Aufbau in <a href="/de/documentation/sec-3/#sec-3-tx-benchmark-simultaneous">Abschnitt 2.2.1</a>. Für RX-Meldekennungen und Performance gilt dieser Hinweis nicht.</p>
+<p>Ein Grid-4 beweist keinen einzelnen physischen Standort. Unterschiedliche Feinlocator darin bleiben als gemeldete Varianten sichtbar; eine Kombination aus grobem und feinem Locator kann geografisch vereinbar sein, ohne einen einzigen Sender oder Empfänger zu beweisen. Die Suche führt die entfernten Peer-Identitäten für die Paarbildung nicht zusammen.</p>
+<p>Unterschiedliche gemeldete Felder können getrennte Standorte oder falsche Datenbankmetadaten bedeuten; die gemeldeten Locator beweisen keine der beiden Erklärungen. Passen keine geeigneten Target-Meldungen zum eingegebenen Target-QTH, prüfe die Eingaben; der Analyseursprung wird niemals automatisch geändert.</p>
+<h5>Vorzeichen der referenzseitigen SNR-Korrektur</h5>
+<p>Eine positive Korrektur erhöht das korrigierte Referenz-SNR und verringert dadurch ΔSNR Target minus Referenz. Gib einen gemessenen Kalibrierversatz <code>target - reference</code> mit demselben Vorzeichen ein. Ergibt eine Kalibrierung mit gemeinsamem Eingang beispielsweise <code>+1.6 dB</code>, wird <code>+1.6 dB</code> eingetragen. <a href="/de/documentation/sec-7/#sec-7-benchmark-delta">Abschnitt 7.2.2</a> definiert die Gleichungen.</p>
+<p>Die Korrektur gilt für den ausgewählten Referenz-Empfangs- beziehungsweise Sendepfad.</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Geführte Auswahl</th>
+<th>Bedeutung</th>
+<th>Erforderlicher Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Kein ermittelter Offset</strong></td>
+<td>Es wurde keine belastbare Korrektur bestimmt.</td>
+<td><code>0.0 dB</code></td>
+</tr>
+<tr>
+<td><strong>Ermittelte Korrektur verwenden</strong></td>
+<td>Ein dokumentierter, vorzeichenbehafteter additiver Offset gilt für diesen Aufbau.</td>
+<td>Ermittelte Korrektur eingeben</td>
+</tr>
+<tr>
+<td><strong>Offset-Ermittlungslauf einrichten</strong></td>
+<td>Evidenz sammeln, aus der ein Offset abgeleitet werden kann; WSPRadar berechnet oder verwendet diesen Offset nicht automatisch.</td>
+<td>Während des Ermittlungslaufs <code>0.0 dB</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Eine konstante Korrektur kann Übersteuerung, instabile AGC, intermittierende Signalführung, frequenzabhängigen Amplitudengang oder falsche Leistungsangaben nicht beheben. Kalibrierung eines kontrollierten Aufbaus sollte ein gemeinsames Eingangssignal oder eine kalibrierte Bezugsebene verwenden. Eine geografisch getrennte Referenzstation kann nur eine wiederholbare Basislinie für genau dieses Paar, Band und diesen Aufbau stützen – keine absolute Kalibrierung. <a href="/de/documentation/sec-b/#sec-reference-snr-calibration">Anhang C</a> beschreibt das praktische Verfahren.</p>
+<p><a id="sec-5-4"></a></p>
+<h4>4.4 Filter und Evidenzschwellen</h4>
+<p>Geführte und kompakte Eingabe verwenden für diese Einstellungen denselben Bereichsnamen <strong><code>Optionale Filter, Analyseumfang und Evidenz</code></strong>. Das Anpassen dieser Einstellungen ist optional; ihre angezeigten Werte gelten weiterhin. Innerhalb dieses Schritts zeigt die geführte Eingabe stets die zutreffenden Felder; eine getrennte vorgeschaltete Auswahl entfällt. Unveränderte Konfigurationen initialisieren die sichtbaren Felder mit den nachstehenden ergebnisspezifischen Standardwerten; geladene Konfigurationen und Demos tragen ihre gespeicherten Werte in dieselben sichtbaren Felder ein. Das bloße Anzeigen dieser Werte bearbeitet sie nicht und löst den Demo-Kontext nicht. Die angezeigten Einstellungen für Filter, Analyseumfang und Evidenz gelten auch dann, wenn du diesen Bereich unverändert lässt.</p>
+<p>Wähle Filter und Schwellen vor einem bestätigenden Lauf aus der beabsichtigten Population und der gewünschten Evidenzuntergrenze. Eine nachträgliche Änderung nach Betrachtung des Ergebnisses erzeugt eine andere Analyse und sollte getrennt aufbewahrt werden.</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Bedienelement</th>
+<th>Standard</th>
+<th>Gilt für</th>
+<th>Wirkung und Verwendung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spezial-Rufzeichen Q, 0, 1 ausschließen</strong></td>
+<td>bei Performance ein; bei Benchmark aus</td>
+<td>alle Ergebnisse</td>
+<td>Schließt entfernte Peer-Rufzeichen aus, die mit <code>Q</code>, <code>0</code> oder <code>1</code> beginnen: sendende Peers in RX-Analysen und empfangende Peers in TX-Analysen. Target- und Referenzstationen bleiben von diesem Filter unberührt. Die Präfixregel stellt nicht fest, ob eine Station Telemetrie überträgt. Behalte baken- oder telemetrieartige Identitäten, wenn sie zur Fragestellung gehören; schließe sie aus, wenn reguläre Amateurfunkaktivität untersucht werden soll.</td>
+</tr>
+<tr>
+<td><strong>Bewegliche Stationen filtern</strong></td>
+<td>bei Performance ein; bei Benchmark aus</td>
+<td>kartierte Peers</td>
+<td>Schließt Rufzeichen aus, die in der ansonsten qualifizierenden globalen Population mehr als ein Grid-4 melden. Nutze Drill-Down, um Bewegung von fehlerhaften Locator-Angaben zu unterscheiden.</td>
+</tr>
+<tr>
+<td><strong>Sonnenstand am Target-QTH</strong></td>
+<td><code>Ganze 24h</code></td>
+<td>alle Ergebnisse</td>
+<td>Behält je nach Sonnenhöhe am Target-QTH <code>Tag (Elev &gt; +6°)</code>, <code>Nacht (Elev &lt; -6°)</code>, <code>Greyline (-6° bis +6°)</code> oder alle Zyklen bei.</td>
+</tr>
+<tr>
+<td><strong>Maximale Peer-Entfernung vom Target (km)</strong></td>
+<td><code>22 000</code>; Auswahl <code>2 500</code>, <code>5 000</code>, <code>10 000</code>, <code>15 000</code>, <code>20 000</code>, <code>22 000</code></td>
+<td>alle Ergebnisse</td>
+<td>Entfernt Peers ab der ausgewählten Entfernung aus Analyse, verarbeiteten Artefakten und Exporten. Das Target-Active Gate von Performance darf Evidenz außerhalb des Bereichs weiterhin ausschließlich dazu verwenden, Target-Betrieb nachzuweisen; Benchmark verwendet kein Target-Active Gate.</td>
+</tr>
+<tr>
+<td><strong>Mindestzahl an Joint Spots pro Station für ΔSNR</strong></td>
+<td><code>1</code>; Bereich 1–50</td>
+<td>Benchmark</td>
+<td>Verlangt mindestens die gewählte Anzahl von Joint Spots über den gefilterten Vergleichszeitraum, damit eine exakte Identität aus Rufzeichen und vollständigem Locator qualifizierendes ΔSNR beiträgt. Unterhalb dieser Mindestzahl bleibt alle beobachtete gemeinsame und einseitige Evidenz in Karten, Abdeckung, Station Insights, Drill-Down und Exporten erhalten; eine qualifizierende Stations-ΔSNR-Zusammenfassung wird jedoch nicht geliefert. Einseitige Anzahlen erfüllen diese Anforderung nicht und haben keine eigene Mindestzahl. Mindestens ein tatsächlich beobachteter Joint Spot ist für ΔSNR erforderlich.</td>
+</tr>
+<tr>
+<td><strong>Mindestzahl beobachteter Ereignisse pro Station für ΔDecode</strong></td>
+<td><code>1</code>; Bereich 1–50</td>
+<td>Benchmark</td>
+<td>Verlangt diese Anzahl an Nur-Target- + Joint- + Nur-Referenz-Ereignissen über den gefilterten Vergleichszeitraum. Jedes Joint-Ereignis zählt einmal; Joint-Beobachtungen sind nicht erforderlich. Die Schwelle qualifiziert die Differenz der Decode-Anteile einer Station und entfernt keine beibehaltenen Beobachtungen. Mindestens ein beobachtetes Ereignis ist erforderlich.</td>
+</tr>
+<tr>
+<td><strong>Minimale bestätigte Gelegenheiten pro Station</strong></td>
+<td><code>5</code>; Bereich 1–100</td>
+<td>Performance</td>
+<td>Verlangt mindestens die gewählte Anzahl bestätigter Gelegenheiten je exakter Peer-Identität: erfolgreiche Target-Decodes oder bestätigte Gelegenheiten ohne Target-Decode (Misses). Niedrige Werte erhöhen die Abdeckung, machen die Raten aber grob und schwach gestützt.</td>
+</tr>
+<tr>
+<td><strong>Minimale qualifizierte Stationen pro Kartensegment</strong></td>
+<td><code>1</code>; Bereich 1–10</td>
+<td>Performance-Karten</td>
+<td>Verlangt breitere Identitätsunterstützung, bevor ein Segment gezeichnet wird.</td>
+</tr>
+<tr>
+<td><strong>Mindestzahl qualifizierter Stationen je Segment für ΔSNR</strong></td>
+<td><code>5</code>; Bereich 1–10</td>
+<td>Benchmark-Karten</td>
+<td>Zählt Stationsidentitäten, die die Mindestanzahl an Joint-Evidenz erfüllen. Unterhalb dieser Segment-Mindestanzahl werden beobachtete ΔSNR-Segmente grau schraffiert; beibehaltene Stationsevidenz, einseitige Anzahlen, Station Insights, Drill-Down und Exporte bleiben verfügbar.</td>
+</tr>
+<tr>
+<td><strong>Mindestzahl qualifizierter Stationen je Segment für ΔDecode</strong></td>
+<td><code>5</code>; Bereich 1–10</td>
+<td>Benchmark-Karten</td>
+<td>Zählt Identitäten, die die Mindestzahl beobachteter Ereignisse für ΔDecode erfüllen. Beobachtete Segmente darunter werden grau schraffiert; beibehaltene Stationsevidenz bleibt verfügbar.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Die beiden Ausschluss-Standardwerte gelten nur für unveränderte interaktive Konfigurationen. Eine Performance-Konfiguration startet mit beiden Ausschlüssen; eine Benchmark-Konfiguration ohne beide. Sobald der Bediener einen der Ausschlüsse manuell ändert, bleibt dieser ausdrückliche Wert über Wechsel der Frage hinweg erhalten und wird nicht mehr durch einen Ergebnistyp-Standard ersetzt. Geladene Konfigurationen, Demos und Analyse-URLs behalten ihre ausdrücklich gespeicherten Einstellungen ebenfalls bei.</p>
+<p><code>Maximale Peer-Entfernung vom Target (km)</code> begrenzt die ausgewertete Population erst, nachdem die Datenbankzeilen abgerufen wurden. Eine Verringerung umgeht deshalb nicht die Zeilengrenze der Datenbank. <code>Spezial-Rufzeichen Q, 0, 1 ausschließen</code> kann die abgerufene Population entfernter Peers verkleinern; <a href="/de/documentation/sec-6/#sec-6-6">Abschnitt 5.6</a> behandelt zu große Abrufe.</p>
+<p><a id="sec-5-5"></a></p>
+<h4>4.5 Karten-, Inspektor- und Exporteinstellungen</h4>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Bedienelement</th>
+<th>Wirkung</th>
+<th>Gespeichert?</th>
+<th>Neuer Lauf?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entfernung und Richtung des Segments</td>
+<td>Aktiver geografischer Inspektionsbereich</td>
+<td>getrennt für Performance und Benchmark</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td><code>Nur von anderen Stationen gehört.</code> / <code>Nur andere Signale gehört.</code></td>
+<td>Sichtbarkeit von Performance-Peers mit ausschließlich Gegen-Evidenz</td>
+<td>Ja</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td><code>Ungepaarte Evidenz einbeziehen</code></td>
+<td>Zeigt zusätzlich Benchmark-Identitäten ohne Joint Spots in Station Insights und bezieht einseitige Beobachtungen in den ausgewählten Drill-Down ein; Identitäten mit beobachteten Joint Spots bleiben auch unterhalb der ΔSNR-Mindestzahl sichtbar. Dieser Anzeigeschalter verändert weder Abdeckungssummen noch Qualifikation</td>
+<td>Ja</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td>Ausgewählte Stationszeile</td>
+<td>Evidenz der ausgewählten Station und ausgewählte Drill-Down-Identität</td>
+<td>exakte Identitäten aus <code>Rufzeichen + Locator</code>: normalerweise höchstens eine je Ergebnistyp; mehrere Benchmark-Identitäten bei eingeschalteter Ausreißererkennung</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td>Zeitaggregation des Segments</td>
+<td>Chronologische zeitliche Ansicht des Segment-Inspektors; die Auswahl passt sich an die Laufdauer an</td>
+<td>Ja</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td>Zeitaggregation der ausgewählten Station</td>
+<td>Chronologische Ansicht des ausgewählten Funkwegs; die Auswahl passt sich an die Laufdauer an</td>
+<td>Ja</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td><strong><code>Zoom-Zeitfenster</code></strong>, <strong><code>Datum der Fenstermitte (UTC)</code></strong>, <strong><code>Uhrzeit der Fenstermitte (UTC)</code></strong>, <strong><code>← Früher</code></strong>, <strong><code>Später →</code></strong>, <strong><code>Ausreißerfokus</code></strong> und <strong><code>Tabelle filtern</code></strong></td>
+<td>Optionale Drill-Down-Abbildungen in nativer Zeitauflösung und zentriertes Tabellenintervall für genau eine ausgewählte Station; die Tabellenfilterung betrifft nur angezeigte Zeilen</td>
+<td>Nein</td>
+<td>Nein</td>
+</tr>
+<tr>
+<td><code>Alle Ergebnisse zum Download vorbereiten</code></td>
+<td>Exportpaket und aktuelle Inspektor-Auswahlen</td>
+<td>nicht zutreffend</td>
+<td>Nein</td>
+</tr>
+</tbody>
+</table></div>
+<p>Evidenztabellen ohne Zeilenauswahl laden bei mehr als 150 000 angezeigten Zeilen weitere Zeilen beim Scrollen nach. In diesem Modus sind die eingebaute Suche der Browsertabelle und ihr direkter CSV-Download nicht verfügbar. Verwende <strong><code>Tabelle filtern</code></strong>, um die angezeigten Drill-Down-Zeilen einzugrenzen, und <strong><code>Alle Ergebnisse zum Download vorbereiten</code></strong>, um das Reproduzierbarkeitspaket zu erhalten. In <strong>Station Insights</strong> bleibt die Zeilenauswahl verfügbar, damit du die Evidenz einer Station öffnen kannst.</p>
+<p>Für chronologische Ansichten werden folgende Bins angeboten; der Standard gilt, wenn keine ausdrückliche kompatible Auswahl geladen wurde:</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Vollständige Laufdauer</th>
+<th>Angebotene Bins</th>
+<th>Standard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bis einschließlich 6 Stunden</td>
+<td><code>2m</code>, <code>10m</code>, <code>30m</code>, <code>1h</code>, <code>2h</code>, <code>3h</code>, <code>6h</code></td>
+<td><code>10m</code></td>
+</tr>
+<tr>
+<td>Mehr als 6 bis einschließlich 24 Stunden</td>
+<td><code>2m</code>, <code>10m</code>, <code>30m</code>, <code>1h</code>, <code>2h</code>, <code>3h</code>, <code>6h</code></td>
+<td><code>30m</code></td>
+</tr>
+<tr>
+<td>Mehr als 24 Stunden bis einschließlich 7 Tage</td>
+<td><code>30m</code>, <code>1h</code>, <code>2h</code>, <code>3h</code>, <code>6h</code>, <code>12h</code>, <code>24h</code></td>
+<td><code>12h</code></td>
+</tr>
+<tr>
+<td>Mehr als 7 Tage</td>
+<td><code>1h</code>, <code>2h</code>, <code>3h</code>, <code>6h</code>, <code>12h</code>, <code>24h</code></td>
+<td><code>12h</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Damit steht <code>2h</code> bei jeder Laufdauer zur Verfügung. Die chronologische Aggregation verändert weder die Klassifikation von Gelegenheiten noch die Benchmark-Paarbildung oder die festen einstündigen UTC-Profile. Leere Performance-Zeit- oder Entfernungs-Bins bleiben fehlende Evidenz und werden nicht zu künstlichen Beobachtungen mit einer Rate von null.</p>
+<p><strong>Fokusfenster wählen.</strong> Der Drill-Down-Zoom ist flüchtig und nur für genau eine ausgewählte Station verfügbar. Wähle <strong><code>Aus</code></strong> oder ein vollständiges Intervall von <code>1h</code>, <code>3h</code>, <code>6h</code>, <code>12h</code> beziehungsweise <code>24h</code>. <strong><code>Datum der Fenstermitte (UTC)</code></strong> und <strong><code>Uhrzeit der Fenstermitte (UTC)</code></strong> wählen die Mitte dieses Intervalls; WSPRadar leitet daraus exakten Start und exaktes Ende ab, verschiebt das vollständige Intervall an einer Laufgrenze, statt es zu kürzen, und lässt es mit <strong><code>← Früher</code></strong> beziehungsweise <strong><code>Später →</code></strong> um ein vollständiges ausgewähltes Fenster versetzen. Die aufgelösten Grenzen erscheinen in einer Zeile als <strong><code>Ausgewähltes Zeitfenster: {start} bis {end} UTC</code></strong>. Der Zoom begrenzt die fokussierten Abbildungen und die Drill-Down-Tabelle; <strong><code>Tabelle filtern</code></strong> verändert anschließend nur die angezeigte Tabelle und niemals die fokussierten Abbildungen oder die abgeschlossene Analyse.</p>
+<p><strong>Einzelbeobachtungen ablesen.</strong> Die Messwertabbildung ist bewusst kein Zwei-Minuten-Aggregat: Der simultane Benchmark zeigt einen tatsächlichen ΔSNR-Punkt je beibehaltenem Joint Spot zu seiner kanonischen Zykluszeit; Performance zeigt das tatsächliche normierte Target-SNR jeder erfolgreichen bestätigten Gelegenheit zu ihrer kanonischen Zykluszeit. Dies sind einzelne beibehaltene wissenschaftliche Evidenzeinheiten nach Zusammenführung, Zuordnung und Filtern durch WSPRadar und keine unveränderten Provider-Zeilen. In der fokussierten Messwertansicht entfallen Binmedian, IQR, Dichtehintergrund, Farbskala, Median des vollständigen Laufs und nach UTC-Stunde gefaltetes Messwertpanel. Die ergänzende Performance-Outcome- beziehungsweise Benchmark-Abdeckungsansicht darf ihre chronologische Aggregation beibehalten; Segmentansicht und Evidenz der ausgewählten Station über das vollständige Fenster bleiben dichtebasierte aggregierte Ansichten.</p>
+<p><strong>Ausreißerfokus öffnen.</strong> Eine Ausreißeraktion lädt den <strong><code>Ausreißerfokus</code></strong> über die vollständige gestützte Baseline-Flanke vor dem Ereignis, die geschützte vorläufige Episode und die Flanke danach vor; begrenzt wird dieses Intervall nur durch das abgeschlossene Analysefenster, und es darf länger als 24 Stunden sein. Die Kandidatenprovenienz bleibt erhalten, wenn der Bediener zu einem manuellen festen Fenster wechselt.</p>
+<p><strong>Marker und Episodenband einordnen.</strong> In einer fokussierten Benchmark-Abbildung kennzeichnen identische <code>*</code>-Marker jeden Joint Spot im aktuellen Fenster, der innerhalb eines gemeldeten Kandidaten einzeln sowohl das konfigurierte Abweichungs- als auch das robuste-z-Kriterium erfüllt; ein dezentes Band <strong>Fokussierte Episode</strong> unterscheidet die ausgewählte berichtete Episode. Das Band umfasst deren berichtetes Intervall der beibehaltenen Evidenz mit einer halben Breite der nativen Evidenzeinheit als Erweiterung an jedem Ende und wird am Fokusfenster abgeschnitten, damit ein Impuls sichtbar bleibt. Es ist ein Auswahlhinweis und kein Konfidenzintervall oder Maß der physischen Dauer.</p>
+<p><strong>Detektorhilfen einordnen.</strong> Erwartetes lokales ΔSNR, zeitlich begrenzte Baselines der Flanken davor und danach, robuste-z-Hilfslinien bei 1, 2 und 3 sowie an der konfigurierten Qualifikationsschwelle und die konfigurierte Grenze der absoluten Abweichung gehören ausschließlich zur fokussierten Episode; andere markierte Kandidaten können andere Baselines und robuste Streuungen besitzen. Robuste-z- und Abweichungslinien sind Detektorhilfen und keine Konfidenzintervalle; das Überschreiten einer einzelnen Linie erfüllt nicht die getrennten Anforderungen des Detektors an Stützung, Stabilität, Ereignis und Vorzeichenübereinstimmung.</p>
+<p><strong>Evidenz sichern.</strong> Manueller und ausreißerverknüpfter Fokus gehören weder zur Analysedefinition noch zur gespeicherten Konfiguration oder öffentlichen URL. Bei aktivem Fokus kann der Export getrennte Fokusabbildungen ergänzen, ohne die normalen Abbildungen der ausgewählten Station über den vollständigen Lauf zu ersetzen. Die Exportinhalte stehen in <a href="/de/documentation/sec-8/#sec-8-4">Abschnitt 8.4</a>.</p>
+<p><a id="sec-5-6"></a></p>
+<h4>4.6 Bedienelemente der Benchmark-Ausreißererkennung</h4>
+<p>Die ΔSNR-Ausreißererkennung für Benchmark ist eine optionale fachkundige Analyse der beibehaltenen <strong>Joint Spots</strong> zu ihren nativen WSPR-Zykluszeiten. Die Erkennung läuft getrennt für jeden exakten Peer-Funkweg <code>Rufzeichen + Locator</code> und unabhängig vom ausgewählten Darstellungs-Bin der <strong>Zeitlichen Evidenz</strong>. Einseitige Evidenz kann ein fehlendes ΔSNR nicht ersetzen. <a href="/de/documentation/sec-3/#sec-outlier">Abschnitt 2.5</a> erklärt Bedienung und Interpretation; <a href="/de/documentation/sec-7/#sec-7-outliers">Abschnitt 7.6</a> erklärt die experimentelle Methode und ihre Grenzen.</p>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Bedienelement</th>
+<th>Standard / Wertebereich</th>
+<th>Methodensymbol</th>
+<th>Wissenschaftliche Wirkung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>ΔSNR-Ausreißerkandidaten melden</code></strong></td>
+<td>aus</td>
+<td>—</td>
+<td>Aktiviert den optionalen Detektor und Ausreißerbericht ausschließlich für Benchmark. Ist die Einstellung aus, fügt WSPRadar dem Ergebnis weder Ausreißererkennung, -felder, -markierungen oder -begriffe noch Ausreißer-Exportmetadaten hinzu.</td>
+</tr>
+<tr>
+<td><strong><code>Minimale absolute ΔSNR-Abweichung (dB)</code></strong></td>
+<td><code>6.0</code>; einschließlich <code>0.1</code>–<code>100.0 dB</code></td>
+<td><span class="math">\(D_{\min}\)</span></td>
+<td>Verlangt, dass das mediane Residuum des Ereignisses und jeder berichtete Grenzanker mindestens um diesen Betrag von der lokalen Baseline abweichen.</td>
+</tr>
+<tr>
+<td><strong><code>Minimaler robuster z-Wert</code></strong></td>
+<td><code>3.0</code>; einschließlich <code>0.1</code>–<code>100.0</code></td>
+<td><span class="math">\(Z_{\min}\)</span></td>
+<td>Verlangt, dass sowohl der Ereignismedian als auch jeder berichtete Grenzanker diesen absoluten robusten lokalen Streuungswert erreichen. Der Wert ist deskriptiv und weder eine kalibrierte Wahrscheinlichkeit noch ein konventionelles gaußsches Signifikanzniveau.</td>
+</tr>
+<tr>
+<td><strong><code>Maximaler Unterschied zwischen Baseline davor/danach (dB)</code></strong></td>
+<td><code>3.0</code>; einschließlich <code>0.1</code>–<code>100.0 dB</code></td>
+<td><span class="math">\(H_{\max}\)</span></td>
+<td>Verwirft einen Kandidaten, wenn sich die Flankenmediane vor und nach dem Ereignis um mehr als diesen Betrag unterscheiden, damit eine instabile oder verschobene Baseline nicht als vorübergehende Auslenkung berichtet wird.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Die Vergleiche für Abweichung und Baseline-Unterschied verwenden eine feste Toleranz von <code>0.01 dB</code>, wie in <a href="/de/documentation/sec-7/#sec-7-outlier-qualification">Abschnitt 7.6.3</a> erklärt; die konfigurierten Schwellen und internen Evidenzwerte bleiben ungerundet. Für den Vergleich des robusten z-Werts gilt keine solche Toleranz.</p>
+<p>Die Standardkombination priorisiert große absolute Auslenkungen: Die 6-dB-Schwelle setzt die nominelle Untergrenze, während der robuste z-Wert weiterhin verlangt, dass die Auslenkung auch im Verhältnis zur lokalen robusten Streuung des Funkwegs groß ist.</p>
+<p>Der Schalter und die drei Schwellen werden gespeichert, soweit sie für die Analyse gelten. Ihre Änderung kennzeichnet die Konfiguration als geändert, startet aber nicht automatisch eine Analyse; berechne ein neues Ergebnis mit der normalen richtungsabhängigen Aktion <strong><code>RX-Analyse starten</code></strong> / <strong><code>TX-Analyse starten</code></strong>. Alle drei Schwellen gelten unverändert für Spot-Impulse, kurze Ausbrüche und anhaltende Auslenkungen. Für längere Ereignisse gibt es weder einen Dauerbonus noch eine schwächere Schwelle. Ein kleineres <span class="math">\(D_{\min}\)</span> oder <span class="math">\(Z_{\min}\)</span> beziehungsweise ein größeres <span class="math">\(H_{\max}\)</span> macht die Berichterstattung großzügiger; die jeweils umgekehrte Änderung macht sie selektiver. Lege die Schwellen für eine bestätigende Untersuchung vor Sichtung der Kandidaten fest und sichere sie, statt sie so lange anzupassen, bis ein gewünschtes Ereignis erscheint.</p><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/part-ii/">Zurück: Teil II: Bedienelemente und Fehlersuche</a><a href="/de/documentation/sec-6/">Weiter: 5. Fehlersuche und Datenqualität</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
+  </div>
+</body>
+</html>

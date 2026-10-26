@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="8. Scientific Methods · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/documentation/sec-7/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>8. Scientific Methods · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/documentation/sec-7/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-7/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-7/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation" aria-current="page">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/documentation/sec-7/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/en/documentation/">Documentation</a> / 8. Scientific Methods</p><div class="reader-layout"><details class="reader-index" open><summary>Documentation</summary><a class="part-link" href="/en/documentation/sec-1/">Part 0: Why WSPRadar</a><a class="chapter-link" href="/en/documentation/documentation-toc/">Table of Contents</a><a class="part-link" href="/en/documentation/part-i/">Part I: Operator Guide</a><a class="chapter-link" href="/en/documentation/sec-2/">1. Choose and Prepare the Analysis</a><a class="chapter-link" href="/en/documentation/sec-3/">2. Run and Interpret Your Analysis</a><a class="chapter-link" href="/en/documentation/sec-4/">3. Strengthen and Communicate Your Result</a><a class="part-link" href="/en/documentation/part-iv/">Part II: Practical Setup Guide</a><a class="chapter-link" href="/en/documentation/sec-a/">4. Parallel WSJT-X Instances for Simultaneous RX</a><a class="chapter-link" href="/en/documentation/sec-simultaneous-tx-setup/">5. Simultaneous TX Reference Setup</a><a class="chapter-link" href="/en/documentation/sec-b/">6. Reference SNR Calibration</a><a class="part-link" href="/en/documentation/part-iii/">Part III: Scientific Foundations, Methods and Claims</a><a class="chapter-link" href="/en/documentation/sec-d/">7. Literature, Prior Art and Positioning</a><a class="chapter-link" aria-current="page" href="/en/documentation/sec-7/">8. Scientific Methods</a><a class="chapter-link" href="/en/documentation/sec-8/">9. Evidence-Matched Claims and Reproducibility</a><a class="part-link" href="/en/documentation/part-ii/">Part IV: Controls and Troubleshooting</a><a class="chapter-link" href="/en/documentation/sec-5/">10. Controls and Configuration</a><a class="chapter-link" href="/en/documentation/sec-6/">11. Troubleshooting and Data Quality</a><a class="part-link" href="/en/documentation/sec-ref/">Part V: References</a><a class="part-link" href="/en/documentation/sec-8-5/">Experimental Use &amp; Disclaimer</a></details><article class="prose"><p><a id="sec-7"></a></p>
+<h1>8. Scientific Methods</h1>
+<p><strong>Benchmark</strong> compares Target and Reference for the same remote station identities and WSPR cycles. It retains paired and one-sided decode outcomes; a usable SNR observation on both sides also supplies paired ΔSNR. <strong>Performance</strong> measures the Target's success within confirmed opportunities, without a Reference.</p>
+<p>Follow three questions through the calculation:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Question</th>
+<th>What the method must establish</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>What counts once?</strong></td>
+<td>An exact remote identity and cycle, after the applicable matching and consolidation rules. Multiple reports do not automatically become multiple observations.</td>
+</tr>
+<tr>
+<td><strong>Which evidence qualifies?</strong></td>
+<td>The observations admitted by the selected analysis and filters, and the station or segment support required for the particular metric. Missing activity and insufficient support are different from a measured zero.</td>
+</tr>
+<tr>
+<td><strong>What receives equal weight?</strong></td>
+<td>Depending on the summary, one station, one spot pair, one confirmed opportunity or one station's contribution within a time interval. More reports do not always mean more weight.</td>
+</tr>
+</tbody>
+</table></div>
+<p>A database spot is a reported decode. Spot pairs and confirmed opportunities are constructed from reports under the rules below; medians, rates and other summaries describe those retained units.</p>
+<p>Read the shared foundations in <a href="/en/documentation/sec-7/#sec-7-foundations">Section 8.1</a>, then <a href="/en/documentation/sec-7/#sec-7-benchmark">Benchmark</a> or <a href="/en/documentation/sec-7/#sec-7-performance">Performance</a>. <a href="/en/documentation/sec-7/#sec-7-views">Section 8.4</a> explains geographic and temporal summaries, <a href="/en/documentation/sec-7/#sec-7-claims">Section 8.5</a> the strength of conclusions, and <a href="/en/documentation/sec-7/#sec-7-outliers">Section 8.6</a> the optional event detector. A calculation can be correct for the retained evidence while its physical explanation remains uncertain; <a href="/en/documentation/sec-8/#sec-8">Chapter 9</a> gives reporting guidance.</p>
+<p><a id="sec-7-foundations"></a></p>
+<h4>8.1 Shared evidence foundations</h4>
+<p><a id="sec-7-spots-identities-cycles"></a>
+<a id="sec-7-1"></a>
+<a id="sec-7-2"></a></p>
+<h5>8.1.1 Spots, identities and cycles</h5>
+<p>Each completed run uses one WSPR database; it does not combine records from different sources. Record that source with the result, because the reports come from different transmitters, receivers, decoders and reporting systems.</p>
+<p>A <strong>spot</strong> is a reported successful decode. A <strong>WSPR cycle</strong> is the two-minute interval beginning at an even UTC minute. WSPRadar's basic observation concerns one exact remote station identity in one eligible cycle on the selected band: a remote transmitter in RX, or a remote receiver in TX. Multiple qualifying reports are consolidated into one observation for each side, identity and cycle before outcomes are counted; <a href="/en/documentation/sec-7/#sec-7-normalization-consolidation">Section 8.1.2</a> explains the selection rule.</p>
+<p>A <strong>spot pair</strong> requires usable Target and Reference evidence for the same remote identity in the same cycle. RX compares two receivers observing the same transmitter; TX compares two transmitters observed by the same receiver. Reports from different cycles are never paired. Matching neither requires identical RF frequencies nor establishes identical physical propagation paths; simultaneous TX signals normally need clear separated frequencies.</p>
+<p><strong>Identity depends on the station's role:</strong></p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Database identity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Target</strong></td>
+<td>Exact receiving callsign in RX, or transmitting callsign in TX, plus Target QTH's first four locator characters.</td>
+</tr>
+<tr>
+<td><strong>Reference Setup/Station</strong></td>
+<td>Exact Reference callsign plus its four-character locator, discovered from reports or independently supplied.</td>
+</tr>
+<tr>
+<td><strong>Remote station</strong></td>
+<td>Exact callsign plus the <strong>full reported locator</strong>: the transmitter in RX, or receiver in TX.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Even with a six-character Target QTH, the first four characters select Target reports; the full configured locator anchors distance, azimuth and solar calculations. The same remote callsign at two full locators remains two identities, including when both are within one grid-4. Matching grid-4 values do not prove physical co-location.</p>
+<p>Target and Reference require distinct exact callsigns; a base callsign and a suffixed callsign remain distinct. Each retained report must supply the identity fields required for matching: WSPRadar does not reconstruct compound callsigns from hashes or borrow a missing locator from a neighboring cycle. Incorrect or changing locators can split a physical station, move its mapped position or trigger moving-station exclusion.</p>
+<p><strong>Extended WSPR still supplies separate two-minute observations.</strong> WSPR-2 names the transmission mode; the following message types describe its contents:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Message type</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Type 1</strong></td>
+<td>An ordinary callsign, four-character locator and power in one transmission.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Type 2</strong></td>
+<td>A compound callsign and power, without a locator.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Type 3</strong></td>
+<td>The complementary message with a compact 15-bit callsign code (a <strong class="defined-term">hash</strong>), six-character locator and power. The receiver must associate the code with the callsign.</td>
+</tr>
+</tbody>
+</table></div>
+<p>These message formats are documented in the WSJT-X reference <a href="/en/documentation/sec-ref/#ref-12">[Ref-12]</a>. WSPRadar does not classify them, reconstruct missing phases or combine them into a four-minute observation. Either or both cycles can supply pairs when the required identities resolve in the database; a pair in one cycle does not require another in the next. Matching TX message patterns and schedules is an experimental recommendation, not a message-type eligibility test; see <a href="/en/documentation/sec-3/#sec-3-tx-benchmark-simultaneous">Section 2.2.1</a> and <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup">Chapter 5</a>.</p>
+<p>The configured UTC window defines the run. For wholly pre-2022 periods, an empty strict request can trigger the historical decode-code fallback: no Target source evidence in Performance, or no source evidence from either setup in Benchmark. <a href="/en/documentation/sec-6/#sec-6-4">Section 11.4</a> gives the exact cutoff and mode uncertainty; <a href="/en/documentation/sec-6/#sec-6-6">Section 11.6</a> covers database availability and source selection.</p>
+<p><a id="sec-7-normalization-consolidation"></a></p>
+<h5>8.1.2 Power normalization and consolidation</h5>
+<p><strong>Successful SNR uses a common reported-power basis in both RX and TX, for Performance and Benchmark.</strong> WSPR reports SNR in dB relative to a <strong>2 500 Hz reference bandwidth</strong>, and transmit power in dBm <a href="/en/documentation/sec-ref/#ref-8">[Ref-8]</a>. WSPRadar adjusts successful SNR to <strong>30 dBm (1 W)</strong>:</p>
+<p><span class="math">\[SNR_{\mathrm{norm}}=SNR_{\mathrm{reported}}-P_{\mathrm{reported}}+30\]</span></p>
+<p>The SNR terms are in dB; the power values are in dBm. For example, reported SNR of <strong>−15 dB</strong> at <strong>20 dBm</strong> becomes <strong>−5 dB</strong> at the 30 dBm comparison level: the 10 dB reported-power shortfall is added back.</p>
+<p>This removes the <strong>reported power difference</strong> from the comparison. It does not recreate the decodes that would have occurred at 1 W, or correct antenna gain, radiation efficiency, feedline loss, EIRP, receiver calibration or local noise. Decode Outcomes and Performance opportunities remain those actually observed.</p>
+<p><strong>Several reports still count as one observation for each side, remote identity and cycle.</strong> WSPRadar retains the strongest qualifying normalized SNR for Performance and for each side of Benchmark. Consolidation never combines successive cycles.</p>
+<p>This <strong class="defined-term">strongest-report rule</strong> is a best-observed policy: it describes the strongest reported reception, rather than a central value across the available reports. Weaker duplicate-like reports, secondary decodes or unwanted signal replicas cannot lower the retained maximum. Conversely, an erroneous high report can become the retained value, and a setup with more contributing receivers or reports has more chances to supply a high value. WsprDaemon also documents retaining the best SNR when merging receivers for WSPRnet <a href="/en/documentation/sec-ref/#ref-11">[Ref-11]</a>.</p>
+<p>That precedent does not establish that the maximum is the intended signal, or that both setups selected the same spectral component. Means and medians would describe different features of the available reports; none of these statistics identifies the intended component by itself. Later medians summarize the retained values and cannot undo this earlier selection.</p>
+<p><strong>The Benchmark decoding-reach plots use a different SNR basis.</strong> <strong class="defined-term">From Signal Quality to Decoding Reach</strong> retains each setup's strongest <strong>original reported SNR</strong> for each remote identity and cycle. It applies neither 30 dBm normalization nor Reference correction. Its curves count observed spots and stations at raw-SNR cutoffs; they do not replace normalized paired ΔSNR. See <a href="/en/documentation/sec-3/#sec-3-rx-benchmark">RX Benchmark</a> and <a href="/en/documentation/sec-3/#sec-3-tx-benchmark">TX Benchmark</a> for their place in the comparison.</p>
+<p><a id="sec-7-activity-eligibility"></a>
+<a id="sec-7-3"></a></p>
+<h5>8.1.3 Operating conditions and eligibility</h5>
+<p><strong>Controlled Benchmark relies on independently known common operation.</strong> In RX, both receivers must have listened on the selected band with functioning reporting throughout the comparison period. In simultaneous TX, both transmitters must have transmitted in the same WSPR cycles. The operator's declaration records this experimental prerequisite; successful database reports cannot independently verify it.</p>
+<p><strong>Historical replay has a different interpretation.</strong> It acknowledges that common operation is unverified rather than asserting a controlled experiment. The same observed-outcome and paired-ΔSNR calculations apply, but one-sided counts may also reflect schedules, outages or reporting interruptions. See <a href="/en/documentation/sec-5/#sec-5-3">the acknowledgement controls</a> and <a href="/en/documentation/sec-7/#sec-7-neighborhood">historical and retired designs</a>.</p>
+<p>Benchmark retains eligible observations from either exact setup under the same peer-cycle consolidation and population filters. A missing Target decode does not exclude Reference-only evidence, even if Target has no reports anywhere in that cycle or throughout the entire period. The converse applies to Target-only evidence. If neither side has a report, there is no observed outcome; WSPRadar adds no synthetic “both missed” row.</p>
+<p><strong>Performance uses</strong> <strong class="defined-term">Target-active conditioning</strong><strong>:</strong> a cycle needs evidence that Target was operating on the selected band.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>What establishes Target activity in that cycle?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RX</strong></td>
+<td>The Target receiver uploaded at least one qualifying decode.</td>
+</tr>
+<tr>
+<td><strong>TX</strong></td>
+<td>At least one qualifying report of a Target transmission exists somewhere.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Activity is established before geographic filtering. Its witness can lie outside the scientific distance limit or the area currently being inspected. A Target report involving a peer later removed by the special-callsign or moving-station exclusion can also establish activity. This does not restore an excluded peer to the retained population or add an out-of-scope outcome to a selected scope; artifact scopes remain as described in <a href="/en/documentation/sec-8/#sec-8-4">Section 9.4</a>.</p>
+<p>A cycle without an activity witness is excluded. WSPRadar cannot distinguish downtime from operation that produced no reported decode, so Performance describes observable Target-active cycles rather than all elapsed time or planned transmissions.</p>
+<p>Target activity alone does not turn every silent remote station into a miss. The particular remote endpoint also needs the activity evidence defined in <a href="/en/documentation/sec-7/#sec-7-performance-opportunities">Section 8.3.1</a>.</p>
+<p><a id="sec-7-benchmark"></a></p>
+<h4>8.2 Benchmark: differences and shared evidence</h4>
+<p>Benchmark describes two aspects of the same comparison: <strong>the SNR difference when both setups produced a usable report</strong>, and <strong>the decoding outcomes across all retained observations</strong>. The first needs a spot pair; the second also includes reports from only one side. Keep these populations distinct when interpreting a result.</p>
+<p><a id="sec-7-benchmark-outcomes"></a>
+<a id="sec-7-6"></a></p>
+<h5>8.2.1 Decode Outcomes and missing observations</h5>
+<p><strong>First classify each remote station and WSPR cycle.</strong> After consolidation and filtering, there are three outcomes:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Evidence in that station-cycle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Only Target</strong></td>
+<td>A Target-side report, without a Reference-side report.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Paired</strong></td>
+<td>Reports from both sides for the same remote identity and cycle. Usable SNR on both sides supplies ΔSNR.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Only Reference</strong></td>
+<td>A Reference-side report, without a Target-side report.</td>
+</tr>
+</tbody>
+</table></div>
+<p>These are <strong class="defined-term">native</strong> outcomes: matched, consolidated and scientifically filtered observations at the original WSPR-cycle level, before display aggregation.</p>
+<p>There is no fourth, both-missed outcome: if neither side reported the station, the database supplies no observed event. Benchmark retains one-sided evidence symmetrically, without a separate Target-activity witness. A spot pair still exists when its station has too few pairs to qualify for displayed ΔSNR summaries.</p>
+<p><strong>Then classify each station over the filtered comparison period.</strong> A station can have different native outcomes in different cycles. The ΔSNR map summarizes that history in five mutually exclusive station classes:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Station class</th>
+<th>Meaning over the comparison period</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Paired (qualifying)</strong></td>
+<td>At least the configured minimum number of spot pairs; shown in strong green.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Paired (not qualifying)</strong></td>
+<td>At least one pair, but fewer than the minimum; shown in pale green.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Both observed, no pairs</strong></td>
+<td>Each setup observed the station, but always in different cycles.</td>
+</tr>
+<tr>
+<td><strong>Only Target</strong></td>
+<td>All retained observations of this station are Target-only.</td>
+</tr>
+<tr>
+<td><strong>Only Reference</strong></td>
+<td>All retained observations of this station are Reference-only.</td>
+</tr>
+</tbody>
+</table></div>
+<p>These station classes do not relabel the underlying observations. A qualifying paired station can also supply Target-only and Reference-only events. <strong>Both observed, no pairs</strong> is a station class, never a fourth spot outcome. The ΔDecode map combines the two Paired station classes into one green category; all five original classes remain part of the observed population.</p>
+<p>The Statistics subheaders identify the relevant support: stations and receiver decodes for ΔDecode, qualifying spot pairs for its ΔSNR histogram, and qualifying stations for the station-median histogram. Drill-Down retains the three native outcomes. Temporal coverage separately counts stations and station-cycle events as explained in <a href="/en/documentation/sec-7/#sec-7-benchmark-coverage">Section 8.2.4</a>.</p>
+<p><strong>Missing reports have no measured SNR.</strong> WSPRadar neither reconstructs a missing-side SNR nor assigns an artificial ΔSNR. Actual transmit power, propagation, interference and decoder behavior affect which signals are decoded. Incorrect reported power can distort normalized ΔSNR; power normalization does not change the decode outcomes already observed. Requiring both sides to decode can underrepresent weak-signal conditions, so missing pairs should not be treated as random omissions.</p>
+<p>For controlled Benchmark, interpret one-sided evidence under the independently established common operation in <a href="/en/documentation/sec-7/#sec-7-activity-eligibility">Section 8.1.3</a>. Historical replay leaves that operating premise unverified.</p>
+<p><strong>Extended-WSPR identity errors are a separate data-quality issue.</strong> Type 3 uses a 15-bit callsign hash. An unresolved or colliding hash can leave a decode unidentified or associate it with an incorrect callsign, locator or power, as documented by QRP Labs <a href="/en/documentation/sec-ref/#ref-28">[Ref-28]</a>. WSPRadar can match the stored identity but cannot prove every upstream association correct. Clustered or unequal errors can change station counts, one-sided outcomes and SNR summaries; a large dataset or a median does not guarantee protection. For compound callsigns, use the database preflight and phase-specific audit in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup">Chapter 5</a>.</p>
+<p><a id="sec-7-benchmark-delta"></a>
+<a id="sec-7-5"></a></p>
+<h5>8.2.2 Delta SNR and Reference correction</h5>
+<p><strong>Reference correction</strong> represents an independently established additive offset. It is added to normalized Reference SNR:</p>
+<p><span class="math">\[SNR_{\mathrm{Reference,corr}}=SNR_{\mathrm{Reference,norm}}+C_{\mathrm{Reference}}\]</span></p>
+<p>Here <code>C_Reference</code> is the signed correction in dB. Enter a measured calibration offset with the <code>target - reference</code> sign. The offset must be approximately stable over the relevant band, signal levels, equipment state and time. <a href="/en/documentation/sec-5/#sec-5-3">Section 10.3</a> describes the control and <a href="/en/documentation/sec-b/#sec-reference-snr-calibration">Chapter 6</a> the calibration procedure.</p>
+<p>For each spot pair, subtract corrected Reference SNR from normalized Target SNR:</p>
+<p><span class="math">\[\Delta SNR=SNR_{\mathrm{Target,norm}}-SNR_{\mathrm{Reference,corr}}\]</span></p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>ΔSNR</th>
+<th>Meaning for this pair</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Positive</strong></td>
+<td>Target SNR is higher.</td>
+</tr>
+<tr>
+<td><strong>Zero</strong></td>
+<td>Target and corrected Reference SNR are equal.</td>
+</tr>
+<tr>
+<td><strong>Negative</strong></td>
+<td>Reference SNR is higher.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Sign check.</strong> On the normalized basis, Target <code>−10 dB</code> minus Reference <code>−12 dB</code> gives <strong>+2 dB</strong>. A Reference correction of <code>+1.5 dB</code> raises Reference to <code>−10.5 dB</code>, leaving <strong>+0.5 dB</strong>. A positive correction reduces the reported Target advantage; it does not change the Target observation.</p>
+<p>In RX, both receivers observe the same transmitter. Its reported-power terms cancel <strong>when both retained reports carry the same power value</strong>. TX compares different transmissions, so the normalized difference depends directly on their reported powers. Uncorrected equipment differences remain in either comparison. ΔSNR describes the documented complete setups; assigning it to an antenna or another component requires the controls in <a href="/en/documentation/sec-3/#sec-3">Chapter 2</a>.</p>
+<p><a id="sec-7-benchmark-aggregation"></a>
+<a id="sec-7-7"></a></p>
+<h5>8.2.3 Station and map aggregation</h5>
+<p><strong>What qualifies for ΔSNR?</strong></p>
+<p>After the run's population, UTC, solar-state and geographic filters, each exact remote callsign-plus-full-locator identity must meet <strong>Minimum spot pairs per station for ΔSNR</strong>. Qualification is calculated over the full filtered comparison period, not again within each time bin, station selection or zoom. Qualifying stations supply the ΔSNR map, histograms, temporal summaries and outlier analysis.</p>
+<p>Below-threshold pairs and all one-sided observations remain in coverage, Station Insights, Drill-Down and exports. There is no separate minimum for a station's one-sided count. For example, at a minimum of five pairs, <code>100 Paired / 8 Only Target / 4 Only Reference</code> qualifies, while <code>4 / 100 / 100</code> does not. The observed counts stay unchanged in both cases. Changing ΔSNR qualification does not change ΔDecode or Station Reach Advantage.</p>
+<p><strong>How the ΔSNR map balances stations</strong></p>
+<ol>
+<li>Calculate each qualifying station's <strong>median ΔSNR</strong> from all its retained spot pairs.</li>
+<li>Calculate the segment's <strong>median of those station medians</strong>, giving each station one contribution.</li>
+<li>Color the segment only if it meets <strong>Minimum qualifying stations per segment for ΔSNR</strong>.</li>
+</ol>
+<p>A median is the middle ordered value, or the average of the two middle values for an even count. The first median describes the typical retained difference on one station path; the second describes the typical qualifying station in that segment. Equal station weighting prevents a prolific reporter from dominating solely through its observation count.</p>
+<p>The <strong class="defined-term">spot-pair median</strong> instead pools all pairs from qualifying stations and gives each pair equal weight. Using the default one-pair station minimum, these summaries can disagree:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Qualifying station</th>
+<th>ΔSNR values (dB)</th>
+<th style="text-align: right;">Station median</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>+6, +6, +6, +6, +6, +6</td>
+<td style="text-align: right;">+6 dB</td>
+</tr>
+<tr>
+<td>B</td>
+<td>−2, −2</td>
+<td style="text-align: right;">−2 dB</td>
+</tr>
+<tr>
+<td>C</td>
+<td>−1, −1</td>
+<td style="text-align: right;">−1 dB</td>
+</tr>
+</tbody>
+</table></div>
+<p>The <strong>median of station medians is −1 dB</strong>, while the <strong>pooled spot-pair median is +6 dB</strong>. The mean of the three station medians is <strong>+1 dB</strong>; the pooled pair mean is <strong>+3 dB</strong>. Every calculation is correct, but each gives different weight to stations or extreme values. The station histogram shows the station medians and labels both their median and mean. This three-station segment can be colored only when the segment minimum is three or fewer; it would not meet the default of five.</p>
+<p>The defaults are <strong>one pair per station</strong> and <strong>five qualifying stations per segment</strong>, with allowed ranges of <strong>1–50</strong> and <strong>1–10</strong>, respectively. A callsign at <code>JO31AA</code> and the same callsign at <code>JO31AB</code> count separately if both qualify. Their medians of <code>+2</code> and <code>+4 dB</code> yield <code>+3 dB</code> and support count <strong>2</strong>. These are reported identities, not proven independent physical sites.</p>
+<p><strong>What medians protect against</strong></p>
+<p>Medians reduce the influence of isolated extremes without deleting observations. Within one station, <code>0, 0, 0, +2, +3 dB</code> has median <strong>0 dB</strong> and mean <strong>+1 dB</strong>. Across station medians <code>+2, +3, +3, +4, −30 dB</code>, the median is <strong>+3 dB</strong> and the mean <strong>−3.6 dB</strong>. The extreme value changes the mean much more; the median does not establish that it is an error.</p>
+<p>With one value the median is that value; with two it is their arithmetic average. Sparse evidence offers little protection, and medians do not remove systematic errors, make observations independent or isolate an antenna effect. Choose a statistic for the question it answers, not for which setup it favors. <a href="/en/documentation/sec-7/#sec-7-claims">Section 8.5</a> discusses inference and repeatability.</p>
+<p><strong>How ΔDecode counts evidence</strong></p>
+<p>For the segment, let <code>J</code> be Paired events, <code>T</code> Target-only events and <code>R</code> Reference-only events. Target's decode total is <code>A = J + T</code>; Reference's is <code>B = J + R</code>. Pool all retained events, including stations without qualifying ΔSNR:</p>
+<p><span class="math">\[r=\frac{A}{B}=\frac{J+T}{J+R}\]</span></p>
+<p>Each Paired event contributes <strong>one decode to each side</strong>, but counts <strong>once</strong> in the observed-event union <code>E = J + T + R</code>. The net additional Target decodes are <code>A − B = T − R</code>.</p>
+<p>For <strong>70 Paired, 20 Target-only and 10 Reference-only</strong> events:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th style="text-align: right;">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Observed events, <code>E</code></td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td>Target / Reference decode totals</td>
+<td style="text-align: right;">90 / 80</td>
+</tr>
+<tr>
+<td>Net additional Target decodes</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>ΔDecode, Target-to-Reference ratio <code>90 / 80</code></td>
+<td style="text-align: right;">1.125×</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Read ΔDecode as fold change.</strong> A Target-to-Reference ratio of <strong>2×</strong> means twice as many Target decodes; <strong>0.5×</strong> means twice as many Reference decodes. Equal nonzero totals give <strong>1×</strong>. Maps and signed chart axes show the larger-to-smaller factor on the favored setup's side: <strong>2× on the Reference side</strong> therefore means the same comparison as a Target-to-Reference ratio of <strong>0.5×</strong>. If only one side has decodes, the result is <strong>Exclusive</strong>; with no observed events it is undefined.</p>
+<p>Where both totals are nonzero, the displayed advantage factor is the larger total divided by the smaller. In the Target-to-Reference table ratio, Target-only evidence gives <strong>∞×</strong> and Reference-only evidence gives <strong>0×</strong>; these are the two exclusive cases, not finite fold changes.</p>
+<p>For unchanged retained events and scope, exchanging Target and Reference reverses the favored side and takes the reciprocal of the finite Target-to-Reference ratio. A new run with a different Target may also change Target-centered geography or solar filtering, so it need not retain the same events.</p>
+<p>ΔDecode is <strong>pooled</strong>, not an average of station ΔDecode values. Frequently observed stations contribute more decodes. Every retained event counts, including one-sided events from stations that also have pairs and stations observed by the two setups in different cycles. Distinct-station counts alone cannot reproduce this metric.</p>
+<p><strong>How the ΔDecode histogram represents that volume</strong></p>
+<p>For each station, let <code>A_i</code> and <code>B_i</code> be its retained Target and Reference decode totals. Place its advantage on the symmetric ratio axis and weight it by <code>A_i + B_i</code>. The vertical axis, <strong>Share of receiver decodes (%)</strong>, therefore counts each paired event twice. This percentage describes the share of the evidence, not the size of the decoding advantage. The red line marks ΔDecode calculated from the pooled Target and Reference totals, <strong>not a median, an arithmetic mean of station ratios or a mean of bin centers</strong>. The ratio axis is not linear.</p>
+<p>All retained stations in the active Inspector scope contribute, without another qualification gate. Separate <strong>Exclusive</strong> endpoint bars contain decodes from stations observed exclusively on one side. They do not contain all one-sided events from shared stations. The two ΔSNR histograms retain their separate pair and station qualification rules.</p>
+<p><strong>When a ΔDecode segment has enough evidence to be colored</strong></p>
+<p>The default minimum is <strong>1% of the full filtered run's observed events</strong>, adjustable from <strong>0% to 5%</strong> in <strong>0.5%</strong> steps. A segment must contain at least:</p>
+<p><span class="math">\[N_{\min}=\left\lceil\frac{p}{100}\,E_{\mathrm{run}}\right\rceil\]</span></p>
+<p>Here <code>p</code> is the selected percentage, <code>E_run</code> counts each retained station-cycle event once, and <code>ceil</code> means round upward to a whole event count. The run total is fixed before segment qualification. Map cropping, Inspector selection and below-threshold colors do not change it. At <strong>0%</strong>, every nonempty segment qualifies. No paired observations or minimum station count are required. This gate limits sparse coloring relative to the run; it is not a confidence level or a guarantee of diverse paths.</p>
+<p>Both maps retain observed station markers. An observed segment below its metric's requirement is <strong>gray hatched</strong>; an empty segment is unfilled; zero ΔSNR and <strong>1× ΔDecode</strong> are valid results. ΔSNR and ΔDecode qualification are independent. Their color scales and the ΔDecode ratio legend are explained in <a href="/en/documentation/sec-7/#sec-7-view-spread">Section 8.4.6</a>.</p>
+<p><strong>Interpret the two maps together.</strong> ΔSNR describes paired signal quality; ΔDecode describes the balance of total observed decodes. They can favor different setups. Equal decode totals can combine mostly paired events or substantial one-sided evidence that cancels. Events missed by both are absent, so ΔDecode is not an unconditional decoding probability or a Target win rate. Common-operation evidence, actual power, schedules and the observed station population remain essential context.</p>
+<p><a id="sec-7-benchmark-coverage"></a>
+<a id="sec-7-8-2"></a></p>
+<h5>8.2.4 Temporal decode coverage</h5>
+<p><strong><strong class="defined-term">ΔDecode Temporal Coverage</strong> separates station reach from decode volume.</strong> Both rows use all retained outcomes, independently of ΔSNR qualification.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Row</th>
+<th>What the bars count within each bin</th>
+<th>What the line compares</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Station-level</strong></td>
+<td>Each exact remote identity once: <strong>Both observed</strong>, <strong>Only Target</strong> or <strong>Only Reference</strong>.</td>
+<td><strong class="defined-term">Station Reach Advantage</strong>, from the distinct-station totals for the two setups.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Spot-level</strong></td>
+<td>Each native station-cycle event once: <strong>Paired</strong>, <strong>Only Target</strong> or <strong>Only Reference</strong>.</td>
+<td><strong>ΔDecode</strong>, from pooled decode totals.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Both observed need not mean Paired.</strong> A station seen by Target in one cycle and Reference in another belongs to Both observed within that bin, while its two events remain one-sided. Paired always requires the same station and cycle. In RX the remote identities are transmitters; in TX they are receivers.</p>
+<p>For station coverage, let <code>C</code> count Both observed stations, <code>T_s</code> Only Target stations and <code>R_s</code> Only Reference stations. Target's station total is <code>A_s = C + T_s</code>; Reference's is <code>B_s = C + R_s</code>:</p>
+<p><span class="math">\[r_{\mathrm{stations}}=\frac{A_s}{B_s}\]</span></p>
+<p>The upper bar total is the station union <code>C + T_s + R_s</code>. Repeated decodes cannot increase it. An additional station means additional relative to the other setup in that bin, not a first-ever contact or a cumulative discovery. Equal station totals need not mean identical station sets.</p>
+<p>The lower row compares <code>(J + T) / (J + R)</code>, as defined in <a href="/en/documentation/sec-7/#sec-7-benchmark-aggregation">Section 8.2.3</a>. All paired events use one green category, regardless of ΔSNR qualification. Duplicate reports already consolidated into one station-cycle do not add counts.</p>
+<p><strong>Both secondary axes use signed ratio labels.</strong> Above the central <strong>1×</strong> favors Target; below it favors Reference. In the upper row <strong>2×</strong> means twice as many stations; in the lower row it means twice as many decodes. Read the factor on the favored setup's side; these are not linear ratio axes. Exclusive observations have an explicit endpoint; bins with no support remain gaps. Selected-station coverage uses that station's pooled ΔDecode, not Station Reach Advantage.</p>
+<p><strong class="defined-term">Chronological views</strong> preserve time order. UTC-hour views combine dates under <a href="/en/documentation/sec-7/#sec-7-view-folding">Section 8.4.4</a>, where station membership is assessed separately for each date and hour. The historical <strong>Joint Evidence Share</strong>, <code>J / (J + T + R)</code>, measures paired overlap and is no longer the temporal line. Neither current line verifies uptime, counts events missed by both, or establishes a causal antenna advantage.</p>
+<p><a id="sec-2-6"></a>
+<a id="sec-3-rx-benchmark-local-median"></a>
+<a id="sec-3-tx-benchmark-local-median"></a>
+<a id="sec-7-neighborhood"></a></p>
+<h5>8.2.5 Controlled operation and retired designs</h5>
+<p>A controlled Benchmark needs two exact setups with independently established common operation. A changing neighborhood median does not supply that fixed Reference. <strong>Reference Neighborhood has been retired</strong>, and earlier configurations using it are rejected. Select an explicit Reference and establish the operating conditions for a new controlled comparison. The retirement concerns the comparison design; a median remains a valid description of its observed contributors.</p>
+<p>The <strong>historical Milazzo example</strong> remains available as an acknowledged observational replay. It permits a reproducible examination of paired and one-sided reports, but those reports alone do not establish synchronized transmission schedules or continuous operation. Unequal schedules can contribute to one-sided counts. Interpret the reconstruction descriptively unless external operating records establish the conditions needed for a controlled decoding comparison.</p>
+<p><a id="sec-7-performance"></a>
+<a id="sec-7-4"></a></p>
+<h4>8.3 Performance: opportunities and success</h4>
+<p>Performance asks where and how consistently the Target succeeded when a reception opportunity could be established. A Target success confirms its own opportunity. Without that success, a miss requires evidence that both the Target and the relevant remote station were operating on the same band in the same cycle. A quiet cycle alone is insufficient.</p>
+<p><a id="sec-7-performance-opportunities"></a></p>
+<h5>8.3.1 What counts as an opportunity?</h5>
+<p>Each opportunity concerns one exact remote station identity and one WSPR cycle on the selected band, after the applicable population and geographic filters. Target activity follows <a href="/en/documentation/sec-7/#sec-7-activity-eligibility">Section 8.1.3</a>. The remote endpoint depends on direction:</p>
+<ul>
+<li><strong>RX:</strong> the remote transmitter is decoded by the Target or another eligible receiver. If the Target did not decode it, another receiver's report supports a miss only when the Target also decoded another transmitter on that band in that cycle.</li>
+<li><strong>TX:</strong> the remote receiver decodes the Target or another qualifying transmitter. If it did not decode the Target, its report of another transmitter supports a miss only when a qualifying report of the Target establishes Target transmission in that same band and cycle.</li>
+</ul>
+<p>A Target-side success means reception <strong>by the Target</strong> in RX, or reception <strong>of the Target at this receiver</strong> in TX. With Target activity established, classify the identity-cycle once:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Target-side success?</th>
+<th>External evidence confirms remote activity?</th>
+<th>Outcome</th>
+<th>Count as an opportunity?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Yes</td>
+<td>No</td>
+<td>Success confirmed by the Target-side decode itself.</td>
+<td><strong>Yes — once.</strong></td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>Yes</td>
+<td>Success also supported by external evidence.</td>
+<td><strong>Yes — once.</strong></td>
+</tr>
+<tr>
+<td>No</td>
+<td>Yes</td>
+<td>Confirmed miss: both endpoints were active, but no Target-side success was reported.</td>
+<td><strong>Yes — once.</strong></td>
+</tr>
+<tr>
+<td>No</td>
+<td>No</td>
+<td>Unknown: remote activity was not established.</td>
+<td><strong>No.</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Successes without external confirmation remain identifiable as a subset of successes; they are not added again. External confirmation of a success likewise creates no second opportunity. In TX, a report from a different receiver cannot establish that this particular remote receiver was listening. In RX, another receiver can confirm the transmitter's activity, but cannot replace evidence of the Target receiver's activity. Unknown cases stay excluded and receive no invented SNR.</p>
+<p><a id="sec-7-performance-rates"></a></p>
+<h5>8.3.2 Decode Rates and weighting</h5>
+<p>For a qualifying remote identity <span class="math">\(i\)</span>, let <span class="math">\(S_i\)</span> be successful opportunities, <span class="math">\(M_i\)</span> confirmed misses, and <span class="math">\(O_i=S_i+M_i\)</span> all confirmed opportunities. Its Decode Rate is:</p>
+<p><span class="math">\[p_i=100\times\frac{S_i}{O_i}\]</span></p>
+<p>Here <span class="math">\(p_i\)</span> is a percentage. The identity qualifies only when <span class="math">\(O_i\)</span> meets the configured <strong>Minimum confirmed opportunities per station</strong>. If <span class="math">\(N\)</span> identities qualify, WSPRadar summarizes the same <span class="math">\(N\)</span> identities in two ways:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Summary</th>
+<th>Calculation</th>
+<th>What receives equal weight?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Station-balanced Decode Rate</strong></td>
+<td><span class="math">\(\frac{1}{N}\sum_{i=1}^{N}p_i\)</span></td>
+<td>Each qualifying identity contributes one rate.</td>
+</tr>
+<tr>
+<td><strong>Opportunity-level Decode Rate</strong></td>
+<td><span class="math">\(100\times\frac{\sum_{i=1}^{N}S_i}{\sum_{i=1}^{N}O_i}\)</span></td>
+<td>Each confirmed opportunity contributes once to the pooled totals.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The station-balanced rate asks how consistently the Target succeeded across stations, giving each identity equal weight. The opportunity-level rate asks what fraction of all their confirmed opportunities succeeded. An empty qualifying population has no rate.</p>
+<p><strong>Example.</strong> Two qualifying stations have <strong>90 successes out of 100 opportunities</strong> and <strong>5 out of 10</strong>. Their rates are 90% and 50%, so the station-balanced rate is <strong>70%</strong>. Pooling gives <strong>95 / 110 = 86.4%</strong>: 95 successes and 15 misses, each counted once. The pooled rate is higher because the more successful station supplied more opportunities. The two values answer different weighting questions.</p>
+<p><a id="sec-7-performance-reach"></a></p>
+<h5>8.3.3 At-least-once Peer Reach</h5>
+<p><strong>At-least-once Peer Reach</strong> measures breadth. Let <span class="math">\(N\)</span> be the number of qualifying remote identities and <span class="math">\(H\)</span> the number of those identities with at least one Target success:</p>
+<p><span class="math">\[\text{Reach (\%)}=100\times\frac{H}{N}\]</span></p>
+<p>An identity with one success and one with many successes each contribute one to <span class="math">\(H\)</span>. Both stations in the preceding example succeeded, so their Reach is <strong>100%</strong>, despite different Decode Rates. There is no Reach percentage when no identities qualify.</p>
+<p>Adding observations cannot undo an earlier success for a fixed population. The qualifying population can change between runs, however, so reported Reach need not increase when the measurement window becomes longer.</p>
+<p><a id="sec-7-performance-snr"></a></p>
+<h5>8.3.4 Successful Target SNR</h5>
+<p>Successful Target SNR describes retained successful decodes after power normalization and strongest-report consolidation. Misses have no measured Target SNR. Adding marginal decodes can lower a successful-SNR summary even when reception and reach improve, so read SNR alongside Decode Rate and counts.</p>
+<p>The temporal overview compares each path with its own usual successful level; selected-station evidence shows its normalized SNR values. <a href="/en/documentation/sec-7/#sec-7-view-time">Sections 8.4.3</a> and <a href="/en/documentation/sec-7/#sec-7-view-station">8.4.5</a> define those different summaries. Performance describes conditional behavior within the observed network, rather than unconditional receiver sensitivity, success over every attempted transmission or absolute station efficiency.</p>
+<p><a id="sec-7-views"></a>
+<a id="sec-7-8"></a></p>
+<h4>8.4 Scope and summaries across space and time</h4>
+<p>The same evidence can answer different questions depending on what receives equal weight. A map usually compares stations; a Spot-pair distribution compares observations; a folded hourly view can combine several dates. The following rules define those distinctions.</p>
+<p><a id="sec-7-view-scope"></a>
+<a id="sec-7-9"></a></p>
+<h5>8.4.1 Scope, geography and filters</h5>
+<p>Distance and azimuth use the configured Target QTH and reported peer locators on a spherical Earth of radius <strong>6 371 km</strong>. The azimuthal equidistant map is centered on Target QTH, with distance boundaries at <strong>2 500</strong>, <strong>5 000</strong>, <strong>10 000</strong>, <strong>15 000</strong>, <strong>20 000</strong> and <strong>22 000 km</strong>, and <strong>22.5-degree</strong> direction sectors. Locators describe grid cells, not measured antenna positions; these calculations are not survey-grade positioning or take-off-angle measurements.</p>
+<p><strong>Maximum peer distance from Target</strong> excludes stations <strong>at or beyond</strong> the chosen limit before scientific aggregation and processed-evidence export. Inspector selections narrow the displayed or summarized scope <strong>within the retained population</strong>; they neither discard completed-run evidence nor restore excluded stations.</p>
+<p>For Performance, Target activity is established globally before geographic filtering. Moving-station exclusion likewise identifies changing-location callsigns in the otherwise eligible global population before applying the distance limit.</p>
+<p>Solar classification uses solar elevation at <strong>Target QTH at the WSPR-cycle timestamp</strong>. It describes conditions at the Target, not illumination along the complete radio path or at every remote endpoint. <a href="/en/documentation/sec-6/#sec-6-6">Section 11.6</a> explains database retrieval limits and source-population controls.</p>
+<p><a id="sec-7-view-geography"></a>
+<a id="sec-7-8-1"></a></p>
+<h5>8.4.2 Geographic summaries</h5>
+<p><strong>Benchmark</strong> segment evidence counts include all observed identities in the active geographic scope; ΔSNR summaries use only qualifying identities. Sorting or filtering the station table, or selecting a row, does not redefine that segment population. The ΔSNR map uses the median of qualifying station medians; the ΔDecode map uses pooled total-decode advantage. <a href="/en/documentation/sec-7/#sec-7-benchmark-aggregation">Section 8.2.3</a> defines both, including the separate Spot-pair distribution.</p>
+<p><strong>Performance distance profiles</strong> group stations by their calculated distance from Target QTH. Bin width follows the configured maximum peer distance:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Maximum peer distance</th>
+<th>Distance-bin width</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2 500 km</td>
+<td>250 km</td>
+</tr>
+<tr>
+<td>5 000 km</td>
+<td>500 km</td>
+</tr>
+<tr>
+<td>10 000 km</td>
+<td>1 000 km</td>
+</tr>
+<tr>
+<td>15 000 km</td>
+<td>1 500 km</td>
+</tr>
+<tr>
+<td>20 000 or 22 000 km</td>
+<td>2 500 km</td>
+</tr>
+</tbody>
+</table></div>
+<p>Changing the Inspector's selected distance range retains that width. Bin edges are anchored at integer multiples from <strong>0 km</strong>, with the last bin shortened where necessary to end at the configured maximum. The final selected upper boundary is included <strong>among already-retained peers</strong>; this does not override the scientific maximum-distance exclusion. Gaps between disjoint selected ranges remain gaps, not zero-evidence bins.</p>
+<p>Each distance bin reports at-least-once Reach, both Decode Rate weightings and successful Target SNR. For SNR, first take each contributing station's median successful value, then the median of those station medians. Stations with only Misses contribute no synthetic SNR.</p>
+<p>An <strong class="defined-term">interquartile range (IQR)</strong> is the difference between the upper and lower quartiles, Q3 and Q1. The plotted <strong>Q1–Q3 interval</strong> spans the middle half of the contributing station medians. It is shown with <strong>five or more</strong> medians. With <strong>two</strong>, a <strong class="defined-term">min–max interval</strong> spans the two values; with <strong>one, three or four</strong>, the median is shown without a spread interval.</p>
+<p><a id="sec-7-view-time"></a>
+<a id="sec-7-8-3"></a></p>
+<h5>8.4.3 Chronological evidence</h5>
+<p><strong>Chronological views preserve the sequence of the run.</strong> Bins start at the selected UTC start and use the chosen width; the final bin can be shorter. Empty intervals remain missing evidence, not invented <strong>0 dB</strong> or <strong>0%</strong> observations. The usual offered widths and defaults depend on the complete run duration, not the span of observed reports. A valid saved choice can remain available outside those usual choices; see <a href="/en/documentation/sec-5/#sec-5-5">Section 10.5</a>.</p>
+<p><strong>Benchmark ΔSNR</strong> pools retained spot pairs from qualifying stations within each bin and shows their median and distribution. Frequently observed paths can therefore contribute more pairs than others. Coverage separately retains all eligible Paired and one-sided outcomes and distinct-station presence, using the two advantage metrics in <a href="/en/documentation/sec-7/#sec-7-benchmark-coverage">Section 8.2.4</a>. An empty ΔSNR layer can coexist with non-qualifying Paired or one-sided evidence; it does not prove that the database returned no reports.</p>
+<p><strong>Performance successful-SNR deviation</strong> compares each station with its own usual successful level. A station needs at least <strong>three successful normalized observations</strong> in the complete run window. Their median is its baseline; subtract that baseline from each successful SNR. For example, <strong>−7 dB</strong> against a <strong>−10 dB</strong> baseline gives a <strong>+3 dB deviation</strong>. Zero means that path's usual successful level, not Target–Reference equality.</p>
+<p>Within each chronological bin, a station contributes at most one median deviation. The displayed median then summarizes those station-bin medians, giving each contributing station one value.</p>
+<p><strong>Performance support</strong> uses all confirmed opportunities from qualifying stations, including stations with too few successes for an SNR baseline. Within a chronological bin, each contributing station supplies one unit of support, split according to its Decode Rate. A <strong>40%</strong> station rate contributes <strong>0.4</strong> success support and <strong>0.6</strong> Miss support. The total counts station participation; its success fraction reproduces the station-balanced Decode Rate. Opportunity support instead counts every confirmed opportunity, so its success fraction reproduces the Opportunity-level Decode Rate.</p>
+<p><a id="sec-7-view-folding"></a></p>
+<h5>8.4.4 Combining dates by UTC hour</h5>
+<p><strong class="defined-term">UTC-hour folding</strong> combines observations from the same clock hour across dates. It shows an hour-of-day association while removing the sequence of individual dates. It is separate from chronological binning: with a <strong>12:17 UTC</strong> start, a <strong>1h</strong> chronological bin spans <strong>12:17 to 13:17</strong>, while folding groups observations by clock hours such as <strong>12:00 to 13:00</strong>, using only the part inside the selected window.</p>
+<p>Different layers combine their evidence differently:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What contributes at one UTC hour</th>
+<th>How it is summarized</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Benchmark ΔSNR</strong></td>
+<td>Retained spot pairs from qualifying stations across represented dates.</td>
+<td>Median and distribution of the pooled pairs; frequently observed paths contribute more values.</td>
+</tr>
+<tr>
+<td><strong>Performance SNR deviation</strong></td>
+<td>One median deviation per station, date and hour.</td>
+<td>The median and distribution of those values. Stations present on more dates, and dates containing more stations, contribute more values.</td>
+</tr>
+<tr>
+<td><strong>Performance station-balanced Decode Rate</strong></td>
+<td>Each station's successes and opportunities pooled across dates at that hour.</td>
+<td>Calculate each station's rate, then average the station rates equally.</td>
+</tr>
+<tr>
+<td><strong>Performance Opportunity-level Decode Rate</strong></td>
+<td>All confirmed successes and opportunities of the qualifying stations at that hour.</td>
+<td>Divide pooled successes by pooled opportunities.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Extra observations within one station/date/hour do not add weight to the Performance SNR-deviation layer. Its weighting is nevertheless <strong>not equal weighting of stations or dates over the whole run</strong>, and it differs from the station-balanced rate.</p>
+<p><strong>Folded views require evidence from at least two represented dates.</strong> For Performance, a represented date has at least one qualifying confirmed opportunity somewhere in the active scope and selected window. Those opportunity dates enable both support and SNR panels; usable SNR can occur on fewer dates. Benchmark coverage uses dates with any retained outcome; its ΔSNR layer separately needs dates with retained finite paired ΔSNR from qualifying stations. Thus one date with pairs and a second with only one-sided outcomes can enable folded coverage without enabling folded ΔSNR.</p>
+<p><strong>Folded support bars are averages over included date-hour slots.</strong> A represented date's clock hour counts in the denominator whenever it overlaps the selected window, even if that hour has no evidence. Hours outside the window do not count. A partly overlapping boundary hour counts as <strong>one complete slot</strong>, without weighting by the minutes covered, so its average can be depressed.</p>
+<p>For Performance, total station support is the number of station/date/hour presences divided by that slot count. Its success/Miss split uses that hour's station-balanced Decode Rate, calculated from each station's pooled successes and opportunities. Opportunity support is the pooled opportunity count divided by the same denominator. For example, if two represented dates have <strong>six</strong> and <strong>zero</strong> opportunities in one included hour, its average support is <strong>three</strong>. The second date must have relevant evidence elsewhere to be represented. This averaging creates no extra misses: Decode Rate still uses the confirmed opportunities.</p>
+<p><strong>Benchmark coverage keeps each date's station classifications separate.</strong> Classify each identity within each UTC date and hour, sum the daily <strong>Both observed</strong>, <strong>Only Target</strong> and <strong>Only Reference</strong> counts, then divide by the represented date-hour count for the upper bars. A station seen only by Target on Monday and only by Reference on Tuesday does not become Both observed on either date. The Station Reach Advantage line uses the sums of the daily Target and Reference station totals, not an average of daily ratios.</p>
+<p>The lower bars similarly divide pooled native outcome counts by the represented date-hour count. Their ΔDecode line uses pooled decode totals across dates. Neither line unions station membership across the whole period or averages the daily advantage values.</p>
+<p>Check the chronological view before calling an hour-of-day pattern recurrent; folding does not show that it occurred on every date.</p>
+<p><a id="sec-7-view-station"></a>
+<a id="sec-7-8-4"></a></p>
+<h5>8.4.5 Selected Station Evidence</h5>
+<p>Selected Station Evidence normally follows <strong>one exact remote identity</strong>. Selection does not change upstream matching or eligibility. In <strong>Benchmark</strong>, it uses that identity's full completed-run evidence, independently of Inspector geography and the optional station-list filter. <strong>Performance</strong> retains its active-scope behavior. An explicit Drill-Down focus can narrow the displayed interval.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Analysis</th>
+<th>Selected-station summaries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Benchmark</strong></td>
+<td>Chronological and folded ΔSNR summaries require the station to meet its spot-pair minimum over the full filtered period. Coverage separately retains Only Target, all Paired observations in one green category, and Only Reference. Its curve is that station's pooled ΔDecode, using the same signed ratio axis as the segment's Spot-level row.</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Chronological SNR uses actual normalized successful Target values; folded SNR uses one date-hour median per represented date. Success/Miss counts and Decode Rate describe that same path. With one station, both Decode Rate weightings coincide within a populated bin, although station presence and opportunity volume remain different support counts.</td>
+</tr>
+</tbody>
+</table></div>
+<p>When outlier reporting is enabled, Benchmark can also select <strong>multiple identities</strong> and pool their qualifying spot pairs for ΔSNR. This gives each pair equal weight, not each path. ΔDecode Temporal Coverage is available only when <strong>one path</strong> is selected. Selection, station-list filtering and zoom do not recalculate qualification or rerun detection.</p>
+<p><strong>Focused Drill-Down shows native retained observations:</strong> one consolidated paired ΔSNR value for Benchmark, or one successful normalized Target SNR for Performance, at its actual WSPR-cycle time. These processed points are distinct from temporal-bin medians and density summaries; they are not untouched database rows. In Benchmark, retained pair rows remain available below the station minimum, but the focused ΔSNR plot also requires the station to qualify over the full filtered period.</p>
+<p><strong>Outlier Focus</strong> can include the candidate and its full supported baseline periods before and after, even when that exceeds an ordinary focus interval. It uses the completed detector result rather than fitting a new detector to the focused subset. Local baselines and departure guides apply to that candidate; they are not confidence intervals or independent qualification tests. Changing focus or display bins changes the view, not the completed scientific result.</p>
+<p><a id="sec-7-view-spread"></a>
+<a id="sec-7-8-5"></a></p>
+<h5>8.4.6 Spread and display scales</h5>
+<p><strong>Spread is not confidence.</strong> A Q1–Q3 band spans the middle half of the contributing values; a min–max interval spans their full range. Neither is a confidence interval.</p>
+<p>In temporal views, median markers remain available from <strong>one</strong> contributing value. Adjacent bin medians connect only when <strong>each bin has at least three</strong> values. An IQR band spans adjacent bins only when <strong>each has at least five</strong>; isolated supported bins have no band, and unsupported bins break the connections. Depending on the view, those values are spot pairs, successful Target observations, station-bin medians or station/date/hour medians. Performance distance profiles instead use the station-median rules in <a href="/en/documentation/sec-7/#sec-7-view-geography">Section 8.4.2</a>, including the two-station min–max interval.</p>
+<p><strong><strong class="defined-term">Density colors</strong> are relative within each panel.</strong> The most populated cell is assigned <strong>100</strong>, and other cells are scaled in proportion to its count. This does not mean that the cell contains 100% of the evidence. Use the accompanying support counts to compare absolute volume between panels.</p>
+<p><strong>ΔSNR map colors.</strong> Symmetric color limits adapt to the qualifying segment values. Compare the numerical legends across runs.</p>
+<p><strong>ΔSNR binning and axes.</strong> Benchmark histograms normally use <strong>1 dB</strong> bins, use <strong>0.5 dB</strong> for a clear half-dB lattice, and coarsen broad ranges. Temporal density cells remain <strong>1 dB</strong> high and shift with Reference correction. For the same retained population, the cells and observations move together while cell counts and relative colors stay unchanged. Display binning neither rounds the retained observations nor changes their statistics; fractional observations need not lie at cell centers.</p>
+<p>Benchmark ΔSNR temporal and histogram axes can compress the tails around the scope median while keeping absolute <strong>0 dB</strong> visible. Read the labeled dB coordinates rather than estimating differences from spacing. Histogram bar <strong>length against the percentage axis</strong>, not displayed area, gives the share. These display transforms change neither values nor counts, medians or quartiles. Performance successful-SNR axes remain linear in dB.</p>
+<p><strong>ΔDecode ratio legend.</strong> <strong>2×</strong> on the Target side means twice as many Target decodes as Reference; <strong>2×</strong> on the Reference side reverses that comparison. Blue favors Reference; warm colors favor Target. The center <strong>1×</strong> marks exact equality, but its central color band also contains near-equal ratios below the first boundary on either side. That band does not establish statistical equivalence.</p>
+<p>The legend chooses the finest preset that covers the largest finite advantage among the <strong>visible, supported segments</strong>, using the larger setup total divided by the smaller. Exclusive reception uses preset C. Preset selection changes presentation only, not the decode totals, their ratio or qualification.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Ratio boundaries on each side of 1×</th>
+<th style="text-align: right;">Covers largest finite ratio up to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AA</td>
+<td>1.05×, 1.10×, 1.15×, 1.20×, 1.25×</td>
+<td style="text-align: right;">1.25×</td>
+</tr>
+<tr>
+<td>A</td>
+<td>1.25×, 1.5×, 1.75×, 2×, 2.5×, 3×</td>
+<td style="text-align: right;">3×</td>
+</tr>
+<tr>
+<td>B</td>
+<td>1.25×, 1.5×, 2×, 3×, 5×, 10×</td>
+<td style="text-align: right;">10×</td>
+</tr>
+<tr>
+<td>C</td>
+<td>1.25×, 2×, 3×, 5×, 10×, ≥20×</td>
+<td style="text-align: right;">Larger ratios and exclusive reception</td>
+</tr>
+</tbody>
+</table></div>
+<p>For preset C, <strong>≥20×</strong> includes large finite ratios. <strong>Exclusive</strong> means the other setup has zero decodes; it is not a finite ratio of 20. Boundaries describe color intervals — for example, <strong>1.5×–1.75×</strong> is one band. Equal-width swatches are categories, not a linear ratio scale. Read the numerical boundaries across runs: matching color intensities under different presets need not represent matching advantages.</p>
+<p><a id="sec-7-claims"></a>
+<a id="sec-7-10"></a></p>
+<h4>8.5 How strong is the conclusion?</h4>
+<p><strong class="defined-term">Descriptive statistics</strong> summarize the observations retained in a run. <strong class="defined-term">Statistical inference</strong> uses observations and justified assumptions to estimate behavior beyond those observations, often with a measure of uncertainty. A correct descriptive result does not by itself establish how a station will perform in a new period or what caused the difference. Assess the support and experimental design before extending the claim; <a href="/en/documentation/sec-8/#sec-8">Chapter 9</a> provides wording examples.</p>
+<p><a id="sec-7-dependence-bias"></a></p>
+<h5>8.5.1 Dependence and bias</h5>
+<p><strong>1 000 spots are not 1 000 independent experiments.</strong> Repeated cycles share equipment and propagation; nearby stations share conditions; neighboring time bins are related; one interference or ionospheric event can affect many observations. The two phases of an extended-WSPR sequence add observations within a run, not independent experimental repetitions.</p>
+<p>Station balancing reduces domination by prolific reporters, and medians reduce sensitivity to isolated extremes. Neither removes systematic calibration errors, reporting differences or propagation bias, or creates independence.</p>
+<p><strong>A descriptive mean or standard deviation does not require Gaussian data.</strong> A mean describes an arithmetic average; standard deviation describes spread around that mean. Both can summarize a finite observed dataset without assuming a normal, bell-shaped distribution. Their usefulness depends on the quantity being summarized and the distribution's tails or extreme values. A median describes the middle value, and IQR measures the width of the middle half; these answer different questions and are less sensitive to extreme magnitudes. Choose the statistic for the intended quantity, rather than treating a non-normal distribution as a reason that a mean is invalid <a href="/en/documentation/sec-ref/#ref-30">[Ref-30]</a>.</p>
+<p>Estimating uncertainty beyond the retained observations requires a justified sampling and dependence model. Non-normality alone does not make inference impossible. WSPRadar does not supply standard errors, confidence intervals, p-values, statistical power or causal-effect estimates. Treating related reports as independent would generally understate uncertainty about future performance or a broader population.</p>
+<p><a id="sec-7-repeatability-control"></a></p>
+<h5>8.5.2 Repeatability and experimental control</h5>
+<p>Assess support at several levels:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Check</th>
+<th>What to examine</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Evidence depth</strong></td>
+<td>Confirmed opportunities or spot pairs per contributing identity.</td>
+</tr>
+<tr>
+<td><strong>Breadth</strong></td>
+<td>Number and geographic diversity of station identities and paths.</td>
+</tr>
+<tr>
+<td><strong>Internal consistency</strong></td>
+<td>Whether different weightings, geographic selections and time views tell a compatible story.</td>
+</tr>
+<tr>
+<td><strong>Repeatability</strong></td>
+<td>Whether the pattern appears in a new run under comparable, documented conditions.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Experimental control</strong></td>
+<td>Calibration, crossover or reversed assignments, schedule reversal, and independent measurements that test alternative explanations.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Agreement among views of the same observations establishes internal consistency, not replication. <a href="/en/documentation/sec-8/#sec-8">Chapter 9</a> explains how to match the wording of a conclusion to this support.</p>
+<p><a id="sec-7-validation"></a></p>
+<h5>8.5.3 Validation scope</h5>
+<p>Software-validation statistics also need context. Identify the dataset, test date, WSPRadar version or source revision, and calculation method. A dated check establishes what was assessed for that test; it is not a general guarantee for every station, period or dataset.</p>
+<p><a id="sec-7-outliers"></a>
+<a id="sec-7-11"></a></p>
+<h4>8.6 Experimental ΔSNR event analysis</h4>
+<p><strong>This experimental, optional detector identifies temporary departures from a path's usual local ΔSNR.</strong> It is an expert diagnostic, not a required analysis step. <a href="/en/documentation/sec-3/#sec-outlier">Section 2.5</a> explains its use and <a href="/en/documentation/sec-5/#sec-5-6">Section 10.6</a> gives the controls. This overview explains the scientific interpretation and principal checks, rather than every algorithmic refinement.</p>
+<p><a id="sec-7-outlier-departure"></a></p>
+<h5>8.6.1 Departure from the local baseline</h5>
+<p>The detector uses native spot pairs from stations eligible for paired ΔSNR summaries, separately for each exact remote callsign-plus-full-locator identity. Native evidence has already undergone matching, consolidation and scientific filtering. Detection uses actual WSPR-cycle times before display aggregation; changing a plot's time-bin width does not change the events. With reporting off, the detector does not run.</p>
+<p><strong>Departure is ΔSNR minus its local baseline.</strong> Against a <strong>+8 dB</strong> baseline, a <strong>+1 dB</strong> spot pair has departure <strong>+1 − (+8) = −7 dB</strong>. Target still has higher SNR, but its advantage is 7 dB below the local baseline. A change in Target, Reference or both can produce that departure.</p>
+<p>Candidate grouping follows the departure's sign, not the sign of ΔSNR relative to zero.</p>
+<p><a id="sec-7-outlier-baseline"></a></p>
+<h5>8.6.2 Baseline and nearby variability</h5>
+<p>A <strong class="defined-term">baseline flank</strong> is the surrounding evidence on one side of a candidate. WSPRadar calculates median ΔSNR in populated <strong>UTC-aligned 10-minute cells</strong>, using evidence up to <strong>six hours before and after</strong> the candidate. It excludes the candidate and a surrounding guard interval, keeping that nearby gap out of the baseline.</p>
+<p>Each flank needs <strong>at least four populated cells</strong>. Its baseline is the median of its cell medians. The expected local ΔSNR is then the <strong>average of the two flank baselines</strong>, giving before and after equal weight. Missing cells are not filled; insufficient support on either side leaves the candidate unclassified.</p>
+<p>To measure nearby variation, subtract each flank's baseline from its cell medians and pool these <strong class="defined-term">residuals</strong> — the remaining deviations about the respective flank. Their <strong class="defined-term">median absolute deviation (MAD)</strong> is the median absolute distance from the pooled residuals' median.</p>
+<p>The <strong class="defined-term">robust scale</strong> is selected as follows:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Scale used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MAD is greater than zero</td>
+<td>MAD</td>
+</tr>
+<tr>
+<td>MAD is zero but IQR is greater than zero</td>
+<td>Half the IQR</td>
+</tr>
+<tr>
+<td>Both MAD and IQR are zero</td>
+<td><strong>0.5 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The IQR here is also calculated from the pooled residuals. The 0.5 dB fallback is <strong>not a universal minimum</strong>.</p>
+<p>The dimensionless robust z-score is <strong>0.6745 × departure / robust scale</strong>. A <strong>−7 dB</strong> departure with a <strong>1 dB</strong> scale scores about <strong>−4.72</strong>. It describes the departure relative to nearby variation; it is not a probability or statistical significance level.</p>
+<p><a id="sec-7-outlier-qualification"></a></p>
+<h5>8.6.3 Candidate qualification</h5>
+<p>Nearby same-sign departures form provisional candidates using the path's observed evidence cadence — the spacing of its retained timestamps. Final qualification uses a local baseline fitted with the <strong>complete candidate excluded</strong>.</p>
+<p>The event's <strong>median departure</strong> is the median of its spot-pair ΔSNR values after subtracting that local baseline. It is not the magnitude of the observed median ΔSNR. All four checks below must pass:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Required check</th>
+<th>Passing condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Absolute departure</strong></td>
+<td>The magnitude of the event's median departure reaches <strong>Minimum absolute ΔSNR departure (dB)</strong>, allowing <strong>0.01 dB</strong> tolerance.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Relative departure</strong></td>
+<td>Its absolute robust z-score reaches <strong>Minimum robust z-score</strong>, without tolerance.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Baseline agreement</strong></td>
+<td>The before/after flank medians differ by no more than <strong>Maximum pre/post baseline difference (dB)</strong> plus <strong>0.01 dB</strong>.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Sign agreement</strong></td>
+<td>At least <strong>two thirds of the candidate's retained native spot pairs with finite ΔSNR</strong>, including intervening pairs retained within the candidate in the denominator, share the median departure's sign.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Baseline agreement tests agreement of the two medians, not low background variability. The dB tolerance affects comparisons, not stored observations or statistics. Duration gives no weaker threshold, and a single large point cannot replace the event-median checks.</p>
+<p><strong>One-sided timestamps have a limited role.</strong> The cadence estimate uses all retained Paired and one-sided timestamps for an identity eligible for paired summaries; it does not verify the physical operating schedule. A scientific change that retains additional one-sided observations can therefore change estimated cadence, permitted candidate gaps and baseline guard intervals. Grouping, baseline support and qualification can change even if every paired ΔSNR value is unchanged.</p>
+<p>One-sided observations supply neither detector ΔSNR nor a vote in sign agreement. Display-only visibility changes do not alter the retained timestamps or rerun detection.</p>
+<p><a id="sec-7-outlier-boundaries"></a></p>
+<h5>8.6.4 Boundaries and event classes</h5>
+<p>Reported boundaries must be same-sign spot-pair observations that individually pass <strong>both</strong> departure thresholds. The interval is trimmed to these strong anchors and retested against the event-level requirements; weaker interior observations can remain. If a smaller strong core is retained, it keeps the complete candidate's baseline, scale and support rather than choosing a more favorable baseline. If no anchored interval qualifies, no event is reported.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Event class</th>
+<th>Retained spot pairs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="defined-term">Spot impulse</strong></td>
+<td>One spot pair.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Sustained excursion</strong></td>
+<td>At least three spot pairs spanning at least <strong>30 minutes</strong>.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Short burst</strong></td>
+<td>Every other event containing two or more spot pairs.</td>
+</tr>
+</tbody>
+</table></div>
+<p>All classes pass the same checks. The span from first to last observation describes retained evidence, not uninterrupted behavior between observations or the duration of an unseen physical event.</p>
+<p><a id="sec-7-outlier-context"></a></p>
+<h5>8.6.5 Context and limits</h5>
+<p>Each path qualifies separately. Grouping nearby same-sign events across paths provides review context — path-specific, directionally coherent, scope-wide or multiple paths. It adds neither significance nor stronger qualification.</p>
+<p>Target/Reference decomposition and nearby one-sided counts attached <strong>after qualification</strong> help investigate a candidate. These attached diagnostics cannot qualify, extend or strengthen it. This is separate from the earlier use of one-sided timestamps in the cadence estimate, explained in <a href="/en/documentation/sec-7/#sec-7-outlier-qualification">Section 8.6.3</a>.</p>
+<p>The detector is deterministic and descriptive. It supplies no multiple-event significance correction, and event counts are not independent samples. Assigning a cause still requires the experimental controls discussed in <a href="/en/documentation/sec-3/#sec-3">Chapter 2</a>, <a href="/en/documentation/sec-4/#sec-4">Chapter 3</a> and <a href="/en/documentation/sec-8/#sec-8">Chapter 9</a>.</p><nav class="doc-actions" aria-label="Documentation"><a href="/en/documentation/sec-d/">Previous: 7. Literature, Prior Art and Positioning</a><a href="/en/documentation/sec-8/">Next: 9. Evidence-Matched Claims and Reproducibility</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

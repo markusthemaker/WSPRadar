@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="7. Literature, Prior Art and Positioning · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/documentation/sec-d/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>7. Literature, Prior Art and Positioning · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/documentation/sec-d/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-d/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-d/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation" aria-current="page">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/documentation/sec-d/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/en/documentation/">Documentation</a> / 7. Literature, Prior Art and Positioning</p><div class="reader-layout"><details class="reader-index" open><summary>Documentation</summary><a class="part-link" href="/en/documentation/sec-1/">Part 0: Why WSPRadar</a><a class="chapter-link" href="/en/documentation/documentation-toc/">Table of Contents</a><a class="part-link" href="/en/documentation/part-i/">Part I: Operator Guide</a><a class="chapter-link" href="/en/documentation/sec-2/">1. Choose and Prepare the Analysis</a><a class="chapter-link" href="/en/documentation/sec-3/">2. Run and Interpret Your Analysis</a><a class="chapter-link" href="/en/documentation/sec-4/">3. Strengthen and Communicate Your Result</a><a class="part-link" href="/en/documentation/part-iv/">Part II: Practical Setup Guide</a><a class="chapter-link" href="/en/documentation/sec-a/">4. Parallel WSJT-X Instances for Simultaneous RX</a><a class="chapter-link" href="/en/documentation/sec-simultaneous-tx-setup/">5. Simultaneous TX Reference Setup</a><a class="chapter-link" href="/en/documentation/sec-b/">6. Reference SNR Calibration</a><a class="part-link" href="/en/documentation/part-iii/">Part III: Scientific Foundations, Methods and Claims</a><a class="chapter-link" aria-current="page" href="/en/documentation/sec-d/">7. Literature, Prior Art and Positioning</a><a class="chapter-link" href="/en/documentation/sec-7/">8. Scientific Methods</a><a class="chapter-link" href="/en/documentation/sec-8/">9. Evidence-Matched Claims and Reproducibility</a><a class="part-link" href="/en/documentation/part-ii/">Part IV: Controls and Troubleshooting</a><a class="chapter-link" href="/en/documentation/sec-5/">10. Controls and Configuration</a><a class="chapter-link" href="/en/documentation/sec-6/">11. Troubleshooting and Data Quality</a><a class="part-link" href="/en/documentation/sec-ref/">Part V: References</a><a class="part-link" href="/en/documentation/sec-8-5/">Experimental Use &amp; Disclaimer</a></details><article class="prose"><p><a id="sec-d"></a></p>
+<h1>7. Literature, Prior Art and Positioning</h1>
+<p>WSPR experimentation rests on contributions from radio amateurs, researchers, software developers and the volunteers who operate the reporting network. Earlier work established practical ways to compare installations, investigate reception problems and study propagation.</p>
+<p>This chapter gives selected contributors credit for their methods and findings. The <strong>Use in WSPRadar</strong> statements explain our design relationship to that work; they are our interpretations, not endorsements by the cited authors. A technical report, a controlled experiment and a software service contribute different kinds of evidence.</p>
+<p>Three lessons recur: compare under shared conditions, establish activity before interpreting silence, and examine the complete station before attributing a difference to its antenna.</p>
+<p><a id="sec-d-1"></a></p>
+<h4>7.1 From reporting network to experimental dataset</h4>
+<p><strong>Joe Taylor, K1JT, and Bruce Walker, W1BW: a shared experimental resource.</strong> Taylor introduced WSPR in 2008; Walker developed WSPRnet to collect and share reception reports. Their 2010 article showed how those reports could support propagation experiments. One example grouped three weeks of 30 m observations into 15-minute UTC intervals: averaging revealed recurring reception patterns that were difficult to judge from individual transmissions. Station operators supplied the distributed observations, while the protocol, software and reporting service made them accessible. The reports still reflected the participating equipment, locations and operating schedules. <a href="/en/documentation/sec-ref/#ref-6">[Ref-6]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> preserve this connection between reported observations and the question being asked. Geographic and time summaries organize the evidence, while the selected period and participating stations remain part of its meaning.</p>
+</blockquote>
+<p><strong>Nathaniel Frissell and collaborators: amateur observations in space science.</strong> Their 2019 study compared amateur-network reports during the September 2017 solar activity with a quiet-time baseline. It identified HF communication blackouts associated with flares and changes during geomagnetic disturbances, using the baseline to distinguish event responses from ordinary variations. <a href="/en/documentation/sec-ref/#ref-13">[Ref-13]</a></p>
+<p>Their 2022 study used WSPRnet, Reverse Beacon Network and PSKReporter observations from 3 November 2017. Approximately 2.5-hour fluctuations in communication distance agreed with SuperDARN radar and satellite-navigation measurements of ionospheric electron content, supporting an interpretation as large-scale traveling ionospheric disturbances. The independent measurements were part of the evidence for that physical explanation. <a href="/en/documentation/sec-ref/#ref-14">[Ref-14]</a></p>
+<p>Their 2023 review places these amateur networks alongside purpose-built scientific instruments and recommends cross-calibration between networks. It recognizes the scientific value of accumulated observations without treating every contributing receiver as a calibrated instrument. <a href="/en/documentation/sec-ref/#ref-7">[Ref-7]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> examine geographic and temporal structure in context, then use independent observations or a controlled experiment to test a physical explanation. WSPRadar's plots help formulate and inspect such questions; they do not themselves identify an ionospheric cause.</p>
+</blockquote>
+<p><a id="sec-d-2"></a></p>
+<h4>7.2 Making observational WSPR data interpretable</h4>
+<p><a id="sec-d-lo"></a>
+<strong>Lo and collaborators, 2022: establish activity before interpreting silence.</strong> Their study used a full year of 2017 observations on 7 MHz between Europe and Australasia. Half-hour activity checks asked whether a transmitter was heard elsewhere and whether a receiver heard other stations. Reception from the UK to New Zealand occurred around UK sunrise and sunset; reception in the reverse direction was concentrated around UK sunrise, with UK-sunset reception especially sparse in summer. The authors proposed higher European evening noise as a possible explanation, rather than treating the asymmetry as propagation evidence alone. <a href="/en/documentation/sec-ref/#ref-9">[Ref-9]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> apply the activity-check principle when defining Performance opportunities. WSPRadar's own same-cycle rules establish which endpoints have activity evidence; they are a separate design choice from the study's half-hour checks. Missing reports without the required evidence remain unknown outcomes.</p>
+</blockquote>
+<p><strong>Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, and Glenn Elmore, N6GN, 2019–2020: measure noise alongside reception.</strong> Their 2019 report compared noise estimates from gaps between WSPR transmissions with frequency-domain estimates made during reception, and investigated calibration to the receiver's antenna input. At KPH, the 40 m noise record showed a daily minimum around local noon and greater evening/night variability. These measurements added information that ordinary SNR reports could not supply. The work was subsequently published in QEX in September/October 2020. <a href="/en/documentation/sec-ref/#ref-15">[Ref-15]</a> <a href="/en/documentation/sec-ref/#ref-16">[Ref-16]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> interpret an SNR change as a change in the signal-to-noise relationship. WSPRadar does not independently measure noise; distinguishing stronger signals from lower noise requires additional measurements or controlled station tests.</p>
+</blockquote>
+<p><a id="sec-d-3"></a></p>
+<h4>7.3 Antenna and station-comparison lineage</h4>
+<p><strong>Patrick Destrem, F6IRF, 2008: automated switching and geographic comparison.</strong> Destrem alternated a 30 m vertical and inverted-V every ten minutes and corrected reports to a common transmit power. These were <strong class="defined-term">interleaved measurements</strong>: the antennas were tested in alternating periods. He examined individual receivers and distance groups. The vertical's reported average advantage was about 4 dB on one approximately 14 000 km path, while the antennas were approximately equal on a 2 000 km path. The result depended on the path and installation; sequential measurements remained exposed to changing propagation. His follow-ups extended the investigation to reception and comparisons between stations. <a href="/en/documentation/sec-ref/#ref-17">[Ref-17]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> credit the early combination of power correction and geographic inspection. Compare directions and distances explicitly, while using concurrent pairs for ΔSNR and retaining one-sided reports as separate evidence.</p>
+</blockquote>
+<p><strong>Charles Preston, KL7OA, later K7TAA, 2009 and 2017: simultaneous comparison.</strong> Preston's March 2009 preliminary experiment used two colocated 2 W transmitters, a Buddipole and a horizontal loop on 30 m. Common distant receivers supplied simultaneous reports. Overall performance was similar in the short run, but the Buddipole stood inside the loop and antenna interaction limited the conclusion. Either transmission could also be reported alone; weak reception and frequency-specific interference were possible explanations. His report distinguished received SNR from signal strength. He later published <em>Antenna Comparisons Using Simultaneous WSPR Measurements</em> in QEX in July/August 2017; the preliminary report's June 2017 update points readers to that publication. <a href="/en/documentation/sec-ref/#ref-18">[Ref-18]</a> <a href="/en/documentation/sec-ref/#ref-19">[Ref-19]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> compare transmissions observed by the same receiver in the same cycle. Keep paired ΔSNR and one-sided decoding evidence distinct, and document the physical arrangements that bound the comparison.</p>
+</blockquote>
+<p><a id="sec-d-toledo"></a>
+<strong>Sivan Toledo, 2010: a useful negative result about timing.</strong> Toledo compared three loop antennas in successive blocks of approximately one hour. Reports changed substantially while he was still using the same antenna: one path varied by about 10 dB in forty minutes, and another receiver showed similar variability. Apparent differences between antennas were comparable with this background variation, so that experiment could not separate antenna performance from changing conditions. His account discussed automated switching and Preston's simultaneous approach as ways to improve the design. It was a limitation of the experiment, not a finding that WSPR comparisons are impossible. <a href="/en/documentation/sec-ref/#ref-3">[Ref-3]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> make the common operating period part of the comparison, inspect changes over time and repeat controlled tests. Collecting more reports does not by itself remove differences between the conditions being compared.</p>
+</blockquote>
+<p><a id="sec-d-milazzo"></a>
+<strong>Carol F. Milazzo, KP4MD, 2011: compare complete stations in both directions.</strong> Published in January 2011 using December 2010 measurements, Milazzo's study compared stations 29 km apart through a common receiver about 1 750 km away. She corrected for transmit-power differences and examined the results alongside VOACAP estimates. On 40 m, the horizontal-loop station generally produced stronger transmitted reports, while the vertical-antenna station received the common distant station with better SNR. Different sites, radios and band schedules remained part of the comparison, and the selected distant station limited its geographic scope. <a href="/en/documentation/sec-ref/#ref-4">[Ref-4]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> analyze TX and RX separately, make the power basis explicit and check common activity. A stronger transmitted report does not establish better reception; interpret each result as evidence about the complete installations and paths tested.</p>
+<p><strong>Explore in WSPRadar:</strong> the <a href="https://wspradar.org/en/demos/milazzo_tx_buddy/">Milazzo historical replay</a> revisits Figures 6 and 7 in RX and TX. It shows how exact cycle/locator matching and reported-power normalization can leave very few usable pairs despite larger report totals, and why unverified schedules limit comparisons of those totals. The prepared profile starts in RX; the guide also provides the TX configuration.</p>
+</blockquote>
+<p><a id="sec-d-griffiths-squibb"></a>
+<strong>Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, 2017: compare, investigate and retest.</strong> In <em>Improving HF Band SNR</em>, they paired reception of the same transmitter at the same time and examined differences against time, distance, soil moisture and station changes. After three ground radials were added at G4HZX, the earlier moisture association was absent in the following test window. Replacing and relocating a nearby computer also coincided with an approximately 5 dB SNR improvement. The precise noise mechanism was unresolved, and both observations concerned complete receiving installations. The recorded changes made the comparisons useful for diagnosis without proving a universal antenna effect. <a href="/en/documentation/sec-ref/#ref-5">[Ref-5]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> use paired receiver comparisons and temporal or distance views alongside an operator's station log. Treat a pattern as a reason for a targeted intervention and repeat measurement, with causal claims proportional to the controls.</p>
+<p><strong>Explore in WSPRadar:</strong> three prepared configurations revisit these historical reports:</p>
+<ul>
+<li><a href="https://wspradar.org/en/demos/griffiths_squibb_fig3/"><strong>Figure 3: RX Benchmark</strong></a> follows the April 2017 G3ZIL/G4HZX comparison through maps, time summaries and individual paths. It shows how a paired-SNR advantage and additional decodes complement one another, while varying with direction and time.</li>
+<li><strong>Figure 6: UTC-hour comparison</strong> narrows the same receivers to 5–7 April. Its separate configuration shows an early-hour vertical advantage changing to a daytime/evening dipole advantage; comparing folded and chronological views tests how consistently the pattern appears. The Figure 3 guide also explains this reconstruction.</li>
+<li><a href="https://wspradar.org/en/demos/griffiths_squibb_rx_performance/"><strong>RX Performance</strong></a> examines G3ZIL alone. Follow HB0QRP to distinguish at-least-once reach, Decode Rate within confirmed opportunities, and SNR among successful decodes. This is WSPRadar's additional analysis of the historical reports, without a Reference receiver.</li>
+</ul>
+</blockquote>
+<p><a id="sec-d-vanhamel"></a>
+<strong>Vanhamel, Machiels and Lamy, 2022: characterize the receiving chains.</strong> Their 160 m experiment first connected two receiving chains to one antenna. Two seven-day calibration periods each produced a mean offset of about 1.2 dB, which they applied before comparing antennas simultaneously. With identical antennas placed at orthogonal orientations, they observed an SNR difference of approximately 3 dB in that installation. Polarization and ionospheric effects were discussed as possible explanations; the orientation result did not establish one physical cause. The calibration also made an equipment contribution visible before interpreting the antenna comparison. <a href="/en/documentation/sec-ref/#ref-2">[Ref-2]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> allow an independently measured receiving-chain offset to be expressed through the signed Reference correction, with its measurement procedure documented. Keep the corrected SNR comparison separate from claims about the antenna or polarization mechanism that produced it.</p>
+<p><strong>Explore in WSPRadar:</strong> two prepared comparisons separate calibration from the subsequent antenna experiment:</p>
+<ul>
+<li><a href="https://wspradar.org/en/demos/vanhamel_rx_calibration/"><strong>Receiver calibration</strong></a> leaves the shared-antenna receiving-chain offset visible, with no correction applied. It shows why the mean, spot-pair median and station-balanced median can differ, and why a correction needs a documented measurement basis.</li>
+<li><a href="https://wspradar.org/en/demos/vanhamel_rx_buddy/"><strong>Antenna rotation</strong></a> follows M7AEO while the Reference dipole turns 90° and the Target long wire stays fixed. The approximately 3 dB step favors the fixed long wire relative to the dipole. It shows why one path's chronological evidence can reveal a transition hidden by its whole-period median. The guide documents the separate calibration estimate used in this configuration.</li>
+</ul>
+</blockquote>
+<p><a id="sec-d-zander"></a>
+<strong>Jens Zander, 2022: state the comparison model and its assumptions.</strong> Zander's preprint models two local antennas transmitting simultaneously to common remote receivers. A same-receiver SNR difference cancels shared path loss and receiver noise under the model's assumptions; cross-calibration between those distant receivers is unnecessary for each within-receiver difference. His preliminary paired measurements had a sample standard deviation around 3 dB. The analysis considers interference, failed decodes, quantization and the precision gained by averaging, as well as directivity, geographic sampling and unknown elevation angles. Equal or corrected powers and differences between transmitting chains still matter. <a href="/en/documentation/sec-ref/#ref-1">[Ref-1]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> make same-cycle differencing and the reported-power basis explicit. WSPRadar defines its own qualification and aggregation rules; the preprint's uncertainty model is not automatically their uncertainty model, and observed ΔSNR does not directly measure absolute antenna efficiency.</p>
+<p><strong>Explore in WSPRadar:</strong> <a href="https://wspradar.org/en/demos/zander_tx_buddy/">Zander's TX comparison</a> revisits Experiment A / Figure 4, comparing a short portable vertical with the larger Hy-Gain AV620. It shows why station-balanced and pooled spot-pair summaries differ, how the result varies by direction, and why unequal reporting spans must be checked before interpreting decode totals. The short prepared window supports this experiment's observed comparison, not a daily pattern or a universal portable-antenna penalty.</p>
+</blockquote>
+<p><strong>Thomas Rietdorf, DL2OAH, 2026: a synchronized multiband station comparison.</strong> His DARC presentation of 17 January 2026 reports measurements from 12–21 January 2025. Synchronized transceivers compared a horizontal OCF/IC-7610 installation with a vertical/FT-991A installation in separate RX and TX runs on 40, 20, 15 and 10 m. Matched two-minute reports supported comparisons by time and direction, alongside one-sided reports. The presentation reports a 2.5–7 dB SNR advantage for the horizontal installation, depending on band, while maximum distances were approximately equal. Different radios and the distribution of remote stations limit attribution to the antennas alone. <a href="/en/documentation/sec-ref/#ref-20">[Ref-20]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> combine synchronized comparisons with several views of the evidence. Read paired SNR, one-sided decodes and geographic or temporal patterns together, retaining the complete-installation interpretation and the actual measurement dates.</p>
+</blockquote>
+<p><a id="sec-d-4"></a></p>
+<h4>7.4 Analysis infrastructure and related tools</h4>
+<p><strong>Gwyn Griffiths and Rob Robinett, 2020: reusable database analysis.</strong> Their WSPRdaemon TimescaleDB and Grafana work joined reports from the same transmitter, time and band, then displayed SNR differences with medians, quartiles, time, distance and azimuth. One example separated nighttime differences westward toward North America from daytime differences involving nearer stations. Noise measurements and exports gave operators further ways to investigate these patterns. The contribution included both the comparison method and a reusable route from stored observations to interpretable displays. <a href="/en/documentation/sec-ref/#ref-21">[Ref-21]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> continue that practice of inspecting common-signal differences in time and geography, with a route back to the contributing observations. WSPRadar's own grouping and weighting rules are specified in <a href="/en/documentation/sec-7/#sec-7">Chapter 8</a>.</p>
+</blockquote>
+<p><strong>Arne and the wspr.live project, with computing resources from HB9VQQ.</strong> Arne's ClickHouse database work provides public queries over historical and recent WSPR reports; dashboards and exports make those records usable by operators and other applications. The official service documentation credits <strong>HB9VQQ for computing resources</strong>. Phil VK7JJ's documentation also explicitly credits Arne's database contribution. <a href="/en/documentation/sec-ref/#ref-10">[Ref-10]</a> <a href="/en/documentation/sec-ref/#ref-22">[Ref-22]</a></p>
+<p><strong>Rob Robinett, AI6VN, and the WSPRdaemon community.</strong> Reception, multireceiver acquisition, reporting, database hosting and continued volunteer operation sustain these services. WSPRdaemon's documentation credits Arne's database development and the hosting collaboration. Its earlier TimescaleDB work and later ClickHouse services are distinct contributions. <a href="/en/documentation/sec-ref/#ref-11">[Ref-11]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> <strong>wspr.live is the primary database, with WSPRdaemon's WD2 and WD1 as alternatives</strong>. Each run uses one source. The developers, station operators, computing-resource providers and volunteer maintainers make this analysis possible; service availability and the quality of uploaded records remain part of the evidence context.</p>
+<p><strong>Our sincere thanks to everyone who sustains these services and contributes reports, computing resources and volunteer time.</strong> Your work gives the amateur-radio community a shared foundation for learning, experimentation and better station design.</p>
+</blockquote>
+<p>Other tools make complementary parts of experimentation accessible:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Contributor or project</th>
+<th>Practical contribution and relationship</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Phil, VK7JJ — WSPR.Rocks</strong></td>
+<td>Interactive queries, maps, charts, duplicate and passband inspection, plus Head2Head comparisons of receivers, transmitters or software versions. SpotQ supplies a heuristic ranking using distance, reported power and SNR. These are useful ways to explore reports; their metrics have their own definitions. <a href="/en/documentation/sec-ref/#ref-22">[Ref-22]</a></td>
+</tr>
+<tr>
+<td><strong>Richard Newstead and SOTABEAMS — WSPRlite/DXplorer</strong></td>
+<td>Standalone low-power beacons and accessible comparisons, including the DX10 range indicator. In Newstead's 2017 indoor/outdoor test, two loops transmitted simultaneously at 200 mW; 133 same-receiver, same-time pairs gave an average indoor disadvantage of 6.8 dB. <blockquote><strong>Use in WSPRadar:</strong> credit the practical paired-test design, while treating the value as a result for that installation and operating period.</blockquote> <a href="/en/documentation/sec-ref/#ref-23">[Ref-23]</a> <a href="/en/documentation/sec-ref/#ref-24">[Ref-24]</a></td>
+</tr>
+<tr>
+<td><strong>Walter Machiels, ON4AWM — WSPR-Station-Compare</strong></td>
+<td>An RX-comparison workflow with measured receiver-offset correction, observation thresholds, callsign filtering and azimuth selection. It makes controlled-comparison choices available in operator software. <a href="/en/documentation/sec-ref/#ref-25">[Ref-25]</a></td>
+</tr>
+<tr>
+<td><strong>Fred, W6BSD — Antenna Performance Analysis</strong></td>
+<td>Reports organizing where and when transmitted WSPR signals were received, across times and frequency bands. This makes an installation's observed coverage accessible without writing a custom analysis. <a href="/en/documentation/sec-ref/#ref-26">[Ref-26]</a></td>
+</tr>
+<tr>
+<td><strong>Colin Murray, GM4EAU — WATT</strong></td>
+<td>An editable Excel/VBA workflow for queries, filters, calculations, charts and map replay through successive time intervals, helping operators inspect changing propagation patterns. <a href="/en/documentation/sec-ref/#ref-27">[Ref-27]</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>These tools overlap in purpose, but their filters, comparison units and summaries differ. Check the quantity behind a figure before comparing its value with a WSPRadar result.</p>
+<p><a id="sec-d-5"></a></p>
+<h4>7.5 What WSPRadar inherits, integrates and adds</h4>
+<p>WSPRadar brings these experimental lessons into a documented RX and TX workflow. Its deliberate choices are:</p>
+<ul>
+<li><strong>Define the comparison.</strong> Controlled Benchmark compares a Target with one Reference Setup/Station under independently known common operation. Historical replay retains its explicitly unverified operating conditions.</li>
+<li><strong>Keep complementary evidence visible.</strong> Same-cycle pairs support ΔSNR; paired and one-sided Decode Outcomes support the decode comparison. A path rarely heard on one side may be poorly represented by paired SNR alone.</li>
+<li><strong>Expose adjustments.</strong> Reported-power normalization and optional signed Reference correction make the numerical basis inspectable.</li>
+<li><strong>Define opportunities.</strong> Performance counts successful decodes within confirmed opportunities, using its explicit endpoint-activity rules for misses.</li>
+<li><strong>Distinguish weighting.</strong> Station-balanced summaries and summaries of individual observations answer different questions about the same evidence.</li>
+<li><strong>Make results traceable.</strong> Map, station and individual-observation views, saved settings and exports connect a conclusion to the data and choices behind it.</li>
+</ul>
+<p>These definitions determine which observations qualify, how they are counted and how they influence a summary. They support reproducible comparisons conditional on the available reports and operating conditions; they do not directly establish unconditional reception probability or calibrated antenna efficiency. <a href="/en/documentation/sec-7/#sec-7">Chapter 8</a> specifies the calculations, and <a href="/en/documentation/sec-8/#sec-8">Chapter 9</a> explains how to report supported claims.</p><nav class="doc-actions" aria-label="Documentation"><a href="/en/documentation/part-iii/">Previous: Part III: Scientific Foundations, Methods and Claims</a><a href="/en/documentation/sec-7/">Next: 8. Scientific Methods</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

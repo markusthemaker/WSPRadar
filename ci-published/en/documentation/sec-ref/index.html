@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Part V: References · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/documentation/sec-ref/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>Part V: References · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/documentation/sec-ref/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-ref/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-ref/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation" aria-current="page">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/documentation/sec-ref/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/en/documentation/">Documentation</a> / Part V: References</p><div class="reader-layout"><details class="reader-index" open><summary>Documentation</summary><a class="part-link" href="/en/documentation/sec-1/">Part 0: Why WSPRadar</a><a class="chapter-link" href="/en/documentation/documentation-toc/">Table of Contents</a><a class="part-link" href="/en/documentation/part-i/">Part I: Operator Guide</a><a class="chapter-link" href="/en/documentation/sec-2/">1. Choose and Prepare the Analysis</a><a class="chapter-link" href="/en/documentation/sec-3/">2. Run and Interpret Your Analysis</a><a class="chapter-link" href="/en/documentation/sec-4/">3. Strengthen and Communicate Your Result</a><a class="part-link" href="/en/documentation/part-iv/">Part II: Practical Setup Guide</a><a class="chapter-link" href="/en/documentation/sec-a/">4. Parallel WSJT-X Instances for Simultaneous RX</a><a class="chapter-link" href="/en/documentation/sec-simultaneous-tx-setup/">5. Simultaneous TX Reference Setup</a><a class="chapter-link" href="/en/documentation/sec-b/">6. Reference SNR Calibration</a><a class="part-link" href="/en/documentation/part-iii/">Part III: Scientific Foundations, Methods and Claims</a><a class="chapter-link" href="/en/documentation/sec-d/">7. Literature, Prior Art and Positioning</a><a class="chapter-link" href="/en/documentation/sec-7/">8. Scientific Methods</a><a class="chapter-link" href="/en/documentation/sec-8/">9. Evidence-Matched Claims and Reproducibility</a><a class="part-link" href="/en/documentation/part-ii/">Part IV: Controls and Troubleshooting</a><a class="chapter-link" href="/en/documentation/sec-5/">10. Controls and Configuration</a><a class="chapter-link" href="/en/documentation/sec-6/">11. Troubleshooting and Data Quality</a><a class="part-link" aria-current="page" href="/en/documentation/sec-ref/">Part V: References</a><a class="part-link" href="/en/documentation/sec-8-5/">Experimental Use &amp; Disclaimer</a></details><article class="prose"><p><a id="sec-ref"></a>
+<a id="part-v"></a></p>
+<h1>Part V: References</h1>
+<ul>
+<li>
+<p><a id="ref-1"></a><a href="https://arxiv.org/abs/2209.08989">[Ref-1]</a> <strong>Preprint.</strong> Zander, J. (2022). <em>Simple HF antenna efficiency comparisons using the WSPR system</em>. arXiv:2209.08989v1. doi:10.48550/arXiv.2209.08989.</p>
+</li>
+<li>
+<p><a id="ref-2"></a><a href="https://doi.org/10.1155/2022/4809313">[Ref-2]</a> <strong>Peer-reviewed article.</strong> Vanhamel, J.; Machiels, W.; Lamy, H. (2022). <em>Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band</em>. International Journal of Antennas and Propagation, 2022, 4809313. doi:10.1155/2022/4809313.</p>
+</li>
+<li>
+<p><a id="ref-3"></a><a href="https://sivantoledotech.wordpress.com/2010/09/24/failure-to-use-wspr-to-compare-antennas/">[Ref-3]</a> <strong>Operator technical account.</strong> Toledo, S. / 4X6IZ (2010). <em>Failure to Use WSPR to Compare Antennas</em>.</p>
+</li>
+<li>
+<p><a id="ref-4"></a><a href="https://www.qsl.net/kp4md/wspr.htm">[Ref-4]</a> <strong>Amateur-radio technical article and club presentation.</strong> Milazzo, C. F. / KP4MD (2011). <em>Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance</em>. Posted 13 January 2011; measurements from December 2010; presented 1 March 2011.</p>
+</li>
+<li>
+<p><a id="ref-5"></a><a href="https://www.researchgate.net/publication/319903566_Improving_HF_Band_SNR_from_analysis_of_WSPR_spots">[Ref-5]</a> <strong>Amateur-radio magazine article.</strong> Griffiths, G.; Squibb, N. J. (2017). <em>Improving HF Band SNR</em>. Practical Wireless, October 2017, 23-26. <a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Author-hosted copy</a>.</p>
+</li>
+<li>
+<p><a id="ref-6"></a><a href="https://www.arrl.org/files/file/History/History%20of%20QST%20Volume%201%20-%20Technology/QS11-2010-Taylor.pdf" target="_blank" rel="noopener noreferrer">[Ref-6]</a> Taylor, J. H.; Walker, B. (2010). <em>WSPRing Around the World</em>. QST, 94(11), 30-32.</p>
+</li>
+<li>
+<p><a id="ref-7"></a><a href="https://www.frontiersin.org/journals/astronomy-and-space-sciences/articles/10.3389/fspas.2023.1184171/full">[Ref-7]</a> <strong>Peer-reviewed review article.</strong> Frissell, N. A. et al. (2023). <em>Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations</em>. Frontiers in Astronomy and Space Sciences, 10, 1184171. doi:10.3389/fspas.2023.1184171.</p>
+</li>
+<li>
+<p><a id="ref-8"></a><a href="https://www.arrl.org/wspr">[Ref-8]</a> <strong>Official technical overview.</strong> ARRL, <em>WSPR</em>: message format, coding, duration, timing, occupied bandwidth and SNR reference. Accessed 2026-07-12.</p>
+</li>
+<li>
+<p><a id="ref-9"></a><a href="https://www.mdpi.com/2073-4433/13/8/1340">[Ref-9]</a> <strong>Peer-reviewed article.</strong> Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). <em>A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals</em>. Atmosphere, 13(8), 1340. doi:10.3390/atmos13081340.</p>
+</li>
+<li>
+<p><a id="ref-10"></a><a href="https://wspr.live/">[Ref-10]</a> <strong>Official data-service documentation.</strong> WSPR.live, <em>Welcome to WSPR Live</em>: database access, schema, mode-code mapping, raw-data and availability disclaimer, and data-update behavior. Accessed 2026-08-06. Public ClickHouse SQL access, dashboards, exports and computing-resource credit to HB9VQQ. Accessed 2026-10-06.</p>
+</li>
+<li>
+<p><a id="ref-11"></a><a href="https://www.wsprdaemon.org/">[Ref-11]</a> <strong>Official project website.</strong> WSPRDaemon, <em>WSPR Daemon</em>: multi-channel spot acquisition, WSPR/FST4W decoding and reporting, noise estimation, database/Grafana output, and services for third-party applications. Accessed 2026-08-06. <strong>Official operating documentation.</strong> WsprDaemon, <a href="https://wsprdaemon.readthedocs.io/en/master/FAQ.html#how-does-spot-merging-work-with-multiple-receivers"><em>FAQ: How does spot merging work with multiple receivers?</em></a>: best-SNR reporting to WSPRnet when merging receiver reports. Accessed 2026-09-24. Additional project documentation: <a href="https://wsprdaemon.readthedocs.io/en/master/results/wspr.html"><em>WSPR</em></a>, <a href="https://www.wsprdaemon.org/grafana"><em>Grafana</em></a> and <a href="https://wsprdaemon.readthedocs.io/en/master/description/how_it_works.html"><em>How it works</em></a>: database access, ClickHouse development and hosting credits, acquisition, reporting, noise and Doppler measurements. Accessed 2026-10-06.</p>
+</li>
+<li>
+<p><a id="ref-12"></a><a href="https://wsjt.sourceforge.io/wsjtx-main_en.html">[Ref-12]</a> <strong>Official operating documentation.</strong> WSJT-X 3.0.1 User Guide: WSPR Type 1, Type 2 and Type 3 message formats; random <code>Tx Pct</code> scheduling; Windows <code>--rig-name</code> file isolation; Audio settings and file locations. QRP Labs, <a href="https://qrp-labs.com/qmx"><em>QMX firmware history and manuals</em></a> and <a href="https://www.qrp-labs.com/images/qmx/manuals/operation_1_04_004.pdf" target="_blank" rel="noopener noreferrer"><em>QMX Operating Manual, firmware 1_04_004</em></a> and <a href="https://qrp-labs.com/images/qmx/manuals/VirtualU3S_1_04_008a.pdf" target="_blank" rel="noopener noreferrer"><em>Virtual U3S Manual, firmware 1_04_008a</em></a>: model-specific firmware, Virtual U3S operation and scheduling; <a href="https://www.qrp-labs.com/images/ultimate3s/operation3.12a2.pdf" target="_blank" rel="noopener noreferrer"><em>Ultimate3S Operating Manual, firmware v3.12a2</em></a>: WSPR frequency range, global Frame/Start behavior, extended WSPR, sequential mode entries and per-entry <code>Aux</code> values; <a href="https://qrp-labs.com/images/appnotes/AN003_A4.pdf" target="_blank" rel="noopener noreferrer"><em>AN003: Ultimate3/3S relay-switched filters</em></a>: filtered relay/driver interfacing and RF-off switching intervals. Accessed 2026-10-03.</p>
+</li>
+<li>
+<p><a id="ref-13"></a><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2018SW002008">[Ref-13]</a> <strong>Peer-reviewed article.</strong> Frissell, N. A. et al. (2019). <em>High-Frequency Communications Response to Solar Activity in September 2017 as Observed by Amateur Radio Networks</em>. Space Weather, 17(1), 118–132. doi:10.1029/2018SW002008.</p>
+</li>
+<li>
+<p><a id="ref-14"></a><a href="https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2022GL097879">[Ref-14]</a> <strong>Peer-reviewed article.</strong> Frissell, N. A. et al. (2022). <em>First Observations of Large Scale Traveling Ionospheric Disturbances Using Automated Amateur Radio Receiving Networks</em>. Geophysical Research Letters, 49(5), e2022GL097879. doi:10.1029/2022GL097879.</p>
+</li>
+<li>
+<p><a id="ref-15"></a><a href="https://www.researchgate.net/publication/334612025_Estimating_LF-HF_band_noise_while_acquiring_WSPR_spots">[Ref-15]</a> <strong>Technical report.</strong> Griffiths, G.; Robinett, R.; Elmore, G. (2019). <em>Estimating LF–HF band noise while acquiring Weak Signal Propagation Reporter (WSPR) spots</em>. Version 12, March–November 2019.</p>
+</li>
+<li>
+<p><a id="ref-16"></a><a href="https://www.arrl.org/files/file/QEX_Next_Issue/SeptOct2020/TOFC.pdf" target="_blank" rel="noopener noreferrer">[Ref-16]</a> <strong>Amateur-radio technical journal article; issue contents.</strong> Griffiths, G.; Robinett, R.; Elmore, G. (2020). <em>Estimating LF-HF Band Noise While Acquiring WSPR Spots</em>. QEX, September/October 2020, starting on p. 25.</p>
+</li>
+<li>
+<p><a id="ref-17"></a><a href="https://f6irf.blogspot.com/2008/04/">[Ref-17]</a> <strong>Operator technical reports.</strong> Destrem, P. / F6IRF (2008). <em>A statiscal method to evaluate TX antenna performance using WSPR</em> (24 April), follow-up TX analysis, 160 m RX comparison and station comparisons (April 2008).</p>
+</li>
+<li>
+<p><a id="ref-18"></a><a href="https://www.charlespreston.net/antenna/WSPR-Antenna-Prop-Exp-PR.pdf" target="_blank" rel="noopener noreferrer">[Ref-18]</a> <strong>Preliminary technical report.</strong> Preston, C. / KL7OA (later K7TAA) (2009). <em>WSPR Antenna and Propagation Experiment: Preliminary Results</em>. Version 1.0, 31 March 2009; the available copy includes an update dated 25 June 2017.</p>
+</li>
+<li>
+<p><a id="ref-19"></a><a href="https://www.arrl.org/files/file/QEX_Next_Issue/July-August2017/TOFC.pdf" target="_blank" rel="noopener noreferrer">[Ref-19]</a> <strong>Amateur-radio technical journal article; issue contents.</strong> Preston, C. / K7TAA (2017). <em>Antenna Comparisons Using Simultaneous WSPR Measurements</em>. QEX, July/August 2017, 8–14.</p>
+</li>
+<li>
+<p><a id="ref-20"></a><a href="https://www.darc.de/fileadmin/filemounts/distrikte/g/2026/Talk_in_G/Talk-G_Antennenvergleich_synchr_WSPR_T.Rietdorf_DL2OAH_V2.1_17012025.pdf" target="_blank" rel="noopener noreferrer">[Ref-20]</a> <strong>Amateur-radio technical presentation.</strong> Rietdorf, T. / DL2OAH (2026). <em>Antennenvergleich mit synchronen WSPR-Daten</em>. DARC OV R10, 2. Talk in G, TH Köln, 17 January 2026, version 2.1; measurements from 12–21 January 2025. The presentation date is printed on slide 1; the PDF filename ending in 2025 does not give its presentation year.</p>
+</li>
+<li>
+<p><a id="ref-21"></a><a href="https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf" target="_blank" rel="noopener noreferrer">[Ref-21]</a> <strong>Conference paper.</strong> Griffiths, G.; Robinett, R. (2020). <em>Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana</em>. ARRL/TAPR Digital Communications Conference 2020.</p>
+</li>
+<li>
+<p><a id="ref-22"></a><a href="https://wspr.rocks/help.html">[Ref-22]</a> <strong>Tool documentation.</strong> WSPR.Rocks, <em>Help &amp; Documentation</em>: SpotQ, SQL access, duplicate analysis, maps, charts and heatmaps. <a href="https://wspr.rocks/head2head/"><em>Head2Head</em></a>: comparisons of receivers, transmitters and software versions; passband inspection is also described in the help.</p>
+</li>
+<li>
+<p><a id="ref-23"></a><a href="https://www.sotabeams.co.uk/wsprlite-classic">[Ref-23]</a> <strong>Product documentation.</strong> SOTABEAMS, <em>WSPRlite Classic / DXplorer</em>: WSPR-based antenna-performance analysis and DX10 metric.</p>
+</li>
+<li>
+<p><a id="ref-24"></a><a href="https://www.sotabeams.co.uk/blog/indoor-hf-antennas-does-it-make-much-difference/">[Ref-24]</a> <strong>Operator experiment and product application.</strong> Newstead, R. / SOTABEAMS (2017). <em>Indoor HF antennas - does it make much difference?</em>. 5 May 2017.</p>
+</li>
+<li>
+<p><a id="ref-25"></a><a href="https://sites.google.com/myuba.be/wspr-station-compare/home">[Ref-25]</a> <strong>Project documentation.</strong> WSPR-Station-Compare, project page referencing Vanhamel et al. and Zander. Machiels, W. / ON4AWM, <a href="https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-station-compare-app"><em>WSPR Station Compare App</em></a>: RX comparison, receiver-offset correction, observation thresholds, callsign filtering and azimuth selection.</p>
+</li>
+<li>
+<p><a id="ref-26"></a><a href="https://tools.bsdworld.org/wap">[Ref-26]</a> <strong>Tool documentation.</strong> Fred, W6BSD, <em>Antenna Performance Analysis</em>: WSPR report generator showing observed reception by time, location and band. The former wspr.bsdworld.org address redirects to the current tools site.</p>
+</li>
+<li>
+<p><a id="ref-27"></a><a href="https://www.gm4eau.com/home-page/wspr/">[Ref-27]</a> <strong>Tool documentation.</strong> GM4EAU, <em>WATT WSPR Analysis Tool</em>: Excel/VBA reporting, mapping, filtering and timeline animation. <a href="https://rsgb.org/main/blog/tonight-at-eight-archive/2023/12/18/4-december-amateur-radio-construction/">RSGB presentation notice</a>: attribution to Colin Murray, GM4EAU.</p>
+</li>
+<li>
+<p><a id="ref-28"></a><a href="https://qrp-labs.com/qmxp/wsprcorruption.html">[Ref-28]</a> <strong>Manufacturer technical investigation.</strong> QRP Labs, <em>WSPR Type 3 callsign corruption</em>: observed compound-callsign hash collision or misassociation behavior in large WSPR datasets and its mechanism. Accessed 2026-08-25.</p>
+</li>
+<li>
+<p><a id="ref-29"></a><a href="https://github.com/HarrydeBug/WSPR-transmitters/blob/1657468ea27052167191a7deda2440a535567ecd/Standard%20Firmware/Release/Hardware_Version_2_ESP8285/WSPR-TX2.19/WSPR-TX2.19.ino">[Ref-29]</a> <strong>Published firmware source, immutable revision.</strong> ZachTek WSPR-TX firmware <code>2.19</code> for ESP8285 hardware: <code>DoWSPR()</code> message sequencing and frequency selection, <code>CorrectTimeslot()</code> scheduling, <code>WSPRCallHash()</code> suffix limitation, centihertz frequency units, product-model selection and build prerequisites. Revision <code>1657468ea27052167191a7deda2440a535567ecd</code>. Accessed 2026-08-25; sequencing and timing rechecked 2026-10-25.</p>
+</li>
+<li>
+<p><a id="ref-30"></a><a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm">[Ref-30]</a> <strong>Statistical reference.</strong> NIST/SEMATECH, <em>e-Handbook of Statistical Methods</em>: <em>Measures of Location</em> (Section 1.3.5.1) and <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm"><em>Measures of Scale</em> (Section 1.3.5.6)</a>. Definitions and interpretation of mean, median, standard deviation, median absolute deviation and interquartile range. Accessed 2026-10-25.</p>
+</li>
+</ul>
+<div style="page-break-before: always;"></div><nav class="doc-actions" aria-label="Documentation"><a href="/en/documentation/sec-6/">Previous: 11. Troubleshooting and Data Quality</a><a href="/en/documentation/sec-8-5/">Next: Experimental Use &amp; Disclaimer</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

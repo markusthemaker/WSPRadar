@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="10. Controls and Configuration · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/documentation/sec-5/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>10. Controls and Configuration · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/documentation/sec-5/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/documentation/sec-5/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/documentation/sec-5/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="documentation-reader-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation" aria-current="page">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/documentation/sec-5/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><p class="breadcrumb"><a href="/en/documentation/">Documentation</a> / 10. Controls and Configuration</p><div class="reader-layout"><details class="reader-index" open><summary>Documentation</summary><a class="part-link" href="/en/documentation/sec-1/">Part 0: Why WSPRadar</a><a class="chapter-link" href="/en/documentation/documentation-toc/">Table of Contents</a><a class="part-link" href="/en/documentation/part-i/">Part I: Operator Guide</a><a class="chapter-link" href="/en/documentation/sec-2/">1. Choose and Prepare the Analysis</a><a class="chapter-link" href="/en/documentation/sec-3/">2. Run and Interpret Your Analysis</a><a class="chapter-link" href="/en/documentation/sec-4/">3. Strengthen and Communicate Your Result</a><a class="part-link" href="/en/documentation/part-iv/">Part II: Practical Setup Guide</a><a class="chapter-link" href="/en/documentation/sec-a/">4. Parallel WSJT-X Instances for Simultaneous RX</a><a class="chapter-link" href="/en/documentation/sec-simultaneous-tx-setup/">5. Simultaneous TX Reference Setup</a><a class="chapter-link" href="/en/documentation/sec-b/">6. Reference SNR Calibration</a><a class="part-link" href="/en/documentation/part-iii/">Part III: Scientific Foundations, Methods and Claims</a><a class="chapter-link" href="/en/documentation/sec-d/">7. Literature, Prior Art and Positioning</a><a class="chapter-link" href="/en/documentation/sec-7/">8. Scientific Methods</a><a class="chapter-link" href="/en/documentation/sec-8/">9. Evidence-Matched Claims and Reproducibility</a><a class="part-link" href="/en/documentation/part-ii/">Part IV: Controls and Troubleshooting</a><a class="chapter-link" aria-current="page" href="/en/documentation/sec-5/">10. Controls and Configuration</a><a class="chapter-link" href="/en/documentation/sec-6/">11. Troubleshooting and Data Quality</a><a class="part-link" href="/en/documentation/sec-ref/">Part V: References</a><a class="part-link" href="/en/documentation/sec-8-5/">Experimental Use &amp; Disclaimer</a></details><article class="prose"><p><a id="sec-5"></a></p>
+<h1>10. Controls and Configuration</h1>
+<p>Changing the analysis choice, identities, band, UTC window, Reference correction, filters or evidence requirements clears the completed result and requires a new <strong>Run</strong>. Changing an Inspector selection, station-list filter, time aggregation or Drill-Down view does not rerun the analysis.</p>
+<p><a id="sec-5-1"></a></p>
+<h4>10.1 Workflow controls</h4>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What you need to know</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input view</strong></td>
+<td>Guided and Compact use the same analysis settings. The chosen input view is not saved.</td>
+</tr>
+<tr>
+<td><strong>Load Demo</strong></td>
+<td>Loads settings without running. In Guided, <strong>Walk me through the setup</strong> opens the steps; <strong>Skip to review and run</strong> starts the valid loaded analysis immediately.</td>
+</tr>
+<tr>
+<td><strong>Start Fresh</strong></td>
+<td>Clears settings and results and restores defaults, including the UTC window. Language and input view stay unchanged.</td>
+</tr>
+<tr>
+<td><strong>Load Config / Save Config</strong></td>
+<td>Load or save applicable analysis settings and supported view choices. Saved dates are fixed UTC boundaries, not a rolling period. A configuration contains no result data or station notes.</td>
+</tr>
+<tr>
+<td><strong>Run RX Analysis / Run TX Analysis</strong></td>
+<td>Starts the chosen analysis after validation. Resolve highlighted fields and any Reference location choice first. A map can appear before the remaining views are ready; wait for <strong>Complete</strong>.</td>
+</tr>
+<tr>
+<td><strong>Prepare All Results for Download</strong></td>
+<td>Builds the export for the current selections. Then choose <strong>Download Prepared Results</strong>. Prepare again after changing the selections. See <a href="/en/documentation/sec-8/#sec-8-4">export contents</a>.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Keyboard:</strong> use <code>Tab</code> and <code>Shift+Tab</code> to move between controls. In Guided, forward <code>Tab</code> beyond a setup panel validates it and opens the next step, like <strong>Continue</strong>; errors return focus to the first invalid field. Reaching Review does not start the analysis. The separate <code>?</code> help icons require a pointer.</p>
+<p>Loading or saving a configuration does not run it. Unsupported old formats are rejected. One compatibility exception accepts a complete valid pair of former ΔDecode count thresholds and replaces them with the <strong>1% event-share default</strong>, with a notice; it does not convert counts into percentages. Review loaded settings before running.</p>
+<p><a id="sec-5-2"></a></p>
+<h4>10.2 Question, Target and measurement-window controls</h4>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Default and essential rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Question</strong></td>
+<td>Required: choose RX Performance, TX Performance, RX Benchmark or TX Benchmark. Only Benchmark needs a Reference.</td>
+</tr>
+<tr>
+<td><strong>Target callsign</strong></td>
+<td>Required: use the exact reporting identity, including any prefix or suffix. <code>CALL</code>, <code>CALL/P</code> and <code>CALL-1</code> are different identities.</td>
+</tr>
+<tr>
+<td><strong>Target QTH (4 or 6 characters)</strong></td>
+<td>Required: the first four locator characters select Target reports; the full entered locator anchors map, distance, direction and solar calculations.</td>
+</tr>
+<tr>
+<td><strong>Operating Band</strong></td>
+<td>Default <strong>20m</strong>. Select one band.</td>
+</tr>
+<tr>
+<td><strong>Start / End Date/Time (UTC)</strong></td>
+<td>Default: 24 hours ending at the current UTC minute. Dates start in 2008; a run may span at most <strong>31 elapsed days</strong>. Times retain minute precision.</td>
+</tr>
+</tbody>
+</table></div>
+<p>A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-4) identifies a grid square; six characters identify a smaller subsquare.</p>
+<p><a id="sec-5-3"></a></p>
+<h4>10.3 Benchmark-design controls</h4>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What to enter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reference callsign</strong></td>
+<td>One exact identity different from the Target. Reference Neighborhood is no longer supported.</td>
+</tr>
+<tr>
+<td><strong>Known Reference QTH (4 characters, optional)</strong></td>
+<td>Leave blank to discover the location from reports, or enter an independently known grid-4. One discovered grid resolves automatically; several require your choice. A known location does not establish operation.</td>
+</tr>
+<tr>
+<td><strong>Reference SNR correction</strong></td>
+<td>Default <strong>No correction</strong> applies <strong>0.0 dB</strong>. Choose <strong>Use a documented correction</strong> only for an established offset valid for this setup. The signed field accepts <strong>−99.9 to +99.9 dB</strong>; blank means <strong>0.0</strong>. Use a decimal point. A documented zero remains distinct from no established correction.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Operating confirmation:</strong> for your own Benchmark, confirm common operation as described in <a href="/en/documentation/sec-2/#sec-2-2">Section 1.2</a>. Changing identities, direction, band or period clears the confirmation. Loading a personal configuration or ordinary analysis link requires fresh acknowledgement; saved declarations do not verify operation.</p>
+<p><strong>Historical replay</strong> uses a separate acknowledgement of uncertain historical operation, not a controlled-operation declaration. Ordinary replay loads require fresh acknowledgement. A historical-replay link with <code>run=1</code> preselects it and starts the analysis automatically. Built-in demos preselect the declaration appropriate to their documented mode; the Milazzo demo uses the historical-limits acknowledgement. Loading a demo alone still does not run it.</p>
+<h5>Reference-side SNR correction sign</h5>
+<p>A <strong>positive correction raises Reference SNR and reduces ΔSNR</strong>. If a common-input calibration measured Target minus Reference as <strong>+1.6 dB</strong>, enter <strong>+1.6 dB</strong>. Correction does not change decode counts or raw cumulative-SNR curves. To collect a baseline, use <strong>No correction</strong>; WSPRadar does not determine an offset automatically. See <a href="/en/documentation/sec-b/#sec-reference-snr-calibration">Chapter 6</a> for calibration and its limits.</p>
+<p><a id="sec-5-4"></a></p>
+<h4>10.4 Filters and evidence thresholds</h4>
+<p>The values shown in <strong>Optional Filters, scope and evidence</strong> apply even when you leave that panel untouched. The table gives fresh-setup defaults; demos and loaded configurations use their stored values. Choose the intended population and evidence requirements before a confirmatory run.</p>
+<p>For ΔDecode, an <strong class="defined-term">observed event</strong> is one remote identity and WSPR cycle with at least one retained report for Target or Reference. A paired event counts <strong>once</strong> toward its evidence requirement.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Default / range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Exclude Special Callsigns Q, 0, 1</strong></td>
+<td>Performance <strong>on</strong>; Benchmark <strong>off</strong></td>
+<td>Excludes remote callsigns beginning with <code>Q</code>, <code>0</code> or <code>1</code>: transmitters in RX, receivers in TX. Target and Reference are exempt. A prefix alone does not identify telemetry.</td>
+</tr>
+<tr>
+<td><strong>Exclude Moving Stations</strong></td>
+<td>Performance <strong>on</strong>; Benchmark <strong>off</strong></td>
+<td>Excludes peer callsigns reported in more than one grid-4 in the otherwise eligible global reports, <strong>before distance filtering</strong>. This may reflect movement or incorrect metadata.</td>
+</tr>
+<tr>
+<td><strong>Solar state at Target QTH</strong></td>
+<td><strong>All 24h</strong></td>
+<td>Keeps all cycles, daylight above <strong>+6°</strong>, nighttime below <strong>−6°</strong>, or greyline between those elevations at the Target.</td>
+</tr>
+<tr>
+<td><strong>Maximum peer distance from Target (km)</strong></td>
+<td><strong>22 000</strong>; choices 2 500 / 5 000 / 10 000 / 15 000 / 20 000 / 22 000</td>
+<td>Removes peers <strong>at or beyond</strong> the limit from the analyzed population and exports. This changes the analysis, not just the map view.</td>
+</tr>
+<tr>
+<td><strong>Minimum spot pairs per station for ΔSNR</strong></td>
+<td><strong>1</strong>; 1–50</td>
+<td>Benchmark: qualifies each exact station identity over the full filtered period. One-sided reports do not satisfy this requirement.</td>
+</tr>
+<tr>
+<td><strong>Minimum confirmed opportunities per station</strong></td>
+<td><strong>5</strong>; 1–100</td>
+<td>Performance: requires this many successes plus confirmed misses per identity. Lower values produce coarser, less-supported rates.</td>
+</tr>
+<tr>
+<td><strong>Minimum qualifying stations per map segment</strong></td>
+<td><strong>1</strong>; 1–10</td>
+<td>Performance: requires this many qualifying identities before a segment is drawn.</td>
+</tr>
+<tr>
+<td><strong>Minimum qualifying stations per segment for ΔSNR</strong></td>
+<td><strong>5</strong>; 1–10</td>
+<td>Benchmark: requires this many identities meeting the spot-pair minimum before the segment receives ΔSNR coloring.</td>
+</tr>
+<tr>
+<td><strong>Minimum observed-event share per segment for ΔDecode (%)</strong></td>
+<td><strong>1%</strong>; 0–5%, steps of 0.5%</td>
+<td>Benchmark: requires this share of the full filtered run's observed events, rounded up to a whole event. At <strong>0%</strong>, every nonempty segment qualifies.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The <strong>one-pair default</strong> for ΔSNR preserves sensitivity by keeping sparsely observed paths eligible. Use <strong>Minimum qualifying stations per segment for ΔSNR</strong> — default <strong>5</strong> — to prevent a single path alone from determining a segment's ΔSNR color. A station with one pair contributes just one ΔSNR observation.</p>
+<p>The ΔDecode requirement's full-run denominator stays fixed when you crop or select a segment. ΔDecode has no separate per-station minimum. These requirements measure evidence volume, not confidence.</p>
+<p>Benchmark segments with observed evidence but below the relevant threshold are gray hatched; retained station observations remain available. The ΔSNR pair minimum does not remove decodes from ΔDecode. In Performance, evidence outside the distance limit may still establish Target activity, without adding those peers to the analyzed population.</p>
+<p>Once you manually change either exclusion, that choice persists across Question changes. Stored configurations, demos and analysis links also preserve their explicit exclusions.</p>
+<p><a id="sec-5-5"></a></p>
+<h4>10.5 Map, inspector and export controls</h4>
+<p>These controls inspect the completed evidence without changing its classification:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Scope and persistence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Segment distance and direction</strong></td>
+<td>Changes Inspector statistics and time views. Performance Station Insights follows this scope. Saved separately for Performance and Benchmark.</td>
+</tr>
+<tr>
+<td><strong>Filter by selected segment and distance</strong></td>
+<td>Optionally restricts the Benchmark station list; otherwise it is global. Selected-station evidence still covers the full run. This toggle is not saved.</td>
+</tr>
+<tr>
+<td><strong>Station Insights → Filter</strong></td>
+<td>Restricts the station list and its exported table, not maps or Inspector statistics. Column filters are saved; a station must meet every active condition, while any selected value within one callsign/locator filter can match.</td>
+</tr>
+<tr>
+<td><strong>Heard only by other stations. / Only other signals heard.</strong></td>
+<td>Shows Performance peers whose confirmed opportunities were all misses. This is a saved visibility choice.</td>
+</tr>
+<tr>
+<td><strong>Include one-sided evidence</strong></td>
+<td>Shows Benchmark identities without spot pairs and one-sided Drill-Down observations. This saved visibility choice changes neither coverage totals nor qualification.</td>
+</tr>
+<tr>
+<td><strong>Selected station row</strong></td>
+<td>Saves the exact callsign-plus-locator selection: normally one per result type; multiple Benchmark identities are supported when outlier reporting is enabled.</td>
+</tr>
+<tr>
+<td><strong>Time aggregation</strong></td>
+<td>Changes chronological display bins; Inspector and selected-station choices are saved separately. Pairing, opportunities and fixed one-hour UTC profiles remain unchanged.</td>
+</tr>
+<tr>
+<td><strong>Zoom window / <strong class="defined-term">Outlier Focus</strong></strong></td>
+<td>Focuses Drill-Down on an interval for exactly one selected station. <strong>Filter table</strong> then narrows table rows only. Focus and Drill-Down table filters are not saved in configurations or analysis links.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Chronological bin choices depend on the <strong>complete run duration</strong>. A valid saved choice takes precedence over the default and remains available even outside the usual choices below:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Run duration</th>
+<th>Usual bins</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Up to 6 hours</td>
+<td>2m, 10m, 30m, 1h, 2h, 3h, 6h</td>
+<td><strong>10m</strong></td>
+</tr>
+<tr>
+<td>More than 6 through 24 hours</td>
+<td>2m, 10m, 30m, 1h, 2h, 3h, 6h</td>
+<td><strong>30m</strong></td>
+</tr>
+<tr>
+<td>More than 24 hours through 7 days</td>
+<td>30m, 1h, 2h, 3h, 6h, 12h, 24h</td>
+<td><strong>12h</strong></td>
+</tr>
+<tr>
+<td>More than 7 days</td>
+<td>1h, 2h, 3h, 6h, 12h, 24h</td>
+<td><strong>12h</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Manual zoom offers <strong>Off</strong> and the <strong>1h</strong>, <strong>3h</strong>, <strong>6h</strong>, <strong>12h</strong> or <strong>24h</strong> windows that fit within the completed run. Choose a UTC center or move with <strong>Earlier / Later</strong>. Outlier Focus includes the event and its surrounding baseline evidence and may exceed 24 hours. The export can include separate focused figures; <a href="/en/documentation/sec-8/#sec-8-4">Section 9.4</a> defines their scope.</p>
+<p><a id="sec-5-6"></a></p>
+<h4>10.6 Benchmark outlier-detection controls</h4>
+<p><strong>Identify ΔSNR outlier candidates</strong> is off by default. Enable it only when investigating temporary departures in paired evidence; see <a href="/en/documentation/sec-3/#sec-outlier">Section 2.5</a>.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Default / range</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Minimum absolute ΔSNR departure (dB)</strong></td>
+<td><strong>6.0</strong>; 0.1–100.0 dB</td>
+<td>Requires a sufficiently large change from the path's local baseline.</td>
+</tr>
+<tr>
+<td><strong>Minimum robust z-score</strong></td>
+<td><strong>3.0</strong>; 0.1–100.0</td>
+<td>Also requires the change to be large relative to nearby variation, using the absolute robust score. This score is not a probability.</td>
+</tr>
+<tr>
+<td><strong>Maximum pre/post baseline difference (dB)</strong></td>
+<td><strong>3.0</strong>; 0.1–100.0 dB</td>
+<td>Requires the baseline medians before and after the candidate to agree within this amount. It does not require low background scatter.</td>
+</tr>
+</tbody>
+</table></div>
+<p>All three requirements, plus the detector's support checks, apply to every event duration. Lowering either minimum or raising the allowed baseline difference makes reporting more permissive. Changing detector settings requires another <strong>Run</strong>; detections are independent of display-bin width and do not change the ordinary Benchmark maps. <a href="/en/documentation/sec-7/#sec-7-outliers">Section 8.6</a> gives the exact method and limits.</p><nav class="doc-actions" aria-label="Documentation"><a href="/en/documentation/part-ii/">Previous: Part IV: Controls and Troubleshooting</a><a href="/en/documentation/sec-6/">Next: 11. Troubleshooting and Data Quality</a></nav></article></div></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

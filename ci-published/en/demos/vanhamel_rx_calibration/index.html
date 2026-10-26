@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="One Antenna, Two Receivers — Why Calibration Matters · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/demos/vanhamel_rx_calibration/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>One Antenna, Two Receivers — Why Calibration Matters · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/demos/vanhamel_rx_calibration/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/demos/vanhamel_rx_calibration/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/demos/vanhamel_rx_calibration/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script><link rel="stylesheet" href="/assets/demo-walkthrough.css"><script src="/assets/demo-walkthrough.js" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="demo-case-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos" aria-current="page">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/demos/vanhamel_rx_calibration/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><article class="case-study"><header class="case-hero"><div class="case-hero-copy"><p class="eyebrow">Guided Demo</p><h1>One Antenna, Two Receivers — Why Calibration Matters</h1><div class="case-intro" id="objective" aria-label="Objective"><h3>Calibrate your receivers before comparing antennas</h3>
+<p>Two receivers connected to one antenna should tell a similar story. Use WSPRadar to find the difference introduced by the receiving equipment—before mistaking it for an antenna advantage.</p>
+<p><strong>What you will take away:</strong> a <strong>+1.2 dB receiving-chain offset</strong>, supported by <strong>1 143 spot pairs from ten station entries</strong>, and how to enter it as the <strong>Reference correction in the next antenna benchmark</strong>. This value belongs to the receiver pair in this demo; your own pair needs its own calibration.</p></div><p class="case-meta">ON4AWM0 (JO20OT) / ON4AWM1 (JO20) · 160m · RX Benchmark</p><div class="actions"><a class="button" href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=ON4AWM0&amp;qth=JO20OT&amp;band=160m&amp;from=2021-02-06T06%3A00Z&amp;to=2021-02-13T06%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;reference=ON4AWM1&amp;reference_qth=JO20&amp;snr_correction_mode=establish_offset&amp;snr_correction_db=0&amp;max_distance_km=2500&amp;min_spot_pairs=50&amp;station_bin=6h#wspradar-results-inspection"  rel="noopener noreferrer">Run in WSPRadar App →</a><a class="text-link" href="https://doi.org/10.1155/2022/4809313" target="_blank" rel="noopener noreferrer">Original paper ↗</a></div></div><nav class="case-nav" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#objective">Objective</a></li><li><a href="#setup">Setup</a></li><li><a href="#step-1">Load demo</a></li><li><a href="#step-2">Difference</a></li><li><a href="#step-3">Takeaway</a></li></ol></nav></header><section class="case-setup" id="setup"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">01</span><h2>Setup: how were the receiving chains compared?</h2></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-vanhamel-calibration-setup"><a class="case-image-link" href="/assets/demos/vanhamel_rx_calibration/figure1-dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="One antenna feeding two receiving chains" data-caption-id="case-caption-vanhamel-calibration-setup" aria-label="Open full-size image: One antenna feeding two receiving chains"><img loading="eager" decoding="async" width="1836" height="408" src="/assets/demos/vanhamel_rx_calibration/figure1-dark-520.webp" srcset="/assets/demos/vanhamel_rx_calibration/figure1-dark-520.webp 520w, /assets/demos/vanhamel_rx_calibration/figure1-dark-1040.webp 1040w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Figure 1 adapted from the paper: one 160 m antenna feeds a choke and minus 6 dB splitter, then two 25 m coaxial paths with chokes, bandpass filters and RTL-SDR receivers connected to one Z83-NUC computer."></a><figcaption id="case-caption-vanhamel-calibration-setup"><strong>One antenna feeding two receiving chains</strong><p>One antenna feeding two receiving chains. Schematic of the calibration arrangement described by <a href="https://doi.org/10.1155/2022/4809313">Vanhamel et al. (2022), Figure 1</a>.</p></figcaption></figure></div><p>Before comparing two antennas, Jurgen Vanhamel, Walter Machiels and Hervé Lamy checked the receiving equipment itself. Their paper describes <strong>two receiving chains connected to the same long-wire antenna through a splitter</strong>, using matching processing settings. This demo compares the database reports from <strong>ON4AWM0</strong> and <strong>ON4AWM1</strong>.</p>
+<p>Each receiving chain includes more than the receiver: cables, filters and signal-processing settings also belong to the setup. With both chains fed by the same antenna, a persistent SNR difference provides a baseline for the equipment rather than a comparison between antennas.</p>
+<p><strong>Our question is: how large is that difference, and is there enough evidence to use it as a calibration baseline?</strong></p>
+<p>SNR is the signal-to-noise ratio: how strongly a signal stands out relative to noise. Higher SNR is better. WSPRadar finds <strong class="defined-term">spot pairs</strong>: occasions when both receivers report the same transmitter with the same reported locator in the same two-minute WSPR cycle. This lets us compare their SNR for the same transmission. Signals decoded by only one receiver cannot provide this paired difference.</p>
+<p>A spot pair consists of one retained Target observation and one retained Reference observation matched on band, WSPR cycle, and the remote station’s callsign and full reported locator. Each pair supplies one ΔSNR observation.</p>
+<p>When several reports exist for one setup, remote station, and cycle, WSPRadar consolidates them using its existing SNR-selection rules before forming the comparison.</p>
+<p>For this demo, no correction is applied:</p>
+<p><strong>ΔSNR = ON4AWM0 SNR − ON4AWM1 SNR</strong></p>
+<p>Positive values mean ON4AWM0 reported the higher SNR; negative values mean ON4AWM1 did. Zero means equal reported SNR.</p></div></section><section class="case-evidence" id="walkthrough"><p>Find the receiver offset, check its support, and prepare for an antenna comparison.</p><section class="case-evidence-group" id="step-1"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">02</span><h3>Load the demo and check its settings</h3></div><p>Select <strong>Run in WSPRadar App</strong> above to open the prepared receiver-calibration demo. The settings load for you:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value in this demo</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Analysis</td>
+<td>RX Benchmark</td>
+<td>Compare reception by the two receiving chains.</td>
+</tr>
+<tr>
+<td>Target</td>
+<td>ON4AWM0, QTH JO20OT</td>
+<td>The chain being evaluated.</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td>ON4AWM1, reported grid JO20</td>
+<td>The chain used for comparison; retain its reported locator precision.</td>
+</tr>
+<tr>
+<td>Benchmark design</td>
+<td>Reference Setup/Station</td>
+<td>Compare against this particular Reference.</td>
+</tr>
+<tr>
+<td>Operating Band</td>
+<td>160 m</td>
+<td>Use reports from this band.</td>
+</tr>
+<tr>
+<td>UTC window</td>
+<td>6 February 2021, 06:00 → 13 February 2021, 06:00</td>
+<td>Examine one week of observations.</td>
+</tr>
+<tr>
+<td>Maximum peer distance from Target (km)</td>
+<td>2 500 km</td>
+<td>Include transmitting stations within this distance of the Target.</td>
+</tr>
+<tr>
+<td>Reference-side SNR correction (dB)</td>
+<td><strong>0.0 dB; establish the offset</strong></td>
+<td>Leave the original equipment difference visible.</td>
+</tr>
+<tr>
+<td>Minimum spot pairs per station</td>
+<td><strong>50</strong></td>
+<td>A station entry needs at least 50 spot pairs during the week to contribute to the calibration SNR summaries.</td>
+</tr>
+</tbody>
+</table></div>
+<p>If the results have not opened automatically, select <strong>Run Analysis</strong>. Go directly to <strong>Segment Inspector → Benchmark Statistics</strong> and keep <strong>Full Range | All Directions</strong> selected. For this question, we do not need to work through every results view.</p></div></div></section><section class="case-evidence-group" id="step-2"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">03</span><h3>Read the result and check its support</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rc3-calibration-statistics-typography-en-20261024"><a class="case-image-link" href="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_statistics_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Benchmark Statistics: receiver-chain calibration" data-caption-id="case-caption-rc3-calibration-statistics-typography-en-20261024" aria-label="Open full-size image: Benchmark Statistics: receiver-chain calibration"><img loading="eager" decoding="async" width="3882" height="1748" src="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_statistics_dark-520.webp" srcset="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_statistics_dark-520.webp 520w, /assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_statistics_dark-1040.webp 1040w, /assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_statistics_dark-1600.webp 1600w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Benchmark Statistics for ON4AWM0 versus ON4AWM1: the qualifying spot-pair distribution has median +1.0 dB and mean +1.2 dB; all ten qualifying station medians are +1.0 dB."></a><figcaption id="case-caption-rc3-calibration-statistics-typography-en-20261024"><strong>Benchmark Statistics: receiver-chain calibration</strong><p>Benchmark Statistics: a small difference, repeated across transmitters. The two SNR panels use 1 143 spot pairs from ten qualifying station entries. The decoding panel uses the broader reception evidence.</p></figcaption></figure></div><h3>What is the typical difference?</h3>
+<p>Start with the <strong>middle and right SNR panels</strong>.</p>
+<p><strong>ΔSNR — Qualifying spot pairs:</strong> the median is <strong>+1.0 dB</strong>. This panel includes every matched comparison from the stations that meet the 50-spot-pair minimum. Frequently heard transmitters therefore have more influence.</p>
+<p><strong>ΔSNR — Qualifying Stations:</strong> the median is also <strong>+1.0 dB</strong>. WSPRadar first finds each transmitter's median difference, then takes the middle value across those station medians. Each contributing station entry has equal weight, regardless of how often it was heard.</p>
+<p>A median is the middle value when the values are placed in order; with an even number of values, it is the average of the two middle values. Here, both summaries give the same answer: <strong>ON4AWM0 typically reports an SNR about 1 dB higher than ON4AWM1.</strong></p>
+<p>The spot-pair panel also shows a <strong>Mean of +1.2 dB</strong>—the arithmetic average across the qualifying matched observations. Most differences lie at +1 or +2 dB, which helps explain why the mean is slightly higher than the median. Mean and median summarize the distribution differently; here, both point to the same small, positive receiver offset. <strong>The mean provides the calibration estimate for this run.</strong><sup><a href="/en/demos/vanhamel_rx_calibration/#calibration-paper-note">1</a></sup></p>
+<h3>Is there enough evidence behind it?</h3>
+<p><strong>Ten station entries contribute 1 143 qualifying spot pairs.</strong> A station entry means a callsign together with its full reported locator. Each contributor supplies <strong>52 to 344 spot pairs</strong>, and <strong>all ten station medians are +1.0 dB</strong>. The result is therefore repeated across different transmitters, rather than resting on a single signal or a handful of reports.</p>
+<p>The left <strong>ΔDecode — Decode Volume</strong> panel answers a separate question: which chain recorded more decodes? It includes <strong>all 59 observed station entries</strong>, including those below the calibration's spot-pair minimum. Its <strong>3 231 decodes</strong> are the two receivers' counts added together; a shared transmission contributes one decode to each receiver. This broader decoding population should not be confused with the ten stations used to estimate the SNR offset.</p>
+<p>The useful finding is the agreement: the station summaries, the individual comparisons and the supporting counts all point to a small equipment difference under the shared-antenna interpretation. The counts describe the selected evidence; they do not establish an uncertainty interval or validate the historical hardware arrangement.</p></div></div><section class="case-evidence-group" id="temporal-snr"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Does the offset persist through the week?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rc3-calibration-temporal-snr-typography-en-20261024"><a class="case-image-link" href="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_temporal_delta_snr_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="ΔSNR Temporal Coverage: calibration stability" data-caption-id="case-caption-rc3-calibration-temporal-snr-typography-en-20261024" aria-label="Open full-size image: ΔSNR Temporal Coverage: calibration stability"><img loading="eager" decoding="async" width="3784" height="1826" src="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_temporal_delta_snr_dark-520.webp" srcset="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_temporal_delta_snr_dark-520.webp 520w, /assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_temporal_delta_snr_dark-1040.webp 1040w, /assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_segment_temporal_delta_snr_dark-1600.webp 1600w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Temporal ΔSNR for the qualifying calibration observations. Thirteen of fourteen twelve-hour bins have a +1 dB median; the UTC-hour view has a gap in qualifying daytime evidence."></a><figcaption id="case-caption-rc3-calibration-temporal-snr-typography-en-20261024"><strong>ΔSNR Temporal Coverage: calibration stability</strong><p>The median points show the typical difference in each time bin. The gray band contains the middle 50% of the paired differences; it is not an uncertainty interval for the correction.</p></figcaption></figure></div><p>Next, open <strong>ΔSNR Temporal Coverage</strong> in the Segment Inspector. Select <strong>12 h</strong> bins to match this figure.</p>
+<p>In the twelve-hour view, <strong>13 of the 14 median points remain at +1 dB</strong>. The +2 dB point on <strong>10 February, 06:00–18:00 UTC</strong>, comes from only <strong>ten spot pairs</strong>. The result is consistent with a small, repeated offset through the observed week.</p>
+<p>The hourly view is also centered at +1 dB apart from the <strong>16:00 UTC hour</strong>, which contains only <strong>three pairs</strong>. The blank interval from <strong>10:00 to 16:00 UTC</strong> contains no qualifying paired observations; it does not indicate a zero offset. For your own calibration, investigate a sustained shift before adopting one correction for the whole run.</p></div></div></section><section class="case-evidence-group" id="decoding-check"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Does correcting SNR also equalize decoding?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rc3-calibration-decodes-over-snr-typography-en-20261024"><a class="case-image-link" href="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_decodes_over_snr_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Decodes &amp; Stations by SNR: calibration run" data-caption-id="case-caption-rc3-calibration-decodes-over-snr-typography-en-20261024" aria-label="Open full-size image: Decodes &amp; Stations by SNR: calibration run"><img loading="eager" decoding="async" width="3807" height="2482" src="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_decodes_over_snr_dark-520.webp" srcset="/assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_decodes_over_snr_dark-520.webp 520w, /assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_decodes_over_snr_dark-1040.webp 1040w, /assets/demos/vanhamel_rx_calibration/typography-en-20261024/figure_decodes_over_snr_dark-1600.webp 1600w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Cumulative decodes and stations by raw reported SNR. ON4AWM0 records 1 766 total decodes and ON4AWM1 records 1 465; their one-sided totals are 316 and 15."></a><figcaption id="case-caption-rc3-calibration-decodes-over-snr-typography-en-20261024"><strong>Decodes &amp; Stations by SNR: calibration run</strong><p>Across all retained observations, ON4AWM0 records <strong>1.21× as many decodes</strong>: <strong>1 766 versus 1 465</strong>, or <strong>301 additional decodes</strong>. These totals use the full run, including stations below the calibration threshold.</p></figcaption></figure></div><p>For a final check, open <strong>Global View → Decodes &amp; Stations by SNR</strong>. Follow the curves from stronger signals on the left toward weaker signals on the right. These are cumulative counts: a steep rise means many decodes fall within a narrow reported-SNR range.</p>
+<p>The top-middle panel shows <strong>316 ON4AWM0-only decodes</strong> and <strong>15 ON4AWM1-only decodes</strong>, concentrated near the weak end of the scale, around −30 dB. The top-left <strong>Paired spots</strong> panel represents <strong>1 450 spot pairs</strong>, with <strong>1 450 retained observations from each receiver</strong>, including pairs from stations with fewer than 50 spot pairs; only <strong>1 143</strong> meet the calibration’s station requirement.</p>
+<p><strong>The concentration is striking: 293 of the 316 Target-only decodes—about 93%—fall between −28 and −32 dB raw reported SNR.</strong> Near the decoding limit, a small real SNR improvement can determine whether a WSPR message is decoded at all. When many signals sit in this region, the number of successful decodes can change substantially. WSPR’s decoding threshold represents a transition in decoding probability, rather than a hard boundary applying to every reception. <a href="https://wsjt.sourceforge.io/wsjtx-main_en.html">WSJT-X User Guide</a> This pattern is consistent with marginal-signal decoding; the measured +1.2 dB reporting offset alone does not prove the cause.</p>
+<p><strong>This is why ΔDecode complements ΔSNR.</strong> ΔSNR compares only transmissions decoded by both receivers. <strong class="defined-term">ΔDecode</strong> compares their total observed decodes—Paired plus each receiver’s own one-sided decodes—and therefore captures reception missing from the paired comparison. Here, <strong>1 766 versus 1 465 decodes gives 1.21× as many observed decodes</strong>, with a net advantage of <strong>316 − 15 = 301</strong>.</p>
+<p>The bottom row shows <strong>59 station entries at ON4AWM0 versus 50 at ON4AWM1</strong>. The advantage includes <strong>nine transmitting-station entries absent from the Reference’s log</strong>, as well as additional transmissions from stations both receivers heard.</p>
+<p><strong>An SNR correction adjusts the reported values used in the comparison. It cannot recover a missed decode or establish equal decoding performance.</strong> These curves use each receiver’s raw reported SNR, so the Reference correction does not move them. Interpret one-sided evidence under known common operation and reporting: outages or missing uploads can also produce a difference. The counts do not measure an absolute decoding probability or identify the physical cause of the imbalance.</p>
+<p><strong>Keep this decoding result with your calibration record.</strong> The next antenna benchmark can correct the +1.2 dB SNR offset but may still include differences in decoding performance between the receiving chains. The <strong>1.21× factor describes this run; it is not a correction to apply to later decode counts</strong>.</p></div></div></section></section><section class="case-evidence-group" id="step-3"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">04</span><h3>Use the result in the next antenna benchmark</h3></div><blockquote>
+<p><strong>Calibration result:</strong> In the selected week of database records, ON4AWM0 reported an average SNR <strong>1.2 dB higher</strong> than ON4AWM1. The result is supported by <strong>1 143 same-cycle comparisons from ten transmitting-station entries</strong>. With both receiving chains connected to the same antenna, such an offset is a receiver-chain baseline, not an antenna advantage; the database alone does not verify that connection for the entire week.</p>
+</blockquote>
+<p>To account for this offset, a <strong>+1.2 dB Reference SNR correction</strong> raises ON4AWM1's SNR before subtraction, bringing the average difference close to zero. <strong>The prepared calibration demo stays at 0.0 dB</strong>, so the original offset remains visible.</p>
+<h3>Where to enter the correction</h3>
+<p>For the next antenna comparison using these same receiving chains:</p>
+<ol>
+<li><strong>Save the calibration results package</strong> and record the band, connections and receiver settings.</li>
+<li>Connect the antenna under test to the <strong>Target receiving chain</strong> and the comparison antenna to the <strong>Reference receiving chain</strong>. Keep the receiving-chain settings and band as calibrated, and have both receivers listening and reporting throughout the new comparison period.</li>
+<li>Open the next <strong>RX Benchmark</strong> with <strong>Reference Setup/Station</strong>. Keep <strong>ON4AWM0 as Target</strong> and <strong>ON4AWM1 as Reference</strong>, and select the dates of the antenna experiment.</li>
+<li>In the SNR-correction controls, switch from <strong>establishing an offset</strong> to <strong>using an established correction</strong>. Enter <strong>+1.2</strong> in <strong>Reference-side SNR correction (dB)</strong>, then run the benchmark.</li>
+</ol>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Next benchmark setting</th>
+<th>What to enter for this receiver pair</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target</td>
+<td><strong>ON4AWM0</strong></td>
+</tr>
+<tr>
+<td>Reference</td>
+<td><strong>ON4AWM1</strong></td>
+</tr>
+<tr>
+<td>Correction choice</td>
+<td>Apply an established correction</td>
+</tr>
+<tr>
+<td>Reference-side SNR correction (dB)</td>
+<td><strong>+1.2</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Use the positive sign.</strong> WSPRadar adds the value to Reference before calculating Target minus Reference:</p>
+<p><strong>Corrected ΔSNR = Target SNR − (Reference SNR + 1.2 dB)</strong></p>
+<p>For example, a raw <strong>+3.0 dB</strong> antenna-comparison difference would become <strong>+1.8 dB</strong> after this correction. This is a calculation example, not another measured result from the calibration week. The adjustment accounts for the measured receiving-chain baseline before you interpret the antenna comparison.</p>
+<p>For the calibration observations themselves, the mean would move close to <strong>0 dB</strong>, while the +1.0 dB medians would move to <strong>−0.2 dB</strong>. That is expected: this correction follows the mean, and the mean and median are different summaries.</p>
+<p><strong>For your own receivers, use the signed offset from your own common-antenna calibration.</strong> The +1.2 dB value belongs to the pair and arrangement in this demo. It is a WSPRadar analysis correction; retain the receiver settings used during calibration. Recheck the calibration after changing the band, receiving equipment, cables, filters or relevant settings. If you simply reverse the Target and Reference assignments of the same calibrated chains, the correction sign reverses too: this example would use <strong>−1.2 dB</strong>.</p>
+<p>You have now examined how to establish what the receiving equipment contributes. Next, see how a corrected comparison reveals a change in antenna orientation.</p>
+<p><a href="/en/demos/vanhamel_rx_buddy/">Continue to A 90° Turn, a 3 dB Difference →</a></p>
+<p><strong>The antenna-rotation demo uses a separate +1.6 dB Reference SNR correction for its Figure 6 reconstruction.</strong> Its guided demo explains that choice; do not silently substitute one calibration value for the other.<sup><a href="/en/demos/vanhamel_rx_calibration/#calibration-rotation-note">2</a></sup></p>
+<hr />
+<p><span id="calibration-paper-note"></span></p>
+<p><strong>1.</strong> The +1.2 dB average agrees, at the displayed precision, with the shared-antenna calibration reported by Vanhamel and colleagues. The paper's rounded average does not establish its exact weighting, the signed receiver mapping, or the selected database dates. The paper uses “more than 50” receptions per station; the demo uses at least 50 spot pairs. No station entry in this export has exactly 50 spot pairs, so the strict and inclusive cutoffs select the same entries here. <a href="https://doi.org/10.1155/2022/4809313">Original paper ↗</a></p>
+<p><span id="calibration-rotation-note"></span></p>
+<p><strong>2.</strong> The authors' <a href="https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-antenna-comparison-instrument">instrument and calibration notes</a> document a separate approximately 1.574 dB estimate, added to ON4AWM1. The following reconstruction uses that estimate rounded to +1.6 dB.</p></div></div></section></section></article></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

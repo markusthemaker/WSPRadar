@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Low Dipole vs Radial-Free Vertical · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/demos/griffiths_squibb_fig3/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>Low Dipole vs Radial-Free Vertical · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/demos/griffiths_squibb_fig3/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/demos/griffiths_squibb_fig3/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/demos/griffiths_squibb_fig3/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script><link rel="stylesheet" href="/assets/demo-walkthrough.css"><script src="/assets/demo-walkthrough.js" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="demo-case-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos" aria-current="page">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/demos/griffiths_squibb_fig3/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><article class="case-study"><svg class="case-filter-definitions" aria-hidden="true" width="0" height="0"><defs><filter id="case-filter-griffiths_squibb_fig3-griffiths-figure3-comparison" x="0" y="0" width="1" height="1" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB"><feComponentTransfer in="SourceGraphic" result="inverted"><feFuncR type="table" tableValues="1 0"/><feFuncG type="table" tableValues="1 0"/><feFuncB type="table" tableValues="1 0"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2126 0.7152 0.0722 0 0" result="lightness"/><feComponentTransfer in="lightness" result="bright-pixels"><feFuncA type="linear" slope="8" intercept="-6"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 1 0" result="red-channel"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 1 0" result="green-channel"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1 0" result="blue-channel"/><feBlend in="red-channel" in2="green-channel" mode="lighten" result="maximum-rg"/><feBlend in="maximum-rg" in2="blue-channel" mode="lighten" result="maximum-rgb"/><feBlend in="red-channel" in2="green-channel" mode="darken" result="minimum-rg"/><feBlend in="minimum-rg" in2="blue-channel" mode="darken" result="minimum-rgb"/><feBlend in="maximum-rgb" in2="minimum-rgb" mode="difference" result="chroma-rgb"/><feColorMatrix in="chroma-rgb" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0" result="chroma"/><feComponentTransfer in="chroma" result="low-chroma"><feFuncA type="linear" slope="-16" intercept="2"/></feComponentTransfer><feComposite in="bright-pixels" in2="low-chroma" operator="in" result="white-background"/><feComposite in="SourceGraphic" in2="white-background" operator="out" result="native-colors"/><feFlood x="0.1153594771" y="0.7062091503" width="0.7643790850" height="0.1794117647" flood-color="white" result="mask0"/><feFlood x="0.1153594771" y="0.7062091503" width="0.7643790850" height="0.1794117647" flood-color="black" result="background0"/><feComposite in="native-colors" in2="mask0" operator="in" result="original0"/><feFlood x="0.8993464052" y="0.7062091503" width="0.0104575163" height="0.1794117647" flood-color="white" result="mask1"/><feFlood x="0.8993464052" y="0.7062091503" width="0.0104575163" height="0.1794117647" flood-color="black" result="background1"/><feComposite in="native-colors" in2="mask1" operator="in" result="original1"/><feComponentTransfer in="lightness" result="dark-pixels"><feFuncA type="linear" slope="-4" intercept="2"/></feComponentTransfer><feComposite in="dark-pixels" in2="low-chroma" operator="in" result="label-ink-mask"/><feFlood x="0.7751633987" y="0.7062091503" width="0.1045751634" height="0.0346405229" flood-color="#b9c8d6" result="label-base0"/><feComposite in="label-base0" in2="label-ink-mask" operator="in" result="label-ink0"/><feMerge><feMergeNode in="inverted"/><feMergeNode in="background0"/><feMergeNode in="original0"/><feMergeNode in="background1"/><feMergeNode in="original1"/><feMergeNode in="label-ink0"/></feMerge></filter></defs></svg><header class="case-hero"><div class="case-hero-copy"><p class="eyebrow">Guided Demo</p><h1>Low Dipole vs Radial-Free Vertical</h1><div class="case-intro" id="objective" aria-label="Objective"><p>A low dipole versus a vertical on 40 m — a real-world comparison using WSPR data.</p>
+<p>Does a better signal-to-noise ratio also mean more signals decoded? Follow this experiment from two geographic maps to changing signal levels, time of day, an individual transmitter and the underlying WSPR reports. Throughout the results, <strong>ΔSNR</strong> compares signal quality on shared transmissions and <strong>ΔDecode</strong> compares total observed decodes. The paired SNR comparison tells one part of the story; signals decoded by only one setup tell another.</p></div><p class="case-meta">G3ZIL (IO90HW) / G4HZX (IO91) · 40m · April 2017 · RX Benchmark</p><div class="actions"><a class="button" href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=G3ZIL&amp;qth=IO90HW&amp;band=40m&amp;from=2017-04-01T00%3A00Z&amp;to=2017-05-01T00%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;reference=G4HZX&amp;reference_qth=IO91&amp;snr_correction_mode=no_offset&amp;snr_correction_db=0&amp;max_distance_km=10000&amp;min_segment_stations=5&amp;segment_bin=24h&amp;station_bin=12h&amp;selected_station=DJ0ABR%40JN68NT#wspradar-results-inspection"  rel="noopener noreferrer">Run in WSPRadar App →</a><a class="text-link" href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Original paper ↗</a></div></div><nav class="case-nav" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#objective">Objective</a></li><li><a href="#setup">Setup</a></li><li><a href="#load-demo">Load Demo</a></li><li><a href="#delta-snr-map">ΔSNR Map</a></li><li><a href="#decoding-reach">Decodes by SNR</a></li><li><a href="#delta-decode-map">ΔDecode Map</a></li><li><a href="#difference">Statistics</a></li><li><a href="#time">ΔSNR over Time</a></li><li><a href="#published-figure3">Paper Evidence</a></li><li><a href="#evidence">ΔDecode over Time</a></li><li><a href="#stations">Stations</a></li><li><a href="#drill-down">Drill-Down</a></li><li><a href="#takeaways">Takeaways</a></li></ol></nav></header><section class="case-summary" id="summary" aria-label="The findings at a glance"><h2>The findings at a glance</h2><ul>
+<li>
+<p><a href="#difference"><strong>Better paired SNR</strong></a></p>
+<p><strong class="case-finding-value">+6.5 <span>dB</span></strong></p>
+<p>The median across station results favored <strong>G3ZIL</strong>. Each station has equal influence.</p>
+<p>57 767 spot pairs · 792 station entries</p>
+</li>
+<li>
+<p><a href="#decoding-reach"><strong>More decoded signals</strong></a></p>
+<p><strong class="case-finding-value">1.65<span>×</span></strong></p>
+<p>As many decodes at <strong>G3ZIL</strong>: 114 027 versus 69 258. <strong>44 769 additional decodes</strong> overall.</p>
+<p>1 083 station entries versus 876 · a net 207 more</p>
+</li>
+<li>
+<p><a href="#delta-decode-map"><strong>Direction and distance matter</strong></a></p>
+<p><span class="case-finding-scope">E · 0–2 500 km</span><strong class="case-finding-comparison">+8 dB · 1.67×</strong></p>
+<p><span class="case-finding-scope">WNW · 5 000–10 000 km</span><strong class="case-finding-comparison">0 dB · 1.02×</strong></p>
+<p>Station-balanced ΔSNR · G3ZIL decode factor. Distant WNW was <strong>close to parity</strong>.</p>
+</li>
+</ul><p>Read the rest of this guided demo to understand the bigger picture, from geography to individual observations.</p></section><section class="case-setup case-setup-media-left" id="setup"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">01</span><h2>Setup: How were the operators testing</h2></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-demo1-setup-network-schematic"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/setup/setup-network-1600.webp" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Two receivers, shared WSPR signals" data-caption-id="case-caption-demo1-setup-network-schematic" aria-label="Open full-size image: Two receivers, shared WSPR signals"><img loading="eager" decoding="async" width="1600" height="900" src="/assets/demos/griffiths_squibb_fig3/setup/setup-network-520.webp" srcset="/assets/demos/griffiths_squibb_fig3/setup/setup-network-520.webp 520w, /assets/demos/griffiths_squibb_fig3/setup/setup-network-1040.webp 1040w, /assets/demos/griffiths_squibb_fig3/setup/setup-network-1600.webp 1600w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Schematic world map of WSPR transmitters and a UK inset showing the G3ZIL low dipole and G4HZX vertical, their receivers, WSJT-X and uploaded reception reports."></a><figcaption id="case-caption-demo1-setup-network-schematic"><strong>Two receivers, shared WSPR signals</strong><p>Illustrative setup and reporting flow; transmitter positions and signal paths are schematic.</p></figcaption></figure></div><p>In <em>Improving HF Band SNR</em>, published in <em>Practical Wireless</em> in October 2017, Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, investigated ways to improve reception on 40 meters. Both used essentially the same homebuilt direct-conversion receiver design, but at different locations and with different antennas. <a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Original paper</a></p>
+<p><strong>G3ZIL — IO90HW:</strong> A low horizontal dipole, with its center raised to about 4 meters and its ends at 1.5 meters. The receiver had been moved to a garden shed.</p>
+<p><strong>G4HZX — IO91:</strong> A Hustler 5-BTV vertical connected to a ground spike, without radials, at the far end of the garden.</p>
+<p><strong>G3ZIL is the Target receiver; G4HZX is the Reference receiver.</strong> A <strong>station entry</strong> in the results identifies a remote transmitter by its callsign and reported locator.</p>
+<p>The paper also records retuning G3ZIL’s dipole on <strong>8 April</strong>. This was an investigation of real installed stations, not an untouched laboratory setup.</p>
+<p><strong>Our question is: how did these two receiving stations compare during April 2017?</strong></p>
+<p>Each station uploaded reports of the WSPR signals it decoded. WSPRadar matches occasions when both reported the <strong>same transmitter in the same two-minute WSPR cycle</strong>. These <strong class="defined-term">spot pairs</strong> let us compare their SNR at the same time, rather than comparing one station’s good afternoon with the other’s reception on a different day.</p>
+<p>A spot pair consists of one retained Target observation and one retained Reference observation matched on band, WSPR cycle, and the remote station’s callsign and full reported locator. Each pair supplies one ΔSNR observation.</p>
+<p>When several reports exist for one setup, remote station, and cycle, WSPRadar consolidates them using its existing SNR-selection rules before forming the comparison.</p>
+<p>A <strong class="defined-term">Target-only</strong> observation means G3ZIL reported that transmitter-cycle and G4HZX did not; <strong class="defined-term">Reference-only</strong> means the reverse. These are useful observations too: when only one setup decodes, there is no second measured SNR to subtract, but there is still evidence of reception.</p></div></section><section class="case-evidence" id="walkthrough"><section class="case-evidence-group" id="load-demo"><span id="load" aria-hidden="true"></span><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">02</span><h3>Load the demo and check its settings</h3></div><p>Select <strong>Run in WSPRadar App</strong> above to open <strong>Low Dipole vs Radial-Free Vertical</strong> with its prepared settings. You do not need to enter the station details manually. Review the prepared settings, then select <strong>Run Analysis</strong>. Loading the link does not establish historical uptime. The settings explain what the analysis includes:</p>
+<div class="case-settings-disclosure"><div class="case-settings-preview"><div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Setting</th>
+<th style="text-align: left;">Value in this demo</th>
+<th style="text-align: left;">What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Analysis</td>
+<td style="text-align: left;"><strong>RX Benchmark</strong></td>
+<td style="text-align: left;">Compare reception, rather than transmission or standalone Performance.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Target</td>
+<td style="text-align: left;"><strong>G3ZIL, QTH IO90HW</strong></td>
+<td style="text-align: left;">The station being evaluated and the center of the maps.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reference</td>
+<td style="text-align: left;"><strong>G4HZX, IO91</strong></td>
+<td style="text-align: left;">The receiving station used for comparison.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Benchmark design</td>
+<td style="text-align: left;"><strong>Reference Setup/Station</strong></td>
+<td style="text-align: left;">Compare this controlled pair, not a neighborhood reference.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Band</td>
+<td style="text-align: left;"><strong>40 m</strong></td>
+<td style="text-align: left;">Use reports from this band.</td>
+</tr>
+</tbody>
+</table></div></div><details class="case-settings-details"><summary>Show all settings</summary><div class="case-settings-complete"><div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Setting</th>
+<th style="text-align: left;">Value in this demo</th>
+<th style="text-align: left;">What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Analysis</td>
+<td style="text-align: left;"><strong>RX Benchmark</strong></td>
+<td style="text-align: left;">Compare reception, rather than transmission or standalone Performance.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Target</td>
+<td style="text-align: left;"><strong>G3ZIL, QTH IO90HW</strong></td>
+<td style="text-align: left;">The station being evaluated and the center of the maps.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reference</td>
+<td style="text-align: left;"><strong>G4HZX, IO91</strong></td>
+<td style="text-align: left;">The receiving station used for comparison.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Benchmark design</td>
+<td style="text-align: left;"><strong>Reference Setup/Station</strong></td>
+<td style="text-align: left;">Compare this controlled pair, not a neighborhood reference.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Band</td>
+<td style="text-align: left;"><strong>40 m</strong></td>
+<td style="text-align: left;">Use reports from this band.</td>
+</tr>
+<tr>
+<td style="text-align: left;">UTC window</td>
+<td style="text-align: left;"><strong>2017-04-01T00:00Z → 2017-05-01T00:00Z</strong></td>
+<td style="text-align: left;">Examine April’s observations; the end is exclusive.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Distance and direction</td>
+<td style="text-align: left;"><strong>Within 10 000 km; all directions</strong></td>
+<td style="text-align: left;">The geographic scope of these figures.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reference SNR correction</td>
+<td style="text-align: left;"><strong>0 dB</strong></td>
+<td style="text-align: left;">No additional Reference offset is applied in this run.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Minimum spot pairs per station for ΔSNR</td>
+<td style="text-align: left;"><strong>1</strong></td>
+<td style="text-align: left;">Minimum same-cycle pairs needed for a station’s ΔSNR result.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Minimum qualifying stations per segment for ΔSNR</td>
+<td style="text-align: left;"><strong>5</strong></td>
+<td style="text-align: left;">Avoid coloring a whole geographic segment from a single station’s result.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Minimum observed-event share per segment for ΔDecode</td>
+<td style="text-align: left;"><strong>1%</strong></td>
+<td style="text-align: left;">Minimum share of the full run’s <strong class="defined-term">observed events</strong> (transmitter-cycles decoded by at least one receiver) needed to color a ΔDecode segment.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Identify ΔSNR outlier candidates</td>
+<td style="text-align: left;"><strong>Disabled</strong></td>
+<td style="text-align: left;">Include the optional ΔSNR outlier-candidate report.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Time bins</td>
+<td style="text-align: left;"><strong>Segment: 24h; station: 12h</strong></td>
+<td style="text-align: left;">The chronological bins used below; UTC-hour profiles use 1 h bins.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Selected stations</td>
+<td style="text-align: left;"><strong>DJ0ABR (JN68NT)</strong></td>
+<td style="text-align: left;">A prepared example for Station Insights and Drill-Down.</td>
+</tr>
+</tbody>
+</table></div></div></details></div>
+<p>For ΔSNR, the per-station minimum of <strong>1 spot pair</strong> preserves a potentially valuable paired observation. Requiring <strong>5 stations per segment</strong> reduces reliance on one path. ΔDecode includes every retained event and colors a segment when it contains at least <strong>1% of the full run’s observed events</strong>.</p>
+<p>After the run, follow <strong>Global View → Segment Inspector → Station Insights → Drill-Down</strong>, then <strong>Download Evidence</strong>. The maps show where the two setups differ; the following views examine the size, timing and supporting observations of those differences.</p>
+<p>Keep <strong>Segment Inspector → Full Range | All Directions</strong> selected unless you want to examine a particular segment.</p>
+<p><strong>Station Insights is independent of the Inspector.</strong> Its station list covers this completed analysis by default. Enable <strong>Filter by selected segment and distance</strong> only when you want to browse stations inside the Inspector's current scope; selected-station evidence still uses that station's full April record.</p></div></div></section><section class="case-evidence-group" id="delta-snr-map"><span id="map" aria-hidden="true"></span><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">03</span><h3>ΔSNR (Signal Quality): where is the SNR advantage?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rc3-demo1-map-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_snr_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="ΔSNR (Signal Quality): where is the SNR advantage?" data-caption-id="case-caption-rc3-demo1-map-typography-en-20261024" aria-label="Open full-size image: ΔSNR (Signal Quality): where is the SNR advantage?"><img loading="eager" decoding="async" width="3411" height="3518" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_snr_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_snr_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_snr_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Dark ΔSNR map centered on G3ZIL, comparing paired reception with G4HZX by direction and distance."></a><figcaption id="case-caption-rc3-demo1-map-typography-en-20261024"><strong>ΔSNR (Signal Quality): where is the SNR advantage?</strong><p>Sector colors show station-balanced median ΔSNR for G3ZIL minus G4HZX. Hatched sectors have observations but insufficient qualifying support; they are not measured zeroes.</p></figcaption></figure></div><p><em>How much better is the SNR when both setups decode the same signals in the same WSPR cycle?</em></p>
+<p><strong class="defined-term">Signal-to-noise ratio, or SNR</strong><strong>, describes how strongly a signal stands out relative to noise. Higher SNR is better.</strong> For this demo:</p>
+<p><strong class="defined-term">ΔSNR</strong><strong> = G3ZIL SNR − G4HZX SNR</strong></p>
+<p>For example, −22 dB at G3ZIL and −29 dB at G4HZX gives <strong>+7 dB</strong>. <strong>Positive differences favor G3ZIL; negative differences favor G4HZX.</strong> Zero means equal SNR on an individual comparison.</p>
+<p>The map is always centered on the target station, here G3ZIL. Compass sectors represent directions from that station; the rings separate distance ranges. This is an <strong>azimuthal map</strong>, with distance measured outward from the target.</p>
+<p>A transmitter <strong>qualifies</strong> when it meets the configured <strong>minimum number of spot pairs per station</strong> (here set to 1 per above settings). We refer to this as a <strong class="defined-term">qualified station</strong>. For each remote transmitter, WSPRadar first examines all its paired WSPR observations—often hundreds or thousands—and calculates the <strong class="defined-term">median ΔSNR</strong>: the middle SNR difference when all measurements are sorted. This gives each station <strong>one representative result</strong>.</p>
+<p>Next, for each map segment, WSPRadar takes these station results and again finds the <strong>median (middle value)</strong>. <strong>Every station has one equal voice:</strong> whether it contributed 5 or 500 spot pairs, it contributes just one value to the segment.</p>
+<p><strong>Why does this matter?</strong> Some WSPR stations transmit far more frequently than others. Without balancing, one very active transmitter could dominate an entire sector, even when most other stations show a different SNR advantage. <strong>Station balancing reveals the typical advantage across different transmitter paths—not simply where the most spots were collected.</strong></p>
+<h4>Start with Europe, then compare distant West-North-West (WNW) paths</h4>
+<p>The first visible finding is that <strong>G3ZIL’s advantage is not geographically uniform</strong>. Many nearer European sectors favor G3ZIL clearly, while the distant west-northwest sector containing many North American stations is much closer to equality.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Geographic scope</th>
+<th style="text-align: right;">Station-balanced ΔSNR</th>
+<th style="text-align: right;">Qualifying station entries</th>
+<th style="text-align: right;">WSPR spot pairs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>0–2 500 km, E</strong></td>
+<td style="text-align: right;"><strong>+8.0 dB</strong></td>
+<td style="text-align: right;"><strong>172</strong></td>
+<td style="text-align: right;"><strong>19 205</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5 000–10 000 km, WNW</strong></td>
+<td style="text-align: right;"><strong>0.0 dB</strong></td>
+<td style="text-align: right;"><strong>113</strong></td>
+<td style="text-align: right;"><strong>2 911</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Notice the weighting: The 19 205 spot pairs from the eastern segment are first reduced to 172 station medians. The middle of those station values gives +8.0 dB. Each station contributes equally, whether it supplied one or thousands of spot pairs.</p>
+<p>That is already a useful result: an overall advantage does not mean that G3ZIL heard every direction better. For an operator interested in European paths versus distant DX, the map is more informative than one monthly number.</p>
+<p><strong>Markers answer a different question from sector colors.</strong> Green <strong>Paired (qualifying)</strong> identifies a station with enough same-cycle pairs. Pale green indicates paired observations below the station minimum. <strong>This does not apply here:</strong> we set the minimum to <strong>1 spot pair per station</strong> to retain as many paths as possible, while requiring <strong>at least 5 qualifying stations</strong> before coloring a map segment. <strong class="defined-term">Both observed, no pairs</strong> means both receivers reported that station during the period, but never in the same cycle; it does not imply a clock fault. <strong>Only G3ZIL</strong> and <strong>Only G4HZX</strong> identify stations observed exclusively by that receiver. A station with paired observations can still have many one-sided observations at other times.</p>
+<p>Gray hatching means there is observed evidence but too little qualifying support for a colored segment. Blank segments contain no observed station entries. The neutral color covers values around zero, not necessarily exact equality. Read the numerical scale: it adapts to the results.</p>
+<blockquote>
+<p><strong>What is missing from ΔSNR?</strong> ΔSNR requires both receivers to decode the same signal in the same WSPR cycle. When only one succeeds, no paired SNR difference can be calculated—even though that reception may represent a meaningful advantage.</p>
+<p>One-sided decodes can occur near the WSPR detection limit, but they can also occur at stronger reported SNRs. Differences in antennas, propagation paths, local noise, interference, decoding or reporting may explain why one setup misses a signal the other receives.</p>
+<p><strong>The next view bridges this gap</strong>, showing how these one-sided observations translate into additional decoded spots and stations.</p>
+</blockquote>
+<p>Return <strong>Segment Inspector</strong> to <strong>Full Range | All Directions</strong> before continuing.</p></div></div></section><section class="case-evidence-group" id="decoding-reach"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">04</span><h3>Decodes &amp; Stations by SNR</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rc3-demo1-reach-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_decodes_over_snr_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Decodes &amp; Stations by SNR" data-caption-id="case-caption-rc3-demo1-reach-typography-en-20261024" aria-label="Open full-size image: Decodes &amp; Stations by SNR"><img loading="eager" decoding="async" width="3819" height="2482" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_decodes_over_snr_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_decodes_over_snr_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_decodes_over_snr_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Cumulative raw-SNR curves for Paired, one-sided and all observations, with spots above and distinct station entries below."></a><figcaption id="case-caption-rc3-demo1-reach-typography-en-20261024"><strong>Decodes &amp; Stations by SNR</strong><p>G3ZIL is magenta; G4HZX is cyan. At the endpoints, G3ZIL has 44 769 more decoded spots and 207 more observed station entries. The Paired spots curves finish at the same report counts, representing the same spot pairs.</p></figcaption></figure></div><p><em>See how reception diverges as signals weaken—and how this translates into more decoded spots and stations.</em></p>
+<h4>Read from stronger signals toward weaker signals</h4>
+<p>Move <strong>left to right</strong> along the SNR axis. The cutoff is lowered in 1 dB steps, progressively including weaker reports. The upper row accumulates spots; the lower row accumulates distinct station entries. Each curve uses <strong>that receiver’s own raw reported SNR</strong>, without power normalization or the Reference SNR correction. Multiple reports for the same transmitter, receiver and WSPR cycle count as one spot, using the strongest raw SNR.</p>
+<p>In <strong>Paired spots</strong>, both receivers decoded the <strong>same transmitter in the same WSPR cycle</strong>, providing directly comparable SNR measurements. Both curves therefore represent <strong>57 767 spot pairs from 792 stations</strong>, with exactly <strong>57 767 retained observations from each receiver</strong> at their endpoints. Their horizontal separation reflects differences in reported SNR for these shared signals: one receiver generally decoded them at higher SNR than the other. This relates to the <strong>ΔSNR advantage</strong> examined earlier. <strong>Separation before the endpoint is not, by itself, an extra decode</strong>—a paired observation can enter the two curves at different SNR cutoffs.</p>
+<p>The upper middle panel, <strong class="defined-term">One-sided spots — unpaired</strong>, adds the second perspective. It shows <strong>56 260 G3ZIL-only spots</strong> and <strong>11 491 G4HZX-only spots</strong>. These signals were decoded by just one receiver in their respective WSPR cycles. They cannot contribute to paired ΔSNR but remain valuable decoding evidence, regardless of map qualification.</p>
+<p>The lower middle panel, <strong>Stations without paired observations</strong>, plots stations heard <strong>exclusively by one receiver</strong>: <strong>256 at G3ZIL</strong> and <strong>49 at G4HZX</strong>. The <strong>35 stations heard by both receivers, but never in the same WSPR cycle (Both observed, no pairs)</strong>, are shown separately as <strong>“Both observed, no pairs: +35 stations.”</strong> Including them gives <strong>291 station entries at G3ZIL</strong> and <strong>84 at G4HZX</strong> without any spot pairs.</p>
+<p>The distinction matters: <strong>a one-sided spot does not necessarily represent a new station</strong>. The same transmitter may supply spot pairs in some cycles and one-sided spots in others. The upper panel includes all one-sided observations; the lower panel plots exclusively heard stations and notes the additional stations observed by both sides without pairs separately. None of these lower-panel stations supplied a spot pair.</p>
+<h4>Read the right-hand endpoints as the observed result</h4>
+<p>To reconcile the station totals, add <strong>stations with pairs + exclusive stations + stations observed by both sides without pairs</strong> for each receiver. The <strong>All stations</strong> endpoints already include the 35 stations observed by both sides without pairs; do not add them again.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Observed evidence</th>
+<th style="text-align: right;">G3ZIL</th>
+<th style="text-align: right;">G4HZX</th>
+<th style="text-align: right;">Net difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Observations in spot pairs (same WSPR cycle)</td>
+<td style="text-align: right;">57 767</td>
+<td style="text-align: right;">57 767</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">One-sided spots</td>
+<td style="text-align: right;">56 260</td>
+<td style="text-align: right;">11 491</td>
+<td style="text-align: right;">+44 769</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total decoded spots</strong></td>
+<td style="text-align: right;"><strong>114 027</strong></td>
+<td style="text-align: right;"><strong>69 258</strong></td>
+<td style="text-align: right;"><strong>+44 769</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Stations with paired observations</td>
+<td style="text-align: right;">792</td>
+<td style="text-align: right;">792</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Stations without paired observations</td>
+<td style="text-align: right;">291</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: right;">+207</td>
+</tr>
+<tr>
+<td style="text-align: left;">↳ Exclusive to this receiver</td>
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">+207</td>
+</tr>
+<tr>
+<td style="text-align: left;">↳ Both observed, no pairs</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total distinct station entries</strong></td>
+<td style="text-align: right;"><strong>1 083</strong></td>
+<td style="text-align: right;"><strong>876</strong></td>
+<td style="text-align: right;"><strong>+207</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The <strong>Either</strong> totals are the unions: <strong>125 518 transmitter-cycle events</strong> and <strong>1 132 station entries</strong>, counted once even when both receivers report them. The 35 stations observed by both sides without pairs contribute to both receivers' station totals but only once to the combined total. At intermediate SNR cutoffs, the Paired-station curves use each receiver’s strongest paired report, while the All stations curves use its strongest report of any outcome. Their counts therefore need not add at every cutoff.</p>
+<p>These results describe <strong>both more observations and additional stations</strong>. Most G3ZIL-only events—<strong>54 030 of 56 260 (96%)</strong>—actually come from stations that also provided paired observations. Much of the benefit is additional reception on already-observed paths, rather than only adding new dots to the map.</p>
+<h4>Where do the extra observations sit in SNR?</h4>
+<p>The raw-SNR median for G3ZIL is <strong>−12 dB on paired reports</strong>, but <strong>−19 dB on G3ZIL-only reports</strong>. At G4HZX, the corresponding medians are <strong>−19 dB</strong> and <strong>−23 dB</strong>. One-sided reception is therefore shifted toward weaker reported signals at each receiver.</p>
+<p>This supports the practical reason for adding decoding evidence: <strong>as signals become harder to decode, paired observations can disappear while one-sided reception remains</strong>. However, this demo's one-sided reports span a broad SNR range; they are not all clustered at a single detection limit. Other demos provide a more pronounced weak-signal example, with one-sided observations concentrated at very low reported SNRs. A signal strong at one site may be weak at the other, whose missing SNR is unknown. Different noise, propagation, equipment or reporting can also contribute.</p>
+<blockquote>
+<p><strong>A useful surprise:</strong> G3ZIL decoded <strong>256 station entries that G4HZX never reported</strong>. Yet G4HZX also decoded <strong>49 station entries that G3ZIL missed entirely</strong>. Even with a clear overall advantage, G3ZIL did not hear everything. <strong>The Reference still contributed unique reception paths</strong> that would otherwise have been missed.</p>
+</blockquote>
+<p>The count differences here supply the <strong>net additional decodes</strong> used by ΔDecode. The next map compares each segment’s pooled decode totals as a fold change, with the larger-to-smaller factor on the favored setup’s side. Neither view includes transmissions missed by both receivers, so neither measures absolute decoding probability or a calibrated sensitivity gain.</p></div></div></section><section class="case-evidence-group" id="delta-decode-map"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">05</span><h3>ΔDecode (Decoding Advantage): where are additional signals decoded?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-demo1-decode-advantage-map-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_decode_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="ΔDecode (Decoding Advantage): where are additional signals decoded?" data-caption-id="case-caption-demo1-decode-advantage-map-typography-en-20261024" aria-label="Open full-size image: ΔDecode (Decoding Advantage): where are additional signals decoded?"><img loading="eager" decoding="async" width="3451" height="3518" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_decode_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_decode_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_map_delta_decode_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Dark pooled ΔDecode map comparing G3ZIL and G4HZX total decodes with an adaptive fold-ratio legend; eleven sectors meet the 1% event-share minimum."></a><figcaption id="case-caption-demo1-decode-advantage-map-typography-en-20261024"><strong>ΔDecode (Decoding Advantage): where are additional signals decoded?</strong><p>ΔDecode compares pooled Target and Reference decode totals. Warm colors favor G3ZIL; blue favors G4HZX. Ratio labels mark the color boundaries, with 1× at equality. A sector needs at least 1% of the retained observed events (1 256 here).</p></figcaption></figure></div><p><strong>Which setup decoded more transmissions—and by how much?</strong></p>
+<p>The previous view showed that G3ZIL recorded <strong>1.65× as many decodes overall</strong>. This map shows where that advantage occurred, and where G4HZX came out ahead.</p>
+<h4>From decode counts to a map value</h4>
+<p>Each setup’s total includes <strong>Paired plus its own one-sided decodes</strong>. WSPRadar pools these counts across all stations in a segment before comparing the totals. Stations contribute their actual decode counts; station ratios are not averaged, and distinct-station reach is a separate result.</p>
+<p>For example, in <strong>E at 0–2 500 km</strong>, G3ZIL recorded <strong>34 747 decodes</strong> and G4HZX <strong>20 815</strong>:</p>
+<p><strong>34 747 ÷ 20 815 = 1.67× as many G3ZIL decodes</strong>, a net <strong>13 932 additional decodes</strong>.</p>
+<h4>Read the fold legend</h4>
+<p><strong>2× means twice as many decodes for the setup indicated by that side of the legend.</strong> Warm bands favor G3ZIL; blue bands favor G4HZX.</p>
+<p><strong>The central light-green band is not a tie.</strong> Its center marks equal totals, but the band includes advantages up to the <strong>1.25× boundaries in either direction</strong>. A sector can therefore show about 1.20× as many Reference decodes and still have this central color.</p>
+<p>Colors represent intervals: <strong>1.67× falls between 1.5× and 1.75×</strong>. Check the labels when comparing maps because the legend range adapts to the visible results.</p>
+<h4>Compare with ΔSNR</h4>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Geographic scope</th>
+<th style="text-align: right;">ΔSNR</th>
+<th style="text-align: left;">Decode advantage</th>
+<th style="text-align: right;">Net extra for that setup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>0–2 500 km, E</strong></td>
+<td style="text-align: right;"><strong>+8.0 dB</strong></td>
+<td style="text-align: left;"><strong>G3ZIL 1.67×</strong></td>
+<td style="text-align: right;"><strong>13 932</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5 000–10 000 km, WNW</strong></td>
+<td style="text-align: right;"><strong>0.0 dB</strong></td>
+<td style="text-align: left;"><strong>G3ZIL 1.02×</strong></td>
+<td style="text-align: right;"><strong>102</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>0–2 500 km, SSW</strong></td>
+<td style="text-align: right;"><strong>+5.5 dB</strong></td>
+<td style="text-align: left;"><strong>G3ZIL 1.52×</strong></td>
+<td style="text-align: right;"><strong>987</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>0–2 500 km, NE</strong></td>
+<td style="text-align: right;"><strong>+5.25 dB</strong></td>
+<td style="text-align: left;"><strong>G4HZX 1.20×</strong></td>
+<td style="text-align: right;"><strong>944</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>E and SSW: both maps favor G3ZIL.</strong> These sectors share the <strong>1.5×–1.75× band</strong>, but supply very different numbers of additional decodes. The factor expresses the relative advantage; the net count shows its volume.</p>
+<p><strong>Distant WNW: nearly equal totals can hide different reception.</strong> The paired ΔSNR median is zero and G3ZIL records only slightly more decodes. This does not mean every paired SNR was equal or that both receivers decoded the same transmissions: opposing one-sided outcomes can largely cancel.</p>
+<p><strong>NE: better paired SNR, fewer total decodes.</strong> G3ZIL leads in ΔSNR, yet G4HZX records <strong>944 more decodes</strong>. ΔSNR summarizes shared observations through station medians; ΔDecode includes all retained decode totals. The two measures can therefore favor different setups. This Reference advantage also explains why a central-colored sector should not be read as equality.</p>
+<h4>How much evidence supports the color?</h4>
+<p>Here, a sector needs <strong>1 256 observed events</strong>: <strong>1% of the full run’s 125 518 events</strong>, rounded up, with Paired counted once. <strong>Eleven sectors qualify.</strong> Selecting an Inspector segment or changing the map view does not rebase this threshold.</p>
+<p>No paired observation or separate per-station minimum is required for ΔDecode. Exclusively heard and <strong>Both observed, no pairs</strong> stations contribute; their observations remain one-sided events. ΔSNR keeps its own paired-evidence requirements.</p>
+<p><strong>Hatching means observed evidence below the display minimum, not equal reception.</strong> That evidence remains inspectable. The minimum filters volume, not confidence: use the Segment Inspector to check contributing stations and counts before treating a sector as a regional pattern.</p>
+<blockquote>
+<p><strong>ΔSNR compares SNR on shared transmissions; ΔDecode compares total observed decodes.</strong> Interpret both under comparable common operation and reporting. Transmissions missed by both receivers remain unknown, so these results do not measure absolute decoding probability or calibrated sensitivity gain.</p>
+</blockquote></div></div></section><section class="case-evidence-group" id="difference"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">06</span><h3>Read Benchmark Statistics: how large is the difference?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-demo1-benchmark-statistics-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_statistics_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Benchmark Statistics: decode volume and paired SNR" data-caption-id="case-caption-demo1-benchmark-statistics-typography-en-20261024" aria-label="Open full-size image: Benchmark Statistics: decode volume and paired SNR"><img loading="eager" decoding="async" width="3852" height="1748" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_statistics_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_statistics_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_statistics_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Benchmark Statistics showing the decode-volume-weighted station ΔDecode distribution, qualifying spot-pair ΔSNR, and qualifying station-median ΔSNR."></a><figcaption id="case-caption-demo1-benchmark-statistics-typography-en-20261024"><strong>Benchmark Statistics: decode volume and paired SNR</strong><p>The pooled decode result is G3ZIL 1.65×. The spot-pair ΔSNR median is +7.0 dB; the station-balanced median is +6.5 dB. These current application figures reuse the retained April observations.</p></figcaption></figure></div><p>Below the maps, use <strong>Segment Inspector</strong> to select <strong>Full Range | All Directions</strong>. <strong>Benchmark Statistics</strong>, <strong>ΔSNR Temporal Coverage</strong> and <strong>ΔDecode Temporal Coverage</strong> summarize that same selection. For a closer look at a map region, select its distance range and direction here; restore the full scope to follow the numbers below.</p>
+<p>Benchmark Statistics combines which signals were decoded with the SNR difference where both receivers decoded them. It shows how the overall results are distributed, beyond the single summary value on each map.</p>
+<h4>Which stations supply the decoding advantage?</h4>
+<p>The left panel, <strong>ΔDecode — Decode Volume</strong>, places each station by its Target-versus-Reference decode advantage. <strong>Purple favors G3ZIL; blue favors G4HZX.</strong> The horizontal labels express that advantage as fold ratios, with <strong>1×</strong> at equal totals. Bar height shows the <strong>share of receiver decodes</strong> in each interval, not the number of stations: a frequently decoded transmitter contributes more than one heard only a few times.</p>
+<p>Each station contributes its <strong>G3ZIL plus G4HZX decode counts</strong>. Paired contributes once to each receiver, so the histogram represents <strong>183 285 receiver decodes</strong> across the <strong>125 518 observed events</strong>. The red line marks the pooled result, <strong>G3ZIL 1.65×</strong>, not a median of station ratios. All retained stations in this Inspector scope contribute; the map's segment threshold does not filter this distribution.</p>
+<p>The separate <strong>Exclusive</strong> endpoints contain decodes from stations heard only by one setup. Large finite ratios remain in the interior bins. These endpoint bars do not contain every one-sided decode: a station heard by both receivers can also supply many Target-only or Reference-only observations.</p>
+<p><strong>Substantial decode volume from stations heard by both receivers lies on G3ZIL’s side of 1×.</strong> Its lead is not confined to exclusively heard stations. This matches the earlier <a href="/en/demos/griffiths_squibb_fig3/#decoding-reach">Decoding Reach finding</a>: much of the additional reception comes from paths that also supplied paired observations.</p>
+<p>About <strong>70% of observed station entries supplied spot pairs</strong>, but those pairs account for only <strong>46% of observed transmitter-cycle events</strong>. The paired-SNR comparison therefore covers most observed stations while leaving out more than half the observed events—another reason to read the decoding and SNR panels together.</p>
+<h4>What is the typical SNR advantage?</h4>
+<p>The middle and right panels summarize the matched evidence differently: individual spot pairs first, then a histogram of station medians. <strong>Both show a clear peak around a positive ΔSNR</strong>, with relatively few extreme values. Together with the close agreement of the two medians, this makes the overall advantage a meaningful summary of the observations. <strong>A broad, strongly skewed or multi-peaked distribution would warrant more caution</strong>, as a single median might conceal important differences between stations, so always consider the full picture.</p>
+<p><strong>Qualifying spot pairs: +7.0 dB.</strong> Every matched observation contributes to this distribution. Transmitters heard more frequently consequently have more influence.</p>
+<p><strong>Qualifying Stations: +6.5 dB.</strong> Each transmitter contributes one median difference, regardless of how often it was heard. The middle value across those station summaries is +6.5 dB. Most station medians are positive, although some favor G4HZX.</p>
+<p>The two medians are close and both positive: the typical station result and the typical individual comparison tell a compatible overall story.</p>
+<blockquote>
+<p><strong>Our overall conclusion so far:</strong> G3ZIL had a clear paired-SNR advantage in this April dataset and more observed decoding. The maps have already shown where that conclusion needs to be narrowed. Next, check whether the difference stayed the same throughout the month.</p>
+</blockquote></div></div></section><section class="case-evidence-group" id="time"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">07</span><h3>Read ΔSNR Temporal Coverage: did the difference change?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-demo1-temporal-delta-snr-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_snr_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="ΔSNR Temporal Coverage" data-caption-id="case-caption-demo1-temporal-delta-snr-typography-en-20261024" aria-label="Open full-size image: ΔSNR Temporal Coverage"><img loading="eager" decoding="async" width="3808" height="1844" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_snr_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_snr_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_snr_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Paired ΔSNR through April in 24-hour bins and by UTC hour, showing bin medians, the middle-50-percent bands, and spot-pair density."></a><figcaption id="case-caption-demo1-temporal-delta-snr-typography-en-20261024"><strong>ΔSNR Temporal Coverage</strong><p>The chronological view uses 24-hour bins; the UTC-hour view pools observations across dates. Both summarize qualifying spot pairs, while one-sided observations remain in the following ΔDecode figure.</p></figcaption></figure></div><p><strong>Benchmark Statistics</strong> summarized April as a whole. Here, the qualifying paired observations are grouped by time, showing when the paired-SNR advantage changes within the same Inspector scope. These are medians of individual spot pairs, corresponding to the middle statistics panel; the map gives each station one median instead.</p>
+<p>Keep <strong>24h</strong> selected for the chronological charts in this part of the guided demo. The right-hand panels use <strong>1h UTC bins</strong>, combining the same hour across April.</p>
+<h4>Left panel: follow the month</h4>
+<p>In <strong>ΔSNR over Time</strong>, each circular marker is the median paired difference for one day. The result changes substantially: the daily median rises from <strong>+2 dB on 1 April to +9 dB on 15 April</strong>, with fluctuations along the way. Later in the month it generally lies between <strong>+6 and +8 dB</strong>.</p>
+<p>The advantage was not merely a fixed offset between two receivers. Its size changed over the observation period—something the single monthly median cannot show.</p>
+<p>The authors proposed drying soil as an explanation for the first-half trend. The export contains no soil-moisture measurements, so this guided demo demonstrates the changing SNR difference, not a test of that explanation. <a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Original paper</a></p>
+<p>A few display details help you read the chart correctly. The dashed line is the overall <strong>+7 dB spot-pair median</strong>. The shaded band contains the <strong>middle 50% of observations</strong> in each bin; it shows spread, not a confidence interval. Background colors indicate where observations are concentrated, not which receiver is better. Read the labeled dB values—the vertical scale is nonlinear.</p>
+<h4>Right panel: compare hours of the day</h4>
+<p><strong>ΔSNR by UTC Hour</strong> gathers observations from the same UTC hour across April. G3ZIL’s paired-SNR advantage is approximately <strong>+7 to +8 dB during much of the daytime</strong>, falling to <strong>+1 to +2 dB after midnight</strong>.</p>
+<p>This is consistent with the changing mix of paths discussed in the original study: nearby European daytime reception favored the low dipole, while distant nighttime reception was more competitive for the vertical. The paper’s Figure 6 examines <strong>5–7 April</strong>, whereas this profile covers the whole month. Neither the time-of-day profile nor the map alone measures arrival angle or identifies a propagation mode. <a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Original paper, Figure 6</a></p></div></div><section class="case-evidence-group" id="published-figure3"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">↳</span><h3>Verifying WSPRadar against published research</h3></div><div class="case-media"><figure class="case-figure figure-block case-figure-inverted" id="case-media-griffiths-figure3-comparison"><a class="case-image-link" href="/content/assets/figures/griffiths-figure3-comparison.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-invert-colors="true" data-image-filter="url(#case-filter-griffiths_squibb_fig3-griffiths-figure3-comparison)" data-title="A month of paired reception" data-caption-id="case-caption-griffiths-figure3-comparison" aria-label="Open full-size image: A month of paired reception"><img loading="eager" decoding="async" width="3060" height="3060" style="filter:url(#case-filter-griffiths_squibb_fig3-griffiths-figure3-comparison)" src="/content/assets/figures/griffiths-figure3-comparison.png" alt="Three-panel Griffiths Figure 3 comparison of original publication, reconstructed paired SNR differences, and WSPRadar&#x27;s chronological evidence, with source citation, axes, legends, and explanatory notes."></a><figcaption id="case-caption-griffiths-figure3-comparison"><strong>A month of paired reception</strong><p>The complete comparison retains the original publication, the reconstruction, and the native WSPRadar chronological view. Follow the first-half upward shift while keeping ΔSNR = G3ZIL − G4HZX in view. Median markers, the middle-50% band, and density colors describe different aspects of the observations. Enlarge the figure to read all labels and the pairing-diagnostic reference.</p></figcaption></figure></div><p><em>A month of paired reception. Compare the original publication, reconstruction and WSPRadar analysis in the reference illustration. It uses 12-hour bins for the WSPRadar panel, while this demo’s current chronological chart uses 24-hour bins. Enlarge the figure to read the pairing-diagnostic reference.</em></p>
+<p>How do we verify WSPRadar’s results? One approach is to revisit published WSPR experiments, reconstruct their figures from historical observations, and compare the findings. This helps us validate our calculations, investigate discrepancies, and make the same analysis capabilities available to amateur-radio operators.</p>
+<p>Here we compare Griffiths and Squibb’s original <strong>Figure 3</strong>, our reconstruction, and WSPRadar’s temporal analysis. The original dot plot contains many overlapping observations. The reconstruction adds a density representation to reveal where observations concentrate, while WSPRadar highlights the evolving median SNR difference and its variability. All three show the increasing advantage of G3ZIL during the first half of April.</p>
+<p>Some details differ because multiple reports from the same transmission cycle can be combined differently. We document and investigate these discrepancies rather than forcing an exact match. This reference comparison concerns <strong>paired SNR</strong>; the new decoding analysis adds another perspective rather than claiming that the paper published the same ΔDecode result.</p>
+<p><a href="/assets/demos/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3.pdf" target="_blank" rel="noopener noreferrer"><strong>Original Figure 3, reconstruction and WSPRadar comparison (PDF, page 1) ↗</strong></a></p>
+<p>A second check revisits <strong>Figure 6</strong> from the same paper, comparing ΔSNR by UTC hour over <strong>5–7 April 2017</strong>. The reconstruction and WSPRadar’s hourly view recover the broad day–night pattern: lower or negative differences overnight and a positive G3ZIL advantage during the day and evening. <a href="/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf" target="_blank" rel="noopener noreferrer"><strong>Original Figure 6, reconstruction and WSPRadar comparison (PDF) ↗</strong></a></p>
+<p>The paired-SNR trend is now clear. Next, check whether the changing advantage also appears in the number of transmissions decoded.</p></div></div></section></section><section class="case-evidence-group" id="evidence"><span id="coverage" aria-hidden="true"></span><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">08</span><h3>Read ΔDecode Temporal Coverage: do the extra decodes persist?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-demo1-temporal-delta-decode-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_decode_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="ΔDecode Temporal Coverage" data-caption-id="case-caption-demo1-temporal-delta-decode-typography-en-20261024" aria-label="Open full-size image: ΔDecode Temporal Coverage"><img loading="eager" decoding="async" width="3832" height="1639" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_decode_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_decode_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_segment_temporal_delta_decode_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Distinct-station coverage above native station-cycle coverage, with Station Reach Advantage and pooled ΔDecode curves in 24-hour and UTC-hour panels."></a><figcaption id="case-caption-demo1-temporal-delta-decode-typography-en-20261024"><strong>ΔDecode Temporal Coverage</strong><p>The upper row counts distinct stations as Both observed, Only Target or Only Reference; the lower counts all native paired observations in one green category and the one-sided spots. White curves favor G3ZIL above 1× (0) and G4HZX below. UTC-hour station membership is classified separately for each date before averaging.</p></figcaption></figure></div><p><strong>The <a href="/en/demos/griffiths_squibb_fig3/#delta-decode-map">earlier ΔDecode map</a> showed where the decoding advantage occurred; this view shows when it occurred.</strong> The map grouped decode outcomes by direction and distance. The lower row here groups them by date and UTC hour within the selected Inspector scope. Keep <strong>Full Range | All Directions</strong> and <strong>24h</strong> for the daily examples below.</p>
+<p>The SNR chart shows the differences on matched observations. <strong>ΔDecode Temporal Coverage</strong> follows both additional stations reached and additional observed decodes, including one-sided reception that cannot supply paired ΔSNR.</p>
+<p>The <strong>Station-level upper row</strong> counts each exact callsign-plus-locator identity once within each time bin: <strong>Both observed</strong>, <strong>Only Target</strong>, or <strong>Only Reference</strong>. Both observed means each receiver heard that station at least once in the bin, even in different WSPR cycles. Repeated decodes of one transmitter cannot increase its station count. This measures additional stations relative to the other receiver in that interval, not first-ever discoveries.</p>
+<p>The <strong>Spot-level lower row</strong> counts individual transmitter-cycle events. Here, <strong>Paired</strong> requires the same transmitter in the same WSPR cycle; one green category includes all paired observations, regardless of ΔSNR qualification. Target-only is magenta and Reference-only cyan. Station-level Both observed and spot-level Paired therefore answer different questions.</p>
+<p>The right-hand panels combine the same UTC hour across dates and display average counts.</p>
+<p><strong>Read the lower ΔDecode line.</strong> Add <strong>Paired + G3ZIL-only</strong> for G3ZIL’s total decodes and <strong>Paired + G4HZX-only</strong> for G4HZX’s. The line compares those pooled totals, with the <strong>right-hand axis</strong> expressing the same <strong>× comparison</strong> used on the map.</p>
+<p>The upper <strong>Station Reach Advantage</strong> line applies the same signed normalization to the two distinct-station totals. In both rows, <strong>up favors Target G3ZIL, down favors Reference G4HZX</strong>, and <strong>1× (0)</strong> at the center means equal totals. A Target-side <strong>2×</strong> means twice as many distinct stations above, or twice as many decodes below. Neither is an unconditional receiver success rate or a “percentage won”; transmissions missed by both remain unknown. Equality also does not require identical station sets or identical decoded transmissions.</p>
+<p><strong>Read the two rows together:</strong> extra decodes can come from more frequent reception of already-observed stations as well as from hearing additional stations. This is the distinction introduced in <a href="/en/demos/griffiths_squibb_fig3/#decoding-reach">Decoding Reach</a>, now resolved by time.</p>
+<details class="case-evidence-details">
+
+<summary>How the UTC-hour panels combine dates</summary>
+
+<p>For stations, membership is classified separately on each date before averaging: a station heard only by G3ZIL on Monday and only by G4HZX on Tuesday does not become Both on either day. The lines use the summed side totals, not an average of daily ratios.</p>
+
+</details>
+
+<h4>The additional reception is not confined to one day</h4>
+<p><strong>G3ZIL-only observations outnumber G4HZX-only observations on all 30 days.</strong> Adding the same Paired count to both sides means G3ZIL also recorded more total decodes on every day. The changing paired SNR has a complementary decoding pattern:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">UTC date</th>
+<th style="text-align: right;">Spot pairs</th>
+<th style="text-align: right;">G3ZIL-only</th>
+<th style="text-align: right;">G4HZX-only</th>
+<th style="text-align: right;">G3ZIL decode advantage</th>
+<th style="text-align: right;">Median paired ΔSNR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>1 April</strong></td>
+<td style="text-align: right;"><strong>1 557</strong></td>
+<td style="text-align: right;"><strong>1 017</strong></td>
+<td style="text-align: right;"><strong>747</strong></td>
+<td style="text-align: right;"><strong>1.12×</strong></td>
+<td style="text-align: right;"><strong>+2 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>15 April</strong></td>
+<td style="text-align: right;"><strong>1 905</strong></td>
+<td style="text-align: right;"><strong>2 159</strong></td>
+<td style="text-align: right;"><strong>250</strong></td>
+<td style="text-align: right;"><strong>1.89×</strong></td>
+<td style="text-align: right;"><strong>+9 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>20 April</strong></td>
+<td style="text-align: right;"><strong>860</strong></td>
+<td style="text-align: right;"><strong>1 631</strong></td>
+<td style="text-align: right;"><strong>150</strong></td>
+<td style="text-align: right;"><strong>2.47×</strong></td>
+<td style="text-align: right;"><strong>+6 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Between the first and middle of April, the paired-SNR advantage rises and the one-sided imbalance widens. This is a complementary description of the observed change, not proof that SNR alone caused the difference. Day-to-day transmitter activity, paths and reporting still affect the totals.</p>
+<p>Every day has matched evidence from <strong>70 to 172 transmitting-station entries</strong>, but not equally many observations: the total ranges from <strong>860 spot pairs on 20 April</strong> to <strong>2 903 on 11 April</strong>. The UTC-hour panels also show less paired evidence in the early hours than in the late afternoon and evening. Those station counts refer specifically to same-cycle paired observations; the upper row’s <strong>Both observed</strong> category also includes stations heard on different cycles.</p>
+<h4>A sparse SNR day can still contain substantial reception evidence</h4>
+<p>On <strong>20 April</strong>, most observed transmitter-cycles were one-sided, so the smaller Paired sample does not mean little reception took place. G3ZIL’s decode advantage was greater than on <strong>15 April</strong>, despite a smaller paired-SNR advantage. <strong>The two measures need not move together:</strong> ΔSNR describes the shared transmissions, while ΔDecode also includes reception that only one setup reported.</p>
+<details class="case-evidence-details">
+
+<summary>Space-weather context</summary>
+
+<p>NOAA reported <strong>G2 (moderate) geomagnetic storm conditions at 04:33 UTC on 20 April</strong>, associated with coronal-hole effects. This may be relevant context for the sparse paired reception, but the coincidence does not establish causation. <a href="https://www.spaceweather.gov/news/g2-moderate-geomagnetic-storm-conditions-met">NOAA’s original 20 April report</a></p>
+
+</details>
+
+<p><strong>Reference-only reports remain included even in cycles with no Target reports.</strong> This symmetry is essential for reading both sides, but missing reports can still reflect operation or reporting differences as well as reception. <strong>For a first reading, check both how many comparisons support a striking SNR feature and what the one-sided observations add.</strong></p></div></div></section><section class="case-evidence-group" id="stations"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">09</span><h3>Open Station Insights: do individual paths agree?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-demo1-selected-temporal-delta-snr-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_snr_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="DJ0ABR (JN68nt) ΔSNR Temporal Coverage" data-caption-id="case-caption-demo1-selected-temporal-delta-snr-typography-en-20261024" aria-label="Open full-size image: DJ0ABR (JN68nt) ΔSNR Temporal Coverage"><img loading="eager" decoding="async" width="3808" height="1921" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_snr_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="DJ0ABR at JN68nt: full-run paired ΔSNR in 12-hour bins and by UTC hour, based on 2 334 spot pairs."></a><figcaption id="case-caption-demo1-selected-temporal-delta-snr-typography-en-20261024"><strong>DJ0ABR (JN68nt) ΔSNR Temporal Coverage</strong><p>DJ0ABR at JN68nt is approximately 1 064 km from G3ZIL, at an azimuth of 97°. Its overall paired median is +5 dB, with changing temporal behavior. Station-list browsing filters do not narrow this full-run selected evidence.</p></figcaption></figure><figure class="case-figure figure-block" id="case-media-demo1-selected-temporal-delta-decode-typography-en-20261024"><a class="case-image-link" href="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_decode_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="DJ0ABR (JN68nt) ΔDecode Temporal Coverage" data-caption-id="case-caption-demo1-selected-temporal-delta-decode-typography-en-20261024" aria-label="Open full-size image: DJ0ABR (JN68nt) ΔDecode Temporal Coverage"><img loading="eager" decoding="async" width="3816" height="1729" src="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-600.webp" srcset="/assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-600.webp 600w, /assets/demos/griffiths_squibb_fig3/typography-en-20261024/figure_selected_station_temporal_delta_decode_dark-1200.webp 1200w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="DJ0ABR&#x27;s Paired and one-sided spot counts in 12-hour and UTC-hour bins, with pooled ΔDecode on a directional ratio axis."></a><figcaption id="case-caption-demo1-selected-temporal-delta-decode-typography-en-20261024"><strong>DJ0ABR (JN68nt) ΔDecode Temporal Coverage</strong><p>Across April: 2 334 Paired, 247 G3ZIL-only and 17 G4HZX-only events; 2 581 Target versus 2 351 Reference decodes. The white line shows this station's pooled ΔDecode in each interval, not a station-reach statistic.</p></figcaption></figure></div><p>The <strong>Station Insights</strong> table lets you move from the maps and Inspector’s summaries across many paths to a particular transmitter. Select <strong>DJ0ABR at JN68nt</strong>, already prepared in the demo. <strong>Selected Station Evidence</strong> now follows one transmitter path, rather than pooling transmitters from many locations.</p>
+<p>Use <strong>12h</strong> for the selected-station charts below; the Inspector uses its separate <strong>24h</strong> setting. DJ0ABR lets us check the month’s broad SNR change on one path, then compare signal margin with additional decodes.</p>
+<p>Leave <strong>Filter by selected segment and distance</strong> off to browse stations across the full analysis scope. Enable <strong>Include one-sided evidence</strong> when you also want to list stations without paired observations. The segment-and-distance filter restricts only the station list. Moving the Inspector or hiding DJ0ABR through that filter does not change its full-run evidence or silently select another station; the page indicates when the selected station lies outside the current list filter.</p>
+<p>The three subsections follow the same two metrics down to their supporting observations:</p>
+<ul>
+<li><strong>DJ0ABR (JN68nt) ΔSNR Temporal Coverage</strong></li>
+<li><strong>DJ0ABR (JN68nt) ΔDecode Temporal Coverage</strong></li>
+<li><strong>DJ0ABR (JN68nt) Drill-Down Data</strong></li>
+</ul>
+<p>Both selected-station figures retain <strong>RX Benchmark</strong> and <strong>G3ZIL (Target) vs. G4HZX (Reference)</strong> in their main title. The subtitle <strong>Selected TX: DJ0ABR (JN68nt)</strong> identifies the transmitter path; the footer records the analysis scope and relevant parameters.</p>
+<p>Looking at ΔSNR, the overall median is <strong>+5 dB</strong>, based on <strong>2 334 spot pairs</strong>. The 12-hour medians fluctuate around zero or below during parts of the first few days, then generally become more positive, often around <strong>+5 to +8 dB</strong>. The broad early-to-later change therefore appears on this individual path as well as in the all-station view that we have discussed earlier.</p>
+<p>The hourly profile on the right hand side differs from the all-station profile. That is informative: a summary across many paths need not describe every path’s daily behavior. Late-night observations are relatively sparse, consistent with a change in the reception conditions on this path.</p>
+<h4>The midnight example: nearly equal paired SNR, very different reception</h4>
+<p>Read the <strong>00:00–01:00 UTC</strong> bin in the right-hand panels, pooled across April:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">DJ0ABR evidence in this UTC hour</th>
+<th style="text-align: right;">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Spot pairs</td>
+<td style="text-align: right;"><strong>14</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">Median paired ΔSNR</td>
+<td style="text-align: right;"><strong>−0.5 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">G3ZIL-only observations</td>
+<td style="text-align: right;"><strong>38</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">G4HZX-only observations</td>
+<td style="text-align: right;"><strong>1</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The paired median slightly favors G4HZX. But G3ZIL reported <strong>52 of the 53 observed transmitter-cycles</strong>, while G4HZX reported <strong>15</strong>: <strong>3.47× as many decodes, a net 37 additional decodes</strong>. This is the same comparison of total decodes used on the earlier ΔDecode map.</p>
+<details class="case-evidence-details">
+
+<summary>Calculation detail</summary>
+
+<p>For this single path and hour, ΔDecode is <strong>52 ÷ 15 = 3.47×</strong>: G3ZIL recorded 3.47 times as many decodes as G4HZX. The map and temporal axis show that factor on the G3ZIL side; the station table uses the Target-to-Reference ratio.</p>
+
+</details>
+
+<p><strong>This is why a near-zero paired SNR difference cannot describe the whole reception comparison.</strong> The shared observations are only part of the evidence. Under common operation, the additional G3ZIL decodes show a practical reception advantage even though the paired median does not. They do not prove that every missing G4HZX report resulted from a threshold crossing.</p>
+<p>For contrast, during <strong>06:00–07:00 UTC</strong>, the same path has <strong>134 spot pairs, no one-sided observations, and a paired median of +5 dB</strong>. Both receivers therefore recorded <strong>134 decodes: 1×</strong>, despite G3ZIL’s <strong>+5 dB</strong> paired-SNR advantage.</p>
+<p>Here G3ZIL’s SNR advantage provides extra margin, but no extra observed decodes in that hour’s sample. <strong>The value of an SNR advantage depends on the reception conditions in which it occurs.</strong></p>
+<p><strong>For your own station:</strong> check whether better SNR provides additional margin, more decoded transmissions, or both. The answer can change with the hour—even for the same transmitter.</p>
+<h4>20 April: sparse reception on the G2 storm day</h4>
+<p>During <strong>20 April, 12:00–24:00 UTC</strong>, DJ0ABR supplies <strong>just one spot pair and three Target-only observations</strong>. That one pair at <strong>17:56 UTC</strong> sets the <strong>+25 dB median</strong>; it does not establish a sustained half-day advantage. The G2 storm discussed earlier provides context.</p></div></div></section><section class="case-evidence-group" id="drill-down"><span id="drilldown" aria-hidden="true"></span><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">10</span><h3>Use Drill-Down: follow one evening, cycle by cycle</h3></div><p>With <strong>DJ0ABR (JN68nt)</strong> selected, inspect <strong>18 April 2017 from 21:00 UTC</strong>. One short sequence connects the SNR and decoding charts to their underlying observations.</p>
+<p>The selected-station CSV contains the paired comparisons. To inspect the two Target-only examples below, use the all-stations CSV in the results package or the linked source records.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">UTC</th>
+<th style="text-align: right;">G3ZIL SNR</th>
+<th style="text-align: right;">G4HZX SNR</th>
+<th style="text-align: right;">ΔSNR</th>
+<th style="text-align: left;">Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">21:00</td>
+<td style="text-align: right;">+6</td>
+<td style="text-align: right;">−3</td>
+<td style="text-align: right;">+9</td>
+<td style="text-align: left;">Paired</td>
+</tr>
+<tr>
+<td style="text-align: left;">21:08</td>
+<td style="text-align: right;">+7</td>
+<td style="text-align: right;">−3</td>
+<td style="text-align: right;">+10</td>
+<td style="text-align: left;">Paired</td>
+</tr>
+<tr>
+<td style="text-align: left;">21:36</td>
+<td style="text-align: right;">+6</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">+7</td>
+<td style="text-align: left;">Paired</td>
+</tr>
+<tr>
+<td style="text-align: left;">21:48</td>
+<td style="text-align: right;">+9</td>
+<td style="text-align: right;">−5</td>
+<td style="text-align: right;">+14</td>
+<td style="text-align: left;">Paired</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>21:56</strong></td>
+<td style="text-align: right;"><strong>+11</strong></td>
+<td style="text-align: right;"><strong>−24</strong></td>
+<td style="text-align: right;"><strong>+35</strong></td>
+<td style="text-align: left;"><strong>Paired</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">22:00</td>
+<td style="text-align: right;">+8</td>
+<td style="text-align: right;">−1</td>
+<td style="text-align: right;">+9</td>
+<td style="text-align: left;">Paired</td>
+</tr>
+<tr>
+<td style="text-align: left;">22:12</td>
+<td style="text-align: right;">+11</td>
+<td style="text-align: right;">+3</td>
+<td style="text-align: right;">+8</td>
+<td style="text-align: left;">Paired</td>
+</tr>
+<tr>
+<td style="text-align: left;">22:20</td>
+<td style="text-align: right;">+12</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: left;">Target-only</td>
+</tr>
+<tr>
+<td style="text-align: left;">22:24</td>
+<td style="text-align: right;">+5</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: left;">Target-only</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>Selected observations; SNR values in dB on the common 1 W basis. Decoding Reach uses raw reported SNR. <a href="https://db1.wspr.live/?query=SELECT%20id%2Ctime%2Cband%2Ccode%2Crx_sign%2Crx_loc%2Ctx_sign%2Ctx_loc%2Csnr%2Cpower%20FROM%20wspr.rx%20PREWHERE%20band%20%3D%207%20AND%20time%20%3E%3D%20%272017-04-18%2020%3A30%3A00%27%20AND%20time%20%3C%20%272017-04-19%2001%3A00%3A00%27%20WHERE%20rx_sign%20IN%20%28%27G3ZIL%27%2C%27G4HZX%27%29%20AND%20tx_sign%20%3D%20%27DJ0ABR%27%20ORDER%20BY%20time%2Cid%20LIMIT%2010000%20FORMAT%20CSVWithNames">Source records</a>.</em></p>
+<p><strong>The +35 dB outlier at 21:56 reflects a brief dip in G4HZX’s reported SNR.</strong> The following paired observations return close to the earlier differences.</p>
+<p><strong>Later, paired ΔSNR disappears while decoding continues.</strong> The Target-only rows still contribute to <strong>ΔDecode</strong>. A dash means no reported decode; the missing SNR is unknown.</p>
+<p>Use <strong>Zoom window</strong> to focus the plots and table; <strong>Filter table</strong> changes only the displayed rows.</p></div></div></section><section class="case-evidence-group" id="takeaways"><div class="case-row case-row-full case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">11</span><h3>Download Evidence: state the result and preserve it</h3></div><p>We can now answer the original station question with more than a single number:</p>
+<blockquote>
+<p><strong>During April 2017 on 40 m, G3ZIL’s installed receiving setup showed an overall station-balanced median SNR advantage of +6.5 dB over G4HZX, based on 57 767 same-cycle comparisons from 792 transmitting-station entries within 10 000 km. G3ZIL also reported 114 027 spots from 1 083 station entries, compared with 69 258 spots from 876 entries at G4HZX: 1.65× as many decodes, a net 44 769 additional Target decodes. Under comparable common operation and reporting, these observations support an advantage in both paired signal quality and additional observed decoding—but not on every path or at every time.</strong></p>
+</blockquote>
+<p>Under <strong>Download Evidence</strong>, select <strong>Prepare All Results for Download</strong>, then <strong>Download Prepared Results</strong>, to preserve the configuration, figures and processed observations in the <strong>results package</strong>. <strong>Save Config</strong> separately preserves the reusable analysis settings, so does Share Analysis encoding the settings into the URL. For your own experiments, keep station notes alongside it so a later comparison includes what was physically connected, when both setups were operating and what changed.</p>
+<p><a href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=G3ZIL&amp;qth=IO90HW&amp;band=40m&amp;from=2017-04-01T00%3A00Z&amp;to=2017-05-01T00%3A00Z&amp;mode=benchmark&amp;benchmark_design=reference_station&amp;reference=G4HZX&amp;reference_qth=IO91&amp;snr_correction_mode=no_offset&amp;snr_correction_db=0&amp;max_distance_km=10000&amp;min_segment_stations=5&amp;segment_bin=24h&amp;station_bin=12h&amp;selected_station=DJ0ABR%40JN68NT#wspradar-results-inspection"><strong>Run this comparison in WSPRadar ↗</strong></a></p></div></div></section></section></article></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

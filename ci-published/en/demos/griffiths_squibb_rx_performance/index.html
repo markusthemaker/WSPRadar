@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta name="theme-color" content="#050a15">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="A Month on 40 m with a Low Dipole · WSPRadar">
+  <meta property="og:description" content="Does a setup change or a new antenna make a difference? Where is your station heard, and whom do you hear? Explore a worked Benchmark example to compare against a reference antenna or station.">
+  <meta property="og:url" content="https://www.wspradar.org/en/demos/griffiths_squibb_rx_performance/">
+  <meta property="og:image" content="https://www.wspradar.org/assets/landing/web/hero-1280.png">
+  <meta property="og:image:alt" content="WSPRadar — Turn WSPR spots into real insights.">
+  <title>A Month on 40 m with a Low Dipole · WSPRadar</title>
+  <link rel="canonical" href="https://www.wspradar.org/en/demos/griffiths_squibb_rx_performance/">
+  <link rel="alternate" hreflang="en" href="https://www.wspradar.org/en/demos/griffiths_squibb_rx_performance/">
+  <link rel="alternate" hreflang="de" href="https://www.wspradar.org/de/demos/griffiths_squibb_rx_performance/">
+  <link rel="icon" type="image/png" href="/assets/landing/web/logo-128.png">
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=33717bd6ca73ab93">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/landing.css?v=005b6443efd02b7d">
+  <script src="/assets/site.js" defer></script>
+  <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Geführte Demo", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
+  
+  <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script><link rel="stylesheet" href="/assets/demo-walkthrough.css"><script src="/assets/demo-walkthrough.js" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=632da794cf16d9b6" media="print">
+  <script src="/assets/print.js?v=632da794cf16d9b6" defer></script>
+</head>
+<body class="demo-case-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span>WSPRadar.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos" aria-current="page">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/demos/griffiths_squibb_rx_performance/" lang="en" hreflang="en" aria-current="true"><span>English</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
+    <main id="main"><article class="case-study"><header class="case-hero"><div class="case-hero-copy"><p class="eyebrow">Guided Demo · RX Performance</p><h1>A Month on 40 m with a Low Dipole</h1><div class="case-intro" id="objective" aria-label="Objective"><p>What did this receiver hear—and how consistently?</p>
+<p>A distant WSPR spot is satisfying. A month of spots can tell you much more: which directions your station receives, which paths are dependable, and when reception changes. This guided demo follows <strong>G3ZIL on 40 m during April 2017</strong>, from a map of the transmitting stations to the individual observations behind one path.</p>
+<p><strong>RX Performance examines one receiving station without a Reference receiver.</strong> We will read three complementary measures: <strong>reach</strong>—which transmitters were heard at least once; <strong>Decode Rate</strong>—how often reception succeeded when an opportunity could be established; and <strong>successful SNR</strong>—the signal-to-noise ratio of the reports that were decoded. Together, they give a more useful station baseline than a list of distant contacts alone.</p>
+<p><strong>For a deeper look at relative reception, explore <a href="/en/demos/griffiths_squibb_fig3/">Low Dipole vs Radial-Free Vertical</a>.</strong> Its <strong>RX Benchmark</strong> analysis compares G3ZIL and G4HZX using paired SNR differences and decoding outcomes, showing where, when, and by how much the two receiving setups differ.</p></div><p class="case-meta">G3ZIL (IO90HW) · 40m · 1 April – 1 May 2017 UTC · RX Performance</p><div class="actions"><a class="button" href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=G3ZIL&amp;qth=IO90HW&amp;band=40m&amp;from=2017-04-01T00%3A00Z&amp;to=2017-05-01T00%3A00Z&amp;mode=performance&amp;min_opportunities=3&amp;segment_bin=12h&amp;station_bin=12h&amp;selected_station=HB0QRP%40JN47#wspradar-results-inspection"  rel="noopener noreferrer">Run in WSPRadar App →</a><a class="text-link" href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Original paper ↗</a></div></div><nav class="case-nav" aria-label="On this page"><h2>On this page</h2><ol><li><a href="#objective">Objective</a></li><li><a href="#setup">Setup</a></li><li><a href="#load-demo">Load demo</a></li><li><a href="#performance-map">Decode Rate map</a></li><li><a href="#performance-evidence">Performance Evidence</a></li><li><a href="#snr-deviation">SNR deviation</a></li><li><a href="#temporal-evidence">Reception history</a></li><li><a href="#stations">Station Insights</a></li><li><a href="#selected-station-snr">HB0QRP SNR</a></li><li><a href="#selected-station-evidence">HB0QRP Decode Rate</a></li><li><a href="#drill-down">Drill-Down</a></li><li><a href="#takeaways">Takeaways</a></li></ol></nav></header><section class="case-summary" id="summary" aria-label="The findings at a glance"><h2>The findings at a glance</h2><ul>
+<li>
+<p><a href="#performance-evidence"><strong>Broad reception over the month</strong></a></p>
+<p><strong class="case-finding-value">996 <span>TX station identities heard</span></strong></p>
+<p>Out of <strong>2,107 qualifying identities</strong> in the worldwide 22,000 km scope: <strong>47.3% heard at least once</strong>. Hearing a transmitter once does not mean hearing it regularly.</p>
+</li>
+<li>
+<p><a href="#performance-evidence"><strong>Consistency is a different measure</strong></a></p>
+<p><strong class="case-finding-value">17.9<span>%</span></strong></p>
+<p><strong>Station-balanced Decode Rate</strong>, giving each qualifying transmitter equal weight. Pooling all confirmed opportunities instead gives <strong>16.9%</strong>.</p>
+</li>
+<li>
+<p><a href="#selected-station-evidence"><strong>One path, different times of day</strong></a></p>
+<p><span class="case-finding-scope">HB0QRP · 844 km ESE</span><strong class="case-finding-comparison">71% morning · 16% noon</strong></p>
+<p>Decode Rates for <strong>07:00–08:00</strong> and <strong>11:00–12:00 UTC</strong>, combining April's observations. We will check the successful SNR, supporting opportunities and individual days before interpreting that contrast.</p>
+</li>
+</ul></section><section class="case-setup" id="setup"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">01</span><h2>The station and the question</h2></div><p>Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, described their practical investigations in <em>Improving HF Band SNR</em>, published in <em>Practical Wireless</em> in October 2017. G3ZIL used a homebuilt direct-conversion receiver in a garden shed and a low dipole with its center about 4 m high and its ends at 1.5 m. Their account also records retuning the dipole on <strong>8 April</strong>. These were working stations with real installation changes. <a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf" target="_blank" rel="noopener noreferrer">Original paper</a></p>
+<p>Here we ask a question you could ask about your own station: <strong>what reception did this complete receiving setup achieve, across which paths and at which times?</strong> The paper supplies the station context; the Performance results below are a WSPRadar analysis of the historical reports.</p>
+<p><strong>G3ZIL, at IO90HW, is the Target receiver.</strong> The remote stations in this RX analysis are <strong>transmitters</strong>. A <strong>station identity</strong> means an exact callsign together with its full reported grid locator. The same callsign at different locators remains separate: combining them could mix different paths. Counts of identities therefore need not equal counts of individual operators or physical transmitters.</p>
+<h3>What is a confirmed opportunity?</h3>
+<p>A WSPR <strong>spot</strong> is a report of a successful decode. The database does not contain a complete list of everything that was transmitted or every receiver that was listening. WSPRadar therefore needs evidence before treating an absent report as a missed opportunity.</p>
+<p>An RX <strong>confirmed opportunity</strong> concerns one transmitter identity in one two-minute WSPR cycle on the selected band:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Evidence in that cycle</th>
+<th style="text-align: left;">How WSPRadar treats it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">G3ZIL reports the transmitter.</td>
+<td style="text-align: left;"><strong>Success.</strong> The decode itself confirms the transmission and G3ZIL's activity. It counts even if nobody else reports that transmitter.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Another eligible receiver reports the transmitter, and G3ZIL reports another signal on the same band in that cycle—but does not report this transmitter.</td>
+<td style="text-align: left;"><strong>Miss</strong>, shown as <strong>Heard by others only</strong>. Both the transmission and G3ZIL's receiving activity have supporting evidence.</td>
+</tr>
+<tr>
+<td style="text-align: left;">The necessary activity cannot be established.</td>
+<td style="text-align: left;"><strong>Unknown; excluded.</strong> Silence alone does not create a miss or an SNR value.</td>
+</tr>
+</tbody>
+</table></div>
+<p>If several receivers report the same transmitter in one cycle, that still gives one opportunity for G3ZIL. An additional external report also does not count a Target success twice.</p>
+<p>This gives the central calculation:</p>
+<p><strong>Decode Rate = successful opportunities ÷ confirmed opportunities × 100.</strong></p>
+<p>Confirmed opportunities are successes plus supported misses. Cycles in which G3ZIL reported nothing cannot establish its activity, so they are excluded rather than scored as failures. This analysis consequently describes <strong>observable receiving activity</strong>, not station uptime or every transmission attempted during April.</p>
+<p>Also remember what another receiver proves: the transmitter was on air. It does not prove that the propagation path to G3ZIL should have supported a decode. <strong>100% is not an expected score for a receiver listening to a geographically varied beacon population.</strong></p></div></section><section class="case-evidence" id="walkthrough"><section class="case-evidence-group" id="load-demo"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">02</span><h3>Load the demo and check its settings</h3></div><p>Open this demo with <strong>Run in WSPRadar App</strong>, or choose the G3ZIL <strong>RX Performance</strong> profile under <strong>Load Demo</strong>. The prepared settings save you entering the station and dates manually.</p>
+<p>For a first visit, choose <strong>Walk me through the setup</strong>. Check <strong>Question → RX Performance</strong>, then <strong>Target and measurement window</strong> and <strong>Optional Filters, scope and evidence</strong>. At <strong>Review — ready to run ✓</strong>, select <strong>Run RX Analysis</strong>. The alternative <strong>Skip to review and run</strong> shortcut starts the prepared analysis immediately.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Setting</th>
+<th style="text-align: left;">This demo</th>
+<th style="text-align: left;">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Analysis</td>
+<td style="text-align: left;"><strong>RX Performance</strong></td>
+<td style="text-align: left;">One receiving station, without a Reference receiver.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Target</td>
+<td style="text-align: left;"><strong>G3ZIL, QTH IO90HW</strong></td>
+<td style="text-align: left;">Receiver under test and reported QTH.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Band</td>
+<td style="text-align: left;"><strong>40 m</strong></td>
+<td style="text-align: left;">Selected WSPR operating band.</td>
+</tr>
+<tr>
+<td style="text-align: left;">UTC window</td>
+<td style="text-align: left;"><strong>2017-04-01T00:00Z → 2017-05-01T00:00Z</strong></td>
+<td style="text-align: left;">The complete April 2017 measurement window, in UTC.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Distance and direction</td>
+<td style="text-align: left;"><strong>Within 22 000 km; all directions</strong></td>
+<td style="text-align: left;">Worldwide scope; peers at or beyond the 22,000 km boundary are excluded.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Solar state at Target QTH</td>
+<td style="text-align: left;"><strong>All 24h</strong></td>
+<td style="text-align: left;">Retain all solar states.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Exclude Special Callsigns Q, 0, 1</td>
+<td style="text-align: left;"><strong>Disabled</strong></td>
+<td style="text-align: left;">Preserve the supplied transmitter population.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Exclude Moving Stations</td>
+<td style="text-align: left;"><strong>Disabled</strong></td>
+<td style="text-align: left;">Preserve the supplied transmitter population.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Minimum confirmed opportunities per station</td>
+<td style="text-align: left;"><strong>3</strong></td>
+<td style="text-align: left;">Successes plus supported misses; not a minimum count of successful spots.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Minimum qualifying stations per map segment</td>
+<td style="text-align: left;"><strong>1</strong></td>
+<td style="text-align: left;">Minimum qualifying transmitter identities required to color a map segment.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Time bins</td>
+<td style="text-align: left;"><strong>Segment: 12h; station: 12h</strong></td>
+<td style="text-align: left;">Independent chronological controls; the UTC-hour profiles always use fixed 1h bins.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Selected stations</td>
+<td style="text-align: left;"><strong>HB0QRP (JN47)</strong></td>
+<td style="text-align: left;">The saved transmitting-station path used in this guide.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The run covers <strong>1 April 2017 at 00:00 UTC to 1 May 2017 at 00:00 UTC</strong>, on <strong>40 m</strong>, with <strong>Maximum peer distance from Target set to 22,000 km</strong> for worldwide coverage. <strong>All 24h</strong> retains every solar state. The saved <strong>Exclude Special Callsigns Q, 0, 1</strong> and <strong>Exclude Moving Stations</strong> choices are both off, preserving this demo's selected population. Keep those settings to reproduce the supplied results.</p>
+<p>Two thresholds deserve attention:</p>
+<ul>
+<li><strong>Minimum confirmed opportunities per station: 3.</strong> This is a minimum of successes <strong>plus misses</strong>, not three successful spots. A transmitter with three supported misses can qualify with a 0% Decode Rate. The setting retains sparsely observed identities; with only three opportunities, possible rates are very coarse. For your own investigation, check whether a higher threshold or a longer comparable run gives the same broad pattern.</li>
+<li><strong>Minimum qualifying stations per map segment: 1.</strong> One qualifying transmitter can color a segment. This preserves geographical detail, but a colored sector is not automatically a well-supported regional result. Inspect its station and opportunity counts before drawing a conclusion.</li>
+</ul>
+<p>The usual interactive opportunity minimum is five; this guide preserves the supplied run's value of three. Neither threshold is a statistical confidence level. A separate requirement for constructing each path's SNR-deviation baseline will appear in the time view.</p>
+<p>Wait for the run to show <strong>Complete</strong>, then follow:</p>
+<p><strong>Global View → Segment Inspector → Performance Evidence → Temporal Evidence → Station Insights → Selected Station Evidence → Drill-Down.</strong></p>
+<p>Begin with <strong>Full Range | All Directions</strong> in <strong>Segment Inspector</strong>. In this run, “Full Range” means the worldwide population retained by the 22,000 km setting. Performance's statistics, time views and station browsing follow the Inspector's scope; restore that full selection after exploring a region.</p>
+<p>Keep <strong>12h</strong> for the Inspector's chronological time grouping. The selected-station view has its <strong>own</strong> time control; keep that at <strong>12h</strong> too. The right-hand <strong>By UTC Hour</strong> panels always combine matching one-hour periods across dates.</p></div></div></section><section class="case-evidence-group" id="performance-map"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">03</span><h3>Read the map: where was reception more consistent?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rx-performance-performance-map"><a class="case-image-link" href="/assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="RX Performance Decode Rate map" data-caption-id="case-caption-rx-performance-performance-map" aria-label="Open full-size image: RX Performance Decode Rate map"><img loading="eager" decoding="async" width="3443" height="3518" src="/assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark-520.webp" srcset="/assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark-520.webp 520w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark-1040.webp 1040w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_map_highres_dark-1584.webp 1584w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="RX Performance map centered on G3ZIL, with station-balanced Decode Rate by direction and distance and transmitter markers distinguishing heard at least once from heard only elsewhere."></a><figcaption id="case-caption-rx-performance-performance-map"><strong>RX Performance Decode Rate map</strong><p><em>G3ZIL's April reception in the worldwide 22,000 km scope. Sector colors describe Decode Rate; individual markers describe at-least-once reception. The map's outer distance guide is labelled 20,000 km; distances are great-circle separations calculated from locators.</em></p></figcaption></figure></div><p>In <strong>Global View</strong>, open the <strong>RX Performance Decode Rate</strong> map. G3ZIL is at the center; compass sectors show direction from its QTH, and rings separate distance ranges.</p>
+<p><strong>Sector color is the Station-balanced Decode Rate.</strong> WSPRadar calculates a rate for each qualifying transmitter, then takes the <strong>arithmetic mean</strong> of those rates. Each identity has one equal contribution, whether it supplied ten opportunities or ten thousand. Read the percentage legend: warmer colors indicate higher rates.</p>
+<p>The markers answer a different question. <strong>Green</strong> means G3ZIL heard that transmitter at least once during the run. <strong>Gray</strong> means there were confirmed opportunities, but that transmitter was heard only elsewhere. A green marker can still represent a path with many misses.</p>
+<h3>Compare nearer Europe with distant WNW paths</h3>
+<p>The broad pattern is a stronger concentration of successful reception on nearer European paths, with much less consistent reception in the distant west-northwest direction. Use <strong>Segment Inspector</strong> to inspect these two scopes:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Inspector selection</th>
+<th style="text-align: right;">Transmitters heard at least once / qualifying identities</th>
+<th style="text-align: right;">Station-balanced Decode Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>ESE · 0–2,500 km</strong></td>
+<td style="text-align: right;"><strong>112 / 123</strong></td>
+<td style="text-align: right;"><strong>51.6%</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>WNW · 5,000–10,000 km</strong></td>
+<td style="text-align: right;"><strong>138 / 481</strong></td>
+<td style="text-align: right;"><strong>5.1%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The distant sector actually supplied more individually heard transmitters. Yet those successes came from a larger candidate population, and reception was far less consistent. <strong>A useful DX footprint and a low Decode Rate can coexist.</strong> That is why counting green markers alone misses much of the story.</p>
+<p>Now look beyond 10,000 km. Green markers extend to Australia and New Zealand. <strong>ZL4KT (RE54GD)</strong>, about <strong>19,200 km</strong> from G3ZIL, supplied <strong>three successful decodes in 61 confirmed opportunities</strong>. That is a striking addition to the station's observed reach, while the small number of successes makes it an example of occasional reception rather than dependable coverage.</p>
+<p>A colored <strong>0%</strong> sector means qualifying opportunities existed but produced no Target successes. An unfilled or insufficient-evidence sector does not establish a measured 0% rate. With this demo's one-station segment minimum, small isolated patches also need more caution than these well-populated examples.</p>
+<p>These are results for the sampled paths and complete receiving setup. The map does not isolate an antenna radiation pattern: transmitter installations, propagation and the distribution of reporting stations also contribute.</p>
+<p>Return the Inspector to <strong>Full Range | All Directions</strong> before continuing.</p></div></div></section><section class="case-evidence-group" id="performance-evidence"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">04</span><h3>Open Performance Evidence: reach, consistency and successful SNR</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rx-performance-performance-evidence"><a class="case-image-link" href="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="RX Performance Statistics" data-caption-id="case-caption-rx-performance-performance-evidence" aria-label="Open full-size image: RX Performance Statistics"><img loading="eager" decoding="async" width="3853" height="2167" src="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark-520.webp" srcset="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark-520.webp 520w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark-1040.webp 1040w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_insight_dark-1584.webp 1584w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Three distance profiles showing at-least-once transmitter reach, station-balanced and opportunity-level Decode Rates, and successful Target SNR normalized to 1 W."></a><figcaption id="case-caption-rx-performance-performance-evidence"><strong>RX Performance Statistics</strong><p><em>The distance profiles use 2,500 km bins in this worldwide view, with a final 20,000–22,000 km interval. They group all directions together; the map separates direction as well as distance.</em></p></figcaption></figure></div><p>The three distance panels give the map more context. In the supplied export they are grouped as <strong>RX Performance Statistics</strong>, under the app's <strong>Performance Evidence</strong> view.</p>
+<h3>Hearing a station once is different from hearing it regularly</h3>
+<p>The totals above the plots give the starting point: <strong>996 qualifying transmitter identities heard by G3ZIL</strong>, and <strong>1,111 heard only elsewhere</strong>. Thus, G3ZIL reached <strong>47.3%</strong> of the 2,107 qualifying identities at least once.</p>
+<p>The left panel, <strong>Station Reach by Distance</strong>, asks whether each transmitter was ever heard. One successful decode is enough. The middle panel, <strong>Decode Rate by Distance</strong>, asks how often reception succeeded across the confirmed opportunities.</p>
+<p>Compare a nearby range, a common DX range and the farthest populated range, keeping their different station counts in view:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Distance</th>
+<th style="text-align: right;">Heard at least once</th>
+<th style="text-align: right;">Station-balanced Decode Rate</th>
+<th style="text-align: right;">Opportunity-level Decode Rate</th>
+<th style="text-align: right;">Median of station successful-SNR medians</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>0–2,500 km</strong></td>
+<td style="text-align: right;"><strong>776 / 1,080 · 71.9%</strong></td>
+<td style="text-align: right;"><strong>30.7%</strong></td>
+<td style="text-align: right;"><strong>26.9%</strong></td>
+<td style="text-align: right;"><strong>≈−15 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5,000–7,500 km</strong></td>
+<td style="text-align: right;"><strong>143 / 473 · 30.2%</strong></td>
+<td style="text-align: right;"><strong>5.4%</strong></td>
+<td style="text-align: right;"><strong>3.4%</strong></td>
+<td style="text-align: right;"><strong>−28 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>17,500–20,000 km</strong></td>
+<td style="text-align: right;"><strong>5 / 18 · 27.8%</strong></td>
+<td style="text-align: right;"><strong>3.4%</strong></td>
+<td style="text-align: right;"><strong>0.3%</strong></td>
+<td style="text-align: right;"><strong>−31 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>At 5,000–7,500 km, many transmitters made it into the log over the month, but only a small fraction of their confirmed opportunities succeeded. <strong>Distance affects more than the chance of a memorable spot; it also changes how dependable reception is.</strong> The overall pattern is not perfectly monotonic, so inspect support before treating a bump in one distance bin as a general rule. The outer populated bins contain far fewer identities; the empty 20,000–22,000 km bin contains no qualifying identities and does not represent a measured 0% rate.</p>
+<h3>Why are there two Decode Rate lines?</h3>
+<p><strong>Station-balanced</strong> means averaging the individual transmitters' rates, giving each equal influence. <strong>Opportunity-level</strong> means pooling all successes and all confirmed opportunities, so a frequently observed transmitter contributes more.</p>
+<p>For the full selected population, those summaries are <strong>17.9%</strong> and <strong>16.9%</strong>, respectively. The pooled rate uses <strong>114,086 successes out of 673,411 confirmed opportunities</strong>. Both describe relatively intermittent reception across this broad population, but they weight its paths differently.</p>
+<p><strong>Scope also matters.</strong> Expanding this same April record beyond 10,000 km adds <strong>27 heard transmitter identities</strong>, but those added paths supply only <strong>208 successes in 36,738 confirmed opportunities</strong>. The worldwide percentages are consequently lower than in the earlier 10,000 km view, even though its original observations are unchanged. When comparing your own runs, keep the geographic scope consistent so a change in the included paths is not mistaken for a change in the station.</p>
+<p>The distinction becomes clearer in the distance plots, where the two lines sometimes separate. A lower opportunity-level rate means the more frequently observed paths pull the pooled result downward in that bin. Use <strong>Station Insights</strong> to see which stations and counts contribute; neither line is a universal rating of the receiver.</p>
+<h3>Successful SNR shows the signals that made it through</h3>
+<p>The right panel, <strong>Successful SNR by Distance</strong>, first calculates each heard transmitter's median successful SNR, then takes the median of those station medians. The shaded <strong>IQR</strong> contains the middle half of the contributing station medians; it shows variation across paths, not a confidence interval.</p>
+<p>All Performance SNR values use a common <strong>30 dBm, or 1 W, reported transmit-power basis</strong>. WSPRadar adjusts the reported SNR for the transmitter's reported power. This helps compare successful reports from stations using different powers, but it does not recreate the decodes that would have occurred if everyone had actually transmitted at 1 W.</p>
+<p><strong>The success and miss counts remain the observations at the powers actually used.</strong> Power normalization changes the SNR values, not those counts. A normalized SNR can therefore be below the raw SNR at which the decoder received the signal.</p>
+<p>The distant successful reports are generally weaker in this dataset, alongside lower Decode Rates. But misses have <strong>no measured Target SNR</strong> and do not appear in the SNR profile. If a station starts decoding additional marginal signals, its successful-SNR median can even fall while its reception improves. Always read successful SNR together with reach and Decode Rate.</p></div></div></section><section class="case-evidence-group" id="snr-deviation"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">05</span><h3>Read Temporal Evidence: when were paths stronger or weaker than usual?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rx-performance-snr-deviation"><a class="case-image-link" href="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Successful RX SNR Deviation over Time" data-caption-id="case-caption-rx-performance-snr-deviation" aria-label="Open full-size image: Successful RX SNR Deviation over Time"><img loading="eager" decoding="async" width="3808" height="1822" src="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark-520.webp" srcset="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark-520.webp 520w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark-1040.webp 1040w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_snr_deviation_dark-1584.webp 1584w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Chronological and UTC-hour profiles of each transmitter path&#x27;s successful SNR relative to its own full-run median, with density, median and middle-half spread."></a><figcaption id="case-caption-rx-performance-snr-deviation"><strong>Successful RX SNR Deviation over Time</strong><p><em>Left: the sequence of April's 12-hour bins. Right: matching one-hour UTC periods combined across 30 dates.</em></p></figcaption></figure></div><p>Keep <strong>Full Range | All Directions</strong> and <strong>12h</strong> selected. Open <strong>Successful RX SNR Deviation over Time</strong> and its <strong>By UTC Hour</strong> companion.</p>
+<h3>The zero line is each path's own usual level</h3>
+<p>A nearby transmitter and a distant one can have very different normal SNRs. Simply averaging their absolute SNRs could move the summary when a different mixture of stations appears. This view instead asks: <strong>was each observed path stronger or weaker than its own usual successful level?</strong></p>
+<p>For each transmitter, WSPRadar subtracts its median successful SNR over the run. If a path's usual value is −15 dB and a successful observation is −10 dB, its deviation is <strong>+5 dB</strong>. <strong>0 dB means that path's usual successful level</strong>; it is neither zero signal nor equality with another receiver.</p>
+<p>A path needs <strong>at least three successful observations</strong> to establish this baseline. That is separate from the earlier minimum of three confirmed opportunities, which can include misses. Here, <strong>831 transmitter identities</strong> support an SNR-deviation baseline; the Decode Rate views can include the larger population of qualifying transmitters, including those never heard.</p>
+<h3>Read the pattern, then the contributing evidence</h3>
+<p>I’d use <strong>15–19 April</strong> for the near-zero comparison: the decline is already present on 20 April. “Dip” is more defensible than a statistical “outlier,” and “paired reception” does not apply to this Performance view.</p>
+<p>The chronological panel shows an unsettled month rather than one fixed reception level. Focus on <strong>15–19 April</strong>, when the median path deviation stays close to <strong>0 dB</strong>. On <strong>20 April</strong>, it drops to <strong>-5 dB</strong> in both 12-hour intervals. This indicates weaker successful reception relative to the contributing paths’ own median successful SNR over the run, although the contributing station population also changed.</p>
+<p><strong>Space-weather context</strong>
+NOAA reported <strong>G2 (moderate) geomagnetic storm conditions at 04:33 UTC on 20 April 2017</strong>, associated with continued coronal-hole effects. This provides relevant context for the same-day dip in median path deviation, but the coincidence does not establish that the storm caused the observed weakening. <a href="https://www.spaceweather.gov/news/g2-moderate-geomagnetic-storm-conditions-met">NOAA’s original 20 April report</a></p>
+<p>The right-hand panel makes the time-of-day association easier to see: successful signals are generally <strong>around 3–4 dB below their path baselines through late morning and early afternoon</strong>, rising to <strong>about 2–3 dB above them in the early evening</strong>. These are departures from each path's own baseline, not changes in antenna gain.</p>
+<p>The line with circular markers follows the median and the shaded band the middle half of contributions. The colored background shows where values are concentrated. Its density scale is relative within each panel: the hottest cell is the most populated, not the strongest reception or 100% of all observations.</p>
+<details class="case-evidence-details">
+<summary>What receives equal weight in these time summaries?</summary>
+
+<p>In the chronological panel, each transmitter contributes at most one median deviation per 12-hour bin. The right-hand panel first forms one median for each transmitter, date and UTC hour, then summarizes those contributions. A transmitter present on more dates can therefore contribute more values to the folded panel. The folded view combines matching hours; it does not follow one continuous day or guarantee that every day repeated the same pattern.</p>
+
+</details>
+
+<p>Next, check the supporting opportunities and Decode Rates. A successful-SNR pattern alone cannot show which signals disappeared from the decoded sample.</p></div></div></section><section class="case-evidence-group" id="temporal-evidence"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">06</span><h3>Read the reception history alongside the SNR pattern</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rx-performance-temporal-evidence"><a class="case-image-link" href="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="Evidence over Time and by UTC Hour" data-caption-id="case-caption-rx-performance-temporal-evidence" aria-label="Open full-size image: Evidence over Time and by UTC Hour"><img loading="eager" decoding="async" width="3799" height="1785" src="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark-520.webp" srcset="/assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark-520.webp 520w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark-1040.webp 1040w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_segment_temporal_evidence_dark-1584.webp 1584w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Station-balanced and opportunity-level support and Decode Rates over April and by UTC hour, with green success support, gray miss support and Decode Rate lines with circular markers."></a><figcaption id="case-caption-rx-performance-temporal-evidence"><strong>Evidence over Time and by UTC Hour</strong><p><em>Upper row: station-balanced support and rate. Lower row: confirmed-opportunity counts and pooled rate. Right-hand bars show average daily hourly support.</em></p></figcaption></figure></div><p>In <strong>Temporal Evidence</strong>, compare <strong>Evidence over Time</strong> with <strong>Evidence by UTC Hour (1 h bins)</strong>. Keep the Inspector's chronological grouping at <strong>12h</strong>.</p>
+<p>The most useful first reading is the <strong>Decode Rate line with circular markers</strong>, together with how much evidence supports it. Reception is generally less consistent in the early UTC hours and more consistent through the afternoon and early evening. The chronological panels show that the size of the result still varies between days.</p>
+<h3>Understand the two rows</h3>
+<p>The <strong>upper line</strong> averages the contributing transmitters' rates equally. The full height of each chronological bar is the number of contributing identities. Each station's one unit of support is divided between green success and gray miss in the proportions of that station's Decode Rate. For example, a transmitter with a 25% rate contributes <strong>0.25 green and 0.75 gray</strong>.</p>
+<p>Those green portions are therefore <strong>not a count of whole stations heard at least once</strong>. That was the separate reach measure in the distance profile. This distinction matters when a station is heard sometimes but missed often.</p>
+<p>The <strong>lower row</strong> is simpler to count: green represents successful opportunities and gray represents supported misses. Its line shows the pooled <strong>Opportunity-level Decode Rate</strong>. Read the left axis for support and the right axis for the percentage.</p>
+<p>In the right-hand panels, <strong>Avg. TX Stations</strong> and <strong>Avg. Opportunities</strong> describe average support per represented date at that hour. They are not the month's unique-station or opportunity totals. The rates use the retained opportunities at each hour, rather than an unweighted average of daily percentages.</p>
+<h3>A useful pattern is also a useful question</h3>
+<p>Across the two temporal figures, weaker-than-usual successful SNR around midday and higher Decode Rates later in the day suggest useful periods to investigate. They do not identify the cause. The mix of paths and transmitters changes with time, and local noise, interference, reporting and propagation can all affect the observations.</p>
+<p>For your own station, use the hourly profile to choose a time worth examining, then use the chronological view to see whether the behavior appears on several dates. Changing the chronological grouping to <strong>6h</strong> or <strong>1h</strong> can reveal detail without rerunning the analysis; the fixed one-hour folded panels remain unchanged. Restore <strong>12h</strong> to match this guide's figures.</p>
+<p>A missing interval means no eligible evidence for that summary, not a measured 0% rate or 0 dB SNR. The next step is to follow one well-observed transmitter, so changing station populations no longer dominate the comparison.</p></div></div></section><section class="case-evidence-group" id="stations"><div class="case-row case-row-full case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">07</span><h3>Open Station Insights: choose a path with something to teach</h3></div><p>Restore <strong>Full Range | All Directions</strong>, then open <strong>Station Insights</strong>. In RX Performance, the table lists transmitting station identities within the Inspector's current scope.</p>
+<p>Read a station's Decode Rate with its counts. In the export, <strong>Target (T)</strong> counts successful opportunities, <strong>Elsewhere (E)</strong> counts supported misses, and <strong>T/(T+E) (%)</strong> is the station's Decode Rate. The median SNR column describes its successful reports on the common 1 W basis.</p>
+<p>The saved view initially hides identities G3ZIL never heard. Enable <strong>Heard only by other stations.</strong> to reveal them. The visible list then expands from <strong>996 heard identities</strong> to the full <strong>2,107 qualifying identities</strong>, including <strong>1,111 with no Target successes</strong>. Those zero-success stations already contributed to the map, reach denominator and Decode Rates; the control changes their visibility, not the results.</p>
+<p><strong>Station Insights → Filter</strong> can narrow the table by callsign or other columns. A table filter does not change the map or Inspector statistics. Clear it when returning to the full list.</p>
+<p>Select <strong>HB0QRP (JN47)</strong>, the path saved with this demo, and open <strong>Selected Station Evidence</strong>. At approximately <strong>844 km, 113° ESE</strong>, it lies in the nearby region examined earlier. It supplies <strong>7,762 confirmed opportunities</strong>, including <strong>3,412 successes</strong>, for a <strong>44.0% Decode Rate</strong>. Its median successful normalized SNR is <strong>−15 dB</strong>.</p>
+<p>We use this station because it has substantial evidence through the month and a clear daily contrast. It lets us ask whether the wider time pattern also appears on one fixed reported path. It is an informative example, not a claim that every European transmitter behaves the same way.</p></div></div></section><section class="case-evidence-group" id="selected-station-snr"><div class="case-row"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">08</span><h3>Follow HB0QRP: what did its successful signals look like?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rx-performance-selected-station-snr"><a class="case-image-link" href="/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="HB0QRP successful SNR" data-caption-id="case-caption-rx-performance-selected-station-snr" aria-label="Open full-size image: HB0QRP successful SNR"><img loading="eager" decoding="async" width="3808" height="1921" src="/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark-520.webp" srcset="/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark-520.webp 520w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark-1040.webp 1040w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_snr_evidence_dark-1584.webp 1584w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="Successful SNR from HB0QRP at G3ZIL, normalized to 1 W, shown chronologically in 12-hour bins and by UTC hour across April."></a><figcaption id="case-caption-rx-performance-selected-station-snr"><strong>HB0QRP successful SNR</strong><p><em>These are HB0QRP's actual successful normalized SNR values. Unlike the earlier segment view, the graph does not subtract a path baseline.</em></p></figcaption></figure></div><p>Keep <strong>HB0QRP (JN47)</strong> selected and set the selected-station time control to <strong>12h</strong>. This control is separate from the Inspector's setting.</p>
+<p>The hourly profile shows a clear weaker period around late morning, followed by stronger successful reception toward the evening. The chronological panel adds another dimension: some dates are noticeably weaker than others, even before comparing times of day.</p>
+<p>Return to the earlier comparison of <strong>00:00–12:00 UTC on 16 and 22 April</strong>. HB0QRP's median successful SNR is <strong>−13 dB</strong> in the first interval and <strong>−20 dB</strong> in the second. The selected path therefore also weakens in the interval where the wider population's deviation was lower. This is useful agreement between views of the same run; it does not identify whether propagation, noise or another factor caused the change.</p>
+<p>For this one path, the chronological median summarizes the successful observations in each 12-hour bin. The hourly profile first summarizes each date's successful reports in that hour, then takes the median across those daily summaries. The shaded band shows the middle half of the contributing values where there is enough support.</p>
+<p>Now keep the same station and look at how often it was decoded. A path can supply respectable SNR when heard and still be missed frequently.</p></div></div></section><section class="case-evidence-group" id="selected-station-evidence"><div class="case-row case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">09</span><h3>Check HB0QRP&#x27;s Decode Rate: when was it more dependable?</h3></div><div class="case-media"><figure class="case-figure figure-block" id="case-media-rx-performance-selected-station-evidence"><a class="case-image-link" href="/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark.png" target="_blank" rel="noopener noreferrer" data-case-lightbox data-title="HB0QRP reception opportunities" data-caption-id="case-caption-rx-performance-selected-station-evidence" aria-label="Open full-size image: HB0QRP reception opportunities"><img loading="eager" decoding="async" width="3811" height="1850" src="/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark-520.webp" srcset="/assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark-520.webp 520w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark-1040.webp 1040w, /assets/demos/griffiths_squibb_rx_performance/assets/figure_selected_station_temporal_evidence_dark-1584.webp 1584w" sizes="(max-width: 759px) calc(100vw - 52px), (max-width: 980px) 42vw, 520px" alt="HB0QRP success and miss support and Decode Rate over April and by UTC hour, with 12-hour chronological bins."></a><figcaption id="case-caption-rx-performance-selected-station-evidence"><strong>HB0QRP reception opportunities</strong><p><em>For one selected transmitter, the two rate weightings coincide. The upper row expresses station support; the lower row shows the number of confirmed opportunities.</em></p></figcaption></figure></div><p>Read the selected station's opportunity history alongside its successful-SNR figure.</p>
+<p>The hourly view shows a morning opening and a stronger afternoon/evening period, with much less dependable reception around late morning. Three points illustrate the pattern without needing to read every hour:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">UTC hour, combined across April</th>
+<th style="text-align: right;">Confirmed opportunities</th>
+<th style="text-align: right;">Decode Rate</th>
+<th style="text-align: right;">Hourly successful-SNR profile, approximately</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>07:00–08:00</strong></td>
+<td style="text-align: right;"><strong>435</strong></td>
+<td style="text-align: right;"><strong>71%</strong></td>
+<td style="text-align: right;"><strong>−15 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>11:00–12:00</strong></td>
+<td style="text-align: right;"><strong>416</strong></td>
+<td style="text-align: right;"><strong>16%</strong></td>
+<td style="text-align: right;"><strong>−19 dB</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>20:00–21:00</strong></td>
+<td style="text-align: right;"><strong>379</strong></td>
+<td style="text-align: right;"><strong>65%</strong></td>
+<td style="text-align: right;"><strong>−11 dB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>These are supported by hundreds of opportunities in each hour over the month. The late-morning reduction accompanies weaker successful signals. Yet the evening's stronger successful SNR does not translate into a higher Decode Rate than the morning's. <strong>Successful signal level and reception consistency are related observations, not interchangeable scores.</strong></p>
+<p>The comparison between individual dates is similarly useful. On <strong>16 April, 00:00–12:00 UTC</strong>, G3ZIL decoded <strong>61 of 108</strong> confirmed HB0QRP opportunities, about <strong>56%</strong>. In the same interval on <strong>22 April</strong>, it decoded <strong>14 of 98</strong>, about <strong>14%</strong>. The opportunity counts are of a similar order, while both the rate and successful SNR are lower on the later date.</p>
+<p>This is a practical way to investigate an apparent change: keep the transmitter identity and time interval comparable, then check both outcomes and successful signal levels. At your own station, those dates would be candidates to compare with operating notes, equipment changes or noise observations.</p>
+<p>Because only one transmitter is selected, there is no difference between an equal-station and pooled rate within a populated bin. In the upper chronological panel its total support is one station, split fractionally between success and miss; the lower panel shows how many opportunities produced that result. A high percentage based on very few opportunities would need more caution than the percentage alone suggests.</p></div></div></section><section class="case-evidence-group" id="drill-down"><div class="case-row case-row-full"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">10</span><h3>Use Drill-Down to verify what the summaries count</h3></div><p>With <strong>HB0QRP (JN47)</strong> still selected, open <strong>Drill-Down</strong>. The supplied selected-station CSV contains the full retained path record. A short sequence on <strong>9 April</strong> shows how the classification works:</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Date/time, UTC</th>
+<th style="text-align: left;">Exported Outcome</th>
+<th style="text-align: right;">Target (T)</th>
+<th style="text-align: right;">Elsewhere (E)</th>
+<th style="text-align: right;">Target SNR, dB @ 30 dBm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>9 Apr 18:08</strong></td>
+<td style="text-align: left;"><code>T - Target</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">−8</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>9 Apr 18:12</strong></td>
+<td style="text-align: left;"><code>Target-only</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">−8</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>9 Apr 18:16</strong></td>
+<td style="text-align: left;"><code>T - Target</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;"><strong>0</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>9 Apr 18:20</strong></td>
+<td style="text-align: left;"><code>E - Elsewhere</code></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;"><strong>—</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><em>Source: <code>performance/table_drilldown_selected_stations.csv</code> in the supplied analysis export. The dash represents an empty SNR field.</em></p>
+<p>The first row is a successful G3ZIL decode with external confirmation. The second is a success reported <strong>only by G3ZIL</strong>. It still establishes its own opportunity and counts once. The <strong>Elsewhere (E)</strong> column remains zero in both: it counts misses, not every occurrence of another receiver reporting the transmitter.</p>
+<p>The third row contains a genuine <strong>0 dB normalized SNR</strong>. The final row has <strong>no Target SNR</strong> because G3ZIL did not report a successful decode; the external transmission evidence and Target-activity evidence support a miss. Missing SNR must not become zero, a weak invented value or a point on the successful-SNR chart.</p>
+<p>You can also check the activity evidence: at <strong>18:20</strong>, the all-stations Drill-Down CSV contains a successful G3ZIL report of <strong>HB9TSO (JN47)</strong>. That confirms G3ZIL was receiving in that cycle. HB0QRP's separate miss row records the external evidence of its transmission; hearing HB9TSO alone would not establish an HB0QRP opportunity.</p>
+<p>To inspect this interval in the app, choose <strong>Zoom window → 1h</strong>, <strong>Center date (UTC) → 2017-04-09</strong> and <strong>Center time (UTC) → 18:30</strong>. Check the displayed <strong>Selected window</strong> bounds. The focused SNR plot shows the retained successful observations at their actual cycle times, rather than the 12-hour medians used above. <strong>Filter table</strong> can further narrow displayed rows without changing the calculations or focused plots. Set <strong>Zoom window</strong> back to <strong>Off</strong> and clear any <strong>Filter table</strong> conditions to restore the full selected-station record.</p>
+<p>The four rows are a teaching example within a much larger record, not an estimate of the month's Decode Rate. Their value is that you can trace the summarized successes and misses to individual evidence and see why not every blank or absent report has the same meaning.</p></div></div></section><section class="case-evidence-group" id="takeaways"><div class="case-row case-row-full case-row-reverse"><div class="case-copy"><div class="case-step-heading"><span class="case-number" aria-hidden="true">11</span><h3>What this run teaches—and how to use it at your station</h3></div><p>G3ZIL's low-dipole receiving setup heard a broad set of transmitters during April, including occasional reception nearly 19,200 km away. Reception was substantially more consistent on nearer paths, while the time views revealed useful hourly and day-to-day variation. The HB0QRP example connects that wider picture to one transmitter with enough observations to examine closely.</p>
+<p>The main lesson is to <strong>read reach, Decode Rate and successful SNR together</strong>. Reach records the paths that made it into the log. Decode Rate adds how consistently they succeeded within confirmed opportunities. Successful SNR describes the signals that made it through, while the deviation view shows when paths were stronger or weaker than their own usual levels.</p>
+<p>The original paper used station comparisons and installation notes to investigate reception. This Performance tour adds a different perspective: a baseline for one receiver, with an explicit opportunity denominator and a route from regional patterns to individual observations. It does not reconstruct the paper's comparative figures or isolate the dipole's gain.</p>
+<p>For your own first run, start with a stable receiving setup and a documented period. Look for a meaningful distance, direction or UTC-hour pattern, then choose a path with enough support to examine it. Extend or repeat the observation period to see which patterns persist; more observations improve the evidence, but changing propagation and station populations still matter. A later Performance run can help you investigate a change. A controlled <strong>RX Benchmark</strong> is the appropriate next step when you want to compare two setups under known common operating conditions.</p>
+<h3>Save the evidence behind the story</h3>
+<p>Before saving this demo, restore <strong>Full Range | All Directions</strong>, select <strong>HB0QRP (JN47)</strong>, keep both chronological settings at <strong>12h</strong>, return Drill-Down <strong>Zoom window</strong> to <strong>Off</strong>, and clear any Drill-Down <strong>Filter table</strong> conditions. To match the supplied Station Insights table, clear its column filters and turn <strong>Heard only by other stations.</strong> off again.</p>
+<p>Select <strong>Prepare All Results for Download</strong>, then <strong>Download Prepared Results</strong>. Prepare the package again after changing the scope, selected station or other inspection choices. The ZIP preserves the figures, tables, processed evidence, configuration and run metadata. <strong>Save Config</strong> is useful for restoring settings and supported view choices, but does not preserve the observations themselves.</p>
+<p>Keep operating notes alongside your own exports: antenna and receiver arrangement, changes, outages and any independent noise measurements. The data can point to a period worth investigating; those notes help explain it.</p>
+<details class="case-evidence-details">
+<summary>About this saved evidence</summary>
+
+<p>This guide uses the worldwide export prepared on <strong>24 October 2026 at 20:01 UTC</strong>, with <strong>WSPRadar v1.0 RC3</strong>, using <strong>WSPRDaemon WD2</strong>. Its historical compatibility fallback relaxed the strict database mode-code filter; the metadata records that selection. It should not be read as independent verification of the physical mode of every historical record. A later database query can differ, so retain the supplied package when reproducing these examples.</p>
+<p>The <a href="/assets/demos/griffiths_squibb_rx_performance/source/original_export.zip">original analysis export</a>, <a href="/assets/demos/griffiths_squibb_rx_performance/evidence/verified_claims.md">verified examples and calculations</a>, and <a href="/en/documentation/full/#sec-3-rx-performance">RX Performance documentation</a> accompany this guide. The configuration restores the settings; the original package is the evidence record.</p>
+
+</details>
+
+<p><a href="https://app.wspradar.org/?v=1&amp;run=1&amp;direction=rx&amp;callsign=G3ZIL&amp;qth=IO90HW&amp;band=40m&amp;from=2017-04-01T00%3A00Z&amp;to=2017-05-01T00%3A00Z&amp;mode=performance&amp;min_opportunities=3&amp;segment_bin=12h&amp;station_bin=12h&amp;selected_station=HB0QRP%40JN47#wspradar-results-inspection">Run this guided demo in WSPRadar</a></p></div></div></section></section></article></main>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark">WSPRadar v1.0 RC3</span> <span class="footer-tagline">Real signals. Real data. Real insight.</span> <span class="footer-credit">Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/en/documentation/full/#sec-disclaimer">Experimental Use & Disclaimer</a></div></div></footer>
+  </div>
+</body>
+</html>

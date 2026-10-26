@@ -1,4 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-hidden="true"><style>
-.cyan,.green{stroke:currentColor;stroke-width:8;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.green circle.solid,.green polygon{fill:currentColor;stroke:currentColor}
-</style><g class="cyan"><path d="M72 199 L91 128 L110 199 Z M146 199 L165 128 L184 199 Z"/><line x1="62" y1="211" x2="120" y2="211"/><line x1="136" y1="211" x2="194" y2="211"/><line x1="80" y1="173" x2="102" y2="173"/><line x1="154" y1="173" x2="176" y2="173"/></g><g class="green"><circle cx="91" cy="121" r="7" class="solid"/><circle cx="165" cy="121" r="7" class="solid"/><path d="M58 105 Q92 73 125 105 M42 84 Q92 37 140 84 M132 105 Q166 73 199 105 M117 84 Q166 37 214 84"/><line x1="120" y1="157" x2="136" y2="157"/></g></svg>
