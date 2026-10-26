@@ -64,18 +64,38 @@
       stage.scrollTop = stage.scrollLeft = 0;
       if (image.complete) fitImage();
     }
-    figureLinks.forEach(link => link.addEventListener('click', event => {
+    function openFigure(link, event, opener = link) {
       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       const gallery = galleryFor(link);
       figures = figureLinks.filter(candidate => galleryFor(candidate) === gallery);
-      origin = link;
+      origin = opener;
       previousOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       dialog.showModal();
       show(figures.indexOf(link));
       dialog.querySelector('[data-action="close"]').focus();
-    }));
+    }
+    figureLinks.forEach(link => {
+      link.addEventListener('click', event => openFigure(link, event));
+      if (!link.closest('figure')) return;
+      const actions = document.createElement('div');
+      actions.className = 'figure-phone-actions';
+      const enlarge = document.createElement('a');
+      enlarge.href = link.href;
+      enlarge.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6M3 3l7 7m11-7-7 7M3 21l7-7m11 7-7-7"/></svg><span>' + (de ? 'Vergrößern' : 'Enlarge') + '</span>';
+      enlarge.setAttribute('aria-label', (de ? 'Vergrößern: ' : 'Enlarge: ') + (link.dataset.originalAlt || link.querySelector('img').alt));
+      enlarge.addEventListener('click', event => openFigure(link, event, enlarge));
+      const save = document.createElement('a');
+      save.href = link.href;
+      save.setAttribute('download', '');
+      const png = /\.png$/i.test(new URL(link.href, document.baseURI).pathname);
+      const saveLabel = de ? (png ? 'PNG speichern' : 'Bild speichern') : (png ? 'Save PNG' : 'Save image');
+      save.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg><span>' + saveLabel + '</span>';
+      save.setAttribute('aria-label', saveLabel + ': ' + (link.dataset.originalAlt || link.querySelector('img').alt));
+      actions.append(enlarge, save);
+      link.insertAdjacentElement('afterend', actions);
+    });
     dialog.addEventListener('click', event => {
       const action = event.target.closest('[data-action]')?.dataset.action;
       if (action === 'close') dialog.close();
