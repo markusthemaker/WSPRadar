@@ -1059,7 +1059,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 inventory = AnchorInventory()
                 inventory.feed(navigation[1])
                 self.assertEqual([anchor["attributes"]["href"] for anchor in inventory.anchors],
-                                 [f"/{language}/", f"/{language}/demos/", build_site.APP_URL,
+                                 [f"/{language}/", f"/{language}/demos/", "https://markusthemaker-wspradar.hf.space/",
                                   f"/{language}/documentation/", f"/{language}/community/"])
                 self.assertEqual([anchor["text"] for anchor in inventory.anchors], labels[language])
                 self.assertEqual(navigation[1].count('<span class="nav-separator" aria-hidden="true">·</span>'), 5)
@@ -1114,7 +1114,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                     self.assertEqual(launch_links, [])
                     self.assertNotIn('class="launch"', header_content)
                 else:
-                    self.assertEqual(sum(anchor["attributes"]["href"] == build_site.APP_URL for anchor in links.anchors), 2 if is_home else 1)
+                    self.assertEqual(sum(anchor["attributes"]["href"] == "https://markusthemaker-wspradar.hf.space/" for anchor in links.anchors), 2 if is_home else 1)
 
     def test_header_serves_responsive_webp_candidates_and_preserves_english_image_on_mobile(self) -> None:
         class PictureInventory(HTMLParser):
@@ -1286,7 +1286,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 for destination in (
                     f"/{language}/demos/", f"/{language}/community/", f"/{language}/report/",
                     self.builder.anchors[language]["sec-2-2"] + "#sec-2-2",
-                    self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", build_site.APP_URL,
+                    self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", "https://markusthemaker-wspradar.hf.space/",
                 ):
                     self.assertIn(destination, inventory.links)
                 self.assertNotIn("<h1", guidance[1])
@@ -1316,7 +1316,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 route_links.feed(get_started)
                 hrefs = [anchor["attributes"]["href"] for anchor in route_links.anchors]
                 self.assertTrue(any(href.startswith(f"/{language}/demos/") for href in hrefs))
-                self.assertIn(build_site.APP_URL, hrefs)
+                self.assertIn("https://markusthemaker-wspradar.hf.space/", hrefs)
 
     def test_landing_hero_contains_the_primary_actions_only_on_home_routes(self) -> None:
         for path, content in self.pages.items():
@@ -1349,7 +1349,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 inventory = AnchorInventory()
                 inventory.feed(actions[1])
                 self.assertEqual([anchor["attributes"]["href"] for anchor in inventory.anchors],
-                                 [f"/{language}/demos/", build_site.APP_URL])
+                                 [f"/{language}/demos/", "https://markusthemaker-wspradar.hf.space/"])
                 self.assertEqual([anchor["text"] for anchor in inventory.anchors],
                                  [self.builder.landing[language]["try_demo"] + " →", build_site.COPY[language]["start_analysis"] + " →"])
 
@@ -1375,7 +1375,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 routes = re.search(r'<div class="start-grid">(.*?)</div>', panel, re.DOTALL)[1]
                 cards = re.findall(r'<article>(.*?)</article>', routes, re.DOTALL)
                 self.assertEqual(len(cards), 2)
-                for card, prefix, destination in zip(cards, ("demo", "own"), (f"/{language}/demos/", build_site.APP_URL)):
+                for card, prefix, destination in zip(cards, ("demo", "own"), (f"/{language}/demos/", "https://markusthemaker-wspradar.hf.space/")):
                     self.assertIn(escape(copy[prefix + "_title"]), card)
                     self.assertIn(escape(copy[prefix + "_body"]), card)
                     inventory = AnchorInventory()
@@ -2048,7 +2048,7 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
         for language in ("en", "de"):
             paths = [f"{language}/index.html"] + (["index.html"] if language == "en" else [])
             destinations = [self.builder.anchors[language]["sec-2-2"] + "#sec-2-2",
-                            self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", build_site.APP_URL]
+                            self.builder.anchors[language]["sec-2-1"] + "#sec-2-1", "https://markusthemaker-wspradar.hf.space/"]
             for path in paths:
                 cards = re.findall(r'<article class="journey-card">(.*?)</article>', self.pages[path], re.DOTALL)
                 with self.subTest(path=path):
