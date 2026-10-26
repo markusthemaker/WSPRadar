@@ -380,3 +380,31 @@ html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
 @media screen and (max-width:580px) {
   :is(.documentation-index-page,.documentation-reader-page,.community-page,.demos-index-page,.demo-case-page) {--page-header-overlap:18px}
 }
+
+/* Phones: let scientific figures use the screen width, with readable text gutters. */
+@media screen and (max-width:600px) {
+  .site-shell {--phone-figure-gutter:12px;--overview-inset:var(--phone-figure-gutter);padding-right:var(--phone-figure-gutter)}
+  .site-shell main .figure-block {
+    max-width:none;
+    margin-inline:calc(-1 * var(--phone-figure-gutter));
+    padding-inline:0;
+    border-inline:0;
+    border-radius:0;
+  }
+  .site-shell main .figure-block img {border-inline:0;border-radius:0}
+  .site-shell main .figure-block figcaption {margin-inline:var(--phone-figure-gutter)}
+  .site-shell .case-evidence-group .case-evidence-group .case-row {padding-right:0}
+  .real-example .example-showcase {
+    margin-inline:calc(-1 * var(--phone-figure-gutter));
+    padding-inline:var(--phone-figure-gutter);
+    border-inline:0;
+    border-radius:0;
+  }
+  .real-example .result-preview {
+    margin-inline:calc(-1 * var(--phone-figure-gutter));
+    padding-inline:0;
+    border-inline:0;
+    border-radius:0;
+  }
+  .real-example .result-preview :is(.result-card-heading,figcaption,.result-preview-note) {margin-inline:var(--phone-figure-gutter)}
+}
