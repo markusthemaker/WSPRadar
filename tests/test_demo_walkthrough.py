@@ -1113,7 +1113,7 @@ class DemoWalkthroughTests(unittest.TestCase):
                 buttons = [anchor for anchor in case_hero.descendants("a")
                            if "button" in (anchor.attributes.get("class") or "").split()]
                 self.assertEqual([(anchor.attributes["href"], anchor.text) for anchor in buttons],
-                                 [(url, label + " ↗") for url, label in expected_launches])
+                                 [(url, label + " →") for url, label in expected_launches])
                 launches = [anchor for anchor in document.find(css_class="case-study")[0].descendants("a")
                             if anchor.attributes.get("href") in {
                                 demo_walkthrough.demo_launch_url(demo),
@@ -1121,9 +1121,7 @@ class DemoWalkthroughTests(unittest.TestCase):
                             }]
                 self.assertGreaterEqual(len(launches), len(buttons))
                 for launch in launches:
-                    self.assertEqual(launch.attributes.get("target"), "_blank")
-                    self.assertTrue({"noopener", "noreferrer"}.issubset(
-                        launch.attributes.get("rel", "").split()))
+                    self.assertNotIn("target", launch.attributes)
                 for launch in buttons:
                     target = urlsplit(launch.attributes["href"])
                     self.assertEqual((target.scheme, target.netloc, target.path, target.fragment),

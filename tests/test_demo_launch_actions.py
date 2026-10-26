@@ -29,7 +29,7 @@ class DemoLaunchActionTests(unittest.TestCase):
         self.assertEqual(len(group), 1)
         links = group[0].descendants("a")
         self.assertEqual([link.text for link in links],
-                         ["Run in WSPRadar App · RX ↗", "Run in WSPRadar App · TX ↗"])
+                         ["Run in WSPRadar App · RX →", "Run in WSPRadar App · TX →"])
         expected = [demo_walkthrough.demo_launch_url(self.demo),
                     demo_walkthrough.demo_launch_url(self.demo, "tx")]
         self.assertEqual([link.attributes["href"] for link in links], expected)
@@ -45,8 +45,7 @@ class DemoLaunchActionTests(unittest.TestCase):
                     if anchor.attributes.get("href") in expected]
         self.assertGreater(len(launches), len(links))
         for anchor in launches:
-            self.assertEqual(anchor.attributes.get("target"), "_blank")
-            self.assertTrue({"noopener", "noreferrer"}.issubset(anchor.attributes.get("rel", "").split()))
+            self.assertNotIn("target", anchor.attributes)
 
     def test_unconfigured_language_keeps_the_single_default_action(self):
         document = self.render("de")
