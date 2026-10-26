@@ -3,7 +3,7 @@ const toggle = document.querySelector('.nav-toggle');
 const links = document.getElementById('nav-links');
 const navigationShell = document.querySelector('.site-navigation-shell');
 if (toggle && links && navigationShell) {
-  const media = matchMedia('(max-width:1100px)');
+  const media = matchMedia('(max-width:800px)');
   function setMenuOpen(open) {
     links.hidden = media.matches && !open;
     toggle.setAttribute('aria-expanded', String(!links.hidden));

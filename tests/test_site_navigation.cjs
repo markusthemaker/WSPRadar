@@ -59,7 +59,7 @@ function fixture({narrow = false, observer = true, header = true} = {}) {
   const observers = [];
   const context = {
     document,
-    matchMedia(query) { assert.equal(query, '(max-width:1100px)'); return media; },
+    matchMedia(query) { assert.equal(query, '(max-width:800px)'); return media; },
   };
   if (observer) context.ResizeObserver = class {
     constructor(callback) { this.callback = callback; observers.push(this); }

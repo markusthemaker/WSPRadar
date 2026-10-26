@@ -52,8 +52,8 @@ HELP_URL = COMMUNITY_URL + "/new?category=ask-a-question"
 EXPERIMENTS_URL = COMMUNITY_URL + "/new?category=discuss-your-experiments"
 IDEAS_URL = COMMUNITY_URL + "/new?category=ideas-and-feature-requests"
 REPORT_URL = COMMUNITY_URL + "/new?category=report-a-bug-or-concern"
-# Match the border-box site shell and its horizontal padding in source/theme/styles/site.css.
-HEADER_IMAGE_SIZES = "(max-width:580px) calc(100vw - 34px), (max-width:1280px) calc(100vw - 48px), 1232px"
+# Match the border-box site shell and its screen padding in source/theme/styles/landing.css.
+HEADER_IMAGE_SIZES = "(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px"
 LANGUAGE_NAMES = {"en": "English", "de": "Deutsch"}
 # German remains supported; offer it again after the translation is ready.
 HEADER_LANGUAGES = ("en",)
@@ -579,8 +579,6 @@ class SiteBuilder:
         return (
             '<details class="language-selector">'
             f'<summary aria-label="{label}: {LANGUAGE_NAMES[lang]}" title="{label}">'
-            '<svg class="language-globe" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6">'
-            '<circle cx="12" cy="12" r="9"></circle><ellipse cx="12" cy="12" rx="4" ry="9"></ellipse><path d="M3 12h18"></path></svg>'
             f'<span class="language-current" lang="{lang}">{lang.upper()}</span>'
             '<span class="language-chevron" aria-hidden="true">⌄</span></summary>'
             f'<div class="language-options" role="group" aria-label="{label}">' + ''.join(options) + '</div></details>'

@@ -997,8 +997,8 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
                 label = build_site.COPY[language]["change_language"]
                 self.assertIn(f'<summary aria-label="{label}: {build_site.LANGUAGE_NAMES[language]}" title="{label}">', selector[1])
                 self.assertIn(f'<span class="language-current" lang="{language}">{language.upper()}</span>', selector[1])
-                self.assertIn('class="language-globe"', selector[1])
-                self.assertIn('aria-hidden="true" focusable="false"', selector[1])
+                self.assertNotIn('class="language-globe"', selector[1])
+                self.assertIn('class="language-chevron" aria-hidden="true"', selector[1])
                 self.assertNotIn('class="language-flag"', selector[1])
                 self.assertNotIn('class="language-label"', selector[1])
                 self.assertIn('class="skip-link" href="#main"', content)

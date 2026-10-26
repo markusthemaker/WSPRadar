@@ -530,7 +530,7 @@ labels to wrap. Primary actions use the shared dark-blue control fill and cyan
 border; outlined actions use the shared blue border, which turns cyan on hover.
 These control colors come from the app's authoritative product-design catalog,
 including landing-page, walkthrough, Menu, and figure-viewer buttons. Headings retain their green styling. Navigation uses blue links without
-underlines, muted dot separators with 10px margins, and stronger weight plus a
+underlines, muted dot separators with up to 10px margins, and stronger weight plus a
 subtle background for the active page. Keyboard focus has a visible outline. Its wordmark shares the artwork and content's
 3.5% text inset, or their shared 12px phone inset. On screen, this same left inset
 belongs to the shared main container and footer; their right edge aligns with
@@ -540,23 +540,25 @@ independent, and the screen-only rule does not change the paper layout. Balanced
 padding and a 66px minimum navigation height vertically center the controls.
 The shell has no outer top padding, and the artwork starts immediately below the
 navigation's fine divider; padding inside the navigation still separates its
-controls from that divider. The language control is a native keyboard-operable
-details menu with a decorative globe, the current EN or DE abbreviation, and a
-chevron. Its localized accessible label and tooltip say Change language or
+controls from that divider. On screen, the shell has no outer left padding; its
+right padding and centered 1280px maximum width remain unchanged. The artwork
+uses the recovered width, and its responsive image sizes match that geometry. The language control is a native keyboard-operable
+details menu with the current EN or DE abbreviation and a chevron, without a
+globe icon. Its summary retains a minimum 44px by 44px touch target. Its localized accessible label and tooltip say Change language or
 Sprache ändern; the open menu shows the full native names English and Deutsch.
 Both choices retain the current route, with the active choice marked explicitly.
-The compact controls keep navigation on one row at desktop and 1024px widths.
-From 581px through 999px, Menu replaces the visible navigation links while the
-brand, Menu, and language remain on one top row. Opening Menu
-reveals the links in a second row, with matching hidden and aria-expanded states.
-From 581px through 699px, the smaller wordmark preserves room for the controls.
-Navigation labels use 15px text
-from 1000px through 1100px so the German labels fit inside the shell;
-wider navigation retains 16px labels. Dot separators are omitted in the compact
+The compact controls keep navigation on one row above 800px, including 1024px.
+From 801px through 1100px, header gaps and language-control padding shrink with
+the viewport; dot margins also shrink, and dots disappear at 900px. Navigation
+labels retain 16px text throughout this desktop range. At 800px and below, Menu
+replaces the visible navigation links while the brand, Menu, and language remain
+on one top row. Opening Menu reveals the links in a panel below the navigation,
+with matching hidden and aria-expanded states. The wordmark uses 25px in this
+compact row and 22px at phone widths. Dot separators are omitted in the compact
 menu. The demo navigation and index label is Guided Demo in English and
 Geführte Demo in German.
-On phones, the brand and language share the first
-row, followed by Menu; expanded navigation follows.
+On phones, the brand, Menu, and language share the first
+row; expanded navigation follows.
 
 The overview's primary headings, unboxed introductory text, and grid boundaries
 share the hero artwork's 3.5% horizontal inset. The explanation and getting-started

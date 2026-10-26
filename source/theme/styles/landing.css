@@ -14,24 +14,23 @@ body{background:#000b19}
 .landing-header .navigation .nav-links[hidden]{display:none!important}
 .landing-header .navigation .language-selector{margin-left:auto}
 .language-selector{position:relative;border-left:1px solid var(--line);padding-left:10px;flex-shrink:0;z-index:3}
-.language-selector summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;color:#e6eef8}
+.language-selector summary{list-style:none;cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;color:#e6eef8}
 .language-selector summary::-webkit-details-marker{display:none}
 .language-current{font-size:14px;line-height:1.2;white-space:nowrap}
-.language-globe{display:block;width:18px;height:18px;flex:none}
 .language-chevron{font-size:18px;line-height:1}
 .language-options{position:absolute;top:calc(100% + 8px);right:0;min-width:148px;padding:5px;border:1px solid #315975;border-radius:6px;background:#041424;box-shadow:0 8px 24px #0008}
 .navigation .language-option{display:flex;gap:9px;min-height:44px;padding:8px 10px;border-radius:3px;color:#e6eef8;white-space:nowrap}
 .navigation .language-option:hover,.navigation .language-option[aria-current=true]{color:#fff;background:#143126}
 .navigation .language-option[aria-current=true]::after{content:"✓";margin-left:auto;color:var(--product-green)}
-@media(min-width:1000px) and (max-width:1100px){.landing-header .navigation{font-size:15px;gap:7px}.landing-header .navigation .nav-links{gap:0}}
+@media(max-width:1100px){.landing-header .navigation{gap:clamp(4px,calc((100vw - 800px)/25),12px)}.landing-header .navigation .language-selector{padding-left:clamp(4px,calc((100vw - 800px)/30),10px)}}
 .landing-header .nav-links>a{position:relative;color:var(--product-link,#55c8ff);text-decoration:none;font-weight:500;padding:0 4px;border-radius:4px}
 .landing-header .nav-links>a:hover,.landing-header .nav-links>a[aria-current=page]{color:var(--product-link,#55c8ff);background:var(--product-control-active-bg,#0c3542)}
 .landing-header .nav-links>a[aria-current=page]{font-weight:700}
 .landing-header .nav-links>a:focus-visible{outline:2px solid var(--product-control-accent,#24d3f2);outline-offset:3px}
 .landing-header .nav-separator{color:var(--muted);margin:0 10px;flex:none;user-select:none}
 .landing-header .nav-separator:first-child{margin-left:2px}
-@media(min-width:1000px) and (max-width:1100px){.landing-header .nav-separator:first-child{margin-left:7px}}
-@media(max-width:999px){.landing-header .nav-separator{display:none}}
+@media(max-width:1100px){.landing-header .nav-separator{margin-inline:clamp(0px,calc((100vw - 900px)/20),10px)}.landing-header .nav-separator:first-child{margin-left:2px}}
+@media(max-width:900px){.landing-header .nav-separator{display:none}}
 .hero-artwork-stage{position:relative}
 .hero-entry{position:static}
 .hero-actions{align-items:center;position:absolute;left:var(--overview-inset);right:0;bottom:2.5%;display:flex;gap:16px;flex-wrap:wrap}
@@ -202,7 +201,7 @@ body{background:#000b19}
 .footer-legal{grid-column:1/-1;text-align:right}
 @media(max-width:1120px){.how-panel,.get-started{padding:17px}.hero-artwork-with-actions{margin-bottom:26px}.hero-actions{bottom:0;transform:translateY(50%);gap:12px}.landing-header .hero-actions .button{min-height:44px;padding:8px 14px;font-size:15px;line-height:1.2}.hero-entry{padding:12px 0 0 var(--overview-inset)}.hero-reassurance{position:static;width:auto;height:auto;clip-path:none;white-space:normal;margin:0;font-size:14px;color:var(--text)}.start-heading{gap:18px}.curiosity-callout{font-size:23px}.start-steps{gap:33px}.start-step{gap:10px}.start-step:not(:last-child)::after{right:-24px}.analysis-grid,.result-gallery{gap:14px}.analysis-card{padding:17px}.analysis-card h3,.analysis-card h4{font-size:23px}.landing .section-heading{align-items:start;flex-direction:column;gap:8px}}
 @media(max-width:980px){.how-panel{grid-template-columns:1fr;gap:24px}.signal-flow{gap:35px}.flow-connection{width:78px;left:calc(100% - 16px)}}
-@media(min-width:581px) and (max-width:999px){
+@media(min-width:581px) and (max-width:800px){
   .landing-header .navigation{display:grid;grid-template-columns:1fr auto auto;gap:10px 8px}
   .landing-header .navigation .nav-brand{grid-column:1;grid-row:1}
   .landing-header .navigation .nav-toggle{display:inline-flex;align-items:center;justify-content:center;grid-column:2;grid-row:1;min-height:44px;padding:9px 12px;background:none;color:var(--text);border:1px solid var(--product-control-border);border-radius:5px;font:600 15px/1.5 var(--font-body)}
@@ -316,7 +315,7 @@ html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
 .skip-link:focus{position:fixed;z-index:30}
 @media(min-width:760px){.reader-index{top:calc(var(--site-navigation-height) + 24px);max-height:calc(100dvh - var(--site-navigation-height) - 48px)}}
 @media(min-width:760px){.case-study .case-nav{top:calc(var(--site-navigation-height) + 22px);max-height:calc(100dvh - var(--site-navigation-height) - 44px);overflow:auto}}
-@media(max-width:1100px){
+@media(max-width:800px){
   .site-navigation-shell .navigation{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;padding:10px 0 10px var(--overview-inset)}
   .site-navigation-shell .navigation .nav-brand{grid-column:1;grid-row:1;min-width:0;font-size:25px}
   .site-navigation-shell .navigation .nav-toggle{display:inline-flex;grid-column:2;grid-row:1;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;border:1px solid var(--product-control-border);border-radius:5px;background:none;color:var(--text);font:600 15px/1.5 var(--font-body)}
@@ -327,11 +326,16 @@ html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
   .site-navigation-shell .nav-links>a{flex:1 0 calc(50% - 12px);min-height:44px}
 }
 @media(max-width:580px){
-  .site-navigation-shell .navigation{gap:6px;padding-left:0}
+  .site-navigation-shell .navigation{gap:6px;padding-left:var(--overview-inset)}
   .site-navigation-shell .navigation .nav-brand{font-size:22px}
   .site-navigation-shell .navigation .language-selector{padding-left:6px}
 }
 @media print{.site-navigation-shell{display:none!important}html{scroll-padding-top:0}}
+
+/* Remove the outer left gutter; preserve the right gutter and centered width limit. */
+@media screen {
+  .site-shell {padding-left:0}
+}
 
 /* Match page titles to the introduction's "What is WSPRadar?" heading. */
 @media screen {
