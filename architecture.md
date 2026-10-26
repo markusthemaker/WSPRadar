@@ -205,7 +205,11 @@ demo launches use the current loopback hostname with analysis port 8501, retaini
 their exact query and fragment. `scripts/build_site.py --local-analysis-port
 8521` explicitly overrides that local preview port without changing production
 destinations or imported canonical demo URLs. Ordinary website links retain their
-current origin; public builds continue to launch wspradar.streamlit.app.
+current origin; public builds launch `https://markusthemaker-wspradar.hf.space/`.
+The explicit Community Cloud and private HF test origins remain trusted aliases
+for existing paired sessions and legacy links; they do not replace the production
+launch destination. Canonical demo/share URLs remain at `wspradar.org` and retain
+their complete query and fragment when forwarded to the application.
 
 The paired-tab enhancement keeps one website tab (`wspradar_website`) and one
 application tab (`wspradar_analysis`). An ordinary app action focuses a retained

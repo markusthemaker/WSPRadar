@@ -366,6 +366,10 @@
   },
   "product_navigation": {
     "catalog": {
+      "analysis_aliases": [
+        "https://wspradar.streamlit.app/",
+        "https://markusthemaker-wspradar-test.hf.space/"
+      ],
       "items": [
         {
           "destination": "website",
@@ -423,14 +427,14 @@
         "website_port": 8787
       },
       "origins": {
-        "analysis": "https://wspradar.streamlit.app/",
+        "analysis": "https://markusthemaker-wspradar.hf.space/",
         "website": "https://wspradar.org/"
       },
       "schema_version": 1
     },
     "schema_version": 1,
     "source_text_sha256": {
-      "config/product_navigation.json": "515f4a69c274e599b297f47aa3aee8cc7a0aa9d13996dcf874a50be3df0a20a4"
+      "config/product_navigation.json": "ca53ed8b1d02c145401ff9f0cc0aeb0690cd6cd4ae93afff6a01728af1f65e61"
     }
   },
   "schema_version": 1,

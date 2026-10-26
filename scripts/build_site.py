@@ -43,7 +43,8 @@ CONTENT = SOURCE / "imported" / "app"
 DEMO_SUPPLEMENTS = SOURCE / "assets" / "demos"
 OUTPUT = ROOT / "generated"
 APP_URL = "https://wspradar.streamlit.app/"
-# Community Cloud serves app-owned files through its hosted application route.
+# Legacy Community Cloud asset links remain recognized after launch migration.
+# Active application launches come from the exported navigation catalog.
 APP_STATIC_URL = APP_URL + "~/+/app/static/"
 SITE_URL = "https://wspradar.org"
 COMMUNITY_URL = "https://github.com/markusthemaker/WSPRadar/discussions"
@@ -293,7 +294,10 @@ class _ProductNavigationLinkPolicyParser(_PDFLinkPolicyParser):
     def __init__(self, source, catalog, *, current_suffix=""):
         super().__init__(source)
         self.website = urlsplit(catalog["origins"]["website"])
-        self.analysis = urlsplit(catalog["origins"]["analysis"])
+        self.analysis_origins = {
+            (urlsplit(value).scheme, urlsplit(value).netloc)
+            for value in [catalog["origins"]["analysis"], *catalog.get("analysis_aliases", [])]
+        }
         self.new_tab = next(item["new_tab"] for item in catalog["items"]
                             if item["destination"] == "analysis" and not item["path"])
         self.guided_demo = current_suffix.startswith("demos/") and current_suffix != "demos/"
@@ -312,7 +316,7 @@ class _ProductNavigationLinkPolicyParser(_PDFLinkPolicyParser):
         try:
             url = urlsplit(href)
             origin = (url.scheme, url.netloc)
-            analysis_root = origin == (self.analysis.scheme, self.analysis.netloc)
+            analysis_root = origin in self.analysis_origins
             website_root = origin == (self.website.scheme, self.website.netloc)
             website_link = website_root or (not url.scheme and not url.netloc)
             relative_root = not url.scheme and not url.netloc and url.path == "/"
@@ -454,14 +458,19 @@ def product_navigation_catalog(brand):
     if not isinstance(metadata, dict) or metadata.get("schema_version") != 1:
         raise ValueError("Shared product navigation is missing; refresh the public navigation export")
     catalog = metadata.get("catalog")
-    if (not isinstance(catalog, dict) or set(catalog) != {"schema_version", "origins", "local", "items"}
+    if (not isinstance(catalog, dict) or set(catalog) not in ({"schema_version", "origins", "local", "items"},
+                    {"schema_version", "origins", "local", "items", "analysis_aliases"})
             or type(catalog["schema_version"]) is not int or catalog["schema_version"] != 1
             or not isinstance(catalog["origins"], dict)
             or set(catalog["origins"]) != {"website", "analysis"}
             or not isinstance(catalog["local"], dict) or set(catalog["local"]) != {"website_port", "analysis_port"}
             or not isinstance(catalog["items"], list) or not catalog["items"]):
         raise ValueError("Invalid imported product-navigation catalog")
-    for value in catalog["origins"].values():
+    aliases = catalog.get("analysis_aliases", [])
+    if not isinstance(aliases, list):
+        raise ValueError("Analysis aliases must be an explicit list of HTTPS origins")
+    normalized_origins = []
+    for value in [*catalog["origins"].values(), *aliases]:
         if not isinstance(value, str):
             raise ValueError("Invalid imported navigation origin")
         try:
@@ -473,6 +482,12 @@ def product_navigation_catalog(brand):
                 or origin.password is not None or origin.path not in {"", "/"} or origin.query or origin.fragment
                 or not valid_port or any(character.isspace() for character in value)):
             raise ValueError("Invalid imported navigation origin")
+        normalized_origins.append(f"{origin.scheme}://{origin.netloc}/")
+    known_origins = set(normalized_origins[:len(catalog["origins"])])
+    for alias in normalized_origins[len(catalog["origins"]):]:
+        if alias in known_origins:
+            raise ValueError("Analysis aliases must be unique and distinct from primary origins")
+        known_origins.add(alias)
     if any(type(port) is not int or not 1 <= port <= 65535 for port in catalog["local"].values()):
         raise ValueError("Invalid imported navigation local ports")
     identities = set()

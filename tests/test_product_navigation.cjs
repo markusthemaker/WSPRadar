@@ -265,3 +265,35 @@ const redirect = fixture('https://wspradar.org/?v=1&run=1', {opener: openerApp.f
 assert.equal(redirect.window.name, undefined);
 assert.equal(redirect.replacement, appOrigin + '/?v=1&run=1');
 console.log('Paired product navigation: creation, reuse, explicit launches, native clicks, trusted messaging and reload checks passed.');
+
+// Explicit compatibility deployments retain direct launches and trusted pairing.
+for (const alias of catalog.analysis_aliases ?? []) {
+  const aliasOrigin = new URL(alias).origin;
+  const legacyApp = application(alias + '?existing=analysis', true);
+  const legacyStorage = new Map();
+  const legacySite = fixture('https://wspradar.org/en/', {opener: legacyApp.frame,
+    storage: legacyStorage, links: [catalog.origins.analysis, alias + '?v=1&x=a%2Bb&x=2#result']});
+  assert(legacyApp.messages.some(([, target]) => target === aliasOrigin));
+  legacySite.message(aliasOrigin, legacyApp.frame, hello);
+  assert.equal(legacyApp.messages.at(-1)[1], aliasOrigin);
+  legacySite.click();
+  assert.deepEqual(legacyApp.writes, []); // Generic launch keeps an existing CC analysis.
+  legacySite.message(aliasOrigin, legacyApp.frame, navigate('https://wspradar.org/de/'));
+  assert.deepEqual(legacySite.navigations, ['https://wspradar.org/de/']);
+  legacySite.message(appOrigin, legacyApp.frame, navigate('https://wspradar.org/en/demos/'));
+  assert.equal(legacySite.navigations.length, 1); // Exact paired origin remains mandatory.
+  legacySite.click(1);
+  assert.deepEqual(legacyApp.writes, [aliasOrigin + '/?v=1&x=a%2Bb&x=2#result']);
+  const resumed = fixture('https://wspradar.org/en/community/', {storage: legacyStorage});
+  resumed.message(appOrigin, legacyApp.frame, hello); // An alias nonce cannot bind another origin.
+  resumed.message(appOrigin, legacyApp.frame, navigate('https://wspradar.org/de/'));
+  assert.deepEqual(resumed.navigations, []);
+  resumed.message(aliasOrigin, legacyApp.frame, hello);
+  resumed.message(aliasOrigin, legacyApp.frame, navigate('https://wspradar.org/de/'));
+  assert.deepEqual(resumed.navigations, ['https://wspradar.org/de/']);
+  const localAlias = fixture('http://localhost:8787/en/', {links: [alias + '?v=1&x=a%2Bb#result']});
+  assert.equal(localAlias.anchors[0].href, 'http://localhost:8501/?v=1&x=a%2Bb#result');
+  localAlias.message(aliasOrigin, legacyApp.frame, hello);
+  assert.deepEqual(localAlias.navigations, []);
+}
+console.log('Compatibility origins: direct launches, active-session reuse, exact-origin nonces and local routing passed.');

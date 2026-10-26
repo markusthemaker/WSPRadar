@@ -857,8 +857,8 @@
       "sha256": "ef24b6d7167fe51cbdcc9adaf9c9ccc868d246bb56bb213f6733e6cc03519f35"
     },
     "brand.json": {
-      "bytes": 18411,
-      "sha256": "523cd258a101a44019ec62f553137fef19cc00e5b4c91ab4bf272fcbadf59624"
+      "bytes": 18558,
+      "sha256": "ffb24655bed856216a9168b68cd272fd7891fb9ac0bfc9098183e9a80e1c04f7"
     },
     "configs/griffiths_squibb_fig3.config": {
       "bytes": 3973,
@@ -1671,7 +1671,7 @@
     }
   ],
   "product_navigation_source_update": {
-    "previous_bundle_manifest_sha256": "277e2f2ddce97dd4fdf50c68d2fab9664120992d356cb57938c1077c24c75218",
+    "previous_bundle_manifest_sha256": "3e8f535d62e46babcd231915769cdb2f293c04750189b0a88bd420d2a9c01154",
     "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:product_navigation"
@@ -1679,7 +1679,7 @@
     "source_repository": "WSPRadarApp",
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
-      "config/product_navigation.json": "515f4a69c274e599b297f47aa3aee8cc7a0aa9d13996dcf874a50be3df0a20a4"
+      "config/product_navigation.json": "ca53ed8b1d02c145401ff9f0cc0aeb0690cd6cd4ae93afff6a01728af1f65e61"
     }
   },
   "product_navigation_source_update_history": [
@@ -1717,6 +1717,18 @@
       "source_text_encoding": "UTF-8 with LF line endings",
       "source_text_sha256": {
         "config/product_navigation.json": "718e3fd69ba893373094f42d2a19c02b89ba1ef1a4d36a0925cdb5ece5a3c896"
+      }
+    },
+    {
+      "previous_bundle_manifest_sha256": "277e2f2ddce97dd4fdf50c68d2fab9664120992d356cb57938c1077c24c75218",
+      "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:product_navigation"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/product_navigation.json": "515f4a69c274e599b297f47aa3aee8cc7a0aa9d13996dcf874a50be3df0a20a4"
       }
     }
   ],

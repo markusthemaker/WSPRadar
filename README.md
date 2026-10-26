@@ -2,7 +2,7 @@
 
 Public website entry point for WSPRadar.
 
-- [Open the WSPRadar application](https://wspradar.streamlit.app/)
+- [Open the WSPRadar application](https://markusthemaker-wspradar.hf.space/)
 - [Website address: wspradar.org](https://wspradar.org/)
 
 The website redirects visitors to the application while preserving URL query parameters and fragments. Documentation and demos are available inside the application.

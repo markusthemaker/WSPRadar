@@ -12,18 +12,21 @@
   const productionWebsite = new URL(catalog.origins.website);
   const productionAnalysis = new URL(catalog.origins.analysis);
   const applicationOrigin = new URL(analysisOrigin).origin;
+  const productionAnalysisOrigins = new Set([productionAnalysis.origin,
+    ...(catalog.analysis_aliases ?? []).map(value => new URL(value).origin)]);
+  const trustedAnalysisOrigins = local ? new Set([applicationOrigin]) : productionAnalysisOrigins;
   const websiteOrigin = local ? window.location.origin : productionWebsite.origin;
 
   function isAnalysisLaunch(url) {
     if (url.username || url.password || url.pathname !== '/') return false;
-    return url.origin === applicationOrigin || url.origin === productionAnalysis.origin
+    return url.origin === applicationOrigin || productionAnalysisOrigins.has(url.origin)
       || ((url.origin === productionWebsite.origin || url.origin === websiteOrigin)
         && Boolean(url.search || url.hash === '#wspradar-results-inspection'));
   }
 
   function analysisLaunchUrl(value) {
     const url = new URL(value, window.location.href);
-    const isAnalysis = url.origin === productionAnalysis.origin && url.pathname === '/';
+    const isAnalysis = productionAnalysisOrigins.has(url.origin) && url.pathname === '/';
     const isCanonicalLaunch = url.origin === productionWebsite.origin
       && url.pathname === '/'
       && (url.search || url.hash === '#wspradar-results-inspection');
@@ -50,12 +53,16 @@
       && (window.location.search || window.location.hash === '#wspradar-results-inspection'))) return;
 
   const protocol = 'wspradar-navigation-v1';
-  const nonceKey = `${protocol}:${applicationOrigin}`;
   let appWindow = null;
   let appSource = null;
+  let appSourceOrigin = null;
   let nonce = null;
-  try { nonce = window.sessionStorage.getItem(nonceKey); } catch (_) { /* Storage may be disabled. */ }
-  if (!/^[a-f0-9]{32}$/.test(nonce ?? '')) nonce = null;
+  function rememberedNonce(origin) {
+    try {
+      const value = window.sessionStorage.getItem(`${protocol}:${origin}`);
+      return /^[a-f0-9]{32}$/.test(value ?? '') ? value : null;
+    } catch (_) { return null; }
+  }
   window.name = 'wspradar_website';
 
   function topWindow(sourceWindow) {
@@ -76,20 +83,22 @@
 
   window.addEventListener('message', event => {
     const message = event.data;
-    if (event.origin !== applicationOrigin || !event.source || !message
+    if (!trustedAnalysisOrigins.has(event.origin) || !event.source || !message
         || message.protocol !== protocol || !/^[a-f0-9]{32}$/.test(message.nonce ?? '')) return;
     if (message.type === 'hello') {
       const knownWindow = (appWindow && topWindow(event.source) === appWindow)
         || event.source === window.opener;
       // A full website navigation loses WindowProxy references. The nonce is a
       // session capability already exchanged with this exact application origin.
-      if (!knownWindow && (!nonce || message.nonce !== nonce)) return;
+      if (!knownWindow && message.nonce !== rememberedNonce(event.origin)) return;
       appSource = event.source;
+      appSourceOrigin = event.origin;
       appWindow = topWindow(event.source);
       nonce = message.nonce;
-      try { window.sessionStorage.setItem(nonceKey, nonce); } catch (_) { /* Current-page pairing still works. */ }
-      appSource.postMessage({protocol, type: 'ack', nonce}, applicationOrigin);
-    } else if (message.type === 'navigate' && event.source === appSource && message.nonce === nonce) {
+      try { window.sessionStorage.setItem(`${protocol}:${appSourceOrigin}`, nonce); } catch (_) { /* Current-page pairing still works. */ }
+      appSource.postMessage({protocol, type: 'ack', nonce}, appSourceOrigin);
+    } else if (message.type === 'navigate' && event.origin === appSourceOrigin
+        && event.source === appSource && message.nonce === nonce) {
       const destination = websiteDestination(message.url);
       if (destination && destination.href !== window.location.href) window.location.assign(destination.href);
     }
@@ -122,7 +131,10 @@
     let blank = false;
     try { blank = target.location.href === 'about:blank'; } catch (_) { /* An existing cross-origin app. */ }
     if (blank || destination.search || destination.hash === '#wspradar-results-inspection') {
-      const launch = new URL(analysisOrigin);
+      // An explicit compatibility URL retains its deployment; canonical
+      // website launches select the primary configured application.
+      const launch = new URL(!local && productionAnalysisOrigins.has(destination.origin)
+        ? destination.origin : analysisOrigin);
       launch.search = destination.search;
       launch.hash = destination.hash;
       target.location.href = launch.href;
@@ -132,5 +144,9 @@
 
   // App-first visits have an opener; its controller answers ready with hello.
   // Website-first visits receive hello after opening the app. No polling is needed.
-  if (window.opener) window.opener.postMessage({protocol, type: 'ready'}, applicationOrigin);
+  if (window.opener) {
+    for (const origin of trustedAnalysisOrigins) {
+      window.opener.postMessage({protocol, type: 'ready'}, origin);
+    }
+  }
 })();

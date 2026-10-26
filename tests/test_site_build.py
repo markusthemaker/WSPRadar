@@ -94,7 +94,8 @@ class ProductNavigationContractTests(unittest.TestCase):
         catalog = build_site.product_navigation_catalog(brand)
         self.assertEqual([item["id"] for item in catalog["items"]],
                          ["overview", "demos", "analysis", "documentation", "community"])
-        self.assertEqual(catalog["origins"]["analysis"], build_site.APP_URL)
+        self.assertEqual(catalog["origins"]["analysis"], "https://markusthemaker-wspradar.hf.space/")
+        self.assertEqual(catalog["analysis_aliases"], [build_site.APP_URL, "https://markusthemaker-wspradar-test.hf.space/"])
         self.assertEqual(catalog["local"], {"website_port": 8787, "analysis_port": 8501})
         for mutation in ("path", "language", "duplicate"):
             invalid = deepcopy(brand)
@@ -106,6 +107,16 @@ class ProductNavigationContractTests(unittest.TestCase):
             else:
                 candidate["items"].append(deepcopy(candidate["items"][0]))
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                build_site.product_navigation_catalog(invalid)
+
+    def test_imported_analysis_aliases_reject_unsafe_or_duplicate_origins(self):
+        brand = json.loads((build_site.CONTENT / "brand.json").read_text(encoding="utf-8"))
+        for aliases in (None, ["http://localhost:8501/"], ["https://example.org/path/"],
+                        [brand["product_navigation"]["catalog"]["origins"]["analysis"]],
+                        ["https://example.org", "https://example.org/"]):
+            invalid = deepcopy(brand)
+            invalid["product_navigation"]["catalog"]["analysis_aliases"] = aliases
+            with self.subTest(aliases=aliases), self.assertRaises(ValueError):
                 build_site.product_navigation_catalog(invalid)
 
     def test_preview_override_only_changes_runtime_routing_configuration(self):
@@ -121,7 +132,7 @@ class ProductNavigationContractTests(unittest.TestCase):
             self.assertIsNotNone(script)
             configuration = json.loads(script[1])
             self.assertEqual(configuration["local_analysis_port"], 8521)
-            self.assertEqual(configuration["catalog"]["origins"]["analysis"], build_site.APP_URL)
+            self.assertEqual(configuration["catalog"]["origins"]["analysis"], builder.navigation["origins"]["analysis"])
             self.assertLess(page.index('/assets/product-navigation.js'), page.find('/assets/entry.js') if '/assets/entry.js' in page else len(page))
         with self.assertRaises(ValueError):
             build_site.SiteBuilder(local_analysis_port=70000)
@@ -918,7 +929,11 @@ class GeneratedBilingualInventoryTests(unittest.TestCase):
             for anchor in inventory.anchors:
                 attributes = anchor["attributes"]
                 destination = urlsplit(attributes.get("href", ""))
-                direct_analysis = destination.netloc == "wspradar.streamlit.app" and destination.path in {"", "/"}
+                analysis_hosts = {urlsplit(value).netloc for value in [
+                    self.builder.navigation["origins"]["analysis"],
+                    *self.builder.navigation.get("analysis_aliases", []),
+                ]}
+                direct_analysis = destination.netloc in analysis_hosts and destination.path in {"", "/"}
                 canonical_launch = (destination.netloc == "wspradar.org" and destination.path in {"", "/"}
                                     and (destination.query or destination.fragment == "wspradar-results-inspection"))
                 if direct_analysis or canonical_launch:
