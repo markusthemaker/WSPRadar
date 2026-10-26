@@ -10,6 +10,8 @@ body{background:#000b19}
 .site-header.landing-header{margin:0 0 30px}
 .landing-header .navigation{min-height:66px;padding:10px 0 10px var(--overview-inset);margin-bottom:0;gap:12px;flex-wrap:nowrap;border-bottom:1px solid var(--line);font-size:16px}
 .landing-header .navigation .nav-brand{display:inline-flex;gap:9px;color:var(--product-green);margin-right:0;flex:none;font:700 27px/1 Rajdhani,Arial,sans-serif;white-space:nowrap}
+.nav-brand .brand-prefix,.footer-wordmark .brand-prefix{color:#fff}
+.nav-brand .brand-radar,.footer-wordmark .brand-radar{color:var(--product-green)}
 .landing-header .navigation .nav-links{display:flex!important;align-items:center;justify-content:flex-start;gap:0;flex:none;white-space:nowrap}
 .landing-header .navigation .nav-links[hidden]{display:none!important}
 .landing-header .navigation .language-selector{margin-left:auto}
