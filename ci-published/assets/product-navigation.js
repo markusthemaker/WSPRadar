@@ -31,7 +31,7 @@
   window.WSPRadarNavigation = Object.freeze({analysisOrigin, analysisLaunchUrl});
   document.addEventListener('DOMContentLoaded', () => {
     // Set ordinary anchor destinations before interaction. The browser retains
-    // native same-tab navigation, modifier clicks, downloads and history.
+    // native anchor targets, modifier clicks, downloads and history.
     for (const anchor of document.querySelectorAll('a[href]')) {
       if (anchor.hasAttribute('download')) continue;
       const destination = analysisLaunchUrl(anchor.href);
