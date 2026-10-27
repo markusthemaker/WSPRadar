@@ -200,3 +200,8 @@
 .demos-landing .thumbnail.evidence-thumbnail {display:block;aspect-ratio:16/9;min-height:0;padding:0;border:1px solid #203c51;text-align:initial}
 .demos-landing .evidence-thumbnail a {display:block;line-height:0}
 .demos-landing .evidence-thumbnail img {display:block;width:100%;height:auto;max-width:none}
+
+@media screen and (max-width:600px) {
+  /* Include the phone action row in the thumbnail's normal-flow height. */
+  .demos-landing .thumbnail.evidence-thumbnail {aspect-ratio:auto;flex:none}
+}

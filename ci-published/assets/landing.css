@@ -28,7 +28,7 @@ body{background:#000b19}
 .landing-header .nav-links>a{position:relative;color:var(--product-link,#55c8ff);text-decoration:none;font-weight:500;padding:0 4px;border-radius:4px}
 .landing-header .nav-links>a:hover,.landing-header .nav-links>a[aria-current=page]{color:var(--product-link,#55c8ff);background:var(--product-control-active-bg,#0c3542)}
 .landing-header .nav-links>a[aria-current=page]{font-weight:700}
-.landing-header .nav-links>a:focus-visible{outline:2px solid var(--product-control-accent,#24d3f2);outline-offset:3px}
+.landing-header .nav-links>a:focus-visible{outline:2px solid var(--product-control-accent,#55c8ff);outline-offset:3px}
 .landing-header .nav-separator{color:var(--muted);margin:0 10px;flex:none;user-select:none}
 .landing-header .nav-separator:first-child{margin-left:2px}
 @media(max-width:1100px){.landing-header .nav-separator{margin-inline:clamp(0px,calc((100vw - 900px)/20),10px)}.landing-header .nav-separator:first-child{margin-left:2px}}

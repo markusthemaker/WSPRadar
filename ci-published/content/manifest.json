@@ -368,7 +368,7 @@
   "content_source_update_history": [],
   "demo_source_update": {
     "preserved_other_payload_files": 65,
-    "previous_bundle_manifest_sha256": "d6e9befac1597adf15fdb04ec614519c5c9b2c4fe86753560e416a48a1f1cd47",
+    "previous_bundle_manifest_sha256": "74400d9dfc004b09e867a1dce13f4668c3ab6dab1fa75ad26829a162bad2a009",
     "provenance_note": "Only maintained demo definitions and configuration files were synchronized. The top-level revision and all other payloads retain their base-bundle provenance. Source hashes identify exact canonical file bytes. This update does not publish the website.",
     "scope": [
       "configs/griffiths_squibb_fig3.config",
@@ -381,13 +381,13 @@
       "demos.json"
     ],
     "source_file_sha256": {
-      "config/demos/00a_griffiths_squibb_fig3.config": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
-      "config/demos/00b_griffiths_squibb_fig6.config": "39bac963af90e58c77b27538b46245a338d6a9c4fee3eebf1610c6ca091ccdd6",
-      "config/demos/00c_griffiths_squibb_performance.config": "53fc1169c0b18f93a35a02d226a2bcf1fb4df806ccbc9e6f993e71fabd02e13f",
-      "config/demos/01_vanhamel_rx_calibration.config": "90f729fe01b9a10a877457d06f10ff7485b5ee13226675610d1b9fd18b41dfe6",
-      "config/demos/02_vanhamel_rx_ab.config": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de",
-      "config/demos/03_zander_tx_buddy_experiment_a.config": "6d4b08e7b14504b1bca35fbd21ddd91c3e820dd0696a9948c3ac5de59ac4b14d",
-      "config/demos/05_milazzo_tx_buddy.config": "c805861718af291a63dbbbda5be9691471c3237148d181f5d46f4ba4117a9e2a"
+      "config/demos/00a_griffiths_squibb_fig3.config": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54",
+      "config/demos/00b_griffiths_squibb_fig6.config": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb",
+      "config/demos/00c_griffiths_squibb_performance.config": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8",
+      "config/demos/01_vanhamel_rx_calibration.config": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7",
+      "config/demos/02_vanhamel_rx_ab.config": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab",
+      "config/demos/03_zander_tx_buddy_experiment_a.config": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7",
+      "config/demos/05_milazzo_tx_buddy.config": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
     },
     "source_repository": "WSPRadarApp"
   },
@@ -841,6 +841,31 @@
         "config/demos/05_milazzo_tx_buddy.config": "c805861718af291a63dbbbda5be9691471c3237148d181f5d46f4ba4117a9e2a"
       },
       "source_repository": "WSPRadarApp"
+    },
+    {
+      "preserved_other_payload_files": 65,
+      "previous_bundle_manifest_sha256": "d6e9befac1597adf15fdb04ec614519c5c9b2c4fe86753560e416a48a1f1cd47",
+      "provenance_note": "Only maintained demo definitions and configuration files were synchronized. The top-level revision and all other payloads retain their base-bundle provenance. Source hashes identify exact canonical file bytes. This update does not publish the website.",
+      "scope": [
+        "configs/griffiths_squibb_fig3.config",
+        "configs/griffiths_squibb_fig6.config",
+        "configs/griffiths_squibb_rx_performance.config",
+        "configs/milazzo_tx_buddy.config",
+        "configs/vanhamel_rx_buddy.config",
+        "configs/vanhamel_rx_calibration.config",
+        "configs/zander_tx_buddy.config",
+        "demos.json"
+      ],
+      "source_file_sha256": {
+        "config/demos/00a_griffiths_squibb_fig3.config": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
+        "config/demos/00b_griffiths_squibb_fig6.config": "39bac963af90e58c77b27538b46245a338d6a9c4fee3eebf1610c6ca091ccdd6",
+        "config/demos/00c_griffiths_squibb_performance.config": "53fc1169c0b18f93a35a02d226a2bcf1fb4df806ccbc9e6f993e71fabd02e13f",
+        "config/demos/01_vanhamel_rx_calibration.config": "90f729fe01b9a10a877457d06f10ff7485b5ee13226675610d1b9fd18b41dfe6",
+        "config/demos/02_vanhamel_rx_ab.config": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de",
+        "config/demos/03_zander_tx_buddy_experiment_a.config": "6d4b08e7b14504b1bca35fbd21ddd91c3e820dd0696a9948c3ac5de59ac4b14d",
+        "config/demos/05_milazzo_tx_buddy.config": "c805861718af291a63dbbbda5be9691471c3237148d181f5d46f4ba4117a9e2a"
+      },
+      "source_repository": "WSPRadarApp"
     }
   ],
   "editorial_source_update": {
@@ -874,7 +899,7 @@
     },
     "assets/brand/product-tokens.css": {
       "bytes": 800,
-      "sha256": "33717bd6ca73ab935aec860e129706d999fc0308d5bfda582bf8d76430df0390"
+      "sha256": "1a6c10d30cef2383409360b2a7780054aa52602811768d84110b0897f3ecafed"
     },
     "assets/brand/radar-hero-desktop-1024.png": {
       "bytes": 506384,
@@ -1094,39 +1119,39 @@
     },
     "brand.json": {
       "bytes": 18600,
-      "sha256": "b6b0091d51767cc2025bfbf150be713a891f0fa91d343d65ac8bfe74ab7ed3fa"
+      "sha256": "d6bc5e83de07dc34b3ab07855642a7b3ecea9a908eba2d441968c3ed0c36a1c6"
     },
     "configs/griffiths_squibb_fig3.config": {
-      "bytes": 3973,
-      "sha256": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d"
+      "bytes": 3906,
+      "sha256": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54"
     },
     "configs/griffiths_squibb_fig6.config": {
-      "bytes": 6435,
-      "sha256": "39bac963af90e58c77b27538b46245a338d6a9c4fee3eebf1610c6ca091ccdd6"
+      "bytes": 6511,
+      "sha256": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb"
     },
     "configs/griffiths_squibb_rx_performance.config": {
-      "bytes": 3560,
-      "sha256": "53fc1169c0b18f93a35a02d226a2bcf1fb4df806ccbc9e6f993e71fabd02e13f"
+      "bytes": 3841,
+      "sha256": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8"
     },
     "configs/milazzo_tx_buddy.config": {
-      "bytes": 20296,
-      "sha256": "c805861718af291a63dbbbda5be9691471c3237148d181f5d46f4ba4117a9e2a"
+      "bytes": 12776,
+      "sha256": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
     },
     "configs/vanhamel_rx_buddy.config": {
-      "bytes": 8501,
-      "sha256": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de"
+      "bytes": 6278,
+      "sha256": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab"
     },
     "configs/vanhamel_rx_calibration.config": {
-      "bytes": 3641,
-      "sha256": "90f729fe01b9a10a877457d06f10ff7485b5ee13226675610d1b9fd18b41dfe6"
+      "bytes": 3591,
+      "sha256": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7"
     },
     "configs/zander_tx_buddy.config": {
-      "bytes": 9806,
-      "sha256": "6d4b08e7b14504b1bca35fbd21ddd91c3e820dd0696a9948c3ac5de59ac4b14d"
+      "bytes": 6968,
+      "sha256": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7"
     },
     "demos.json": {
-      "bytes": 85578,
-      "sha256": "62434172989069c0215b00f271d755c8e4ead2f796beb4f16481cc88122e83a4"
+      "bytes": 71726,
+      "sha256": "94ba5be4326807164c76a8cd10ca705634ca3275c564f46a1deeb57369795d8b"
     },
     "figures.json": {
       "bytes": 59334,
@@ -1884,7 +1909,7 @@
     "source_repository": "WSPRadarApp"
   },
   "product_design_source_update": {
-    "previous_bundle_manifest_sha256": "f75b557927c1fa90baa6bc5d0ecdd140824c75d6fe2cac0fd321be8f9b7ba812",
+    "previous_bundle_manifest_sha256": "b7f139137061a6750258a2b1e9daaa32180d0ac9cebfbefa4fabc91feccf9517",
     "provenance_note": "Only shared product-design metadata and generated CSS tokens were synchronized. All other brand fields, artwork, manuals, demos and scientific payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:product_design",
@@ -1893,7 +1918,7 @@
     "source_repository": "WSPRadarApp",
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
-      "config/product_design.json": "a8ddeb97eeff68d73cf8d3013bb2aed53a7de437dd879102cd57d03abe226d6c"
+      "config/product_design.json": "f2617c34df35d9060dc4867517341658d0a9206b2912ad500829393e207c99e8"
     }
   },
   "product_design_source_update_history": [
@@ -1934,6 +1959,19 @@
       "source_text_encoding": "UTF-8 with LF line endings",
       "source_text_sha256": {
         "config/product_design.json": "7215971eaaf46bf5e067e50c9875037f42b126aaf61c9bed6482d8a93043b4c9"
+      }
+    },
+    {
+      "previous_bundle_manifest_sha256": "f75b557927c1fa90baa6bc5d0ecdd140824c75d6fe2cac0fd321be8f9b7ba812",
+      "provenance_note": "Only shared product-design metadata and generated CSS tokens were synchronized. All other brand fields, artwork, manuals, demos and scientific payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:product_design",
+        "assets/brand/product-tokens.css"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/product_design.json": "a8ddeb97eeff68d73cf8d3013bb2aed53a7de437dd879102cd57d03abe226d6c"
       }
     }
   ],

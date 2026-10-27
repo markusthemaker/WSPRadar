@@ -2,12 +2,12 @@
 :root {
   --product-body:'Source Sans 3',Arial,sans-serif;
   --product-heading:Rajdhani,Arial,sans-serif;
-  --product-control-accent:#24d3f2;
+  --product-control-accent:#55c8ff;
   --product-control-border:#214b60;
   --product-control-active-bg:#0c3542;
   --product-link:#55c8ff;
   --product-green:#2cfa77;
-  --product-number-color:#36d9ff;
+  --product-number-color:#55c8ff;
   --product-number-bg:#041a29;
   --product-number-border:#2d718b;
   --product-number-size:52px;
@@ -17,7 +17,7 @@
   --product-section-title-size:32px;
   --product-compact-number-size:44px;
   --product-compact-number-font-size:29px;
-  --product-cyan:#36d9ff;
+  --product-cyan:#55c8ff;
   --product-section-title-size-mobile:30px;
   --product-compact-number-height:46px;
 }

@@ -1,5 +1,5 @@
 /* Shared illustrated walkthrough. Imported scientific assets remain unchanged. */
-.demo-case-page{--case-line:#21475b;--case-cyan:var(--product-cyan,#36d9ff);--case-green:var(--product-green);background:#000b19}
+.demo-case-page{--case-line:#21475b;--case-cyan:var(--product-cyan,#55c8ff);--case-green:var(--product-green);background:#000b19}
 .demo-case-page .site-header.landing-header{margin-bottom:0}
 .demo-case-page .radar-visual::after{content:"";position:absolute;inset:70% 0 0;background:linear-gradient(transparent,#000b19);pointer-events:none}
 .case-study{position:relative;margin-top:-78px;isolation:isolate;padding:0}

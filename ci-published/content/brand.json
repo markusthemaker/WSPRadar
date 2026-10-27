@@ -360,7 +360,7 @@
   "product_design": {
     "schema_version": 1,
     "source_text_sha256": {
-      "config/product_design.json": "a8ddeb97eeff68d73cf8d3013bb2aed53a7de437dd879102cd57d03abe226d6c"
+      "config/product_design.json": "f2617c34df35d9060dc4867517341658d0a9206b2912ad500829393e207c99e8"
     },
     "stylesheet": "assets/brand/product-tokens.css"
   },
