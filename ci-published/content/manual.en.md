@@ -1969,7 +1969,7 @@ A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-
 
 **Operating confirmation:** for your own Benchmark, confirm common operation as described in [Section 1.2](#sec-2-2). Changing identities, direction, band or period clears the confirmation. Loading a personal configuration or ordinary analysis link requires fresh acknowledgement; saved declarations do not verify operation.
 
-**Historical replay** uses a separate acknowledgement of uncertain historical operation, not a controlled-operation declaration. Ordinary replay loads require fresh acknowledgement. A historical-replay link with `run=1` preselects it and starts the analysis automatically. Built-in demos preselect the declaration appropriate to their documented mode; the Milazzo demo uses the historical-limits acknowledgement. Loading a demo alone still does not run it.
+**Historical replay** uses a separate acknowledgement of uncertain historical operation, not a controlled-operation declaration. Ordinary replay loads require fresh acknowledgement, including legacy analysis links with `run=1`. Opening a link never starts an analysis. Built-in demos preselect the declaration appropriate to their documented mode; the Milazzo demo uses the historical-limits acknowledgement. A demo link opens **00 Guided demo** with that demo selected and the **Walk me through the setup** and **Skip to review and run** actions. Loading a demo alone still does not run it.
 
 ##### Reference-side SNR correction sign
 

@@ -6,7 +6,7 @@
       "en": "**RX Benchmark compares two receiving stations:** which hears shared signals more clearly, and which decodes signals the other misses?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/griffiths_squibb_fig3/)\n\nCompare **G3ZIL’s low horizontal dipole** with **G4HZX’s radial-free vertical** on **40 m throughout April 2017**. Explore how their relative reception changes with direction, distance, and time. This demo compares complete receiving stations, including location, equipment, and local noise. [Original paper (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)"
     },
     "id": "griffiths_squibb_fig3",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_segment_stations=5&segment_bin=24h&station_bin=12h&selected_station=DJ0ABR%40JN68NT#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=griffiths_squibb_fig3#wspradar-parameter-settings",
     "order": 1,
     "settings": {
       "advanced_parameters": {
@@ -223,7 +223,7 @@
       "en": "[Publication: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nThis demo extends the first Griffiths and Squibb demo, moving from the month-long comparison in Figure 3 to the daily pattern in **Figure 6**. It focuses on **5–7 April 2017**, comparing the same two receiving stations on 40 m: **G3ZIL, using a low horizontal dipole**, and **G4HZX, using a vertical antenna without radials**.\n\n[**Figure 6 comparison (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Compare the original published figure with a reconstruction and the WSPRadar chart.\n\nWSPRadar matches reports of the same transmitting station from the same two-minute WSPR cycle. Their signal-to-noise ratio difference is **ΔSNR = G3ZIL − G4HZX**: positive values favour G3ZIL, negative values favour G4HZX, and 0 dB means equal reported SNR.\n\nGo to **Segment Inspector → Temporal Evidence**, and explore **Δ SNR by UTC Hour (1 h bins)**. This chart combines observations from the same hour on all three dates — for example, reports between 07:00 and 08:00 UTC appear together, regardless of their date. This is called *UTC-hour folding* and helps reveal a daily pattern.\n\nLook for G4HZX’s advantage in the early hours: the hourly medians are about **−1 to −3 dB at 01–04 UTC**. They become positive from **05 UTC**, reaching **+5 to +8 dB at 07–20 UTC**. The markers show hourly medians, the shaded band shows the middle 50% of observations, and the colours show where observations are concentrated.\n\nCompare this with **Δ SNR over Time** to see how the pattern differs between the individual dates. Use the map and **Segment Inspector** to explore different directions and distances, or select a transmitting station in **Station Insights** to examine one radio path.\n\nThese are patterns in the combined observations, not a result shared by every transmission. As in the first demo, the comparison includes antenna, location, equipment and local-noise effects; it does not isolate their causes."
     },
     "id": "griffiths_squibb_fig6",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-05T00%3A00Z&to=2017-04-07T23%3A45Z&mode=benchmark&benchmark_design=reference_station&reference=G4HZX&reference_qth=IO91&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&station_bin=6h#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=griffiths_squibb_fig6#wspradar-parameter-settings",
     "order": 2,
     "settings": {
       "advanced_parameters": {
@@ -435,7 +435,7 @@
       "en": "**RX Performance examines one receiving station:** what does it hear, how consistently does it decode confirmed opportunities, and how does reception change over time?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/griffiths_squibb_rx_performance/)\n\nExplore **G3ZIL’s low dipole on 40 m throughout April 2017**, using a worldwide view of transmitting stations. Read **reach, Decode Rate, and successful SNR** together, then follow an individual path through the month. This WSPRadar analysis describes a single receiving station; the original paper provides its station context only. For a reproduction of the paper’s receiving-station comparison, see [**RX Benchmark: Low Dipole vs Radial-Free Vertical ↗**](https://www.wspradar.org/en/demos/griffiths_squibb_fig3/). [Original paper (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)"
     },
     "id": "griffiths_squibb_rx_performance",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=rx&callsign=G3ZIL&qth=IO90HW&band=40m&from=2017-04-01T00%3A00Z&to=2017-05-01T00%3A00Z&mode=performance&min_opportunities=3&segment_bin=12h&station_bin=12h&selected_station=HB0QRP%40JN47#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=griffiths_squibb_rx_performance#wspradar-parameter-settings",
     "order": 3,
     "settings": {
       "advanced_parameters": {
@@ -621,7 +621,7 @@
       "en": "**RX Benchmark Calibration checks the receiving chains before comparing antennas:** do they report the same SNR when fed by the same antenna?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/vanhamel_rx_calibration/)\n\nCompare **ON4AWM0 and ON4AWM1**, connected to the **same long-wire antenna through a splitter** **during February 2021**. Reconstruct the **1.2 dB mean SNR offset** and see why calibration matters before attributing a difference to antennas. The measured offset belongs to the receiving chains as a whole. [Original paper ↗](https://doi.org/10.1155/2022/4809313)"
     },
     "id": "vanhamel_rx_calibration",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=rx&callsign=ON4AWM0&qth=JO20OT&band=160m&from=2021-02-06T06%3A00Z&to=2021-02-13T06%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=ON4AWM1&reference_qth=JO20&snr_correction_mode=establish_offset&snr_correction_db=0&max_distance_km=2500&min_spot_pairs=50&station_bin=6h#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=vanhamel_rx_calibration#wspradar-parameter-settings",
     "order": 4,
     "settings": {
       "advanced_parameters": {
@@ -833,7 +833,7 @@
       "en": "**RX Benchmark follows changes in relative reception:** what happens when one antenna turns 90° while the other remains fixed?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/vanhamel_rx_buddy/)\n\nCompare **ON4AWM0’s fixed long wire** with **ON4AWM1’s adapted shorted dipole** on **160 m during May 2021**. Follow the dipole’s **90° rotation** and examine the approximately **3 dB step in paired SNR difference on the M7AEO path**. This change concerns that reception path; it is not a uniform improvement in every direction. [Original paper ↗](https://doi.org/10.1155/2022/4809313)"
     },
     "id": "vanhamel_rx_buddy",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=rx&callsign=ON4AWM0&qth=JO20OT&band=160m&from=2021-05-01T17%3A15Z&to=2021-05-15T07%3A00Z&mode=benchmark&benchmark_design=reference_station&reference=ON4AWM1&reference_qth=JO20&snr_correction_mode=established_offset&snr_correction_db=1.6&max_distance_km=5000&min_spot_pairs=3&min_segment_stations=3&segment_bin=12h&station_bin=12h&selected_station=M7AEO%40IO82#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=vanhamel_rx_buddy#wspradar-parameter-settings",
     "order": 5,
     "settings": {
       "advanced_parameters": {
@@ -1050,7 +1050,7 @@
       "en": "**TX Benchmark compares two transmitting setups:** which produces clearer signals at shared receivers, and where does the difference change?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/zander_tx_buddy/)\n\nCompare **SK0WE/P’s short Difona HF-P1 portable vertical** with **SK0WE/1’s larger Hy-Gain AV-620 vertical** on **20 m from Gotland, Sweden**. Follow reports from Europe to North America, comparing SNR where the same receiver decoded both transmissions in the same WSPR cycle. [Original paper (PDF) ↗](https://arxiv.org/pdf/2209.08989)"
     },
     "id": "zander_tx_buddy",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=tx&callsign=SK0WE%2FP&qth=JO97&band=20m&from=2022-05-21T09%3A45Z&to=2022-05-21T10%3A30Z&mode=benchmark&benchmark_design=reference_station&reference=SK0WE%2F1&reference_qth=JO97&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=10000&min_segment_stations=2&segment_bin=10m&station_bin=1h#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=zander_tx_buddy#wspradar-parameter-settings",
     "order": 6,
     "settings": {
       "advanced_parameters": {
@@ -1262,9 +1262,9 @@
       "en": "**RX/TX Benchmark makes historical comparisons traceable:** which reports form valid spot pairs, and what can those pairs tell us about relative reception?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/milazzo_tx_buddy/)\n\nRevisit **KP4MD’s horizontal full-wave loop** and **WB6RQN’s GAP Titan DX vertical** on **40 m during December 2010**. Start with the receiving comparison, then explore the transmitting follow-up. Trace published observations into **same-cycle spot pairs**, checking station identities and reported transmit powers. Unequal operating schedules limit what differences in one-sided report counts can establish. [Original study ↗](https://www.qsl.net/kp4md/wspr.htm)"
     },
     "id": "milazzo_tx_buddy",
-    "launch_url": "https://app.wspradar.org/?v=1&run=1&direction=rx&callsign=KP4MD&qth=CM98&band=40m&from=2010-12-19T12%3A00Z&to=2010-12-20T20%3A00Z&mode=benchmark&benchmark_design=reference_station&evidence_mode=historical_replay&reference=WB6RQN&reference_qth=CM98&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=5000&segment_bin=12h&selected_station=VE6PDQ%40DO34IR&filter_station_callsigns=VE6PDQ#wspradar-results-inspection",
+    "launch_url": "https://app.wspradar.org/?v=1&demo=milazzo_tx_buddy#wspradar-parameter-settings",
     "launch_variants": {
-      "tx": "https://app.wspradar.org/?v=1&run=1&direction=tx&callsign=KP4MD&qth=CM98&band=40m&from=2010-12-19T12%3A00Z&to=2010-12-20T20%3A00Z&mode=benchmark&benchmark_design=reference_station&evidence_mode=historical_replay&reference=WB6RQN&reference_qth=CM98&snr_correction_mode=no_offset&snr_correction_db=0&max_distance_km=5000&segment_bin=12h&selected_station=VE6PDQ%40DO34IR&filter_station_callsigns=VE6PDQ#wspradar-results-inspection"
+      "tx": "https://app.wspradar.org/?v=1&demo=milazzo_tx_buddy&variant=tx#wspradar-parameter-settings"
     },
     "order": 7,
     "settings": {
