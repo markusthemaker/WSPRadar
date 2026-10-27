@@ -82,6 +82,11 @@
     landing.dataset.demosInitialized = 'true';
     readURL();
     landing.querySelectorAll('[data-demo-controls]').forEach(control => { control.hidden = false; });
+    // The chooser is hidden until enhancement, so native fragment positioning
+    // may run before its heading has a layout box. Correct only this first visit.
+    if (new URL(window.location.href).hash === '#choose-title') {
+      landing.querySelector('#choose-title')?.scrollIntoView({block: 'start'});
+    }
   }
 
   if (document.readyState === 'loading') {

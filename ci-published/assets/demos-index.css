@@ -203,5 +203,7 @@
 
 @media screen and (max-width:600px) {
   /* Include the phone action row in the thumbnail's normal-flow height. */
-  .demos-landing .thumbnail.evidence-thumbnail {aspect-ratio:auto;flex:none}
+  .demos-landing .thumbnail.evidence-thumbnail {aspect-ratio:auto;flex:none;border:0;background:transparent}
+  /* Frame only the image, leaving the shared phone actions below it. */
+  .demos-landing .thumbnail.evidence-thumbnail > a {border:1px solid #203c51;background:var(--panel-deep)}
 }
