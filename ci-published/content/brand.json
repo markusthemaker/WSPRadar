@@ -7,7 +7,7 @@
     "text": "#e0e0e0"
   },
   "credit_html": {
-    "de": "Release v1.0 RC3 | Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex ",
+    "de": "Release v1.0 RC3 | Konzipiert von Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), programmiert mit OpenAI Codex. ",
     "en": "Release v1.0 RC3 | Designed by Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS on QRZ.com (opens in a new tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), coded with OpenAI Codex. "
   },
   "fonts": [
@@ -386,7 +386,7 @@
           "destination": "website",
           "id": "demos",
           "label": {
-            "de": "Geführte Demo",
+            "de": "Demos mit Anleitung",
             "en": "Guided Demos"
           },
           "new_tab": false,
@@ -435,7 +435,7 @@
     },
     "schema_version": 1,
     "source_text_sha256": {
-      "config/product_navigation.json": "1b6882606b9b77d8ced7da6f2a9f7f314081e8d95f7746d692e00509e94b69cd"
+      "config/product_navigation.json": "e49a78f91ddb23142f8c2aaf16d184f33a7dbbb87e73cc7730432bf7d84a0457"
     }
   },
   "schema_version": 1,

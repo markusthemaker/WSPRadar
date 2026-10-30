@@ -2,7 +2,7 @@
   "app_version": "v1.0 RC3",
   "brand_credits_source_update": {
     "app_version": "v1.0 RC3",
-    "previous_bundle_manifest_sha256": "bf2551c08ea0f6ebd5e5011e166e010d495d09eea6e54ce384bc1e0518e4684b",
+    "previous_bundle_manifest_sha256": "679ce1291815a734d194f19c1495e05594d97e57e9d2b34886688f7920aa5778",
     "provenance_note": "Only localized developer credits were synchronized. The release, base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:credit_html"
@@ -14,22 +14,22 @@
       "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
       "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
       "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
-      "localization/common_de.py": "31e85def1e7344c5279dda4280c29245ebbaae0402e1187e63f03a1b095ba1f4",
+      "localization/common_de.py": "44d689e80879155a2a07f3626c9ad656dc56096534aae176a82af73d67a8d3ff",
       "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
-      "localization/exports_de.py": "9f11a2b46784e8c6bc547f1388b16c924652bed7fe5e4e11ea384f69b77141f2",
+      "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
       "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
-      "localization/figures_de.py": "56b81bb35a0ce46f364b5cb632e6c9f65b36bb387ce3c6b5d52c6b8e6521b63f",
+      "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
       "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
-      "localization/guided_inputs_de.py": "2e06afa2a41b40d573f681e9f44dae58a4cb1734ba1f3dfe1e76aac7a40c67ec",
+      "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
       "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
-      "localization/inputs_de.py": "48e02e3f390d7ad469e1e57f005ce1d9c480d2014fecff303a3e71b32b8208a6",
+      "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
       "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
-      "localization/inspector_de.py": "b91b5ccbfc136879f2e284149102ef6803a05cc1ac60f668f84bd68e8f678ef7",
+      "localization/inspector_de.py": "f2624e1ed64415088cce91d8b61d7a7169bba9b1e0af333dff3a4f7c22663c90",
       "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
       "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
-      "localization/result_guidance_de.py": "5bb5587f2960b00610f06a3affd89671131aa4d9c14e46d0d0be7fbca62e83ba",
+      "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
       "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
-      "localization/results_de.py": "45ca9ab12d17280194eda7e655c80e7c4c5de8e9c1c34799ee12bc541aec68ba",
+      "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
       "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
       "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
     }
@@ -252,11 +252,181 @@
         "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
         "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
       }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "bf2551c08ea0f6ebd5e5011e166e010d495d09eea6e54ce384bc1e0518e4684b",
+      "provenance_note": "Only localized developer credits were synchronized. The release, base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:credit_html"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "31e85def1e7344c5279dda4280c29245ebbaae0402e1187e63f03a1b095ba1f4",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "9f11a2b46784e8c6bc547f1388b16c924652bed7fe5e4e11ea384f69b77141f2",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "56b81bb35a0ce46f364b5cb632e6c9f65b36bb387ce3c6b5d52c6b8e6521b63f",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "2e06afa2a41b40d573f681e9f44dae58a4cb1734ba1f3dfe1e76aac7a40c67ec",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "48e02e3f390d7ad469e1e57f005ce1d9c480d2014fecff303a3e71b32b8208a6",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "b91b5ccbfc136879f2e284149102ef6803a05cc1ac60f668f84bd68e8f678ef7",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "5bb5587f2960b00610f06a3affd89671131aa4d9c14e46d0d0be7fbca62e83ba",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "45ca9ab12d17280194eda7e655c80e7c4c5de8e9c1c34799ee12bc541aec68ba",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "6c5d2a14c456aa664e9def9553e7f7d5e9b5e17a131a1a66f7c7ccb589f46fb4",
+      "provenance_note": "Only localized developer credits were synchronized. The release, base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:credit_html"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "230103d7e64fe7242d24f902270ead9efc2fd57414fe7949dd811e35e5abd441",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "18d6d67022fa7b3c44a2779e73704fa192eb0d8186165d4a6f87ee914c3910f2",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "938e5e9a1f8156e7371b45687829b8cac9b797830f93e636ee409f4c8a22a411",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "908dfdfb651963756fa0cf6eb134639335acedc4ba1f18c410105d5a4103bcac",
+      "provenance_note": "Only localized developer credits were synchronized. The release, base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:credit_html"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "230103d7e64fe7242d24f902270ead9efc2fd57414fe7949dd811e35e5abd441",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "938e5e9a1f8156e7371b45687829b8cac9b797830f93e636ee409f4c8a22a411",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "f4e41acbaa5908832430be5b44eb22addb37e785c90ade9c13dbf477fbc05fb8",
+      "provenance_note": "Only localized developer credits were synchronized. The release, base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:credit_html"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "230103d7e64fe7242d24f902270ead9efc2fd57414fe7949dd811e35e5abd441",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "f2624e1ed64415088cce91d8b61d7a7169bba9b1e0af333dff3a4f7c22663c90",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "39aebcf51aa0e307cac87fab0b1f6eddcab590a9451dc19617653af18acc51c2",
+      "provenance_note": "Only localized developer credits were synchronized. The release, base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:credit_html"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "b155c653816ce02f513dfce164deaa82014aefc6ac739c7a9d0335061a5e7611",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "f2624e1ed64415088cce91d8b61d7a7169bba9b1e0af333dff3a4f7c22663c90",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
     }
   ],
   "brand_version_source_update": {
     "app_version": "v1.0 RC3",
-    "previous_bundle_manifest_sha256": "4cad33214e9cfad6fe378b154bfecb464e0faee4f11adc0a96431178a40f737d",
+    "previous_bundle_manifest_sha256": "23ddec7410db4f66a64e3258b7a2d70d9da625a95b5699599e1854a315ac675a",
     "provenance_note": "Only the central release token and its localized credits were synchronized. The base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:app_version",
@@ -270,22 +440,22 @@
       "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
       "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
       "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
-      "localization/common_de.py": "31e85def1e7344c5279dda4280c29245ebbaae0402e1187e63f03a1b095ba1f4",
+      "localization/common_de.py": "44d689e80879155a2a07f3626c9ad656dc56096534aae176a82af73d67a8d3ff",
       "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
-      "localization/exports_de.py": "9f11a2b46784e8c6bc547f1388b16c924652bed7fe5e4e11ea384f69b77141f2",
+      "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
       "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
-      "localization/figures_de.py": "56b81bb35a0ce46f364b5cb632e6c9f65b36bb387ce3c6b5d52c6b8e6521b63f",
+      "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
       "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
-      "localization/guided_inputs_de.py": "2e06afa2a41b40d573f681e9f44dae58a4cb1734ba1f3dfe1e76aac7a40c67ec",
+      "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
       "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
-      "localization/inputs_de.py": "48e02e3f390d7ad469e1e57f005ce1d9c480d2014fecff303a3e71b32b8208a6",
+      "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
       "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
-      "localization/inspector_de.py": "b91b5ccbfc136879f2e284149102ef6803a05cc1ac60f668f84bd68e8f678ef7",
+      "localization/inspector_de.py": "f2624e1ed64415088cce91d8b61d7a7169bba9b1e0af333dff3a4f7c22663c90",
       "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
       "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
-      "localization/result_guidance_de.py": "5bb5587f2960b00610f06a3affd89671131aa4d9c14e46d0d0be7fbca62e83ba",
+      "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
       "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
-      "localization/results_de.py": "45ca9ab12d17280194eda7e655c80e7c4c5de8e9c1c34799ee12bc541aec68ba",
+      "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
       "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
       "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
     }
@@ -486,11 +656,191 @@
         "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
         "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
       }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "4cad33214e9cfad6fe378b154bfecb464e0faee4f11adc0a96431178a40f737d",
+      "provenance_note": "Only the central release token and its localized credits were synchronized. The base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:app_version",
+        "brand.json:credit_html",
+        "manifest.json:app_version"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "31e85def1e7344c5279dda4280c29245ebbaae0402e1187e63f03a1b095ba1f4",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "9f11a2b46784e8c6bc547f1388b16c924652bed7fe5e4e11ea384f69b77141f2",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "56b81bb35a0ce46f364b5cb632e6c9f65b36bb387ce3c6b5d52c6b8e6521b63f",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "2e06afa2a41b40d573f681e9f44dae58a4cb1734ba1f3dfe1e76aac7a40c67ec",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "48e02e3f390d7ad469e1e57f005ce1d9c480d2014fecff303a3e71b32b8208a6",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "b91b5ccbfc136879f2e284149102ef6803a05cc1ac60f668f84bd68e8f678ef7",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "5bb5587f2960b00610f06a3affd89671131aa4d9c14e46d0d0be7fbca62e83ba",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "45ca9ab12d17280194eda7e655c80e7c4c5de8e9c1c34799ee12bc541aec68ba",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "b38223e44e05283548140c746ecc9b0829affc070bf0b60222222ec11b349505",
+      "provenance_note": "Only the central release token and its localized credits were synchronized. The base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:app_version",
+        "brand.json:credit_html",
+        "manifest.json:app_version"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "230103d7e64fe7242d24f902270ead9efc2fd57414fe7949dd811e35e5abd441",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "18d6d67022fa7b3c44a2779e73704fa192eb0d8186165d4a6f87ee914c3910f2",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "938e5e9a1f8156e7371b45687829b8cac9b797830f93e636ee409f4c8a22a411",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "a03542f9305f5a71da52cf6199e9e31af5abda029649c3cd5f7d74b0505dd268",
+      "provenance_note": "Only the central release token and its localized credits were synchronized. The base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:app_version",
+        "brand.json:credit_html",
+        "manifest.json:app_version"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "230103d7e64fe7242d24f902270ead9efc2fd57414fe7949dd811e35e5abd441",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "938e5e9a1f8156e7371b45687829b8cac9b797830f93e636ee409f4c8a22a411",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "029744758052c975c6e0907697a940e1cd1e010cc05e66541eaa15c2409be02f",
+      "provenance_note": "Only the central release token and its localized credits were synchronized. The base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:app_version",
+        "brand.json:credit_html",
+        "manifest.json:app_version"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "230103d7e64fe7242d24f902270ead9efc2fd57414fe7949dd811e35e5abd441",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "f2624e1ed64415088cce91d8b61d7a7169bba9b1e0af333dff3a4f7c22663c90",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
+    },
+    {
+      "app_version": "v1.0 RC3",
+      "previous_bundle_manifest_sha256": "2a7daa3803f9a34d18e65b9f227081ab1db32d276e6b0814dd3466147585f7f7",
+      "provenance_note": "Only the central release token and its localized credits were synchronized. The base source revision, other brand fields, artwork, manuals, demos and all other payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:app_version",
+        "brand.json:credit_html",
+        "manifest.json:app_version"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/app_config.py": "98a594564b31ccc3239e7cb57b4b5c2f154567066725467ffeeee85bbe71ae92",
+        "i18n.py": "67353a22b78f0943c6a04c3bf7a1e0b6bb4ad92780f2692a6918953b61fab70f",
+        "localization/__init__.py": "44a0c38a82103430ed05b9f775feac2887d0430ec3f4c334b8025b36692c3e2c",
+        "localization/catalogs.py": "ba76c987b874e1ad9b7c276561f36451b6daa0dd820113537c20fd24932256de",
+        "localization/common_de.py": "b155c653816ce02f513dfce164deaa82014aefc6ac739c7a9d0335061a5e7611",
+        "localization/common_en.py": "ccf5c04809ab2fae93d69d9e03a5111030d4f72cff3550d25dedd638f9c619b7",
+        "localization/exports_de.py": "51fcc56f205deae0e8e76879069be751642d8d82100babadc68a86f9b41b18ab",
+        "localization/exports_en.py": "40af6bb02a119e0e7a61e922c7d1fd7927271eee0b67a2be2566a045ca52cd76",
+        "localization/figures_de.py": "fb80e115c268cd878215f9e9b2b36c44595af67028515acf83e02108d0893a0d",
+        "localization/figures_en.py": "43b8d90ec24aeb3786ffeee80adec354dec3f4c2385b17484727e139b64d7966",
+        "localization/guided_inputs_de.py": "662e2f59f4c1d7786aa2c974260d9126561c47176a8e6ae095f2b9ae763e78fc",
+        "localization/guided_inputs_en.py": "73fce79994ca81599f9d9306a1407692064eefd1c706a1400ba627bf336bf304",
+        "localization/inputs_de.py": "507e7a81a4d6d0ba74cafdc7546ef57facae439119c5c214e531ccebb8532fd3",
+        "localization/inputs_en.py": "55d747a0fa6b0f7501c13912b87d80d84eaa4c0b0e5f334d28b9758926bd1021",
+        "localization/inspector_de.py": "f2624e1ed64415088cce91d8b61d7a7169bba9b1e0af333dff3a4f7c22663c90",
+        "localization/inspector_en.py": "6bdafe37366922c0d4170108183bfd6001809751504131135d2361582b7fd8af",
+        "localization/key_order.py": "eeb3d7debd7766ad9844c9edc68cc588e27fd839c03d4d97ceb0e2a697713607",
+        "localization/result_guidance_de.py": "83f739bf31ff9bb070dbdd8b5f8958d97f21ef6d494f2fcf5e0c1879f73c2f9d",
+        "localization/result_guidance_en.py": "c2ebb1463a01041860807953298493e12f850c20986e5695bfc699096fa2fa80",
+        "localization/results_de.py": "b9c83479860f5df3b5a84e70e7a95e27515a287ec8f0883b7b3a374be639380e",
+        "localization/results_en.py": "caaabc0477854155ee0b0f05dbdc2077b087e16c7cd8bfa457a308749f4db5d5",
+        "localization/sources.py": "0bafb7140fa2d2d35192b8584e3b028664f6f4ffe656dd0741fb8047bcaa7132"
+      }
     }
   ],
   "content_source_update": {
     "preserved_other_payload_files": 37,
-    "previous_bundle_manifest_sha256": "ddbae7a4796f5922fd8d31634d9847135b0813014c7ae352d494cd0809ead088",
+    "previous_bundle_manifest_sha256": "53a3456cb14d6ee4616cd565781554061b35a62be8e33c74da76fc10d10082d5",
     "provenance_note": "Manuals, website content, demos/configurations and reviewed figures/screenshots were synchronized. Brand metadata, artwork, fonts and all other payloads retain their exact base-bundle bytes and provenance. The top-level revision identifies the base bundle; this record identifies the content update. This update does not publish the website.",
     "removed": [],
     "scope": [
@@ -533,52 +883,140 @@
     ],
     "source_dirty": true,
     "source_file_sha256": {
-      "config/demos/00a_griffiths_squibb_fig3.config": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
-      "config/demos/00b_griffiths_squibb_fig6.config": "39bac963af90e58c77b27538b46245a338d6a9c4fee3eebf1610c6ca091ccdd6",
-      "config/demos/00c_griffiths_squibb_performance.config": "9be7e80223144d26d6a027b02f46360396043313d0df2d3584755c2d61777c15",
-      "config/demos/01_vanhamel_rx_calibration.config": "90f729fe01b9a10a877457d06f10ff7485b5ee13226675610d1b9fd18b41dfe6",
-      "config/demos/02_vanhamel_rx_ab.config": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de",
-      "config/demos/03_zander_tx_buddy_experiment_a.config": "6d4b08e7b14504b1bca35fbd21ddd91c3e820dd0696a9948c3ac5de59ac4b14d",
-      "config/demos/05_milazzo_tx_buddy.config": "c805861718af291a63dbbbda5be9691471c3237148d181f5d46f4ba4117a9e2a",
-      "config/public_demo_metadata.json": "6742a406fd119aa8197b516d09bed432eaf08e3dd9e7cd5b0b2bb4ec0bbc4114",
-      "docs/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
-      "docs/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
-      "docs/doc_de.py": "3a70eea55b0ecfc4ea9788934709525335dbb688829dbb7c970216c74e14c6d5",
-      "docs/doc_en.py": "a2eafd8f2be5b16c40acca3e076e0f9df03ae3902c459d1fa99293d54ac9270f",
-      "docs/website/assets/figures/griffiths-figure3-comparison.png": "773a15b512ac250332482d1bc8118c424c9ade2feaa7ffcd76060e99e1157f5d",
-      "docs/website/assets/figures/griffiths-figure3-pairing-diagnostic.png": "a7005277005aa7ad77e3d690dc82d0f8e7905f2545debcaa53fd21f907d03261",
-      "docs/website/assets/figures/griffiths-figure6-comparison.png": "6023fed66830a631892f430779579691419c3647c229ea8092ac0173b1a1e515",
-      "docs/website/assets/figures/landing-demo1-coverage.webp": "83f2ba8d1c03628b814f629d4b8929aecea4e8f1c7ede677d057b9df5b7cbc87",
-      "docs/website/assets/figures/landing-demo1-map.webp": "178b292a8ad5bf942b389f41eb70063f2b10cbc9f39631dfe19152dbeddca83d",
-      "docs/website/assets/figures/landing-demo1-snr.webp": "b0e2bee1202e2b8e08a31343fae5a19ad31a4ef757293e856cde15d67d162c11",
-      "docs/website/assets/figures/landing-demo1-temporal.webp": "296867972885f3b89ced03bf2d2881f693ba690214cfa506019b6892aad30e9f",
-      "docs/website/assets/figures/milazzo-figure6-rx-comparison.png": "335b3c7233949d5b582dd2379a34139bfc5a21c8762bd0fe60e59e1f9d5004c6",
-      "docs/website/assets/figures/milazzo-figure7-tx-comparison.png": "fddf95a9decdddfd5de6023bfac24d1bd8c90f1591f909b4794217bef33c8c65",
-      "docs/website/assets/figures/vanhamel-figure6-comparison.png": "0bd77051a8aa02585e20365a1835f662bdfc39408c2e8e433cb9b6492f9a47cf",
-      "docs/website/assets/figures/zander-figure4-comparison.png": "f529ea9582840fad5647ffc0845df62ce0302baee54ae887181fd169837eb52e",
-      "docs/website/assets/screenshots/demo-1-drilldown.jpg": "ef6551069df74ad497a63267b68f8d9986ad089a32ede7b8017b882849e3040e",
-      "docs/website/assets/screenshots/demo-1-map.jpg": "220a84bd981331e564d6bd29c5f58b8feb49af92609470740c48eacfe14dc604",
-      "docs/website/assets/screenshots/demo-1-segment.jpg": "1558b9feb515ff5c7854b126ce9ad55b7c7052e0c833916cb443f3fb72f501ec",
-      "docs/website/assets/screenshots/demo-1-stations.jpg": "ffbf3bd3d9453bc27667516e61f0d42afc406c076e0a44f30e563c3344779058",
-      "docs/website/assets/screenshots/demo-1-temporal.jpg": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00",
-      "docs/website/assets/screenshots/demo-2-map.jpg": "c7eb290fbb289f6317a89b9e11afab4b321aa8dc79a83b4f9161b3d56dc6da17",
-      "docs/website/assets/screenshots/demo-2-temporal.jpg": "e07cdaba885459a387e5eddad1ceb515917e968eec49a830ae6d5aba7f2ae50e",
-      "docs/website/assets/screenshots/demo-5-selected-evidence.jpg": "3cb5854dda3b56ed16082e272961107cc91007058da8fa68b76ce0c5758e610d",
-      "docs/website/assets/screenshots/demo-6-map.jpg": "3f16420591d4d32aed9ae591ccf1c54aedcef904a24009bd86783f25c7fdc2fc",
-      "docs/website/assets/screenshots/demo-6-segment.jpg": "a3f43f5ab5b02e5d7d70308dbe2286002ff1b3e26de85347bc035867ec6ae1e5",
-      "docs/website/assets/screenshots/demo-7-drilldown.jpg": "067de2191688ab741e914f678c30ad505f304485ae3e2d58dc354496f9b4ca3b",
-      "docs/website/assets/screenshots/demo-7-stations.jpg": "ef24b6d7167fe51cbdcc9adaf9c9ccc868d246bb56bb213f6733e6cc03519f35",
-      "docs/website/content.json": "4bb65476e768f98be2b766225c0bfd1daae68de3e7862eb64b26a2d67f846869",
-      "docs/website/figures.json": "f524edfa8baa6ece5fa18072cf4250d783fdc89570daeeca81ddbb78f3561722",
-      "docs/website/screenshots.json": "7b859e83482681bc1818de642cc41fd9875c907eb33b77fae39485c31069cf95"
+      "config/demos/00a_griffiths_squibb_fig3.config": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54",
+      "config/demos/00b_griffiths_squibb_fig6.config": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb",
+      "config/demos/00c_griffiths_squibb_performance.config": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8",
+      "config/demos/01_vanhamel_rx_calibration.config": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7",
+      "config/demos/02_vanhamel_rx_ab.config": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab",
+      "config/demos/03_zander_tx_buddy_experiment_a.config": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7",
+      "config/demos/05_milazzo_tx_buddy.config": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc",
+      "config/public_demo_metadata.json": "c12f964bb48ec150035dfb503783d054d39b1c4b91b8ac6b555b6416b32bd173",
+      "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+      "docs/manual/disclaimer_de.md": "2d9cd9da67493208c188b379e99f9d2891147c2e0871797f99a2b07d30c20edb",
+      "docs/manual/doc_de.py": "0c18f7f7568af7695051694123a36130c52bb1126fd26af240f1178bb2186f93",
+      "docs/manual/doc_en.py": "55eef30acaf2041cda47dc29c9378a1cc404a945e367f718156583b137d66bb1",
+      "docs/website/content.json": "4a096aa7004031d8af07a8b528704a2aae5c481303472be2075fcd0661cd1bb5",
+      "docs/website/demo-1-drilldown.jpg": "ef6551069df74ad497a63267b68f8d9986ad089a32ede7b8017b882849e3040e",
+      "docs/website/demo-1-map.jpg": "220a84bd981331e564d6bd29c5f58b8feb49af92609470740c48eacfe14dc604",
+      "docs/website/demo-1-segment.jpg": "1558b9feb515ff5c7854b126ce9ad55b7c7052e0c833916cb443f3fb72f501ec",
+      "docs/website/demo-1-stations.jpg": "ffbf3bd3d9453bc27667516e61f0d42afc406c076e0a44f30e563c3344779058",
+      "docs/website/demo-1-temporal.jpg": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00",
+      "docs/website/demo-2-map.jpg": "c7eb290fbb289f6317a89b9e11afab4b321aa8dc79a83b4f9161b3d56dc6da17",
+      "docs/website/demo-2-temporal.jpg": "e07cdaba885459a387e5eddad1ceb515917e968eec49a830ae6d5aba7f2ae50e",
+      "docs/website/demo-5-selected-evidence.jpg": "3cb5854dda3b56ed16082e272961107cc91007058da8fa68b76ce0c5758e610d",
+      "docs/website/demo-6-map.jpg": "3f16420591d4d32aed9ae591ccf1c54aedcef904a24009bd86783f25c7fdc2fc",
+      "docs/website/demo-6-segment.jpg": "a3f43f5ab5b02e5d7d70308dbe2286002ff1b3e26de85347bc035867ec6ae1e5",
+      "docs/website/demo-7-drilldown.jpg": "067de2191688ab741e914f678c30ad505f304485ae3e2d58dc354496f9b4ca3b",
+      "docs/website/demo-7-stations.jpg": "ef24b6d7167fe51cbdcc9adaf9c9ccc868d246bb56bb213f6733e6cc03519f35",
+      "docs/website/figures.json": "7f0dafd4688354d944aaee3846f5c4c9f98ff4498e688e833db2565308747286",
+      "docs/website/griffiths-figure3-comparison.png": "773a15b512ac250332482d1bc8118c424c9ade2feaa7ffcd76060e99e1157f5d",
+      "docs/website/griffiths-figure3-pairing-diagnostic.png": "a7005277005aa7ad77e3d690dc82d0f8e7905f2545debcaa53fd21f907d03261",
+      "docs/website/griffiths-figure6-comparison.png": "6023fed66830a631892f430779579691419c3647c229ea8092ac0173b1a1e515",
+      "docs/website/landing-demo1-coverage.webp": "83f2ba8d1c03628b814f629d4b8929aecea4e8f1c7ede677d057b9df5b7cbc87",
+      "docs/website/landing-demo1-map.webp": "178b292a8ad5bf942b389f41eb70063f2b10cbc9f39631dfe19152dbeddca83d",
+      "docs/website/landing-demo1-snr.webp": "b0e2bee1202e2b8e08a31343fae5a19ad31a4ef757293e856cde15d67d162c11",
+      "docs/website/landing-demo1-temporal.webp": "296867972885f3b89ced03bf2d2881f693ba690214cfa506019b6892aad30e9f",
+      "docs/website/milazzo-figure6-rx-comparison.png": "335b3c7233949d5b582dd2379a34139bfc5a21c8762bd0fe60e59e1f9d5004c6",
+      "docs/website/milazzo-figure7-tx-comparison.png": "fddf95a9decdddfd5de6023bfac24d1bd8c90f1591f909b4794217bef33c8c65",
+      "docs/website/screenshots.json": "097b06cbcb8fe464143da9bfec2a36a2f6396d3bf415dd4ac085aa88e1e74c90",
+      "docs/website/vanhamel-figure6-comparison.png": "0bd77051a8aa02585e20365a1835f662bdfc39408c2e8e433cb9b6492f9a47cf",
+      "docs/website/zander-figure4-comparison.png": "f529ea9582840fad5647ffc0845df62ce0302baee54ae887181fd169837eb52e"
     },
     "source_repository": "WSPRadarApp",
-    "source_revision": "a4d78be13a3c8f03f7da6551a8bbbdda772c7d9f"
+    "source_revision": "dac7a036a145be629fbb4e2e6795f2cb43dfd8d0"
   },
-  "content_source_update_history": [],
+  "content_source_update_history": [
+    {
+      "preserved_other_payload_files": 37,
+      "previous_bundle_manifest_sha256": "ddbae7a4796f5922fd8d31634d9847135b0813014c7ae352d494cd0809ead088",
+      "provenance_note": "Manuals, website content, demos/configurations and reviewed figures/screenshots were synchronized. Brand metadata, artwork, fonts and all other payloads retain their exact base-bundle bytes and provenance. The top-level revision identifies the base bundle; this record identifies the content update. This update does not publish the website.",
+      "removed": [],
+      "scope": [
+        "assets/figures/griffiths-figure3-comparison.png",
+        "assets/figures/griffiths-figure3-pairing-diagnostic.png",
+        "assets/figures/griffiths-figure6-comparison.png",
+        "assets/figures/landing-demo1-coverage.webp",
+        "assets/figures/landing-demo1-map.webp",
+        "assets/figures/landing-demo1-snr.webp",
+        "assets/figures/landing-demo1-temporal.webp",
+        "assets/figures/milazzo-figure6-rx-comparison.png",
+        "assets/figures/milazzo-figure7-tx-comparison.png",
+        "assets/figures/vanhamel-figure6-comparison.png",
+        "assets/figures/zander-figure4-comparison.png",
+        "assets/screenshots/demo-1-drilldown.jpg",
+        "assets/screenshots/demo-1-map.jpg",
+        "assets/screenshots/demo-1-segment.jpg",
+        "assets/screenshots/demo-1-stations.jpg",
+        "assets/screenshots/demo-1-temporal.jpg",
+        "assets/screenshots/demo-2-map.jpg",
+        "assets/screenshots/demo-2-temporal.jpg",
+        "assets/screenshots/demo-5-selected-evidence.jpg",
+        "assets/screenshots/demo-6-map.jpg",
+        "assets/screenshots/demo-6-segment.jpg",
+        "assets/screenshots/demo-7-drilldown.jpg",
+        "assets/screenshots/demo-7-stations.jpg",
+        "configs/griffiths_squibb_fig3.config",
+        "configs/griffiths_squibb_fig6.config",
+        "configs/griffiths_squibb_rx_performance.config",
+        "configs/milazzo_tx_buddy.config",
+        "configs/vanhamel_rx_buddy.config",
+        "configs/vanhamel_rx_calibration.config",
+        "configs/zander_tx_buddy.config",
+        "demos.json",
+        "figures.json",
+        "manual.de.md",
+        "manual.en.md",
+        "screenshots.json",
+        "website.json"
+      ],
+      "source_dirty": true,
+      "source_file_sha256": {
+        "config/demos/00a_griffiths_squibb_fig3.config": "56ccfcbd005400f32952a157d8a86adee7fa748693b5191f47f94906aa0e829d",
+        "config/demos/00b_griffiths_squibb_fig6.config": "39bac963af90e58c77b27538b46245a338d6a9c4fee3eebf1610c6ca091ccdd6",
+        "config/demos/00c_griffiths_squibb_performance.config": "9be7e80223144d26d6a027b02f46360396043313d0df2d3584755c2d61777c15",
+        "config/demos/01_vanhamel_rx_calibration.config": "90f729fe01b9a10a877457d06f10ff7485b5ee13226675610d1b9fd18b41dfe6",
+        "config/demos/02_vanhamel_rx_ab.config": "e704c247156009f71b417f431115053f5babe72b4bd71e8c2e5b6604cba780de",
+        "config/demos/03_zander_tx_buddy_experiment_a.config": "6d4b08e7b14504b1bca35fbd21ddd91c3e820dd0696a9948c3ac5de59ac4b14d",
+        "config/demos/05_milazzo_tx_buddy.config": "c805861718af291a63dbbbda5be9691471c3237148d181f5d46f4ba4117a9e2a",
+        "config/public_demo_metadata.json": "6742a406fd119aa8197b516d09bed432eaf08e3dd9e7cd5b0b2bb4ec0bbc4114",
+        "docs/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+        "docs/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
+        "docs/doc_de.py": "3a70eea55b0ecfc4ea9788934709525335dbb688829dbb7c970216c74e14c6d5",
+        "docs/doc_en.py": "a2eafd8f2be5b16c40acca3e076e0f9df03ae3902c459d1fa99293d54ac9270f",
+        "docs/website/assets/figures/griffiths-figure3-comparison.png": "773a15b512ac250332482d1bc8118c424c9ade2feaa7ffcd76060e99e1157f5d",
+        "docs/website/assets/figures/griffiths-figure3-pairing-diagnostic.png": "a7005277005aa7ad77e3d690dc82d0f8e7905f2545debcaa53fd21f907d03261",
+        "docs/website/assets/figures/griffiths-figure6-comparison.png": "6023fed66830a631892f430779579691419c3647c229ea8092ac0173b1a1e515",
+        "docs/website/assets/figures/landing-demo1-coverage.webp": "83f2ba8d1c03628b814f629d4b8929aecea4e8f1c7ede677d057b9df5b7cbc87",
+        "docs/website/assets/figures/landing-demo1-map.webp": "178b292a8ad5bf942b389f41eb70063f2b10cbc9f39631dfe19152dbeddca83d",
+        "docs/website/assets/figures/landing-demo1-snr.webp": "b0e2bee1202e2b8e08a31343fae5a19ad31a4ef757293e856cde15d67d162c11",
+        "docs/website/assets/figures/landing-demo1-temporal.webp": "296867972885f3b89ced03bf2d2881f693ba690214cfa506019b6892aad30e9f",
+        "docs/website/assets/figures/milazzo-figure6-rx-comparison.png": "335b3c7233949d5b582dd2379a34139bfc5a21c8762bd0fe60e59e1f9d5004c6",
+        "docs/website/assets/figures/milazzo-figure7-tx-comparison.png": "fddf95a9decdddfd5de6023bfac24d1bd8c90f1591f909b4794217bef33c8c65",
+        "docs/website/assets/figures/vanhamel-figure6-comparison.png": "0bd77051a8aa02585e20365a1835f662bdfc39408c2e8e433cb9b6492f9a47cf",
+        "docs/website/assets/figures/zander-figure4-comparison.png": "f529ea9582840fad5647ffc0845df62ce0302baee54ae887181fd169837eb52e",
+        "docs/website/assets/screenshots/demo-1-drilldown.jpg": "ef6551069df74ad497a63267b68f8d9986ad089a32ede7b8017b882849e3040e",
+        "docs/website/assets/screenshots/demo-1-map.jpg": "220a84bd981331e564d6bd29c5f58b8feb49af92609470740c48eacfe14dc604",
+        "docs/website/assets/screenshots/demo-1-segment.jpg": "1558b9feb515ff5c7854b126ce9ad55b7c7052e0c833916cb443f3fb72f501ec",
+        "docs/website/assets/screenshots/demo-1-stations.jpg": "ffbf3bd3d9453bc27667516e61f0d42afc406c076e0a44f30e563c3344779058",
+        "docs/website/assets/screenshots/demo-1-temporal.jpg": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00",
+        "docs/website/assets/screenshots/demo-2-map.jpg": "c7eb290fbb289f6317a89b9e11afab4b321aa8dc79a83b4f9161b3d56dc6da17",
+        "docs/website/assets/screenshots/demo-2-temporal.jpg": "e07cdaba885459a387e5eddad1ceb515917e968eec49a830ae6d5aba7f2ae50e",
+        "docs/website/assets/screenshots/demo-5-selected-evidence.jpg": "3cb5854dda3b56ed16082e272961107cc91007058da8fa68b76ce0c5758e610d",
+        "docs/website/assets/screenshots/demo-6-map.jpg": "3f16420591d4d32aed9ae591ccf1c54aedcef904a24009bd86783f25c7fdc2fc",
+        "docs/website/assets/screenshots/demo-6-segment.jpg": "a3f43f5ab5b02e5d7d70308dbe2286002ff1b3e26de85347bc035867ec6ae1e5",
+        "docs/website/assets/screenshots/demo-7-drilldown.jpg": "067de2191688ab741e914f678c30ad505f304485ae3e2d58dc354496f9b4ca3b",
+        "docs/website/assets/screenshots/demo-7-stations.jpg": "ef24b6d7167fe51cbdcc9adaf9c9ccc868d246bb56bb213f6733e6cc03519f35",
+        "docs/website/content.json": "4bb65476e768f98be2b766225c0bfd1daae68de3e7862eb64b26a2d67f846869",
+        "docs/website/figures.json": "f524edfa8baa6ece5fa18072cf4250d783fdc89570daeeca81ddbb78f3561722",
+        "docs/website/screenshots.json": "7b859e83482681bc1818de642cc41fd9875c907eb33b77fae39485c31069cf95"
+      },
+      "source_repository": "WSPRadarApp",
+      "source_revision": "a4d78be13a3c8f03f7da6551a8bbbdda772c7d9f"
+    }
+  ],
   "demo_source_update": {
     "preserved_other_payload_files": 65,
-    "previous_bundle_manifest_sha256": "630ae964cece8836d9e6003a77dfe197532b064bc8f92c0685b6f2fa0224fbc2",
+    "previous_bundle_manifest_sha256": "ea91d80fffa2de0d06cf23437dc3c7e9746851b970031c6f50f496ebfee2c747",
     "provenance_note": "Only maintained demo definitions and configuration files were synchronized. The top-level revision and all other payloads retain their base-bundle provenance. Source hashes identify exact canonical file bytes. This update does not publish the website.",
     "scope": [
       "configs/griffiths_squibb_fig3.config",
@@ -591,13 +1029,13 @@
       "demos.json"
     ],
     "source_file_sha256": {
-      "config/demos/00a_griffiths_squibb_fig3.config": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54",
-      "config/demos/00b_griffiths_squibb_fig6.config": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb",
-      "config/demos/00c_griffiths_squibb_performance.config": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8",
-      "config/demos/01_vanhamel_rx_calibration.config": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7",
-      "config/demos/02_vanhamel_rx_ab.config": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab",
-      "config/demos/03_zander_tx_buddy_experiment_a.config": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7",
-      "config/demos/05_milazzo_tx_buddy.config": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
+      "config/demos/00a_griffiths_squibb_fig3.config": "947c6bf6fbd7fa5a49959d70679302296f27629ecc7b5292bfb45da64be53111",
+      "config/demos/00b_griffiths_squibb_fig6.config": "f52e953172a413b9f6a5b059319fd7a4de8605c9b18b41a1024498ee12b02da6",
+      "config/demos/00c_griffiths_squibb_performance.config": "5222a1ec3ea4cc1f13850e61173586f3279e0f73f0ac494177042699fb020612",
+      "config/demos/01_vanhamel_rx_calibration.config": "b87d65152634fd2dee79c18ef2a51b0246aa116359a62a278c4e0842468edf6f",
+      "config/demos/02_vanhamel_rx_ab.config": "5abb069966e6b87578b2909e5bdfc58cb3992e20fcbe46be516f6dab7ebc1285",
+      "config/demos/03_zander_tx_buddy_experiment_a.config": "70d72e1b91432a6c5e33417b04c9eb0974361933c812f98bb902349df6113779",
+      "config/demos/05_milazzo_tx_buddy.config": "91f8772e24acbc63ce38f897288401c15404c5a10002947d91a4b0a04deb5d8a"
     },
     "source_repository": "WSPRadarApp"
   },
@@ -1101,6 +1539,56 @@
         "config/demos/05_milazzo_tx_buddy.config": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
       },
       "source_repository": "WSPRadarApp"
+    },
+    {
+      "preserved_other_payload_files": 65,
+      "previous_bundle_manifest_sha256": "630ae964cece8836d9e6003a77dfe197532b064bc8f92c0685b6f2fa0224fbc2",
+      "provenance_note": "Only maintained demo definitions and configuration files were synchronized. The top-level revision and all other payloads retain their base-bundle provenance. Source hashes identify exact canonical file bytes. This update does not publish the website.",
+      "scope": [
+        "configs/griffiths_squibb_fig3.config",
+        "configs/griffiths_squibb_fig6.config",
+        "configs/griffiths_squibb_rx_performance.config",
+        "configs/milazzo_tx_buddy.config",
+        "configs/vanhamel_rx_buddy.config",
+        "configs/vanhamel_rx_calibration.config",
+        "configs/zander_tx_buddy.config",
+        "demos.json"
+      ],
+      "source_file_sha256": {
+        "config/demos/00a_griffiths_squibb_fig3.config": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54",
+        "config/demos/00b_griffiths_squibb_fig6.config": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb",
+        "config/demos/00c_griffiths_squibb_performance.config": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8",
+        "config/demos/01_vanhamel_rx_calibration.config": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7",
+        "config/demos/02_vanhamel_rx_ab.config": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab",
+        "config/demos/03_zander_tx_buddy_experiment_a.config": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7",
+        "config/demos/05_milazzo_tx_buddy.config": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
+      },
+      "source_repository": "WSPRadarApp"
+    },
+    {
+      "preserved_other_payload_files": 65,
+      "previous_bundle_manifest_sha256": "052b239a67fc02f1c5bf0e3a55f24a73a29e2931ec7c9455b865276dddf7f09f",
+      "provenance_note": "Only maintained demo definitions and configuration files were synchronized. The top-level revision and all other payloads retain their base-bundle provenance. Source hashes identify exact canonical file bytes. This update does not publish the website.",
+      "scope": [
+        "configs/griffiths_squibb_fig3.config",
+        "configs/griffiths_squibb_fig6.config",
+        "configs/griffiths_squibb_rx_performance.config",
+        "configs/milazzo_tx_buddy.config",
+        "configs/vanhamel_rx_buddy.config",
+        "configs/vanhamel_rx_calibration.config",
+        "configs/zander_tx_buddy.config",
+        "demos.json"
+      ],
+      "source_file_sha256": {
+        "config/demos/00a_griffiths_squibb_fig3.config": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54",
+        "config/demos/00b_griffiths_squibb_fig6.config": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb",
+        "config/demos/00c_griffiths_squibb_performance.config": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8",
+        "config/demos/01_vanhamel_rx_calibration.config": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7",
+        "config/demos/02_vanhamel_rx_ab.config": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab",
+        "config/demos/03_zander_tx_buddy_experiment_a.config": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7",
+        "config/demos/05_milazzo_tx_buddy.config": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
+      },
+      "source_repository": "WSPRadarApp"
     }
   ],
   "editorial_source_update": {
@@ -1353,65 +1841,65 @@
       "sha256": "ef24b6d7167fe51cbdcc9adaf9c9ccc868d246bb56bb213f6733e6cc03519f35"
     },
     "brand.json": {
-      "bytes": 18600,
-      "sha256": "d6bc5e83de07dc34b3ab07855642a7b3ecea9a908eba2d441968c3ed0c36a1c6"
+      "bytes": 18615,
+      "sha256": "6cd9ff2ff87ebf6a75f7255d640d6d30886427bd30ef261c909d5540e380de74"
     },
     "configs/griffiths_squibb_fig3.config": {
-      "bytes": 3906,
-      "sha256": "9a539ee38f57b9f5618cf0ae811d736cba2e6b826db2b294914ee3f237a5fa54"
+      "bytes": 3804,
+      "sha256": "947c6bf6fbd7fa5a49959d70679302296f27629ecc7b5292bfb45da64be53111"
     },
     "configs/griffiths_squibb_fig6.config": {
-      "bytes": 6511,
-      "sha256": "15e41e709c8d257a530e0d21f1ca71b4a072a89d68acfdbcc0333c4a33afabeb"
+      "bytes": 6616,
+      "sha256": "f52e953172a413b9f6a5b059319fd7a4de8605c9b18b41a1024498ee12b02da6"
     },
     "configs/griffiths_squibb_rx_performance.config": {
-      "bytes": 3841,
-      "sha256": "4deed101a072169e97e5b0ea77769b89b53f1397379d9e57cf60855462b63aa8"
+      "bytes": 4035,
+      "sha256": "5222a1ec3ea4cc1f13850e61173586f3279e0f73f0ac494177042699fb020612"
     },
     "configs/milazzo_tx_buddy.config": {
-      "bytes": 12776,
-      "sha256": "08c4fcbe60554c85377c7b825e673956da969c8e830710900ee5f1099ce4cdcc"
+      "bytes": 4069,
+      "sha256": "91f8772e24acbc63ce38f897288401c15404c5a10002947d91a4b0a04deb5d8a"
     },
     "configs/vanhamel_rx_buddy.config": {
-      "bytes": 6278,
-      "sha256": "3a83ad97066697caa2b40ff9c457899b873005b11a0581591cf9163a6000cdab"
+      "bytes": 3627,
+      "sha256": "5abb069966e6b87578b2909e5bdfc58cb3992e20fcbe46be516f6dab7ebc1285"
     },
     "configs/vanhamel_rx_calibration.config": {
-      "bytes": 3591,
-      "sha256": "02093b931d99765492e3598b78564398cfea6dd220a140a84667708ca41aebb7"
+      "bytes": 3492,
+      "sha256": "b87d65152634fd2dee79c18ef2a51b0246aa116359a62a278c4e0842468edf6f"
     },
     "configs/zander_tx_buddy.config": {
-      "bytes": 6968,
-      "sha256": "e5ec5f677385967933dfc740f97f0a50989477bdcb145e6f6c1078757a88e5d7"
+      "bytes": 3490,
+      "sha256": "70d72e1b91432a6c5e33417b04c9eb0974361933c812f98bb902349df6113779"
     },
     "demos.json": {
-      "bytes": 69384,
-      "sha256": "e71b6fb368fe9f7a8a76733e2a1c360f7da183a7b9dc727ee0816505d8cc703d"
+      "bytes": 53546,
+      "sha256": "0e2820b2994095158092e2bde79ad496f0b650502206ced215d60b7accfab69b"
     },
     "figures.json": {
-      "bytes": 59334,
-      "sha256": "1f0df827baf91729767de817029703d8856d56b472aa63e29cf91ac44499be24"
+      "bytes": 60125,
+      "sha256": "1e965a90943cb6a2954ea6ab3ebe727ba1bdac8e37512a3bb1f464f70f8bd71e"
     },
     "manual.de.md": {
-      "bytes": 296771,
-      "sha256": "bb1da2b15a8d4f23bee27b3677f203aa76d0e51780b23644ca6da64c217df965"
+      "bytes": 281622,
+      "sha256": "a59243e889cb7351e2d044bc3f30a5ba40ed440e0f8b6bade4efbba15938cb1a"
     },
     "manual.en.md": {
-      "bytes": 230156,
-      "sha256": "240b30c71907153d04337cf78484f1af7e60fcec18b6c47d7f26f00d27f02c12"
+      "bytes": 230124,
+      "sha256": "cd96dd77839b40cf5bb2164a4525f44db0eb1e06c3beea1ee9b46b7c8e1cba5d"
     },
     "screenshots.json": {
-      "bytes": 113047,
-      "sha256": "57c041ebbf24e9f9390c083ea4b0afa1c7619df65b55386ea07631c8ef87dd79"
+      "bytes": 113716,
+      "sha256": "ed1238a6741e6a06ba8a8be8436ae058fbf86fe1b9d5e8e772cc588d5c9db005"
     },
     "website.json": {
-      "bytes": 40959,
-      "sha256": "4bb65476e768f98be2b766225c0bfd1daae68de3e7862eb64b26a2d67f846869"
+      "bytes": 42298,
+      "sha256": "4a096aa7004031d8af07a8b528704a2aae5c481303472be2075fcd0661cd1bb5"
     }
   },
   "manual_source_update": {
     "preserved_nonmanual_payload_files": 71,
-    "previous_bundle_manifest_sha256": "0a155a57f78c0eb72ea84a8dcd518fcf47b1aaf54879f8d0e25125308ddd172e",
+    "previous_bundle_manifest_sha256": "4a60e7e7cc3656c8becebc2f228a5bf25504b46312deb2082d2fa7073e0d60a3",
     "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
     "scope": [
       "manual.de.md",
@@ -1421,9 +1909,9 @@
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
       "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
-      "docs/manual/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
-      "docs/manual/doc_de.py": "76e4bc64ca96a394e330d4c60247436386b52d5407b0d7b8ac6088316ed76529",
-      "docs/manual/doc_en.py": "b242ef8ae8cfcd9ae1128831dafc6e2551aa034a1dcc7310e9392f50938579e6"
+      "docs/manual/disclaimer_de.md": "c65d3497ef6d4e7af83e351182d21efc99cfc950b147fe33dc9ef76062ef2462",
+      "docs/manual/doc_de.py": "ad4c8915f828c243af05ed60507adffabe5e1e48b7f28cdc76eb77d79fff341b",
+      "docs/manual/doc_en.py": "9d5179fe429c68e4cd92981f1336af2dd0e6e0b9f4e7e85fff0e90cc8caff870"
     }
   },
   "manual_source_update_history": [
@@ -2113,6 +2601,23 @@
         "docs/manual/doc_de.py": "cd34a3e75588ce36b498a0a69049beeb1a094e1b3488723401dc51bf45befd5b",
         "docs/manual/doc_en.py": "437d897dd28c9fe9b3dbf9f000caae30b7ee4e1d818ec0ab7198f19fc5153b34"
       }
+    },
+    {
+      "preserved_nonmanual_payload_files": 71,
+      "previous_bundle_manifest_sha256": "0a155a57f78c0eb72ea84a8dcd518fcf47b1aaf54879f8d0e25125308ddd172e",
+      "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
+      "scope": [
+        "manual.de.md",
+        "manual.en.md"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+        "docs/manual/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
+        "docs/manual/doc_de.py": "76e4bc64ca96a394e330d4c60247436386b52d5407b0d7b8ac6088316ed76529",
+        "docs/manual/doc_en.py": "b242ef8ae8cfcd9ae1128831dafc6e2551aa034a1dcc7310e9392f50938579e6"
+      }
     }
   ],
   "numeric_description_source_update": {
@@ -2228,7 +2733,7 @@
     }
   ],
   "product_navigation_source_update": {
-    "previous_bundle_manifest_sha256": "29d7466077adcd4905f43ad80d83f90a78d901ad9b9536eeaf24448657e3c6bc",
+    "previous_bundle_manifest_sha256": "5a1bf2dd6c7cefc7e9b377e5fc2fa72390d7157d46158151f313d539a4e7c8f2",
     "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:product_navigation"
@@ -2236,7 +2741,7 @@
     "source_repository": "WSPRadarApp",
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
-      "config/product_navigation.json": "1b6882606b9b77d8ced7da6f2a9f7f314081e8d95f7746d692e00509e94b69cd"
+      "config/product_navigation.json": "e49a78f91ddb23142f8c2aaf16d184f33a7dbbb87e73cc7730432bf7d84a0457"
     }
   },
   "product_navigation_source_update_history": [
@@ -2310,6 +2815,18 @@
       "source_text_encoding": "UTF-8 with LF line endings",
       "source_text_sha256": {
         "config/product_navigation.json": "ca53ed8b1d02c145401ff9f0cc0aeb0690cd6cd4ae93afff6a01728af1f65e61"
+      }
+    },
+    {
+      "previous_bundle_manifest_sha256": "29d7466077adcd4905f43ad80d83f90a78d901ad9b9536eeaf24448657e3c6bc",
+      "provenance_note": "Only shared product-navigation metadata was synchronized. All other brand fields, artwork, manuals, demo configurations and scientific payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:product_navigation"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/product_navigation.json": "1b6882606b9b77d8ced7da6f2a9f7f314081e8d95f7746d692e00509e94b69cd"
       }
     }
   ],

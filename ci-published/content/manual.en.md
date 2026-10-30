@@ -223,7 +223,7 @@ Start with one station question. State what you changed or want to investigate, 
 
 #### 1.2 Configure your analysis
 
-Choose the analysis from [Section 0.1](#sec-1-0). <strong class="defined-term">Guided</strong> leads you through the settings; <strong class="defined-term">Compact</strong> presents the same scientific choices in a shorter form.
+Choose the analysis from [Section 0.2](#sec-1-0). <strong class="defined-term">Guided</strong> leads you through the settings; <strong class="defined-term">Compact</strong> presents the same scientific choices in a shorter form.
 
 Enter the exact **Target callsign**, **Target QTH** (Maidenhead locator), one **band**, and a completed **UTC window**. Target QTH accepts four or six locator characters: the first four select reports, while the full entered locator anchors the map, distances and directions. Longer windows add evidence but can mix operating and propagation conditions.
 
@@ -560,7 +560,7 @@ Always launch the two instances with their named shortcuts. A different rig name
 <a id="sec-a-2"></a>
 #### 4.2 Clone the starting configuration if required
 
-**Optional:** configure **WSJT-X Target** first using [4.3](#sec-a-3), then copy its configuration so **WSJT-X Reference** starts with the same settings. Otherwise configure both instances directly in 9.3.
+**Optional:** configure **WSJT-X Target** first using [4.3](#sec-a-3), then copy its configuration so **WSJT-X Reference** starts with the same settings. Otherwise configure both instances directly in 4.3.
 
 1. Close **all** WSJT-X instances and retain a backup of any settings you intend to replace.
 2. Copy the Target settings file `%LOCALAPPDATA%\WSJT-X - Target\WSJT-X - Target.ini` into the Reference folder `%LOCALAPPDATA%\WSJT-X - Reference\`.
@@ -1888,7 +1888,7 @@ The ZIP contains `config/` and either `benchmark/` or `performance/`, according 
 
 | Artifact | Content, scope and availability |
 |---|---|
-| <strong class="defined-term">Disclaimer</strong> | `disclaimer.txt` contains the complete [Experimental Use & Disclaimer](#sec-disclaimer) in the application language at export time. It accompanies every package. |
+| <strong class="defined-term">Disclaimer</strong> | `disclaimer.txt` contains the complete [Experimental Use & Disclaimer](#sec-disclaimer) in English. It accompanies every package. |
 | **Configuration** | `wspradar_config.config` restores analysis settings and supported view choices for another run. It does not contain the original observations. |
 | <strong class="defined-term">Run metadata</strong> | `run_metadata.json` records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its evidence mode, applicable operating declaration or historical-replay acknowledgement, and method version. These declarations are not independent proof of operation. |
 | <strong class="defined-term">Processed evidence</strong> | `analysis_cache.parquet` contains retained evidence across the completed analysis's full geographic scope after scientific filtering. It is not restricted to the selected segment and is not an untouched database download. |

@@ -33,6 +33,7 @@ body{background:#000b19}
 .landing-header .nav-separator:first-child{margin-left:2px}
 @media(max-width:1100px){.landing-header .nav-separator{margin-inline:clamp(0px,calc((100vw - 900px)/20),10px)}.landing-header .nav-separator:first-child{margin-left:2px}}
 @media(max-width:900px){.landing-header .nav-separator{display:none}}
+@media(min-width:801px) and (max-width:900px){html[lang="de"] .landing-header .nav-links>a{font-size:15px}}
 .hero-artwork-stage{position:relative}
 .hero-entry{position:static}
 .hero-actions{align-items:center;position:absolute;left:var(--overview-inset);right:0;bottom:2.5%;display:flex;gap:16px;flex-wrap:wrap}

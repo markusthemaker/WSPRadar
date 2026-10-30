@@ -40,30 +40,30 @@
         "de": [
           {
             "heading": "1. Den Stationsvergleich einordnen",
-            "body": "Betrachte zunächst die vollständigen Empfangsstationen: **G3ZIL ist das Target und G4HZX die Referenz**. Die gepaarte Differenz lautet G3ZIL minus G4HZX; ein positives ΔSNR spricht damit für G3ZIL. Behalte diese Richtung beim Lesen der Abbildungen im Blick: Ein höherer Kurvenverlauf beschreibt einen stärkeren relativen Empfang, keine direkte Messung des Antennengewinns.",
+            "body": "Beginne mit den vollständigen Empfangsstationen: **G3ZIL ist das Target und G4HZX die Referenz**. Die gepaarte Differenz ist G3ZIL minus G4HZX; positives ΔSNR begünstigt daher G3ZIL. Behalte diese Richtung im Blick, bevor du die Abbildungen liest: Eine höhere Kurve beschreibt stärkeren relativen Empfang, keine direkte Messung des Antennengewinns.",
             "media_keys": [
               "demo-1-map"
             ]
           },
           {
-            "heading": "2. Den Monat in der zeitlichen Evidenz verfolgen",
-            "body": "Öffne **Segment-Inspektor → Zeitliche Evidenz** und lies **Δ SNR im Zeitverlauf** von Anfang bis Ende April. Folge zuerst den Medianmarkierungen und betrachte anschließend das Band der mittleren 50 % sowie die Dichtefarben. Der Median beschreibt die Mitte jedes Intervalls; Band und Dichte zeigen die Streuung der einzelnen Beobachtungen. Vergleiche die Verschiebung nach oben in der ersten Monatshälfte mit den unten gezeigten Panels für Publikation, Rekonstruktion und WSPRadar.",
+            "heading": "2. Den Monat anhand der Datengrundlage im Zeitverlauf verfolgen",
+            "body": "Lies unter **Segmentdetails → Datengrundlage im Zeitverlauf** die Abbildung **Δ SNR over Time** von Anfang bis Ende April. Folge zuerst den Medianmarkern; untersuche anschließend das Band der mittleren 50 % und die Dichtefarben. Der Median beschreibt die Mitte jedes Intervalls, während Band und Dichte zeigen, dass einzelne Beobachtungen variieren. Vergleiche die Verschiebung nach oben in der ersten Monatshälfte mit den unten gezeigten Darstellungen der Veröffentlichung, Rekonstruktion und WSPRadar-Auswertung.",
             "media_keys": [
               "griffiths-figure3-comparison",
               "demo-1-temporal"
             ]
           },
           {
-            "heading": "3. Vom Gesamtbild zu einem Funkweg wechseln",
-            "body": "Vergleiche in der **Kartenansicht** Richtungen und Entfernungen und grenze anschließend denselben Bereich im **Segment-Inspektor** ein. Untersuche in **Station Insights** den vorausgewählten Funkweg von **DJ0ABR**. Damit wechselst du von einem Muster über mehrere beitragende Sender zum Vergleich für einen einzelnen Sender. Eine Veränderung in den zusammengefassten Beobachtungen muss nicht auf jedem Funkweg gleich stark oder zur gleichen Zeit auftreten.",
+            "heading": "3. Vom zusammengefassten Muster zu einem Funkpfad wechseln",
+            "body": "Kehre zur **Gesamtübersicht** zurück, um Richtungen und Entfernungen zu vergleichen, und grenze anschließend dieselbe Region in den **Segmentdetails** ein. Untersuche in der **Stationsauswertung** den vorausgewählten Funkpfad **DJ0ABR**. Damit ändert sich die Frage von einem Muster über die beitragenden Sender zum Vergleich für einen Sender. Eine Änderung in den zusammengefassten Daten muss nicht auf jedem Funkpfad mit derselben Größe oder zur selben Zeit auftreten.",
             "media_keys": [
               "demo-1-segment",
               "demo-1-stations"
             ]
           },
           {
-            "heading": "4. Vor einer Erklärung die Paarbildung prüfen",
-            "body": "Nutze die Paarbildungsdiagnose, um einzelne Empfangsberichte mit dem Vergleich innerhalb desselben Zyklus zu verbinden. Mehrere Berichte innerhalb eines Zyklus erfordern eine nachvollziehbare Zuordnung, bevor du eine ungewöhnliche Differenz deutest. Die Publikation diskutiert austrocknenden Boden als mögliche Erklärung für den Trend in der ersten Monatshälfte; die Empfangsstationen unterscheiden sich jedoch auch in Standort, Geräten und örtlichem Störpegel. Die Beobachtung belegt eine Änderung des relativen SNR, weist aber deren Ursache nicht nach.",
+            "heading": "4. Vor der Erklärung einer Änderung die Paarbildung prüfen",
+            "body": "Nutze die Diagnose der Paarbildung, um einzelne Empfangsberichte mit dem Vergleich im selben Zyklus zu verbinden. Mehrere Empfangsberichte innerhalb eines Zyklus sind eine Frage der Datenzuordnung, die vor der Interpretation einer ungewöhnlichen Differenz verstanden werden muss. Die Veröffentlichung erörtert austrocknenden Boden als mögliche Erklärung des Trends in der ersten Monatshälfte; die Empfangsstationen unterscheiden sich außerdem in Standort, Ausrüstung und lokalem Störpegel. Die Beobachtung belegt eine Änderung des relativen SNR, ohne deren Ursache zu belegen.",
             "media_keys": [
               "griffiths-figure3-pairing-diagnostic",
               "demo-1-drilldown"
@@ -105,25 +105,25 @@
         "de": [
           {
             "heading": "1. Die Vergleichsrichtung beibehalten",
-            "body": "Dieses Beispiel verwendet wie Demo #1 die Differenz **G3ZIL − G4HZX**, begrenzt die Beobachtungen jedoch auf den **5.–7. April 2017**. Positive Werte sprechen für die Empfangsstation mit dem niedrig aufgehängten Dipol, negative für die Station mit der Vertikalantenne. Lasse zunächst alle Richtungen und Entfernungen ausgewählt, damit die erste Ansicht zur übergreifenden Frage der Demo passt.",
+            "body": "Dieses Beispiel verwendet dieselbe Differenz **G3ZIL − G4HZX** wie Demo #1, beschränkt die Beobachtungen jedoch auf den **5.–7. April 2017**. Positive Werte begünstigen die Empfangsstation mit dem niedrig aufgehängten Dipol; negative Werte die Empfangsstation mit der Vertikalantenne. Beginne mit allen ausgewählten Richtungen und Entfernungen, damit die erste Ansicht der übergreifenden Fragestellung der Demo entspricht.",
             "media_keys": [
               "demo-2-map"
             ]
           },
           {
             "heading": "2. Das Tagesmuster nach UTC-Stunde lesen",
-            "body": "Öffne **Segment-Inspektor → Zeitliche Evidenz → Δ SNR nach UTC-Stunde (1-h-Bins)**. Jedes Stundenintervall fasst Beobachtungen aus dieser Stunde an allen drei Tagen zusammen. Folge den Stundenmedianen über die Nulllinie: Auf den Vorteil von G4HZX in den frühen Stunden folgt später am Tag ein Vorteil von G3ZIL. Die Farben beschreiben Konzentrationen von Beobachtungen, das schattierte Band deren mittlere 50 %. Beides bedeutet nicht, dass jede Aussendung dem Median folgt.",
+            "body": "Öffne **Segmentdetails → Datengrundlage im Zeitverlauf → Δ SNR by UTC Hour (1 h bins)**. Jedes Stundenintervall kombiniert Beobachtungen dieser Stunde an allen drei Kalendertagen. Folge den Stundenmedianen durch null: Der Vorteil von G4HZX in den frühen Stunden geht später am Tag in einen Vorteil von G3ZIL über. Die Farben beschreiben Konzentrationen von Beobachtungen; das schattierte Band beschreibt deren mittlere 50 %. Keines von beiden bedeutet, dass jede Aussendung dem Median folgte.",
             "media_keys": [
               "demo-2-temporal"
             ]
           },
           {
-            "heading": "3. UTC-Stunden und zeitlichen Verlauf vergleichen",
-            "body": "Untersuche nun **Δ SNR im Zeitverlauf**. Das Zusammenfassen nach UTC-Stunde macht ein wiederkehrendes Tagesmuster sichtbar, verdeckt aber, von welchem Datum eine Beobachtung stammt. Die chronologische Darstellung zeigt diese Unterscheidung wieder. Vergleiche die drei Tage, bevor du annimmst, dass die zusammengefasste Form jeden Tag gleichermaßen beschreibt. Prüfe anschließend in **Station Insights**, ob ein ausgewählter Sender diesem Muster folgt."
+            "heading": "3. Die Zusammenfassung nach UTC-Stunde mit der chronologischen Zeit vergleichen",
+            "body": "Untersuche nun **Δ SNR over Time**. Die Zusammenfassung nach UTC-Stunde hilft, ein wiederkehrendes Tagesmuster zu erkennen, verdeckt jedoch, welcher Kalendertag eine Beobachtung geliefert hat. Das chronologische Diagramm stellt diese Unterscheidung wieder her. Vergleiche die drei Kalendertage, bevor du die zusammengefasste Form als ein allen Tagen gleichermaßen gemeinsames Muster behandelst. Prüfe anschließend in der **Stationsauswertung**, ob ein ausgewählter Sender diesem Muster folgt."
           },
           {
-            "heading": "4. Die Vergleichspanels mit ihren Grenzen lesen",
-            "body": "Vergleiche die Originalpublikation mit der Rekonstruktion und der nativen WSPRadar-Ansicht. Ihre Dichtedarstellungen sind keine identischen statistischen Darstellungen. Lies Anmerkungen, beschriftete Achsen und Farbskalen jedes Panels, statt Übereinstimmung allein anhand der Farben zu beurteilen. Das Beispiel ermöglicht die Untersuchung einer Tag-Nacht-Umkehr im relativen Empfang; es isoliert weder Antenne noch Störpegel oder Ausbreitung als Ursache.",
+            "heading": "4. Die Vergleichsdarstellungen mit ihren Grenzen lesen",
+            "body": "Vergleiche die ursprüngliche Veröffentlichung mit der Rekonstruktion und der nativen WSPRadar-Ansicht. Ihre Dichtedarstellungen sind keine identischen statistischen Darstellungen. Lies die Anmerkungen, beschrifteten Achsen und Farbskalen jedes Diagramms, statt Übereinstimmung allein anhand der Farben zu beurteilen. Der Fall ermöglicht die Untersuchung einer Tag-Nacht-Umkehr des relativen Empfangs; er isoliert weder Antenne noch Störpegel oder Ausbreitung als deren Ursache.",
             "media_keys": [
               "griffiths-figure6-comparison"
             ]
@@ -144,8 +144,8 @@
             "body": "Start in **Map View**. Hearing a transmitter at least once contributes to reach; decoding a large proportion of its confirmed opportunities describes consistency. Map colors show station-balanced Decode Rate, giving each qualifying transmitter identity equal weight. In **Segment Inspector → Performance Evidence**, read that rate alongside the opportunity-level rate and the station and opportunity counts. The two rates answer differently weighted questions."
           },
           {
-            "heading": "3. Follow the selected EA4URA path",
-            "body": "In **Station Insights**, retain the preselected **EA4URA (IN80CI)** identity. Compare its evidence by UTC hour with its chronological evidence: the first combines the same hours across the month; the second shows differences between dates. Use the documented early-morning and evening examples as reading landmarks, then inspect the counts supporting each part of the pattern."
+            "heading": "3. Follow the selected HB0QRP path",
+            "body": "In **Station Insights**, retain the preselected **HB0QRP (JN47)** identity. Compare its evidence by UTC hour with its chronological evidence: the first combines the same hours across the month; the second shows differences between dates. Use the documented early-morning and evening examples as reading landmarks, then inspect the counts supporting each part of the pattern."
           },
           {
             "heading": "4. Keep successful SNR and reception consistency together",
@@ -154,20 +154,20 @@
         ],
         "de": [
           {
-            "heading": "1. Vom Vergleich zur Empfangsleistung wechseln",
-            "body": "Hier untersuchst du **RX Performance** von G3ZIL auf 40 m im April 2017. Es gibt keinen Referenzempfänger und keinen Vergleich G3ZIL − G4HZX. Frage, wo G3ZIL Sender hörte, wie zuverlässig die Station bestätigte Gelegenheiten dekodierte und wie sich das SNR erfolgreicher Dekodierungen veränderte. Gelegenheiten setzen einen Nachweis voraus, dass G3ZIL empfing; dies ist keine Messung der Betriebszeit der Station."
+            "heading": "1. Die Fragestellung vom Vergleich zum Empfang ändern",
+            "body": "Dies ist **RX Performance** für G3ZIL auf 40 m im April 2017. Es gibt keinen Referenzempfänger und keinen Vergleich G3ZIL − G4HZX. Frage, wo G3ZIL Sender empfing, wie beständig es bestätigte Empfangsgelegenheiten dekodierte und wie das SNR erfolgreicher Dekodierungen variierte. Empfangsgelegenheiten sind an einen Nachweis gebunden, dass G3ZIL empfing; dies ist keine Messung der Betriebsverfügbarkeit der Station."
           },
           {
-            "heading": "2. Reichweite und Dekodierrate unterscheiden",
-            "body": "Beginne in der **Kartenansicht**. Ein mindestens einmal gehörter Sender trägt zur Reichweite bei; ein großer dekodierter Anteil seiner bestätigten Gelegenheiten beschreibt Empfangskonsistenz. Die Kartenfarben zeigen die stationsgewichtete Dekodierrate, bei der jede qualifizierende Senderidentität gleiches Gewicht erhält. Lies diese Rate im **Segment-Inspektor → Performance-Evidenz** zusammen mit der gelegenheitsgewichteten Rate sowie den Stations- und Gelegenheitszahlen. Die beiden Raten beantworten unterschiedlich gewichtete Fragen."
+            "heading": "2. Erfasste Gegenstationen und Dekodierquote unterscheiden",
+            "body": "Beginne in der **Gesamtübersicht**. Ein mindestens einmal empfangener Sender trägt zur Anzahl erfasster Gegenstationen bei; die Dekodierung eines großen Anteils seiner bestätigten Empfangsgelegenheiten beschreibt Beständigkeit. Kartenfarben zeigen die Dekodierquote bei gleicher Stationsgewichtung, bei der jede qualifizierte Senderidentität gleiches Gewicht erhält. Lies unter **Segmentdetails → Datengrundlage der Performance-Auswertung** diese Quote zusammen mit der Dekodierquote über alle Empfangsgelegenheiten sowie den Stations- und Empfangsgelegenheitszahlen. Die beiden Quoten beantworten unterschiedlich gewichtete Fragen."
           },
           {
-            "heading": "3. Den ausgewählten Funkweg von EA4URA verfolgen",
-            "body": "Behalte in **Station Insights** die vorausgewählte Identität **EA4URA (IN80CI)** bei. Vergleiche ihre Evidenz nach UTC-Stunde mit der chronologischen Evidenz: Die erste Ansicht fasst dieselben Stunden über den Monat zusammen, die zweite zeigt Unterschiede zwischen den Tagen. Nutze die dokumentierten Beispiele für den frühen Morgen und den Abend als Orientierung und prüfe anschließend die Beobachtungszahlen hinter den einzelnen Teilen des Musters."
+            "heading": "3. Den ausgewählten Funkpfad HB0QRP verfolgen",
+            "body": "Behalte in der **Stationsauswertung** die vorausgewählte Identität **HB0QRP (JN47)** bei. Vergleiche ihre Beobachtungsdaten nach UTC-Stunde mit ihren chronologischen Beobachtungsdaten: Die erste Ansicht kombiniert dieselben Stunden über den Monat; die zweite zeigt Unterschiede zwischen den Kalendertagen. Nutze die dokumentierten Beispiele für frühen Morgen und Abend als Orientierung beim Lesen und untersuche anschließend die Anzahlen, die jeden Teil des Musters stützen."
           },
           {
-            "heading": "4. Erfolgreiches SNR und Empfangskonsistenz zusammen lesen",
-            "body": "SNR-Diagramme enthalten nur erfolgreiche Dekodierungen. Ein stark empfangenes Signal belegt daher für sich genommen keinen zuverlässigen Empfang. **Abweichung des erfolgreichen RX-SNR** vergleicht jeden Funkweg mit seinem eigenen medianen SNR erfolgreicher Dekodierungen; null bezeichnet das typische Niveau dieses Funkwegs. Lies das zeitliche SNR-Muster zusammen mit Dekodierrate und Evidenzabdeckung. Veränderungen der Ausbreitung, örtlicher Störpegel und weitere Stationseinflüsse können dazu beitragen."
+            "heading": "4. Erfolgreiches SNR und Empfangsbeständigkeit gemeinsam betrachten",
+            "body": "SNR-Diagramme enthalten nur erfolgreiche Dekodierungen. Ein stark empfangenes Signal belegt daher für sich allein keinen zuverlässigen Empfang. **Successful RX SNR Deviation** vergleicht jeden Funkpfad mit seinem eigenen medianen SNR erfolgreicher Dekodierungen; null ist das typische Niveau dieses Funkpfads. Lies das zeitliche SNR-Muster zusammen mit der Dekodierquote und der Abdeckung der Beobachtungsdaten. Wechselnde Ausbreitung, lokaler Störpegel und andere Stationseinflüsse können alle dazu beitragen."
           }
         ]
       }
@@ -195,20 +195,20 @@
         ],
         "de": [
           {
-            "heading": "1. Vom Aufbau mit gemeinsamer Antenne ausgehen",
-            "body": "Die Publikation beschreibt zwei Empfangsketten, die an dieselbe Antenne angeschlossen sind. Die Demo vergleicht **ON4AWM0 als Target** mit **ON4AWM1 als Referenz** in der angegebenen Woche auf 160 m. In diesem Aufbau zeigt eine anhaltende gepaarte SNR-Differenz einen Versatz zwischen den Empfangsketten, der einen späteren Antennenvergleich beeinflussen würde."
+            "heading": "1. Mit dem Aufbau an einer gemeinsamen Antenne beginnen",
+            "body": "Die Veröffentlichung beschreibt beide Empfangszweige an derselben Antenne. Die Demo vergleicht **ON4AWM0 als Target** mit **ON4AWM1 als Referenz** für die angegebene Woche auf 160 m. In dieser Anordnung zeigt eine anhaltende gepaarte SNR-Differenz einen Versatz der Empfangszweige, der andernfalls einen späteren Antennenvergleich beeinflussen würde."
           },
           {
-            "heading": "2. Den Mittelwert der Joint Spots lesen",
-            "body": "Lasse im **Segment-Inspektor → Benchmark-Evidenz** alle Entfernungen und Richtungen ausgewählt. Lies bei **Joint-Spot Δ SNR** den Mittelwert über alle gepaarten Beobachtungen: Der rekonstruierte Wert beträgt **+1,214 dB**, angezeigt als **+1,2 dB**. Jeder Joint Spot trägt eine Differenz bei. Die gewählte Evidenzschwelle verlangt mindestens 50 Joint-Beobachtungen je berücksichtigtem Sender."
+            "heading": "2. Den arithmetischen Mittelwert der Spot-Paare lesen",
+            "body": "Lasse unter **Segmentdetails → Benchmark-Statistik** alle Entfernungsbereiche und Richtungen ausgewählt. Lies in **Paired Δ SNR** den arithmetischen Mittelwert über alle zugeordneten Beobachtungen: Der rekonstruierte Wert ist **+1,214 dB**, angezeigt als **+1,2 dB**. Jedes Spot-Paar trägt eine Differenz bei. Die gewählte Mindestanforderung an die Datengrundlage verlangt mindestens 50 gepaarte Beobachtungen von jedem einbezogenen Sender."
           },
           {
             "heading": "3. Eine andere Gewichtung vergleichen",
-            "body": "Betrachte nun **Stationsmediane (Δ SNR)**. Jeder Sender trägt einen Median bei, nicht einen Wert pro Joint Spot; hier liegen diese Stationsmediane bei **+1,0 dB**. Das ist kein widersprüchliches Kalibrierergebnis. Der Mittelwert der Joint-Spot-Differenzen und die Zusammenfassung der Stationsmediane verwenden unterschiedliche Beobachtungseinheiten und Gewichte. Benenne daher beim Zitieren eines Werts stets die verwendete Statistik."
+            "body": "Lies nun **Station Medians (Δ SNR)**. Jeder Sender trägt einen Median statt eines Werts je Spot-Paar bei; hier betragen diese Stationsmediane **+1,0 dB**. Das ist kein widersprüchliches Kalibrierungsergebnis. Der arithmetische Mittelwert der Spot-Paar-Differenzen und die Zusammenfassung der Stationsmediane verwenden unterschiedliche Beobachtungseinheiten und Gewichte. Benenne die statistische Größe stets, wenn du einen Wert angibst."
           },
           {
-            "heading": "4. Das Vorzeichen der Korrektur verstehen",
-            "body": "Die angezeigte Differenz lautet **ON4AWM0 − ON4AWM1**. Eine Addition von **+1,2 dB** zum Referenz-SNR würde die rekonstruierte mittlere Differenz nahe null verschieben. Die installierte Demo belässt die Korrektur bewusst bei **0,0 dB**, damit der ursprüngliche Versatz sichtbar bleibt. Demo #5 erläutert eine gesonderte Korrektur von **+1,6 dB** für ihre Rekonstruktion von Abbildung 6; ersetze einen Wert nicht stillschweigend durch den anderen."
+            "heading": "4. Das Vorzeichen der Korrektur interpretieren",
+            "body": "Die dargestellte Differenz ist **ON4AWM0 − ON4AWM1**. Das Addieren von **+1,2 dB** zum Referenz-SNR würde die rekonstruierte mittlere Differenz nahe an null verschieben. Die installierte Demo belässt die Korrektur bewusst bei **0.0 dB** und erhält damit den sichtbaren Versatz des Vergleichsniveaus. Demo #5 erörtert eine separate Korrektur von **+1,6 dB** für ihre Rekonstruktion von Abbildung 6; ersetze nicht stillschweigend einen Wert durch den anderen."
           }
         ]
       }
@@ -242,26 +242,26 @@
         ],
         "de": [
           {
-            "heading": "1. Den Funkweg der Publikation verfolgen",
-            "body": "Behalte **M7AEO (IO82)** in **Station Insights** ausgewählt. Das genaue Rufzeichen und der Locator kennzeichnen den Sendefunkweg dieses Vergleichs. Die Empfänger sind ON4AWM0 mit der unveränderten Langdrahtantenne und ON4AWM1 mit dem Dipol, den die Autoren nach der ersten Woche drehten. Die ausgewählte Evidenz betrifft diesen Funkweg; sie ist kein vollständiges Antennen-Strahlungsdiagramm."
+            "heading": "1. Dem Funkpfad der Veröffentlichung folgen",
+            "body": "Lasse **M7AEO (IO82)** in der **Stationsauswertung** ausgewählt. Dieses exakte Rufzeichen und dieser Locator identifizieren den für den Vergleich verwendeten Sendepfad. Die Empfänger sind ON4AWM0 mit der festen Langdrahtantenne und ON4AWM1 mit dem Dipol, den die Autoren nach der ersten Woche drehten. Die ausgewählten Beobachtungsdaten betreffen diesen Funkpfad; sie sind kein vollständiges Strahlungsdiagramm der Antenne."
           },
           {
-            "heading": "2. Die Veränderung um den 8. Mai finden",
-            "body": "Öffne **Evidenz der ausgewählten Station → Δ SNR im Zeitverlauf (12h-Bins)**. Lies ΔSNR als ON4AWM0 minus korrigiertes ON4AWM1 und suche den Übergang nach oben. Die dokumentierte Aufteilung in die ersten 750 und die verbleibenden Beobachtungen ergibt Mediane von **−0,6 dB** und **+2,4 dB**. Das ist eine **Verschiebung um 3 dB** zwischen diesen Beobachtungsgruppen, keine Aufteilung des Messzeitraums in gleich lange Hälften.",
+            "heading": "2. Die Änderung um den 8. Mai lokalisieren",
+            "body": "Öffne **Datengrundlage der ausgewählten Station → Δ SNR over Time (12h bins)**. Lies ΔSNR als ON4AWM0 minus korrigiertem ON4AWM1 und suche nach dem Übergang nach oben. Die dokumentierte Aufteilung in die ersten 750 und die übrigen Beobachtungen ergibt Mediane von **−0,6 dB** und **+2,4 dB**. Das ist eine **Verschiebung um 3 dB** zwischen diesen Beobachtungsgruppen, keine Aufteilung des Messzeitraums in gleich lange Abschnitte.",
             "media_keys": [
               "demo-5-selected-evidence"
             ]
           },
           {
             "heading": "3. Empfangsnummer und verstrichene Zeit verbinden",
-            "body": "Lies die vier Vergleichspanels der Reihe nach. Panel A bewahrt die Publikation; Panel B rekonstruiert die Beobachtungen in Empfangsreihenfolge; Panel C ordnet native Dichte-Bins ihren Bereichen von Empfangsnummern zu; Panel D zeigt die native UTC-Ansicht. Übereinstimmende Bin-Nummern verbinden Panels C und D. Empfangsnummern zählen Beobachtungen, UTC misst dagegen verstrichene Zeit: Ein Zeitraum ohne Empfang erhält keine Breite auf der Empfangsnummernachse.",
+            "body": "Lies die vier Vergleichsdarstellungen in ihrer Reihenfolge. Darstellung A erhält die Veröffentlichung; B rekonstruiert die Beobachtungen in der Empfangsreihenfolge; C bildet die nativen Dichteintervalle auf ihre Spannen der Empfangsnummern ab; D zeigt die native UTC-Ansicht. Übereinstimmende Intervallnummern verbinden C und D. Empfangsnummern zählen Beobachtungen, UTC misst dagegen verstrichene Zeit: Ein Zeitraum ohne Empfang erhält keine Breite auf der Achse der Empfangsnummern.",
             "media_keys": [
               "vanhamel-figure6-comparison"
             ]
           },
           {
-            "heading": "4. Vertikalen Versatz und Sprunghöhe unterscheiden",
-            "body": "Die Demo verwendet eine **Referenz-SNR-Korrektur von +1,6 dB**. Die ursprüngliche Beschreibung unten erläutert sie zusammen mit dem Wert von **1,2 dB** aus der Publikation. Eine konstante Korrektur verschiebt die gesamte Differenzkurve vertikal, verändert aber nicht die Größe des Übergangs. Lies native Achsen anhand ihrer beschrifteten dB-Werte, da ihre Abstände nichtlinear sind. Nutze **Segment-Inspektor → Zeitliche Evidenz** für die breitere, zusammengefasste Senderpopulation und halte sie vom ausgewählten Funkweg M7AEO getrennt."
+            "heading": "4. Vertikalen Versatz und Sprunghöhe trennen",
+            "body": "Die Demo verwendet eine **SNR-Korrektur der Referenz von +1,6 dB**, die in der ursprünglichen Beschreibung unten zusammen mit dem Wert **1,2 dB** der Veröffentlichung erläutert wird. Eine konstante Korrektur verschiebt die vollständige Differenzkurve vertikal; sie ändert die Größe des Übergangs nicht. Lies native Achsen anhand ihrer beschrifteten dB-Werte, denn ihre Abstände sind nichtlinear. Verwende **Segmentdetails → Datengrundlage im Zeitverlauf** für die breitere, zusammengefasste Senderpopulation und halte diese Population vom ausgewählten Funkpfad M7AEO getrennt."
           }
         ]
       }
@@ -298,26 +298,26 @@
         ],
         "de": [
           {
-            "heading": "1. Die beiden Sendeaufbauten bestimmen",
-            "body": "Das Target ist **SK0WE/P mit der kurzen Difona-Vertikalantenne**, die Referenz **SK0WE/1 mit der Hy-Gain AV620**. Beide befinden sich in JO97. Behalte für den Vergleich mit der Publikation das installierte Zeitfenster **21. Mai 2022, 09:45–10:30 UTC** bei. Ein Joint Spot erfordert Berichte über beide Sender vom selben entfernten Empfänger und Locator im selben zweiminütigen Zyklus."
+            "heading": "1. Die beiden Sendeaufbauten identifizieren",
+            "body": "Das Target ist **die kurze Difona-Vertikalantenne von SK0WE/P**, die Referenz **die Hy-Gain AV620 von SK0WE/1**. Beide stehen in JO97. Behalte das installierte Zeitfenster **21. Mai 2022, 09:45–10:30 UTC** bei, wenn du dem veröffentlichten Vergleich folgst. Ein Spot-Paar erfordert Empfangsberichte beider Sender von demselben entfernten Empfänger mit demselben Locator im selben zweiminütigen Zyklus."
           },
           {
             "heading": "2. Histogramme mit derselben Beobachtungseinheit vergleichen",
-            "body": "Lasse im **Segment-Inspektor → Benchmark-Evidenz** alle Richtungen und Entfernungen ausgewählt und verwende das Histogramm **Joint-Spot Δ SNR**. Sein Mittelwert beträgt über **166 gemeinsame Empfängerzyklen −6,78 dB** und spricht für die Referenz. Im Histogramm **Stationsmediane (Δ SNR)** erhält stattdessen jeder Empfänger einen Median. Nutze es für eine andere Gewichtung, nicht als gleichartigen Ersatz für die Joint-Spot-Verteilung der Publikation.",
+            "body": "Lasse unter **Segmentdetails → Benchmark-Statistik** alle Richtungen und Entfernungsbereiche ausgewählt und verwende das Histogramm **Paired Δ SNR**. Sein arithmetischer Mittelwert beträgt **−6,78 dB** über **166 gepaarte Empfängerzyklen** und begünstigt die Referenz. Das Histogramm **Station Medians (Δ SNR)** gibt stattdessen jedem Empfänger einen Median; nutze es zur Untersuchung einer anderen Gewichtung, nicht als gleichwertigen Ersatz der Spot-Paar-Verteilung der Veröffentlichung.",
             "media_keys": [
               "demo-6-segment"
             ]
           },
           {
             "heading": "3. Unterschiedliche Balkenhöhen verstehen",
-            "body": "Die Publikation und das native WSPRadar-Histogramm verwenden unterschiedliche Klassenbreiten und Einheiten der vertikalen Achse. Das Rekonstruktionspanel verbindet die gröbere, dichtebasierte Publikationsdarstellung mit WSPRadars **1-dB-Klassen** und Prozentanteilen gepaarter Beobachtungen. Vergleiche Klassengrenzen und Achsenbeschriftungen, bevor du Balkenhöhen gegenüberstellst. Die feinere native Darstellung bedeutet nicht, dass andere gepaarte Beobachtungen verwendet werden.",
+            "body": "Die Veröffentlichung und das native WSPRadar-Histogramm verwenden unterschiedliche Klassenbreiten und vertikale Einheiten. Die Rekonstruktionsdarstellung verbindet die gröbere, dichtebasierte Ansicht der Veröffentlichung mit WSPRadars **1-dB-Klassen** und dem Prozentsatz zugeordneter Beobachtungen. Vergleiche Klassengrenzen und Achsenbeschriftungen, bevor du Balkenhöhen vergleichst. Die feinere native Darstellung bedeutet keine andere Menge gepaarter Beobachtungen.",
             "media_keys": [
               "zander-figure4-comparison"
             ]
           },
           {
-            "heading": "4. Räumliche Unterschiede des relativen Vorteils untersuchen",
-            "body": "Vergleiche in der **Kartenansicht** die erfassten nordamerikanischen Funkwege mit europäischen Richtungen und untersuche diese anschließend im **Segment-Inspektor**. Kartensektoren fassen die medianen ΔSNR-Werte der Empfänger mit gleichem Empfängergewicht zusammen; sie zeigen nicht den Mittelwert aller Joint Spots. Wähle einzelne Empfänger in **Station Insights**, um die beitragenden Funkwege zu prüfen. Ungefärbte Sektoren besitzen keine gestützte Schätzung und weisen keine Antennennullstellen nach.",
+            "heading": "4. Untersuchen, wo der relative Vorteil variiert",
+            "body": "Vergleiche in der **Gesamtübersicht** die erfassten nordamerikanischen Funkpfade mit europäischen Richtungen und untersuche diese Richtungen anschließend in den **Segmentdetails**. Kartensektoren fassen die medianen ΔSNR-Werte der Empfänger bei gleicher Empfängergewichtung zusammen; sie sind nicht der arithmetische Mittelwert aller Spot-Paare. Wähle in der **Stationsauswertung** einzelne Empfänger aus, um beitragende Funkpfade zu untersuchen. Ungefärbten Sektoren fehlt eine ausreichend gestützte Zusammenfassungsgröße; sie belegen keine Nullstellen der Antenne.",
             "media_keys": [
               "demo-6-map"
             ]
@@ -357,24 +357,24 @@
           },
           {
             "heading": "5. Separate graphical agreement from paired evidence",
-            "body": "The many reconstructed publication markers and the much smaller same-cycle paired subset answer different validation questions. Unequal transmitting schedules and the **Target-Active Gate** also affect unpaired counts. Follow the original image, reconstruction, and native evidence panels to see which observations survive each rule. This case is particularly useful for a manual evidence audit; sparse pairs and station differences limit broader antenna conclusions."
+            "body": "The many reconstructed publication markers and the much smaller same-cycle paired subset answer different validation questions. Unequal transmitting schedules also affect unpaired counts. Benchmark retains eligible one-sided evidence symmetrically under the same peer-cycle consolidation and population filters, without a separate Target-activity witness. Follow the original image, reconstruction, and native evidence panels to see which observations survive each rule. This case is particularly useful for a manual evidence audit; sparse pairs and station differences limit broader antenna conclusions."
           }
         ],
         "de": [
           {
-            "heading": "1. Mit dem installierten RX-Rundgang beginnen",
-            "body": "Die installierte Demo startet in **RX Benchmark** mit **KP4MD als Target** und **WB6RQN als Referenz**. Ihr Hauptrundgang greift Abbildung 6 auf und untersucht empfangene Aussendungen von VE6PDQ. Lies den ausdrücklichen Hinweis zur Richtungskorrektur im Vergleich: Archivierte Endpunktidentitäten widersprechen der in der Originalabbildung gedruckten Richtung. Halte den RX-Rundgang vom optionalen TX-Anschlussbeispiel zu Abbildung 7 getrennt."
+            "heading": "1. Mit der installierten RX-Anleitung beginnen",
+            "body": "Die installierte Demo beginnt mit **RX Benchmark**, **KP4MD als Target** und **WB6RQN als Referenz**. Ihre Hauptanleitung untersucht Abbildung 6 erneut, beim Empfang von Aussendungen von VE6PDQ. Lies den ausdrücklichen Hinweis zur Richtungskorrektur im Vergleich: Die Endpunktidentitäten in der Datenbank widersprechen der aufgedruckten Richtung der ursprünglichen Abbildung. Halte die RX-Anleitung von der optionalen anschließenden TX-Untersuchung zu Abbildung 7 getrennt."
           },
           {
-            "heading": "2. Die vollständigen Locatoridentitäten getrennt halten",
-            "body": "Untersuche in **Station Insights** die vorausgewählte Identität **VE6PDQ (DO34IR)** mit drei Joint Spots. Wähle anschließend **VE6PDQ (DO34)** für die beiden weiteren aus. Das gemeinsame Rufzeichen führt diese gemeldeten Identitäten nicht zusammen. Berichte aus demselben Zyklus mit unterschiedlichen vollständigen Senderlocatoren bilden keinen Joint Spot; eine visuelle Zusammenfassung würde diese Evidenzregel verdecken.",
+            "heading": "2. Identitäten mit vollständigen Locatoren getrennt halten",
+            "body": "Untersuche in der **Stationsauswertung** die vorausgewählte Identität **VE6PDQ (DO34IR)**, die drei Spot-Paare liefert. Wähle anschließend **VE6PDQ (DO34)** für die anderen beiden. Das gemeinsame Rufzeichen führt diese gemeldeten Identitäten nicht zusammen. Empfangsberichte desselben Zyklus mit unterschiedlichen vollständigen Senderlocatoren bilden kein Spot-Paar; ihre visuelle Zusammenfassung würde die Regel der Datenauswahl verdecken.",
             "media_keys": [
               "demo-7-stations"
             ]
           },
           {
-            "heading": "3. Ein Paar durch die Panels verfolgen",
-            "body": "Nutze das Beispiel vom **19. Dezember, 14:46 UTC**, um ursprüngliche Berichtswerte, Rekonstruktion und gepaarte Differenz zu verbinden. Aus **+2 dB** bei KP4MD und **−6 dB** bei WB6RQN, jeweils bei 5 W, werden auf der gemeinsamen 1-W-Skala **−5 dB** und **−13 dB**. Die Differenz bleibt **+8 dB**. Die blassen Hilfslinien verbinden zulässige Endpunkte desselben Zyklus mit vollständiger Locatorübereinstimmung; sie sind keine interpolierten Beobachtungen.",
+            "heading": "3. Ein Spot-Paar durch die Darstellungen verfolgen",
+            "body": "Nutze das Beispiel vom **19. Dezember, 14:46 UTC**, um die ursprünglichen Werte der Empfangsberichte, die Rekonstruktion und die gepaarte Differenz zu verbinden. KP4MDs **+2 dB** und WB6RQNs **−6 dB**, beide bei 5 W, werden auf der gemeinsamen 1-W-Skala zu **−5 dB** und **−13 dB**. Ihre Differenz bleibt **+8 dB**. Die schwachen Hilfslinien verbinden zulässige Endpunkte desselben Zyklus mit vollständigem Locator; sie sind keine interpolierten Beobachtungen.",
             "media_keys": [
               "milazzo-figure6-rx-comparison",
               "demo-7-drilldown"
@@ -382,14 +382,14 @@
           },
           {
             "heading": "4. Mit dem optionalen TX-Vergleich fortfahren",
-            "body": "Wechsle für Abbildung 7 die **Analyserichtung** zu **TX** und behalte Stationen, Datum, Band und Entfernungsgrenze bei. Der Empfänger VE6PDQ bildet nun den ausgewählten entfernten Funkweg. Dort bleibt nur ein Joint Spot erhalten, während die breitere TX-Konfiguration 45 Joint-Beobachtungen über 30 Empfänger enthält. Lies vor der Deutung dieser gepaarten Differenz das Beispiel zur Leistungsnormalisierung vom **20. Dezember, 00:22 UTC**, in der ursprünglichen Beschreibung.",
+            "body": "Wechsle für Abbildung 7 unter **RX- oder TX-Analyse** zu **TX-Analyse** und behalte dieselben Stationen, Kalendertage, dasselbe Band und dieselbe Entfernungsgrenze bei. Der Empfänger VE6PDQ liefert nun den ausgewählten entfernten Funkpfad. Dort bleibt nur ein Spot-Paar erhalten, während die breitere TX-Konfiguration 45 gepaarte Beobachtungen über 30 Empfänger enthält. Lies das Beispiel zur Leistungsnormierung vom **20. Dezember, 00:22 UTC**, in der ursprünglichen Beschreibung, bevor du diese gepaarte Differenz interpretierst.",
             "media_keys": [
               "milazzo-figure7-tx-comparison"
             ]
           },
           {
-            "heading": "5. Grafische Übereinstimmung von gepaarter Evidenz trennen",
-            "body": "Die zahlreichen rekonstruierten Publikationsmarkierungen und die deutlich kleinere Teilmenge der zyklusgleichen Paare beantworten unterschiedliche Validierungsfragen. Ungleiche Sendezeitpläne und das **Target-Active Gate** beeinflussen außerdem die nicht gemeinsamen Beobachtungszahlen. Verfolge Originalbild, Rekonstruktion und native Evidenz, um zu sehen, welche Beobachtungen die jeweiligen Regeln erfüllen. Dieses Beispiel eignet sich besonders für eine manuelle Evidenzprüfung; wenige Paare und Stationsunterschiede begrenzen weitergehende Antennenschlüsse."
+            "heading": "5. Grafische Übereinstimmung von gepaarten Beobachtungsdaten trennen",
+            "body": "Die vielen rekonstruierten Marker der Veröffentlichung und die wesentlich kleinere Teilmenge gleicher Zyklen mit Spot-Paaren beantworten unterschiedliche Validierungsfragen. Ungleiche Sendezeitpläne beeinflussen außerdem ungepaarte Anzahlen. Benchmark behält zulässige einseitige Beobachtungsdaten symmetrisch unter derselben Zusammenfassung je Gegenstation und Zyklus und denselben Populationsfiltern bei, ohne einen gesonderten Nachweis der Target-Aktivität. Verfolge Originalabbildung, Rekonstruktion und native Beobachtungsdaten, um zu sehen, welche Beobachtungen jede Regel passieren. Dieser Fall eignet sich besonders für eine manuelle Prüfung der Datengrundlage; wenige Spot-Paare und Stationsunterschiede begrenzen weitergehende Antennenschlussfolgerungen."
           }
         ]
       }
@@ -425,27 +425,27 @@
     "de": [
       {
         "id": "map-view",
-        "title": "Kartenansicht",
-        "question": "Wo arbeitet deine Station gut?",
-        "body": "Beginne mit dem räumlichen Muster um das Target: Richtung, Entfernung und verfügbare Evidenz je Sektor. Bei **Performance** zeigen die Farben die **stationsgewichtete Dekodierrate** mit gleichem Gewicht für jede qualifizierende entfernte Stationsidentität. Bei **Benchmark** fassen sie das **relative SNR** über den Median der Stationsmediane der Differenzen zusammen. Lies Farben zusammen mit Stations- und Beobachtungszahlen. Ein ungefärbter Sektor liefert keine gestützte Sektorschätzung; er weist keine Antennennullstelle nach."
+        "title": "Gesamtübersicht",
+        "question": "Wo funktioniert deine Station gut?",
+        "body": "Beginne mit dem geografischen Muster rund um das Target: Richtung, Entfernung und die in jedem Sektor verfügbare Datengrundlage. In **Performance** zeigen Farben die **Dekodierquote bei gleicher Stationsgewichtung**, wobei jede qualifizierte Gegenstationsidentität gleiches Gewicht erhält. In **Benchmark** fassen Farben das **relative SNR** über den Median der medianen Differenzen der Gegenstationen zusammen. Lies Farben gemeinsam mit Stations- und Beobachtungszahlen. Ein ungefärbter Sektor liefert keine ausreichend gestützte Zusammenfassungsgröße für diesen Sektor; er belegt keine Nullstelle der Antenne."
       },
       {
         "id": "segment-inspector",
-        "title": "Segment-Inspektor",
-        "question": "Wie gut arbeitet deine Station im ausgewählten Bereich?",
-        "body": "Wähle Richtungen und Entfernungsbereiche, um den aktiven Umfang für die folgende Evidenz festzulegen. Vergleiche bei **Performance** Reichweite, Dekodierrate, erfolgreiches SNR und deren Datengrundlage. Vergleiche bei **Benchmark** Stationsmediane, Joint-Spot-Differenzen und das Verhältnis gepaarter zu ungepaarten Beobachtungen. Die zeitliche Evidenz ergänzt chronologische Ansichten und Ansichten nach UTC-Stunde. Diese Zusammenfassungen beschreiben die ausgewählte Population; stationsgewichtete und beobachtungsgewichtete Ergebnisse müssen nicht übereinstimmen."
+        "title": "Segmentdetails",
+        "question": "Wie schneidet deine Station in der gewählten Region ab?",
+        "body": "Wähle Richtungen und Entfernungsbereiche, um den aktiven Bereich für die nachfolgenden Beobachtungsdaten zu definieren. Vergleiche in **Performance** erfasste Gegenstationen, Dekodierquote, SNR erfolgreicher Dekodierungen und ihre Datengrundlage. Vergleiche in **Benchmark** Stationsmediane, Spot-Paar-Differenzen und das Verhältnis gepaarter und ungepaarter Beobachtungen. Die Datengrundlage im Zeitverlauf ergänzt die chronologischen Ansichten und Ansichten nach UTC-Stunde. Diese Zusammenfassungen beschreiben die ausgewählte Population; nach Stationen und nach Beobachtungen gewichtete Ergebnisse müssen nicht gleich sein."
       },
       {
         "id": "station-insights",
-        "title": "Station Insights",
-        "question": "Welche einzelnen Funkwege erklären das regionale Muster?",
-        "body": "Jede Zeile steht für eine entfernte Stationsidentität: **Rufzeichen und gemeldeter Locator**. Vergleiche ihre Evidenz mit der regionalen Zusammenfassung und wähle anschließend eine Station aus, um ihr zeitliches Verhalten in der **Evidenz der ausgewählten Station** zu untersuchen. Behalte den Locator bei, wenn du Funkwege unterscheidest oder eine Demo prüfst. Ein regionales Muster kann Stationen mit unterschiedlichen Empfangsverläufen zusammenfassen; ein einzelner Funkweg zeigt, wie viel davon bei dieser Identität sichtbar ist."
+        "title": "Stationsauswertung",
+        "question": "Welche einzelnen Funkpfade erklären das regionale Muster?",
+        "body": "Jede Zeile steht für eine Gegenstationsidentität: **Rufzeichen plus gemeldeter Locator**. Vergleiche ihre Beobachtungsdaten mit der regionalen Zusammenfassung und wähle anschließend eine Station aus, um ihr zeitliches Verhalten unter **Datengrundlage der ausgewählten Station** zu untersuchen. Behalte den Locator bei, wenn du Funkpfade unterscheidest oder eine Demo prüfst. Ein regionales Muster kann Stationen mit unterschiedlichen Empfangsverläufen kombinieren; die Untersuchung eines Funkpfads zeigt, wie viel dieses Musters für diese Identität sichtbar ist."
       },
       {
         "id": "drill-down",
-        "title": "Drill-Down",
+        "title": "Detaildaten",
         "question": "Welche Beobachtungen stützen das Ergebnis?",
-        "body": "Untersuche die detaillierte Evidenz hinter der ausgewählten Station und dem Zeitfenster. Prüfe bei **Benchmark** die Paarbildung im selben Zyklus, Target- und Referenzwerte sowie das angezeigte ΔSNR. Verfolge bei **Performance** die berücksichtigten Gelegenheiten, erfolgreichen Dekodierungen und bestätigten nicht dekodierten Gelegenheiten. Verbinde anhand der Detailzeilen ein Diagrammmerkmal mit seinen beitragenden Datensätzen und prüfe Normalisierungs- oder Auswahlregeln. Eine nachvollziehbare Beobachtung stützt eine Berechnung; sie belegt für sich genommen keine physikalische Ursache."
+        "body": "Untersuche die detaillierten Beobachtungsdaten hinter der ausgewählten Station und dem Zeitfenster. Prüfe in **Benchmark** die Paarbildung im selben Zyklus, Target- und Referenzwerte sowie das dargestellte ΔSNR. Verfolge in **Performance** die beibehaltenen Empfangsgelegenheiten, erfolgreichen Dekodierungen und nicht dekodierten Gelegenheiten. Verbinde anhand der detaillierten Zeilen ein Merkmal des Diagramms mit seinen beitragenden Datensätzen und untersuche Normierungs- oder Auswahlregeln. Eine nachvollziehbare Beobachtung stützt eine Berechnung; sie belegt für sich allein keine physikalische Ursache."
       }
     ]
   }

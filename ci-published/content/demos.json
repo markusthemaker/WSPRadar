@@ -2,7 +2,7 @@
   {
     "config_path": "configs/griffiths_squibb_fig3.config",
     "description": {
-      "de": "**RX Benchmark vergleicht zwei Empfangsstationen:** Welche empfängt gemeinsame Signale klarer, und welche decodiert mehr Signale, die die andere verpasst?\n\nVergleiche **G3ZILs niedrig aufgehängten horizontalen Dipol** mit **G4HZXs Vertikalantenne ohne Radials** auf **40 m im April 2017**. Zyklusgleiche WSPR-Reports zeigen gepaarte SNR-Differenzen; alle beibehaltenen Decodes zeigen die Empfangsreichweite.\n\nVerglichen werden vollständige Empfangsstationen einschließlich Standort, Geräten und örtlichem Störpegel. Die Demo isoliert weder den Antennengewinn noch weist sie die Ursache von Veränderungen nach.\n\nWir empfehlen, die geführte Demo parallel zur App zu öffnen, um Aufbau, Ergebnisse und Interpretation Schritt für Schritt nachzuvollziehen.\n\n[Geführte Demo & Erklärung ↗](https://wspradar.org/de/demos/griffiths_squibb_fig3/) · [Originalpublikation (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf) · [Abbildung 3 der Publikation: Rekonstruktion & Vergleich (PDF) ↗](https://wspradar.org/assets/demos/griffiths_fig3_paper_v1/WSPRadar_Demo_Griffiths_Figure3.pdf)",
+      "de": "**RX Benchmark vergleicht zwei Empfangsstationen:** Welche empfängt gemeinsame Signale klarer, und welche dekodiert Signale, die die andere nicht dekodiert?\n\n[**Empfohlene Demo-Anleitung und Erläuterungen öffnen ↗**](https://www.wspradar.org/de/demos/griffiths_squibb_fig3/)\n\nVergleiche **den niedrig aufgehängten horizontalen Dipol von G3ZIL** mit **der Vertikalantenne ohne Radials von G4HZX** auf **40 m während des gesamten April 2017**. Untersuche, wie sich ihr relativer Empfang mit Richtung, Entfernung und Zeit verändert. Diese Demo vergleicht vollständige Empfangsstationen einschließlich Standort, Geräten und lokalem Störpegel. [Originalpublikation (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)",
       "en": "**RX Benchmark compares two receiving stations:** which hears shared signals more clearly, and which decodes signals the other misses?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/griffiths_squibb_fig3/)\n\nCompare **G3ZIL’s low horizontal dipole** with **G4HZX’s radial-free vertical** on **40 m throughout April 2017**. Explore how their relative reception changes with direction, distance, and time. This demo compares complete receiving stations, including location, equipment, and local noise. [Original paper (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)"
     },
     "id": "griffiths_squibb_fig3",
@@ -70,7 +70,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -92,11 +92,11 @@
       {
         "key": "benchmark_design",
         "label": {
-          "de": "Benchmark-Design",
+          "de": "Aufbau des Benchmark-Vergleichs",
           "en": "Benchmark design"
         },
         "value": {
-          "de": "Referenzaufbau/-station",
+          "de": "Referenzaufbau oder Referenzstation",
           "en": "Reference Setup/Station"
         }
       },
@@ -114,7 +114,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -129,14 +129,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 10 000 km; alle Richtungen",
+          "de": "Innerhalb von 10 000 km; alle Richtungen",
           "en": "Within 10 000 km; all directions"
         }
       },
       {
         "key": "reference_snr_correction",
         "label": {
-          "de": "Referenz-SNR-Korrektur",
+          "de": "SNR-Korrektur der Referenz",
           "en": "Reference SNR correction"
         },
         "value": {
@@ -147,7 +147,7 @@
       {
         "key": "min_spot_pairs_per_station",
         "label": {
-          "de": "Mindestanzahl Joint Spots je Station für ΔSNR",
+          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
           "en": "Minimum spot pairs per station for ΔSNR"
         },
         "value": {
@@ -158,7 +158,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔSNR",
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
@@ -169,7 +169,7 @@
       {
         "key": "min_decode_event_share_percent",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔDecode",
+          "de": "Mindestanteil beobachteter Ereignisse je Segment für ΔDecode",
           "en": "Minimum observed-event share per segment for ΔDecode"
         },
         "value": {
@@ -180,7 +180,7 @@
       {
         "key": "delta_snr_outlier_reporting",
         "label": {
-          "de": "ΔSNR-Ausreißerkandidaten melden",
+          "de": "Mögliche ΔSNR-Ausreißer erkennen",
           "en": "Identify ΔSNR outlier candidates"
         },
         "value": {
@@ -212,14 +212,14 @@
       }
     ],
     "title": {
-      "de": "#1 Prof. Griffiths (G3ZIL) et al. RX-Vergleich: Niedrig aufgehängter Dipol gegen Vertikalantenne ohne Radials.",
+      "de": "#1 RX Benchmark: Prof. Griffiths (G3ZIL) et al. Empfangsvergleich: Niedrig aufgehängter Dipol gegen Vertikalantenne ohne Radials",
       "en": "#1 RX Benchmark: Prof. Griffiths (G3ZIL) et al. RX Comparison: Low Dipole vs Radial-Free Vertical"
     }
   },
   {
     "config_path": "configs/griffiths_squibb_fig6.config",
     "description": {
-      "de": "[Publikation: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nDiese Demo erweitert die erste Demo zu Griffiths und Squibb: Vom Vergleich über den gesamten Monat in Abbildung 3 geht es nun zum Tagesmuster in **Abbildung 6**. Im Mittelpunkt stehen der **5.–7. April 2017** und dieselben beiden Empfangsstationen auf 40 m: **G3ZIL mit einem niedrig aufgehängten horizontalen Dipol** und **G4HZX mit einer Vertikalantenne ohne Radials**.\n\n[**Vergleich zu Abbildung 6 (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Vergleiche die veröffentlichte Originalabbildung mit einer Rekonstruktion und dem WSPRadar-Diagramm.\n\nWSPRadar paart Empfangsberichte derselben Sendestation aus demselben zweiminütigen WSPR-Zyklus. Die Differenz ihrer Signal-Rausch-Verhältnisse lautet **ΔSNR = G3ZIL − G4HZX**: Positive Werte sprechen für G3ZIL, negative für G4HZX, und 0 dB bedeutet gleiches gemeldetes SNR.\n\nÖffne **Segment-Inspektor → Zeitliche Evidenz** und untersuche **Δ SNR nach UTC-Stunde (1-h-Bins)**. Dieses Diagramm fasst Beobachtungen derselben Stunde von allen drei Tagen zusammen. So erscheinen beispielsweise Empfangsberichte zwischen 07:00 und 08:00 UTC gemeinsam, unabhängig von ihrem Datum. Diese *Faltung nach UTC-Stunde* hilft dabei, ein Tagesmuster zu erkennen.\n\nAchte auf den Vorteil von G4HZX in den frühen Stunden: Die Stundenmediane liegen bei etwa **−1 bis −3 dB um 01–04 UTC**. Ab **05 UTC** werden sie positiv und erreichen **+5 bis +8 dB um 07–20 UTC**. Die Markierungen zeigen die Stundenmediane, das schattierte Band die mittleren 50 % der Beobachtungen und die Farben, wo sich Beobachtungen konzentrieren.\n\nVergleiche dies mit **Δ SNR im Zeitverlauf**, um Unterschiede zwischen den einzelnen Tagen zu erkennen. Nutze die Karte und den **Segment-Inspektor**, um verschiedene Richtungen und Entfernungen zu untersuchen, oder wähle in **Station Insights** eine Sendestation aus, um einen einzelnen Funkweg zu betrachten.\n\nDies sind Muster in den zusammengefassten Beobachtungen, kein für jede Aussendung gleichermaßen geltendes Ergebnis. Wie in der ersten Demo umfasst der Vergleich die Einflüsse von Antenne, Standort, Geräten und örtlichem Störpegel; er trennt deren Ursachen nicht voneinander.",
+      "de": "[Publikation: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nDiese Demo erweitert die erste Demo zu Griffiths und Squibb: Vom Vergleich über den gesamten Monat in Abbildung 3 geht es zum Tagesmuster in **Abbildung 6**. Im Mittelpunkt steht der **5.–7. April 2017**, verglichen werden dieselben beiden Empfangsstationen auf 40 m: **G3ZIL mit einem niedrig aufgehängten horizontalen Dipol** und **G4HZX mit einer Vertikalantenne ohne Radials**.\n\n[**Vergleich zu Abbildung 6 (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Vergleiche die veröffentlichte Originalabbildung mit einer Rekonstruktion und dem WSPRadar-Diagramm.\n\nWSPRadar paart Empfangsberichte derselben Sendestation aus demselben zweiminütigen WSPR-Zyklus. Die Differenz ihrer Signal-Rausch-Abstände lautet **ΔSNR = G3ZIL − G4HZX**: Positive Werte sprechen für G3ZIL, negative für G4HZX, und 0 dB bedeutet gleiches gemeldetes SNR.\n\nÖffne **Segmentdetails → Datengrundlage im Zeitverlauf** und untersuche **Δ SNR by UTC Hour (1 h bins)**. Dieses Diagramm fasst Beobachtungen derselben Stunde von allen drei Tagen zusammen — beispielsweise erscheinen Empfangsberichte zwischen 07:00 und 08:00 UTC gemeinsam, unabhängig von ihrem Datum. Diese *Zusammenfassung nach UTC-Stunde* hilft dabei, ein Tagesmuster zu erkennen.\n\nAchte auf den Vorteil von G4HZX in den frühen Stunden: Die Stundenmediane liegen bei etwa **−1 bis −3 dB zwischen 01 und 04 UTC**. Ab **05 UTC** werden sie positiv und erreichen **+5 bis +8 dB zwischen 07 und 20 UTC**. Die Markierungen zeigen die Stundenmediane, das schattierte Band die mittleren 50 % der Beobachtungen und die Farben, wo sich Beobachtungen konzentrieren.\n\nVergleiche dies mit **Δ SNR over Time**, um zu sehen, wie sich das Muster zwischen den einzelnen Tagen unterscheidet. Nutze die Karte und die **Segmentdetails**, um verschiedene Richtungen und Entfernungen zu untersuchen, oder wähle in der **Stationsauswertung** eine Sendestation aus, um einen einzelnen Funkpfad zu betrachten.\n\nDies sind Muster in den zusammengefassten Beobachtungen, kein für jede Aussendung gleichermaßen geltendes Ergebnis. Wie in der ersten Demo umfasst der Vergleich die Einflüsse von Antenne, Standort, Geräten und lokalem Störpegel; er grenzt ihre Ursachen nicht voneinander ab.",
       "en": "[Publication: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nThis demo extends the first Griffiths and Squibb demo, moving from the month-long comparison in Figure 3 to the daily pattern in **Figure 6**. It focuses on **5–7 April 2017**, comparing the same two receiving stations on 40 m: **G3ZIL, using a low horizontal dipole**, and **G4HZX, using a vertical antenna without radials**.\n\n[**Figure 6 comparison (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Compare the original published figure with a reconstruction and the WSPRadar chart.\n\nWSPRadar matches reports of the same transmitting station from the same two-minute WSPR cycle. Their signal-to-noise ratio difference is **ΔSNR = G3ZIL − G4HZX**: positive values favour G3ZIL, negative values favour G4HZX, and 0 dB means equal reported SNR.\n\nGo to **Segment Inspector → Temporal Evidence**, and explore **Δ SNR by UTC Hour (1 h bins)**. This chart combines observations from the same hour on all three dates — for example, reports between 07:00 and 08:00 UTC appear together, regardless of their date. This is called *UTC-hour folding* and helps reveal a daily pattern.\n\nLook for G4HZX’s advantage in the early hours: the hourly medians are about **−1 to −3 dB at 01–04 UTC**. They become positive from **05 UTC**, reaching **+5 to +8 dB at 07–20 UTC**. The markers show hourly medians, the shaded band shows the middle 50% of observations, and the colours show where observations are concentrated.\n\nCompare this with **Δ SNR over Time** to see how the pattern differs between the individual dates. Use the map and **Segment Inspector** to explore different directions and distances, or select a transmitting station in **Station Insights** to examine one radio path.\n\nThese are patterns in the combined observations, not a result shared by every transmission. As in the first demo, the comparison includes antenna, location, equipment and local-noise effects; it does not isolate their causes."
     },
     "id": "griffiths_squibb_fig6",
@@ -282,7 +282,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -304,11 +304,11 @@
       {
         "key": "benchmark_design",
         "label": {
-          "de": "Benchmark-Design",
+          "de": "Aufbau des Benchmark-Vergleichs",
           "en": "Benchmark design"
         },
         "value": {
-          "de": "Referenzaufbau/-station",
+          "de": "Referenzaufbau oder Referenzstation",
           "en": "Reference Setup/Station"
         }
       },
@@ -326,7 +326,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -341,14 +341,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 10 000 km; alle Richtungen",
+          "de": "Innerhalb von 10 000 km; alle Richtungen",
           "en": "Within 10 000 km; all directions"
         }
       },
       {
         "key": "reference_snr_correction",
         "label": {
-          "de": "Referenz-SNR-Korrektur",
+          "de": "SNR-Korrektur der Referenz",
           "en": "Reference SNR correction"
         },
         "value": {
@@ -359,7 +359,7 @@
       {
         "key": "min_spot_pairs_per_station",
         "label": {
-          "de": "Mindestanzahl Joint Spots je Station für ΔSNR",
+          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
           "en": "Minimum spot pairs per station for ΔSNR"
         },
         "value": {
@@ -370,7 +370,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔSNR",
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
@@ -381,7 +381,7 @@
       {
         "key": "min_decode_event_share_percent",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔDecode",
+          "de": "Mindestanteil beobachteter Ereignisse je Segment für ΔDecode",
           "en": "Minimum observed-event share per segment for ΔDecode"
         },
         "value": {
@@ -392,7 +392,7 @@
       {
         "key": "delta_snr_outlier_reporting",
         "label": {
-          "de": "ΔSNR-Ausreißerkandidaten melden",
+          "de": "Mögliche ΔSNR-Ausreißer erkennen",
           "en": "Identify ΔSNR outlier candidates"
         },
         "value": {
@@ -418,20 +418,20 @@
           "en": "Selected stations"
         },
         "value": {
-          "de": "Automatic",
+          "de": "Automatisch",
           "en": "Automatic"
         }
       }
     ],
     "title": {
-      "de": "#2 Prof. Griffiths (G3ZIL) et al. RX-Vergleich: Umkehr des SNR-Vorteils zwischen Tag und Nacht: Niedrig aufgehängter Dipol gegen Vertikalantenne",
+      "de": "#2 Prof. Griffiths (G3ZIL) et al. Empfangsvergleich: Umkehr des SNR-Vorteils zwischen Tag und Nacht: Niedrig aufgehängter Dipol gegen Vertikalantenne",
       "en": "#2 Prof. Griffiths (G3ZIL) et al. RX Comparison: Day/Night SNR Reversal: Low Dipole vs Vertical"
     }
   },
   {
     "config_path": "configs/griffiths_squibb_rx_performance.config",
     "description": {
-      "de": "Erkunde G3ZILs 40-m-Empfang über einen Monat: gehörte Sender, Dekodierraten und das SNR erfolgreicher Decodes. Verfolge die zeitlichen Muster und prüfe anschließend die bestätigten Empfangsgelegenheiten von HB0QRP.\n\nDiese RX-Performance-Analyse verwendet G3ZIL (IO90HW), den Zeitraum vom 1. April bis 1. Mai 2017 UTC und Gegenstationen unter 22.000 km Entfernung. Erforderlich sind mindestens 3 bestätigte Empfangsgelegenheiten je Senderidentität und mindestens 1 qualifizierte Identität je Kartensegment. Es gibt keinen Referenzempfänger. Karte und Zusammenfassungen beschreiben den Empfang bei Gelegenheiten mit nachweisbarer Aktivität des Ziel-Empfängers.\n\nBeginne mit dem gesamten Entfernungsbereich und allen Richtungen. HB0QRP (JN47) ist vorausgewählt. Die getrennten Zeitregler für Segment und ausgewählte Station stehen jeweils auf 12h; die UTC-Stundenprofile verwenden feste 1h-Intervalle. Betrachte mindestens einmal gehörte Sender, Dekodierbeständigkeit und das SNR erfolgreicher Decodes gemeinsam. Prüfe anschließend im Drill-Down erfolgreiche Decodes, nur vom Ziel-Empfänger gemeldete Erfolge und belegte verpasste Gelegenheiten. Das Guided Demo enthält die vollständige Erklärung und den Link zur Originalstudie.",
+      "de": "**RX Performance untersucht eine Empfangsstation:** Was empfängt sie, wie beständig dekodiert sie bestätigte Empfangsgelegenheiten, und wie verändert sich der Empfang im Zeitverlauf?\n\n[**Empfohlene Demo-Anleitung und Erläuterungen öffnen ↗**](https://www.wspradar.org/de/demos/griffiths_squibb_rx_performance/)\n\nUntersuche **den niedrig aufgehängten Dipol von G3ZIL auf 40 m während des gesamten April 2017**, mit einem weltweiten Blick auf die Sendestationen. Betrachte **Anzahl erfasster Gegenstationen, Dekodierquote und SNR erfolgreicher Dekodierungen** gemeinsam und verfolge anschließend einen einzelnen Funkpfad durch den Monat. Diese WSPRadar-Auswertung beschreibt eine einzelne Empfangsstation; die Originalpublikation liefert dazu lediglich den Hintergrund zur Station. Eine Rekonstruktion des Empfangsstationsvergleichs aus der Publikation findest du unter [**RX Benchmark: Niedrig aufgehängter Dipol gegen Vertikalantenne ohne Radials ↗**](https://www.wspradar.org/de/demos/griffiths_squibb_fig3/). [Originalpublikation (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)",
       "en": "**RX Performance examines one receiving station:** what does it hear, how consistently does it decode confirmed opportunities, and how does reception change over time?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/griffiths_squibb_rx_performance/)\n\nExplore **G3ZIL’s low dipole on 40 m throughout April 2017**, using a worldwide view of transmitting stations. Read **reach, Decode Rate, and successful SNR** together, then follow an individual path through the month. This WSPRadar analysis describes a single receiving station; the original paper provides its station context only. For a reproduction of the paper’s receiving-station comparison, see [**RX Benchmark: Low Dipole vs Radial-Free Vertical ↗**](https://www.wspradar.org/en/demos/griffiths_squibb_fig3/). [Original paper (PDF) ↗](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)"
     },
     "id": "griffiths_squibb_rx_performance",
@@ -490,7 +490,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -512,7 +512,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -527,14 +527,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 22 000 km; alle Richtungen",
+          "de": "Innerhalb von 22 000 km; alle Richtungen",
           "en": "Within 22 000 km; all directions"
         }
       },
       {
         "key": "min_confirmed_opportunities_per_peer",
         "label": {
-          "de": "Mindestanzahl bestätigter Gelegenheiten je Station",
+          "de": "Mindestzahl bestätigter Empfangsgelegenheiten je Station",
           "en": "Minimum confirmed opportunities per station"
         },
         "value": {
@@ -545,7 +545,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Kartensegment",
+          "de": "Mindestzahl qualifizierter Stationen je Kartensegment",
           "en": "Minimum qualifying stations per map segment"
         },
         "value": {
@@ -560,14 +560,14 @@
           "en": "Solar state at Target QTH"
         },
         "value": {
-          "de": "Ganze 24h",
+          "de": "Alle Tageszeiten",
           "en": "All 24h"
         }
       },
       {
         "key": "exclude_special_callsigns",
         "label": {
-          "de": "Spezial-Rufzeichen Q, 0, 1 ausschließen",
+          "de": "Rufzeichen mit Q, 0 oder 1 am Anfang ausschließen",
           "en": "Exclude Special Callsigns Q, 0, 1"
         },
         "value": {
@@ -578,7 +578,7 @@
       {
         "key": "exclude_moving_stations",
         "label": {
-          "de": "Bewegliche Stationen filtern",
+          "de": "Bewegliche Stationen ausschließen",
           "en": "Exclude Moving Stations"
         },
         "value": {
@@ -610,14 +610,14 @@
       }
     ],
     "title": {
-      "de": "RX-Performance: Ein Monat auf 40 m mit einem niedrigen Dipol",
+      "de": "#3 RX Performance: Prof. Griffiths (G3ZIL) et al. Ein Monat auf 40 m mit einem niedrig aufgehängten Dipol",
       "en": "#3 RX Performance: Prof. Griffiths (G3ZIL) et al. A Month on 40 m with a Low Dipole"
     }
   },
   {
     "config_path": "configs/vanhamel_rx_calibration.config",
     "description": {
-      "de": "**RX Benchmark vergleicht zwei Empfangsstationen.** Vergleiche **ON4AWM0 und ON4AWM1** auf **160 m vom 6.–13. Februar 2021**, um vor einem Antennenvergleich den Offset der Empfangsketten zu untersuchen. Die Publikation beschreibt beide Empfangsketten an derselben Antenne; das Archiv allein bestätigt diese Verbindung nicht für die gesamte ausgewählte Woche.\n\nDie Demo verwendet **0,0 dB Korrektur**, damit der ursprüngliche Offset sichtbar bleibt. Der **Mittelwert von +1,2 dB über qualifizierende Joint Spots** unterscheidet sich vom **stationsgleichgewichteten Median von +1,0 dB**.\n\nWir empfehlen, die geführte Demo parallel zur App zu öffnen, um Aufbau, Ergebnisse und Interpretation Schritt für Schritt nachzuvollziehen.\n\n[Geführte Demo & Erklärung ↗](https://wspradar.org/de/demos/vanhamel_rx_calibration/) · [Originalpublikation ↗](https://doi.org/10.1155/2022/4809313) · [Kalibrierungsrekonstruktion (Abbildung) ↗](https://wspradar.org/assets/demos/vanhamel_rx_calibration/benchmark-evidence.en.png)",
+      "de": "**RX Benchmark Calibration prüft die Empfangsketten vor dem Antennenvergleich:** Melden sie dasselbe SNR, wenn sie von derselben Antenne gespeist werden?\n\n[**Empfohlene Demo-Anleitung und Erläuterungen öffnen ↗**](https://www.wspradar.org/de/demos/vanhamel_rx_calibration/)\n\nVergleiche **ON4AWM0 und ON4AWM1**, die **im Februar 2021** über einen **Splitter an dieselbe Langdrahtantenne angeschlossen** waren. Rekonstruiere den **arithmetischen Mittelwert des SNR-Offsets von 1,2 dB** und erkenne, warum die Kalibrierung wichtig ist, bevor du einen Unterschied den Antennen zuschreibst. Der gemessene Offset betrifft die Empfangsketten als Ganzes. [Originalpublikation ↗](https://doi.org/10.1155/2022/4809313)",
       "en": "**RX Benchmark Calibration checks the receiving chains before comparing antennas:** do they report the same SNR when fed by the same antenna?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/vanhamel_rx_calibration/)\n\nCompare **ON4AWM0 and ON4AWM1**, connected to the **same long-wire antenna through a splitter** **during February 2021**. Reconstruct the **1.2 dB mean SNR offset** and see why calibration matters before attributing a difference to antennas. The measured offset belongs to the receiving chains as a whole. [Original paper ↗](https://doi.org/10.1155/2022/4809313)"
     },
     "id": "vanhamel_rx_calibration",
@@ -680,7 +680,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -702,11 +702,11 @@
       {
         "key": "benchmark_design",
         "label": {
-          "de": "Benchmark-Design",
+          "de": "Aufbau des Benchmark-Vergleichs",
           "en": "Benchmark design"
         },
         "value": {
-          "de": "Referenzaufbau/-station",
+          "de": "Referenzaufbau oder Referenzstation",
           "en": "Reference Setup/Station"
         }
       },
@@ -724,7 +724,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -739,14 +739,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 2 500 km; alle Richtungen",
+          "de": "Innerhalb von 2 500 km; alle Richtungen",
           "en": "Within 2 500 km; all directions"
         }
       },
       {
         "key": "reference_snr_correction",
         "label": {
-          "de": "Referenz-SNR-Korrektur",
+          "de": "SNR-Korrektur der Referenz",
           "en": "Reference SNR correction"
         },
         "value": {
@@ -757,7 +757,7 @@
       {
         "key": "min_spot_pairs_per_station",
         "label": {
-          "de": "Mindestanzahl Joint Spots je Station für ΔSNR",
+          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
           "en": "Minimum spot pairs per station for ΔSNR"
         },
         "value": {
@@ -768,7 +768,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔSNR",
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
@@ -779,7 +779,7 @@
       {
         "key": "min_decode_event_share_percent",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔDecode",
+          "de": "Mindestanteil beobachteter Ereignisse je Segment für ΔDecode",
           "en": "Minimum observed-event share per segment for ΔDecode"
         },
         "value": {
@@ -790,7 +790,7 @@
       {
         "key": "delta_snr_outlier_reporting",
         "label": {
-          "de": "ΔSNR-Ausreißerkandidaten melden",
+          "de": "Mögliche ΔSNR-Ausreißer erkennen",
           "en": "Identify ΔSNR outlier candidates"
         },
         "value": {
@@ -816,20 +816,20 @@
           "en": "Selected stations"
         },
         "value": {
-          "de": "Automatic",
+          "de": "Automatisch",
           "en": "Automatic"
         }
       }
     ],
     "title": {
-      "de": "#4 Dr. Vanhamel et al.: Empfangskette kalibrieren – einen Empfängeroffset von 1,2 dB bestimmen",
+      "de": "#4 RX Benchmark Calibration: Dr. Vanhamel et al. Einen Empfängeroffset von 1,2 dB kalibrieren",
       "en": "#4 RX Benchmark Calibration: Dr. Vanhamel et al. Calibrating a 1.2 dB Receiver Offset"
     }
   },
   {
     "config_path": "configs/vanhamel_rx_buddy.config",
     "description": {
-      "de": "[Publikation: Vanhamel, J., Machiels, W., & Lamy, H. (2022). Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band](https://doi.org/10.1155/2022/4809313)\n\n**Was ändert sich, wenn eine Empfangsantenne um 90° gedreht wird?** Diese Demo greift Abbildung 6 auf und vergleicht **ON4AWM0 mit einer Langdrahtantenne ITA LWA II** mit **ON4AWM1 mit einem modifizierten kurzgeschlossenen Dipol** auf **160 m im Zeitraum vom 1. bis 15. Mai 2021**. Die Langdrahtantenne blieb unverändert ausgerichtet; den Dipol drehten die Autoren nach der ersten Woche.\n\n**M7AEO (IO82) ist in Station Insights vorausgewählt** und entspricht damit der sendenden Station in Abbildung 6. WSPRadar vergleicht Signale dieses Senders, die beide Empfänger im selben zweiminütigen WSPR-Zyklus decodiert haben. Jede so gepaarte Beobachtung ist ein **Joint Spot**. Die Differenz lautet **ΔSNR = ON4AWM0 − korrigiertes ON4AWM1**: Positive Werte fallen zugunsten der Empfangsstation mit Langdrahtantenne aus, negative zugunsten der Empfangsstation mit Dipol.\n\nÖffne **Evidenz der ausgewählten Station → Δ SNR im Zeitverlauf (12h-Intervalle)**. Achte auf den Anstieg um den **8. Mai**. Bei insgesamt **1 441 Joint Spots** beträgt der Median **−0,6 dB für die ersten 750 Beobachtungen** und **+2,4 dB für die übrigen Beobachtungen**: eine **Verschiebung um 3 dB**, die mit dem Anstieg in der Publikation im Einklang steht. Dies beschreibt eine Änderung des relativen Empfangs auf dem durch die Beobachtungen erfassten Funkweg, keine Messung des Antennengewinns in allen Richtungen.\n\nDie Markierungen zeigen den Median jedes Zeitintervalls; das schattierte Band umfasst, sofern dargestellt, die mittleren 50 % der Beobachtungen. Die Farben zeigen, wo sich Beobachtungen konzentrieren. Lies die senkrechte Achse anhand der beschrifteten dB-Werte ab: Ihre Teilung ist nichtlinear. Für das übergreifende Muster über mehrere Sender nutze **Segment-Inspektor → Zeitliche Evidenz** und wähle alle Entfernungsbereiche und Richtungen aus. In dieser zusammengefassten Ansicht erhalten Sender mit mehr Joint Spots ein höheres Gewicht.\n\n[**Vergleich mit Abbildung 6 (PDF)**](https://wspradar.org/assets/demos/vanhamel_fig6_rotation_v1/WSPRadar_Demo_Vanhamel_Figure6.pdf): Vergleiche die Publikation in **Panel A**, die einzeln rekonstruierten Empfangsbeobachtungen in **Panel B**, die zugehörigen Dichte-Bins hinter der schwarzen ΔSNR-Kurve in **Panel C** und die native UTC-Ansicht von WSPRadar in **Panel D**. Übereinstimmende Bin-Nummern verbinden die Panels C und D: Jede nummerierte Spalte umfasst in Panel C Empfangsnummern und in Panel D verstrichene Zeit. Die Empfangsnummern zählen aufeinanderfolgende Beobachtungen; sie messen keine verstrichene Zeit. Sieben markierte Maxima und Minima weichen um höchstens eine Empfangsbeobachtung und höchstens 0,1 dB von der Publikation ab und liegen damit innerhalb der grafischen Ablesetoleranzen.\n\nDiese Demo wendet eine **SNR-Korrektur der Referenz von +1,6 dB** an. Dies ist der gerundete Wert der Kalibrierung von **1,57 dB**, die auf der [Website der Autoren](https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-antenna-comparison-instrument) dokumentiert ist. Der Text der Publikation nennt **1,2 dB**, wie in Demo #4 untersucht. Die Rekonstruktion mit +1,6 dB stimmt eng mit Abbildung 6 überein, belegt jedoch nicht, welche Korrektur bei der Erstellung der veröffentlichten Abbildung verwendet wurde. Eine konstante Korrektur verschiebt die gesamte ΔSNR-Kurve senkrecht; sie verändert nicht die Höhe des Sprungs.",
+      "de": "**RX Benchmark verfolgt Veränderungen des relativen Empfangs:** Was passiert, wenn sich eine Antenne um 90° dreht, während die andere unverändert ausgerichtet bleibt?\n\n[**Empfohlene Demo-Anleitung und Erläuterungen öffnen ↗**](https://www.wspradar.org/de/demos/vanhamel_rx_buddy/)\n\nVergleiche **die unverändert ausgerichtete Langdrahtantenne von ON4AWM0** mit **dem angepassten kurzgeschlossenen Dipol von ON4AWM1** auf **160 m im Mai 2021**. Verfolge die **90°-Drehung** des Dipols und untersuche den Sprung um etwa **3 dB in der gepaarten SNR-Differenz auf dem Funkpfad von M7AEO**. Diese Veränderung betrifft diesen Empfangspfad; sie ist keine gleichmäßige Verbesserung in allen Richtungen. [Originalpublikation ↗](https://doi.org/10.1155/2022/4809313)",
       "en": "**RX Benchmark follows changes in relative reception:** what happens when one antenna turns 90° while the other remains fixed?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/vanhamel_rx_buddy/)\n\nCompare **ON4AWM0’s fixed long wire** with **ON4AWM1’s adapted shorted dipole** on **160 m during May 2021**. Follow the dipole’s **90° rotation** and examine the approximately **3 dB step in paired SNR difference on the M7AEO path**. This change concerns that reception path; it is not a uniform improvement in every direction. [Original paper ↗](https://doi.org/10.1155/2022/4809313)"
     },
     "id": "vanhamel_rx_buddy",
@@ -897,7 +897,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -919,11 +919,11 @@
       {
         "key": "benchmark_design",
         "label": {
-          "de": "Benchmark-Design",
+          "de": "Aufbau des Benchmark-Vergleichs",
           "en": "Benchmark design"
         },
         "value": {
-          "de": "Referenzaufbau/-station",
+          "de": "Referenzaufbau oder Referenzstation",
           "en": "Reference Setup/Station"
         }
       },
@@ -941,7 +941,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -956,14 +956,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 5 000 km; alle Richtungen",
+          "de": "Innerhalb von 5 000 km; alle Richtungen",
           "en": "Within 5 000 km; all directions"
         }
       },
       {
         "key": "reference_snr_correction",
         "label": {
-          "de": "Referenz-SNR-Korrektur",
+          "de": "SNR-Korrektur der Referenz",
           "en": "Reference SNR correction"
         },
         "value": {
@@ -974,7 +974,7 @@
       {
         "key": "min_spot_pairs_per_station",
         "label": {
-          "de": "Mindestanzahl Joint Spots je Station für ΔSNR",
+          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
           "en": "Minimum spot pairs per station for ΔSNR"
         },
         "value": {
@@ -985,7 +985,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔSNR",
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
@@ -996,7 +996,7 @@
       {
         "key": "min_decode_event_share_percent",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔDecode",
+          "de": "Mindestanteil beobachteter Ereignisse je Segment für ΔDecode",
           "en": "Minimum observed-event share per segment for ΔDecode"
         },
         "value": {
@@ -1007,7 +1007,7 @@
       {
         "key": "delta_snr_outlier_reporting",
         "label": {
-          "de": "ΔSNR-Ausreißerkandidaten melden",
+          "de": "Mögliche ΔSNR-Ausreißer erkennen",
           "en": "Identify ΔSNR outlier candidates"
         },
         "value": {
@@ -1039,14 +1039,14 @@
       }
     ],
     "title": {
-      "de": "#5 Dr. Vanhamel et al.: Empfangsantenne drehen – Rekonstruktion des 3-dB-ΔSNR-Sprungs aus Abbildung 6",
+      "de": "#5 RX Benchmark: Dr. Vanhamel et al. Eine Antennendrehung um 90°, ein Unterschied von 3 dB",
       "en": "#5 RX Benchmark: Dr. Vanhamel et al. A 90° Antenna Rotation, a 3 dB Difference"
     }
   },
   {
     "config_path": "configs/zander_tx_buddy.config",
     "description": {
-      "de": "[Veröffentlichung: Zander, J. (2022). Simple HF antenna efficiency comparisons using the WSPR system](https://arxiv.org/abs/2209.08989)\n\n**Wie schneidet eine kurze Portabel-Sendeantenne im Vergleich mit einer größeren Vertikalantenne ab?** Diese Demo rekonstruiert **Experiment A, Abbildung 4** und vergleicht **die 2,5 m lange Difona-Vertikalantenne mit mittiger Verlängerungsspule von SK0WE/P als Target** mit **der Hy-Gain AV620 von SK0WE/1 als Referenz**. Beide Stationen befinden sich in **JO97**. Der simultane **Hardware-A/B**-Vergleich nutzt ihre Aussendungen auf **20 m** am **21. Mai 2022 von 09:45 bis 10:30 UTC**.\n\nWSPRadar ordnet die Reports beider Sender einander zu, wenn sie von **derselben entfernten Empfangsstation mit demselben gemeldeten Locator im selben zweiminütigen WSPR-Zyklus** decodiert wurden. Jede so gepaarte Beobachtung ist ein **Joint Spot** und steht für einen Empfänger und einen Zyklus. Verglichen wird das Signal-Rausch-Verhältnis (SNR), mit **ΔSNR = Target − Referenz**: Positive Werte sprechen für die kurze Difona-Vertikalantenne, negative Werte für die Hy-Gain AV620; 0 dB bedeutet gleiches SNR. Reports von nur einem der beiden Sender liefern diese gepaarte Differenz nicht.\n\nÖffne im **TX Benchmark** den **Segment-Inspektor → Benchmark-Evidenz** und lasse alle Entfernungsbereiche und Himmelsrichtungen ausgewählt. Vergleiche die Veröffentlichung mit dem **rechten Histogramm ΔSNR — Joint Spots qualifizierter Stationen**, in das jeder Joint Spot mit einem Wert eingeht. Das **mittlere Histogramm ΔSNR — Qualifizierte Stationen** beantwortet eine andere Frage: Jeder Empfänger trägt einen Median bei. Dadurch werden die Empfänger gleich gewichtet, statt Empfängern mit mehr gepaarten Beobachtungen mehr Gewicht zu geben.\n\nDie **166 gemeinsamen Empfänger-Zyklen** ergeben ein **mittleres ΔSNR von −6,78 dB** und eine **Stichproben-Standardabweichung von 3,51 dB** — praktisch identisch mit den **−6,8 dB** und **3,5 dB** der Veröffentlichung. Die Standardabweichung beschreibt die Streuung der einzelnen Differenzen um ihren Mittelwert. Der negative Mittelwert zeigt, dass die Referenz-Vertikalantenne auf den erfassten Funkwegen deutlich besser abschneidet.\n\n[**Vergleich zu Abbildung 4 (PDF)**](https://wspradar.org/assets/demos/zander_fig4_paper_v1/WSPRadar_Demo_Zander_Figure4.pdf): Vergleiche die Veröffentlichung in **Panel A**, die Rekonstruktion mit der Klasseneinteilung der Veröffentlichung in **Panel B** und das WSPRadar-Histogramm in **Panel C**. WSPRadar verwendet feinere **1-dB-Klassen**; die Balken zeigen den **prozentualen Anteil der gepaarten Beobachtungen**. Die Veröffentlichung verwendet gröbere Klassen und eine **Wahrscheinlichkeitsdichte**, die auch die Klassenbreite berücksichtigt. Deshalb sehen die Balken etwas unterschiedlich aus. Fasst man die WSPRadar-Beobachtungen in den Klassen der Veröffentlichung zusammen und rechnet sie in eine Dichte um, stimmen beide Darstellungen überein.\n\n**Was kannst du außerdem in der Kartenansicht entdecken?** Schau über den Gesamtmittelwert hinaus: Vergleiche die **westnordwestlichen Funkwege nach Nordamerika** mit den **westlichen und südwestlichen Funkwegen innerhalb Europas**. Die Sektorfarben zeigen, wie sich das relative SNR mit Richtung und Entfernung verändert. Jeder farbige Sektor zeigt den Median der Joint-Spot-ΔSNR-Mediane seiner Empfänger; jeder Empfänger, der die Auswahlkriterien erfüllt, erhält damit das gleiche Gewicht. In dieser Rekonstruktion ist der Vorteil der Referenz in Richtung Südsüdwesten nach Europa größer als in Richtung Westsüdwesten nach Europa oder nach Nordamerika. Wähle diese Richtungen im **Segment-Inspektor** aus und vergleiche die Empfängeranzahlen und Joint Spots. Untersuche anschließend einzelne Funkwege in **Station Insights**. Das zeigt ein richtungsabhängiges Muster im relativen Abschneiden auf den erfassten Funkwegen, kein vollständiges Antennen-Strahlungsdiagramm. Grau schraffierte Sektoren enthalten beobachtete Evidenz ohne ausreichende qualifizierende Unterstützung für einen ΔSNR-Wert; leere Sektoren bleiben ungefüllt. Keiner der beiden Zustände belegt Nullstellen im Strahlungsdiagramm.\n\nNutze die gepaarten Reports, um das **relative Abschneiden auf den erfassten Funkwegen** zu beurteilen. Dieses Ergebnis weist keinen richtungsunabhängigen Antennengewinn nach.",
+      "de": "**TX Benchmark vergleicht zwei Sendeaufbauten:** Welcher liefert klarere Signale an gemeinsamen Empfängern, und wo verändert sich der Unterschied?\n\n[**Empfohlene Demo-Anleitung und Erläuterungen öffnen ↗**](https://www.wspradar.org/de/demos/zander_tx_buddy/)\n\nVergleiche **die kurze Portabel-Vertikalantenne Difona HF-P1 von SK0WE/P** mit **der größeren Hy-Gain AV-620-Vertikalantenne von SK0WE/1** auf **20 m von Gotland in Schweden aus**. Verfolge Empfangsberichte von Europa bis Nordamerika und vergleiche das SNR dort, wo derselbe Empfänger beide Aussendungen im selben WSPR-Zyklus dekodiert hat. [Originalpublikation (PDF) ↗](https://arxiv.org/pdf/2209.08989)",
       "en": "**TX Benchmark compares two transmitting setups:** which produces clearer signals at shared receivers, and where does the difference change?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/zander_tx_buddy/)\n\nCompare **SK0WE/P’s short Difona HF-P1 portable vertical** with **SK0WE/1’s larger Hy-Gain AV-620 vertical** on **20 m from Gotland, Sweden**. Follow reports from Europe to North America, comparing SNR where the same receiver decoded both transmissions in the same WSPR cycle. [Original paper (PDF) ↗](https://arxiv.org/pdf/2209.08989)"
     },
     "id": "zander_tx_buddy",
@@ -1109,7 +1109,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -1131,11 +1131,11 @@
       {
         "key": "benchmark_design",
         "label": {
-          "de": "Benchmark-Design",
+          "de": "Aufbau des Benchmark-Vergleichs",
           "en": "Benchmark design"
         },
         "value": {
-          "de": "Referenzaufbau/-station",
+          "de": "Referenzaufbau oder Referenzstation",
           "en": "Reference Setup/Station"
         }
       },
@@ -1153,7 +1153,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -1168,14 +1168,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 10 000 km; alle Richtungen",
+          "de": "Innerhalb von 10 000 km; alle Richtungen",
           "en": "Within 10 000 km; all directions"
         }
       },
       {
         "key": "reference_snr_correction",
         "label": {
-          "de": "Referenz-SNR-Korrektur",
+          "de": "SNR-Korrektur der Referenz",
           "en": "Reference SNR correction"
         },
         "value": {
@@ -1186,7 +1186,7 @@
       {
         "key": "min_spot_pairs_per_station",
         "label": {
-          "de": "Mindestanzahl Joint Spots je Station für ΔSNR",
+          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
           "en": "Minimum spot pairs per station for ΔSNR"
         },
         "value": {
@@ -1197,7 +1197,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔSNR",
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
@@ -1208,7 +1208,7 @@
       {
         "key": "min_decode_event_share_percent",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔDecode",
+          "de": "Mindestanteil beobachteter Ereignisse je Segment für ΔDecode",
           "en": "Minimum observed-event share per segment for ΔDecode"
         },
         "value": {
@@ -1219,7 +1219,7 @@
       {
         "key": "delta_snr_outlier_reporting",
         "label": {
-          "de": "ΔSNR-Ausreißerkandidaten melden",
+          "de": "Mögliche ΔSNR-Ausreißer erkennen",
           "en": "Identify ΔSNR outlier candidates"
         },
         "value": {
@@ -1245,20 +1245,20 @@
           "en": "Selected stations"
         },
         "value": {
-          "de": "Automatic",
+          "de": "Automatisch",
           "en": "Automatic"
         }
       }
     ],
     "title": {
-      "de": "#6 Prof. Zander et al. TX-Antennenvergleich: kurze Portabel-Vertikalantenne gegen 5/8-λ-Vertikalantenne",
+      "de": "#2 TX Benchmark: Prof. Zander Sendeantennenvergleich: Kurze Portabel-Vertikalantenne gegen Hy-Gain AV-620-Vertikalantenne",
       "en": "#2 TX Benchmark: Prof. Zander TX Antenna Comparison: Short Portable Vertical vs Hy-Gain AV-620 Vertical"
     }
   },
   {
     "config_path": "configs/milazzo_tx_buddy.config",
     "description": {
-      "de": "[Fachartikel: Milazzo, C. F. / KP4MD (2011). Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance](https://www.qsl.net/kp4md/wspr.htm)\n\n**Historische Rekonstruktion.** Diese Demo rekonstruiert archivierte Reports; sie belegt nicht, dass beide Systeme während jedes Zyklus in Betrieb waren. Bestätige diese Einschränkung, um sie auszuführen. Die einseitigen Ergebnisse beschreiben die beobachtete Abdeckung, während Joint Spots gepaarte SNR-Differenzen liefern. Erkläre für dieses historische Beispiel keinen verifizierten durchgehenden Betrieb.\n\nDie im Januar 2011 veröffentlichte Arbeit von **Dr. Carol F. Milazzo ist eine frühe Studie zum Antennenvergleich mit WSPR** und beruht auf Beobachtungen vom Dezember 2010. Gemeinsam mit **Brian Lloyd (WB6RQN)** vorgestellt, verband sie den Vergleich über eine gemeinsame entfernte Station mit Sendeleistungskorrektur, Ausbreitungsprognosen und Empfangsreports in der Gegenrichtung. Die Studie zeigte, wie WSPR praktische Untersuchungen von Antennen und vollständigen Stationen unterstützen kann, und verdient dafür Anerkennung. Sie gehört zu den methodischen Vorarbeiten, die in der WSPRadar-Dokumentation behandelt werden.\n\nDie veröffentlichte Analyse verglich grafisch dargestellte SNR-Verläufe. Sie legte jedoch nicht die hier verwendete strikte Auswahl von **Joint Spots** mit gleichem WSPR-Zyklus und übereinstimmendem vollständigem Locator fest. Unterschiedliche Betriebszeiten lassen auf dem ausgewählten Funkweg über VE6PDQ nur eine kleine synchronisierte Teilmenge übrig. WSPRadar baut auf dieser Grundlage auf und macht die exakte Paarbildung, die Normierung anhand der gemeldeten Sendeleistung, die vollständige beobachtete Vereinigungsmenge der Target- und Referenzmeldungen sowie die Trennung von Joint- und ungepaarten Beobachtungen ausdrücklich nachvollziehbar.\n\nZur manuellen Validierung haben wir die Evidenz aus der Veröffentlichung rekonstruiert und **44 Marker aus Abbildung 6** sowie **47 einzeln aufgelöste Ankerpunkte aus Abbildung 7** auf der angegebenen gemeinsamen Leistungsskala mit historischen Reports abgeglichen. Die Ankerpunkte aus Abbildung 7 bilden eine lesbare Teilmenge der dargestellten Evidenz. Diese grafischen Übereinstimmungen sind von gepaarten ΔSNR-Messungen zu unterscheiden: Nach den aktuellen Regeln liefert der rekonstruierte Funkweg über VE6PDQ nur **fünf RX-Joint-Spots und einen TX-Joint-Spot**. Der Fall eignet sich deshalb besonders gut, um die Identitäten einzelner Reports, die Normierung und die Auswahl von Hand zu prüfen. Die geringe Zahl gepaarter Beobachtungen begrenzt zugleich weitergehende Aussagen über die Antennen.\n\n**Hauptbeispiel — Abbildung 6: VE6PDQ sendet an KP4MD / WB6RQN.** Die Demo startet als **RX-Benchmark** und vergleicht den **Target-Empfänger KP4MD** mit dem **Referenz-Empfänger WB6RQN** auf **40 m**, vom **19. Dezember 2010, 12:00 UTC, bis zum 20. Dezember 2010, 20:00 UTC**. Die Abfrage umfasst Sender innerhalb von **5 000 km**; der rekonstruierte Funkweg über VE6PDQ dient als Beispiel für die manuelle Validierung. Die archivierten Stationsidentitäten an beiden Enden des Funkwegs ordnen Abbildung 6 dem Empfang **von VE6PDQ** zu, obwohl die Originalabbildung die Richtung anders angibt.\n\nBeginne mit **VE6PDQ (DO34IR)**, das in **Station Insights** bereits ausgewählt ist. Die rekonstruierte Evidenz enthält **8 Nur KP4MD, 3 Joint Spots und 5 Nur WB6RQN** mit ΔSNR-Werten von **+8, +22 und +7 dB** und einem Median von **+8 dB**. Wähle anschließend **VE6PDQ (DO34)** mit **18 Nur KP4MD, 2 Joint Spots und 3 Nur WB6RQN**; die Joint-Werte betragen **+17 und +7 dB** bei einem Median von **+12 dB**. Über diese beiden gemeldeten Identitäten haben die fünf Paare aus Abbildung 6 einen Median von **+8 dB**. Betrachte die vollständigen Locator getrennt: Ein gemeinsamer Zyklus ergibt keinen Joint Spot, wenn sich die gemeldeten Sender-Locator unterscheiden.\n\nVerfolge im **PDF zu Abbildung 6** die ursprünglichen Reports in Panel A über die Rekonstruktion in Panel B bis zu den exakten Joint Spots in Panel C. Die blassen gestrichelten Hilfslinien zeigen, welche Reportpaare aus demselben Zyklus mit übereinstimmendem vollständigem Locator in der gepaarten Ansicht erhalten bleiben. Die Demo behält für die ausgewählte Station **3-Stunden-Bins** bei; die beiden Locator-Identitäten werden in der App getrennt untersucht.\n\nDas Paar vom **19. Dezember um 14:46 UTC** mit dem Sender-Locator **DO34IR** lässt sich leicht von Hand prüfen: KP4MD meldet **+2 dB** und WB6RQN **−6 dB**, jeweils für VE6PDQ bei **5 W**. Auf der gemeinsamen 1-W-Skala von WSPRadar werden daraus **−5 und −13 dB**, also **ΔSNR = +8 dB**. Die gemeinsame Leistungskorrektur hebt sich in dieser RX-Differenz auf; ein positives ΔSNR bedeutet ein höheres gemeldetes SNR bei KP4MD.\n\nBei diesem RX-Vergleich setzt ein **Joint Spot** voraus, dass beide Empfänger denselben Sender mit demselben vollständigen Locator im selben WSPR-Zyklus decodieren. Die aktuelle Rekonstruktion behält alle geeigneten Nur-Target- und Nur-Referenz-Beobachtungen bei, ohne einen anderweitigen Target-Decode vorauszusetzen. Für den bereitgestellten Funkweg über VE6PDQ ergeben sich über beide exakten Locator **26 Nur KP4MD, 5 Joint und 8 Nur WB6RQN**; die fünf Joint-Werte bleiben unverändert. Die vollständige Demo-Abfrage umfasst weitere Sender, sodass ihre Gesamtanzahlen von dieser begrenzten Funkwegrekonstruktion abweichen können. Das [archivierte ursprüngliche PDF zu Abbildung 6](https://wspradar.org/assets/demos/milazzo_publication_overlays_v1/WSPRadar_Demo_Milazzo_Figure6.pdf) bewahrt die historischen Markierungen des Target-Active Gate als Nachweis der früheren Auswahl; seine gefilterten einseitigen Anzahlen entsprechen nicht der aktuellen ungefilterten Evidenzabdeckung. Die aktualisierte Prüffassung ergänzt zeitliche Abdeckungsdiagramme, exakte Tabellen der Intervallanzahlen und eine gemeinsame Anzahlübersicht; die menschliche Prüfung dieser neuen Fassung steht noch aus. Diese fünf Paare ermöglichen eine transparente manuelle Prüfung. Unterschiede in der Empfangstechnik, im lokalen Störpegel und in den Funkwegen verhindern jedoch, das Ergebnis als isolierten Antennengewinn zu deuten.\n\n[Den RX-Vergleich in der Gegenrichtung in Abbildung 6 prüfen (PDF)](https://wspradar.org/assets/demos/milazzo_publication_overlays_v3/WSPRadar_Demo_Milazzo_Figure6.pdf).\n\n**Vergleich in der Gegenrichtung aus Abbildung 7 — optionale Fortsetzung mit TX.** Um den folgenden Sendevergleich nachzuvollziehen, stelle **RX- oder TX-Analyse** auf **TX-Analyse** um. Behalte KP4MD als Target, WB6RQN als Referenz sowie Zeitraum, Band und Entfernungsgrenze bei. Die folgenden Anzahlen und das Normierungsbeispiel beziehen sich auf diese TX-Konfiguration; die hinterlegte Demo startet mit dem oben beschriebenen RX-Beispiel zu Abbildung 6.\n\nDer Vergleich zwischen der **40-m-Ganzwellenschleife von KP4MD und der GAP Titan DX von WB6RQN im Sendebetrieb** wird für den Zeitraum **19. Dezember 2010, 12:00 UTC, bis 20. Dezember 2010, 20:00 UTC** erneut untersucht und auf Empfänger innerhalb von **5 000 km** erweitert.\n\nUnter **Segment-Inspektor → Joint-Spot Δ SNR** ergeben **45 Joint-Beobachtungen über 30 Empfänger und neun gemeinsame Zyklen** einen Mittelwert von **−3,96 dB** und einen Median von **−4 dB**, nach Normierung anhand der gemeldeten Sendeleistung zugunsten von WB6RQN.\n\nWähle **VE6PDQ (DO34ir)** in **Station Insights**: **1 Joint Spot, 56 Nur KP4MD und 18 Nur WB6RQN**. Diese achtzehn Nur-Referenz-Reports wurden vom früheren Target-Active Gate ausgeschlossen und bleiben nun sichtbar. Das Joint-Paar und sein ΔSNR sind unverändert. Über alle berücksichtigten Empfänger der eingefrorenen 32-Stunden-Rekonstruktion ergeben sich **988 Nur KP4MD, 45 Joint und 535 Nur WB6RQN**. Dies sind Anzahlen beobachteter Reports; wegen der historischen Betriebszeiten lässt sich deren Ungleichgewicht nicht als kontrolliert ermittelter Decode-Vorteil deuten.\n\nDas Joint-Paar vom **20. Dezember um 00:22 UTC** veranschaulicht die Normierung auf 1 W: Aus **−13 dB bei 5 W** für KP4MD werden **−20 dB**, aus **−15 dB bei 2 W** für WB6RQN werden **−18 dB**. Damit gilt **ΔSNR = −2 dB**.\n\nDas stimmt mit der Aussage des Artikels überein, dass WB6RQN **in Abbildung 7 um 2–6 dB stärker** war. Archivierte Stationsidentitäten deuten darauf hin, dass die dort angegebene Richtung vertauscht ist: Abbildung 7 verwechselt TX und RX und beschreibt Aussendungen **von VE6PDQ**, die tatsächlich **bei VE6PDQ** empfangen wurden.\n\n[Abbildung 7 mit zeitlichen Abdeckungsdiagrammen, Intervalltabellen und Anzahlübersicht prüfen (PDF)](https://wspradar.org/assets/demos/milazzo_publication_overlays_v3/WSPRadar_Demo_Milazzo_Figure7.pdf). Diese neue Prüffassung bewahrt das gepaarte SNR-Ergebnis; ihre menschliche Prüfung steht noch aus. [Archivierte Abbildung 7 mit den früheren Markierungen des Target-Active Gate (PDF)](https://wspradar.org/assets/demos/milazzo_publication_overlays_v1/WSPRadar_Demo_Milazzo_Figure7.pdf).\n\nKP4MD war durchgehend auf der Frequenz in Betrieb, während WB6RQN zwischen Frequenzen wechselte. Die Anzahlen ungepaarter Beobachtungen spiegeln deshalb neben dem Empfang auch die Betriebszeiten wider und lassen keine isolierte Beurteilung der Antenne zu. Nur **Joint Spots** gehen in den ΔSNR-Vergleich ein: Beide Sender müssen an derselben Empfangsstation mit demselben Locator im selben WSPR-Zyklus decodiert werden. Diese enger gefasste synchronisierte Teilmenge vergleicht nach Normierung anhand der gemeldeten Sendeleistung das relative SNR auf den erfassten Funkwegen; sie belegt keinen richtungsunabhängigen Antennengewinn.",
+      "de": "**RX/TX Benchmark macht historische Vergleiche nachvollziehbar:** Welche Empfangsberichte bilden gültige Spot-Paare, und was können diese Paare über den relativen Empfang aussagen?\n\n[**Empfohlene Demo-Anleitung und Erläuterungen öffnen ↗**](https://www.wspradar.org/de/demos/milazzo_tx_buddy/)\n\nBetrachte **die horizontale Ganzwellenschleife von KP4MD** und **die GAP Titan DX-Vertikalantenne von WB6RQN** auf **40 m im Dezember 2010** erneut. Beginne mit dem Empfangsvergleich und untersuche danach den Sendevergleich. Verfolge die veröffentlichten Beobachtungen bis zu **Spot-Paaren aus demselben WSPR-Zyklus** und prüfe dabei die Stationsidentitäten und gemeldeten Sendeleistungen. Unterschiedliche Betriebszeiten begrenzen die Aussagekraft von Unterschieden in den Anzahlen einseitiger Empfangsberichte. [Originalstudie ↗](https://www.qsl.net/kp4md/wspr.htm)",
       "en": "**RX/TX Benchmark makes historical comparisons traceable:** which reports form valid spot pairs, and what can those pairs tell us about relative reception?\n\n[**Open recommended Demo walkthrough & explanation ↗**](https://www.wspradar.org/en/demos/milazzo_tx_buddy/)\n\nRevisit **KP4MD’s horizontal full-wave loop** and **WB6RQN’s GAP Titan DX vertical** on **40 m during December 2010**. Start with the receiving comparison, then explore the transmitting follow-up. Trace published observations into **same-cycle spot pairs**, checking station identities and reported transmit powers. Unequal operating schedules limit what differences in one-sided report counts can establish. [Original study ↗](https://www.qsl.net/kp4md/wspr.htm)"
     },
     "id": "milazzo_tx_buddy",
@@ -1334,7 +1334,7 @@
       {
         "key": "target",
         "label": {
-          "de": "Ziel",
+          "de": "Target",
           "en": "Target"
         },
         "value": {
@@ -1356,11 +1356,11 @@
       {
         "key": "benchmark_design",
         "label": {
-          "de": "Benchmark-Design",
+          "de": "Aufbau des Benchmark-Vergleichs",
           "en": "Benchmark design"
         },
         "value": {
-          "de": "Referenzaufbau/-station",
+          "de": "Referenzaufbau oder Referenzstation",
           "en": "Reference Setup/Station"
         }
       },
@@ -1378,7 +1378,7 @@
       {
         "key": "time_window",
         "label": {
-          "de": "UTC-Zeitraum",
+          "de": "UTC-Messzeitraum",
           "en": "UTC window"
         },
         "value": {
@@ -1393,14 +1393,14 @@
           "en": "Distance and direction"
         },
         "value": {
-          "de": "Bis 5 000 km; alle Richtungen",
+          "de": "Innerhalb von 5 000 km; alle Richtungen",
           "en": "Within 5 000 km; all directions"
         }
       },
       {
         "key": "reference_snr_correction",
         "label": {
-          "de": "Referenz-SNR-Korrektur",
+          "de": "SNR-Korrektur der Referenz",
           "en": "Reference SNR correction"
         },
         "value": {
@@ -1411,7 +1411,7 @@
       {
         "key": "min_spot_pairs_per_station",
         "label": {
-          "de": "Mindestanzahl Joint Spots je Station für ΔSNR",
+          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
           "en": "Minimum spot pairs per station for ΔSNR"
         },
         "value": {
@@ -1422,7 +1422,7 @@
       {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔSNR",
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
@@ -1433,7 +1433,7 @@
       {
         "key": "min_decode_event_share_percent",
         "label": {
-          "de": "Mindestanzahl qualifizierter Stationen je Segment für ΔDecode",
+          "de": "Mindestanteil beobachteter Ereignisse je Segment für ΔDecode",
           "en": "Minimum observed-event share per segment for ΔDecode"
         },
         "value": {
@@ -1444,7 +1444,7 @@
       {
         "key": "delta_snr_outlier_reporting",
         "label": {
-          "de": "ΔSNR-Ausreißerkandidaten melden",
+          "de": "Mögliche ΔSNR-Ausreißer erkennen",
           "en": "Identify ΔSNR outlier candidates"
         },
         "value": {
@@ -1477,17 +1477,17 @@
       {
         "key": "station_filters",
         "label": {
-          "de": "Stationsfilter",
+          "de": "Filter der Stationsauswertung",
           "en": "Station Insights filters"
         },
         "value": {
-          "de": "TX Station = VE6PDQ",
+          "de": "TX-Station = VE6PDQ",
           "en": "TX Station = VE6PDQ"
         }
       }
     ],
     "title": {
-      "de": "#7 Dr. Milazzo neu betrachtet: Erweiterung einer frühen mehrteiligen WSPR-Antennenstudie um zyklusgleiche Evidenz",
+      "de": "#6 RX/TX Benchmark: Dr. Milazzo neu betrachtet: Von den ursprünglichen Empfangsberichten zu gültigen Spot-Paaren",
       "en": "#6 RX/TX Benchmark: Dr. Milazzo Revisited From source reports to valid pairs"
     }
   }

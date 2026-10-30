@@ -1,12 +1,12 @@
 [
   {
     "alt": {
-      "de": "Vergleich zu Griffiths Abbildung 3 mit drei Panels für Originalpublikation, rekonstruierte gepaarte SNR-Differenzen und chronologische WSPRadar-Evidenz, einschließlich Quellenangabe, Achsen, Legenden und Erläuterungen.",
+      "de": "Vergleich zu Griffiths Figure 3 mit drei Panels für Originalveröffentlichung, rekonstruierte gepaarte SNR-Differenzen und chronologische WSPRadar-Beobachtungsdaten, mit Quellenangabe, Achsen, Legenden und Erläuterungen.",
       "en": "Three-panel Griffiths Figure 3 comparison of original publication, reconstructed paired SNR differences, and WSPRadar's chronological evidence, with source citation, axes, legends, and explanatory notes."
     },
     "asset_path": "assets/figures/griffiths-figure3-comparison.png",
     "caption": {
-      "de": "Der vollständige Vergleich bewahrt Originalpublikation, Rekonstruktion und native chronologische WSPRadar-Ansicht. Verfolge die Verschiebung nach oben in der ersten Monatshälfte und behalte ΔSNR = G3ZIL − G4HZX im Blick. Medianmarkierungen, das Band der mittleren 50 % und Dichtefarben beschreiben unterschiedliche Aspekte der Beobachtungen. Vergrößere die Abbildung, um alle Beschriftungen und den Verweis auf die Paarbildungsdiagnose zu lesen.",
+      "de": "Der vollständige Vergleich erhält die Originalveröffentlichung, die Rekonstruktion und die WSPRadar-eigene chronologische Ansicht. Verfolge den Anstieg in der ersten Monatshälfte und behalte dabei ΔSNR = G3ZIL − G4HZX im Blick. Medianmarker, das Band der mittleren 50% und Dichtefarben beschreiben unterschiedliche Aspekte der Beobachtungen. Vergrößere die Abbildung, um sämtliche Beschriftungen und den Verweis auf die Paarungsdiagnose zu lesen.",
       "en": "The complete comparison retains the original publication, the reconstruction, and the native WSPRadar chronological view. Follow the first-half upward shift while keeping ΔSNR = G3ZIL − G4HZX in view. Median markers, the middle-50% band, and density colors describe different aspects of the observations. Enlarge the figure to read all labels and the pairing-diagnostic reference."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -21,21 +21,21 @@
       "source_figure": "paper_figure3.png",
       "source_fixture": "tests/regression/reference_fixtures/griffiths_fig3_paper_v1"
     },
-    "source_path": "docs/website/assets/figures/griffiths-figure3-comparison.png",
+    "source_path": "docs/website/griffiths-figure3-comparison.png",
     "title": {
-      "de": "Ein Monat gepaarter Empfangsbeobachtungen",
+      "de": "A month of paired reception",
       "en": "A month of paired reception"
     },
     "width": 3060
   },
   {
     "alt": {
-      "de": "Diagnose des negativen Randbereichs von Griffiths Abbildung 3 mit ursprünglicher Publikationsevidenz, Berichtskombinationen, durchgerechneter Paarbildung und Unterscheidung zwischen diagnostischen Kombinationen und nativen gepaarten Beobachtungen.",
+      "de": "Diagnose des negativen Verteilungsendes von Griffiths Figure 3 mit Beobachtungsdaten der Originalveröffentlichung, Kombinationen von Empfangsberichten, einem ausgearbeiteten Paarungsbeispiel und der Unterscheidung zwischen diagnostischen Kombinationen und WSPRadar-eigenen gepaarten Beobachtungen.",
       "en": "Griffiths Figure 3 negative-tail diagnostic with original publication evidence, report combinations, a worked pairing example, and the distinction between diagnostic combinations and native paired observations."
     },
     "asset_path": "assets/figures/griffiths-figure3-pairing-diagnostic.png",
     "caption": {
-      "de": "Diese Diagnose verbindet ungewöhnliche Beobachtungen im negativen Randbereich mit den zugrunde liegenden Berichten und Paarkombinationen. Lies Originalevidenz und durchgerechnete Paarbildung gemeinsam. Diagnostische Berichtskombinationen sind von den nativen gepaarten Beobachtungen der Hauptstatistiken zu unterscheiden; die Abbildung weist keine physikalische Ursache der ungewöhnlichen Werte nach.",
+      "de": "Diese Diagnose verbindet die ungewöhnlichen Beobachtungen am negativen Ende der Verteilung mit den zugrunde liegenden Empfangsberichten und Paarkombinationen. Lies die ursprünglichen Beobachtungsdaten und die ausgearbeitete Erklärung der Paarbildung gemeinsam. Diagnostische Kombinationen von Empfangsberichten sind von den WSPRadar-eigenen gepaarten Beobachtungen für die Hauptstatistiken zu unterscheiden; die Abbildung belegt keine physikalische Ursache der ungewöhnlichen Werte.",
       "en": "This diagnostic connects the unusual negative-tail observations with the reports and pair combinations behind them. Read the original evidence and the worked pairing explanation together. Diagnostic report combinations are distinct from the native paired observations used for the main statistics; the figure does not establish a physical cause for the unusual values."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -50,21 +50,21 @@
       "source_figure": "paper_figure3.png",
       "source_fixture": "tests/regression/reference_fixtures/griffiths_fig3_paper_v1"
     },
-    "source_path": "docs/website/assets/figures/griffiths-figure3-pairing-diagnostic.png",
+    "source_path": "docs/website/griffiths-figure3-pairing-diagnostic.png",
     "title": {
-      "de": "Paarbildung und Mehrfachmeldungen",
+      "de": "Pairing and duplicate reports",
       "en": "Pairing and duplicate reports"
     },
     "width": 3060
   },
   {
     "alt": {
-      "de": "Vergleich zu Griffiths Abbildung 6 mit Publikation, erklärter Dichterekonstruktion und nativer WSPRadar-Evidenz nach UTC-Stunde, einschließlich Vergleichsbereichen, einzelnen Prüfpunkten, Dichteskalen und Median-IQR-Erläuterung.",
+      "de": "Vergleich von Griffiths Figure 6 mit der Veröffentlichung, einer als Rekonstruktion ausgewiesenen Dichtedarstellung und WSPRadar-eigenen UTC-Stunden-Beobachtungsdaten, einschließlich Vergleichsbereichen, einzelnen Vergleichspunkten, Dichteskalen und Erläuterung von Median und IQR.",
       "en": "Griffiths Figure 6 comparison of the publication, a declared density reconstruction, and native WSPRadar UTC-hour evidence, including comparison regions, point witnesses, density scales, and median/IQR interpretation."
     },
     "asset_path": "assets/figures/griffiths-figure6-comparison.png",
     "caption": {
-      "de": "Vergleiche die veröffentlichte Dichtedarstellung mit der Rekonstruktion und der nativen Ansicht nach UTC-Stunde. Die drei Panels behalten ihre jeweiligen Achsen, Skalen und Anmerkungen. Beschriftete Bereiche und einzelne Prüfpunkte stützen bestimmte Vergleiche; sie bedeuten nicht, dass WSPRadar das undokumentierte Konturverfahren der Publikation exakt reproduziert. Die native Ansicht bewahrt ihre eigenen Dichtezellen, Mediane und Zusammenfassungen der mittleren 50 %.",
+      "de": "Vergleiche die veröffentlichte Dichtedarstellung mit der Rekonstruktion und der WSPRadar-eigenen UTC-Stundenansicht. Die drei Panels behalten ihre eigenen Achsen, Skalen und Anmerkungen. Die beschrifteten Bereiche und einzelnen Vergleichspunkte stützen konkrete Vergleiche; sie bedeuten nicht, dass WSPRadar das nicht dokumentierte Konturverfahren der Veröffentlichung exakt reproduziert. Die WSPRadar-eigene Ansicht behält ihre eigenen Dichtezellen, Mediane und Zusammenfassungen der mittleren 50%.",
       "en": "Compare the published density presentation with the reconstruction and the native UTC-hour view. The three panels retain their own axes, scales, and annotations. The labeled regions and point witnesses support specific comparisons; they do not imply that WSPRadar reproduces the publication's undocumented contour method exactly. The native view retains its own density cells, medians, and middle-50% summaries."
     },
     "demo_id": "griffiths_squibb_fig6",
@@ -79,21 +79,21 @@
       "source_figure": "paper_figure6.png",
       "source_fixture": "tests/regression/reference_fixtures/griffiths_fig6_paper_v1"
     },
-    "source_path": "docs/website/assets/figures/griffiths-figure6-comparison.png",
+    "source_path": "docs/website/griffiths-figure6-comparison.png",
     "title": {
-      "de": "Die tägliche Umkehr des relativen SNR",
+      "de": "The daily reversal in relative SNR",
       "en": "The daily reversal in relative SNR"
     },
     "width": 4140
   },
   {
     "alt": {
-      "de": "Vergleich zu Vanhamel Abbildung 6 mit vier Panels für Originalpublikation, rekonstruierte SNR-Kurven, Dichtezuordnung nach Empfangsnummer, native UTC-Evidenz, übereinstimmend nummerierte Bins und gemeinsame Dichteskala.",
+      "de": "Vergleich zu Vanhamel Figure 6 mit vier Panels: Originalveröffentlichung, rekonstruierte SNR-Verläufe, Dichtezuordnung zu Empfangsnummern und WSPRadar-eigene UTC-Beobachtungsdaten, mit übereinstimmend nummerierten Intervallen und gemeinsamer Dichteskala.",
       "en": "Four-panel Vanhamel Figure 6 comparison with original publication, reconstructed SNR traces, reception-number density mapping, native UTC evidence, matching numbered bins, and the shared density scale."
     },
     "asset_path": "assets/figures/vanhamel-figure6-comparison.png",
     "caption": {
-      "de": "Vier ausgerichtete Panels verbinden Publikation (A), rekonstruierte Kurven in Empfangsreihenfolge (B), die Zuordnung nativer Dichte-Bins zu Empfangsnummernbereichen (C) und die native chronologische Ansicht (D). Übereinstimmende Bin-Nummern verbinden C und D; deren Dichtewerte und Farbnormalisierung sind gleich. Unterscheide das Zählen von Empfängen vom Messen verstrichener Zeit und lies die native nichtlineare Achse anhand ihrer beschrifteten dB-Werte.",
+      "de": "Vier aufeinander abgestimmte Panels verbinden die Veröffentlichung (A), rekonstruierte Verläufe in Empfangsreihenfolge (B), eine Zuordnung der WSPRadar-eigenen Dichteintervalle zu Bereichen von Empfangsnummern (C) und die WSPRadar-eigene chronologische Ansicht (D). Übereinstimmende Intervallnummern verbinden C und D; ihre Dichtewerte und Farbnormierung sind gleich. Unterscheide weiterhin zwischen dem Zählen von Empfängen und dem Messen verstrichener Zeit und lies die WSPRadar-eigene nichtlineare Achse anhand ihrer beschrifteten dB-Werte.",
       "en": "Four aligned panels connect the publication (A), reconstructed reception-order traces (B), a mapping of native density bins to reception-number spans (C), and the native chronological view (D). Matching bin numbers connect C and D, whose density values and color normalization are the same. Preserve the distinction between counting receptions and measuring elapsed time, and read the native nonlinear axis by its labeled dB values."
     },
     "demo_id": "vanhamel_rx_buddy",
@@ -108,21 +108,21 @@
       "source_figure": "paper_figure6.png",
       "source_fixture": "tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1"
     },
-    "source_path": "docs/website/assets/figures/vanhamel-figure6-comparison.png",
+    "source_path": "docs/website/vanhamel-figure6-comparison.png",
     "title": {
-      "de": "Von der Empfangsnummer zur UTC-Zeit",
+      "de": "From reception number to UTC time",
       "en": "From reception number to UTC time"
     },
     "width": 3300
   },
   {
     "alt": {
-      "de": "Zander Abbildung 4 mit Publikationshistogramm, Rekonstruktion grober Klassen samt Residuen und nativem WSPRadar-Prozenthistogramm mit 1-dB-Klassen; Legenden, Quellenangabe, Mittelwerte und Erläuterungen bleiben erhalten.",
+      "de": "Veröffentlichtes Histogramm von Zander Figure 4, Rekonstruktion mit groben Klassen und Residuen sowie WSPRadar-eigenes Prozenthistogramm mit 1-dB-Klassen, einschließlich Legenden, Quellenangabe, arithmetischer Mittelwerte und Erläuterungen.",
       "en": "Zander Figure 4 publication histogram, coarse-bin reconstruction with residuals, and native WSPRadar 1 dB percentage histogram, retaining legends, source citation, means, and explanatory text."
     },
     "asset_path": "assets/figures/zander-figure4-comparison.png",
     "caption": {
-      "de": "Panel A bewahrt das Histogramm der Publikation. Panel B rekonstruiert dessen grobe Dichteklassen und enthält den Residuenvergleich; Panel C zeigt WSPRadars natives Prozenthistogramm mit 1-dB-Klassen. Klassenbreite und vertikale Einheiten erklären die unterschiedlichen Balken. Lies Mittelwert und Streuung zusammen mit ihrer Beobachtungseinheit: 166 gemeinsame Empfängerzyklen. Negatives ΔSNR spricht auf den erfassten Funkwegen für die Referenz-Vertikalantenne.",
+      "de": "Panel A erhält das Histogramm der Veröffentlichung. Panel B rekonstruiert dessen grobe Dichteklassen und behält den Residuenvergleich bei; Panel C zeigt das WSPRadar-eigene Prozenthistogramm mit 1-dB-Klassen. Klassenbreite und Einheiten der senkrechten Achse erklären die unterschiedlichen Balken. Lies arithmetischen Mittelwert und Streuung zusammen mit ihrer Beobachtungseinheit: 166 gepaarte Empfänger-Zyklus-Kombinationen. Negatives ΔSNR spricht auf den untersuchten Funkpfaden für die Referenz-Vertikalantenne.",
       "en": "Panel A preserves the publication histogram. Panel B reconstructs its coarse density bins and retains the residual comparison; Panel C presents WSPRadar's native 1 dB percentage histogram. Bin width and vertical units explain why the bars differ. Read the mean and spread alongside their observation unit: 166 paired receiver-cycles. Negative ΔSNR favors the Reference vertical on the sampled paths."
     },
     "demo_id": "zander_tx_buddy",
@@ -137,21 +137,21 @@
       "source_figure": "paper_figure4.png",
       "source_fixture": "tests/regression/reference_fixtures/zander_fig4_paper_v1"
     },
-    "source_path": "docs/website/assets/figures/zander-figure4-comparison.png",
+    "source_path": "docs/website/zander-figure4-comparison.png",
     "title": {
-      "de": "Dieselbe gepaarte Evidenz in unterschiedlichen Histogrammen",
+      "de": "The same paired evidence in different histogram views",
       "en": "The same paired evidence in different histogram views"
     },
     "width": 4320
   },
   {
     "alt": {
-      "de": "RX-Vergleich zu Milazzo Abbildung 6 mit Originalpublikation, Berichtsrekonstruktion über dem Originalraster, nativer gepaarter Evidenz, Hilfslinien zur zyklusgleichen Identität und vollständiger Erklärung der Richtungskorrektur.",
+      "de": "RX-Vergleich zu Milazzo Figure 6 mit Originalveröffentlichung, Rekonstruktion der Empfangsberichte über dem ursprünglichen Rasterbild, WSPRadar-eigenen gepaarten Beobachtungsdaten, Hilfslinien für identitätsgleiche Beobachtungen im selben Zyklus und vollständiger Erklärung der Richtungskorrektur.",
       "en": "Milazzo Figure 6 RX comparison showing the original publication, report reconstruction over the original raster, native paired evidence, same-cycle identity guides, and the complete direction-correction explanation."
     },
     "asset_path": "assets/figures/milazzo-figure6-rx-comparison.png",
     "caption": {
-      "de": "Der RX-Hauptrundgang bewahrt die ursprüngliche Abbildung 6 in Panel A, rekonstruiert Berichte über dem Publikationsbild in Panel B und zeigt native gepaarte Evidenz in Panel C. Lies den Hinweis zur Richtungskorrektur: Archivierte Identitäten belegen Empfang von VE6PDQ trotz der ursprünglich gedruckten Richtung. Gestrichelte Hilfslinien verbinden nur zulässige Paare desselben Zyklus mit vollständiger Locatorübereinstimmung. Halte VE6PDQ/DO34IR und VE6PDQ/DO34 beim Nachvollziehen der fünf Paare über diese beiden Identitäten getrennt.",
+      "de": "Die hauptsächliche RX-Anleitung erhält die ursprüngliche Figure 6 in Panel A, rekonstruiert Empfangsberichte über der Abbildung der Veröffentlichung in Panel B und zeigt die WSPRadar-eigenen gepaarten Beobachtungsdaten in Panel C. Lies den Hinweis zur Richtungskorrektur: Die Datenbankidentitäten belegen Empfang von VE6PDQ trotz der ursprünglich gedruckten Richtung. Die gestrichelten Hilfslinien verbinden nur zulässige Paare aus demselben Zyklus mit übereinstimmendem vollständigem Locator. Halte VE6PDQ/DO34IR und VE6PDQ/DO34 getrennt, wenn du die fünf Paare über die beiden Identitäten verfolgst.",
       "en": "The main RX walkthrough retains the original Figure 6 in Panel A, reconstructs reports over the publication image in Panel B, and displays native paired evidence in Panel C. Read the direction-correction note: database identities establish reception from VE6PDQ despite the original printed direction. The dashed guides connect only eligible same-cycle, full-locator pairs. Keep VE6PDQ/DO34IR and VE6PDQ/DO34 distinct when following the five pairs across the two identities."
     },
     "demo_id": "milazzo_tx_buddy",
@@ -178,21 +178,21 @@
       "source_figure": "paper_figure6.jpg",
       "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v3"
     },
-    "source_path": "docs/website/assets/figures/milazzo-figure6-rx-comparison.png",
+    "source_path": "docs/website/milazzo-figure6-rx-comparison.png",
     "title": {
-      "de": "RX: Welche Publikationsberichte bilden genaue Paare?",
+      "de": "RX: which publication reports form exact pairs?",
       "en": "RX: which publication reports form exact pairs?"
     },
     "width": 3840
   },
   {
     "alt": {
-      "de": "TX-Vergleich zu Milazzo Abbildung 7 mit Originalpublikation, leistungsnormalisierter Berichtsrekonstruktion, Markierungen des Aktivitäts-Gates und nativer Evidenz für den einzigen Joint Spot auf dem ausgewählten Funkweg zu VE6PDQ.",
+      "de": "TX-Vergleich zu Milazzo Figure 7 mit Originalveröffentlichung, auf Leistung normierter Rekonstruktion der Empfangsberichte, allen archivierten Berichtsmarkern und WSPRadar-eigenen Beobachtungsdaten für das einzelne Spot-Paar auf dem ausgewählten VE6PDQ-Funkpfad.",
       "en": "Milazzo Figure 7 TX comparison with original publication, power-normalized report reconstruction, all archived report markers, and native evidence for the single spot pair on the selected VE6PDQ path."
     },
     "asset_path": "assets/figures/milazzo-figure7-tx-comparison.png",
     "caption": {
-      "de": "Abbildung 7 ist der optionale reziproke TX-Vergleich. Die Rekonstruktion bewahrt das hinterlegte Originalbild, Berichtsmarkierungen und Anmerkungen zum Target-Active Gate; die native Ansicht zeigt die wenigen gepaarten Beobachtungen des Funkwegs zu VE6PDQ. Unterscheide die vielen rekonstruierten Berichte vom einzigen verbleibenden Joint Spot dieses Funkwegs. Normalisierung anhand gemeldeter Sendeleistung und ungleiche Betriebszeitpläne sind für die Deutung gepaarter und nicht gemeinsamer Beobachtungen wesentlich.",
+      "de": "Figure 7 ist der optionale TX-Vergleich in Gegenrichtung. Seine Rekonstruktion erhält die unterlegte Originalabbildung und alle archivierten Berichtsmarker; die WSPRadar-eigene Ansicht zeigt die spärlichen gepaarten Beobachtungsdaten des VE6PDQ-Funkpfads. Unterscheide die vielen rekonstruierten Empfangsberichte von dem einzelnen Spot-Paar auf diesem Funkpfad. Die Normierung auf gemeldete Leistung und die unterschiedlichen Betriebspläne sind für die Interpretation der gepaarten und ungepaarten Beobachtungen wesentlich.",
       "en": "Figure 7 is the optional reciprocal TX comparison. Its reconstruction retains the original-image underlay, all archived report markers; the native view shows the sparse paired evidence for the VE6PDQ path. Distinguish the many reconstructed reports from the single spot pair on this path. Reported-power normalization and unequal operating schedules are essential to interpreting the paired and unpaired observations."
     },
     "demo_id": "milazzo_tx_buddy",
@@ -219,21 +219,21 @@
       "source_figure": "paper_figure7.jpg",
       "source_fixture": "tests/regression/reference_fixtures/milazzo_publication_overlays_v3"
     },
-    "source_path": "docs/website/assets/figures/milazzo-figure7-tx-comparison.png",
+    "source_path": "docs/website/milazzo-figure7-tx-comparison.png",
     "title": {
-      "de": "TX-Anschlussbeispiel: Normalisierung, Aktivität und ein verbleibendes Paar",
+      "de": "TX follow-up: normalization, activity, and one surviving pair",
       "en": "TX follow-up: normalization, activity, and one surviving pair"
     },
     "width": 3840
   },
   {
     "alt": {
-      "de": "Vollständige RX-Benchmark-Karte von G3ZIL gegenüber G4HZX auf 40 m im April 2017, mit Farbskala, Empfangskategorien, 792 gemeinsam beobachteten Stationseinträgen und 57 767 Joint Spots.",
+      "de": "Vollständige RX-Benchmark-ΔSNR-Karte von G3ZIL gegenüber G4HZX auf 40 m im April 2017 mit Farbskala, Dekodierergebnissen auf Stationsebene und Einstellungen der Mindestanforderungen.",
       "en": "Complete RX Benchmark ΔSNR map of G3ZIL versus G4HZX on 40 m in April 2017, with color scale, station-level decode outcomes, and qualification settings."
     },
     "asset_path": "assets/figures/landing-demo1-map.webp",
     "caption": {
-      "de": "Wo zeigt sich der Unterschied? Die Sektorfarben zeigen stationsgleichgewichtete mediane SNR-Differenzen: G3ZIL minus G4HZX. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "de": "Wo zeigt sich der Unterschied? Die Sektorfarben zeigen Mediane der SNR-Differenzen bei gleicher Stationsgewichtung: G3ZIL minus G4HZX. Tatsächliche Aufnahme der Anwendung im dunklen Modus aus beibehaltenen Empfangsberichten, 24. Oktober 2026.",
       "en": "Where does the difference appear? Sector colors show station-balanced median SNR differences: G3ZIL minus G4HZX. Actual dark-mode application capture from retained reports, October 24, 2026."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -251,7 +251,7 @@
       "prepared_on": "2026-10-24",
       "sha256": "178b292a8ad5bf942b389f41eb70063f2b10cbc9f39631dfe19152dbeddca83d",
       "source_capture_key": "demo-1-map",
-      "source_capture_path": "docs/website/assets/screenshots/demo-1-map.jpg",
+      "source_capture_path": "docs/website/demo-1-map.jpg",
       "source_capture_provenance": {
         "accepted_capture_report": {
           "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
@@ -389,21 +389,21 @@
       },
       "source_capture_sha256": "220a84bd981331e564d6bd29c5f58b8feb49af92609470740c48eacfe14dc604"
     },
-    "source_path": "docs/website/assets/figures/landing-demo1-map.webp",
+    "source_path": "docs/website/landing-demo1-map.webp",
     "title": {
-      "de": "Weltkarte",
+      "de": "World map",
       "en": "World map"
     },
     "width": 519
   },
   {
     "alt": {
-      "de": "Drei vollständige Benchmark-Evidenzdiagramme mit Empfangskategorien, SNR-Differenzen der Stationsmediane und SNR-Differenzen der Joint Spots für G3ZIL gegenüber G4HZX.",
+      "de": "Drei vollständige Histogramme der Ansicht „Benchmark Statistics“ mit „Decode Volume“, SNR-Differenzen gepaarter Spots und SNR-Differenzen aus Stationsmedianen für G3ZIL gegenüber G4HZX.",
       "en": "Three complete Benchmark Statistics histograms showing Decode Volume, paired-spot SNR differences and station-median SNR differences for G3ZIL versus G4HZX."
     },
     "asset_path": "assets/figures/landing-demo1-snr.webp",
     "caption": {
-      "de": "Was wurde empfangen, und um wie viel besser? Der Median der Stationsmediane beträgt +6,5 dB, der Joint-Spot-Median +7,0 dB. Positive Werte sprechen für G3ZIL. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "de": "Was wurde empfangen, und um wie viel besser? Das Ergebnis aus Stationsmedianen beträgt +6,5 dB; der Spot-Paar-Median beträgt +7,0 dB. Positive Werte sprechen für G3ZIL. Tatsächliche Aufnahme der Anwendung im dunklen Modus aus beibehaltenen Empfangsberichten, 24. Oktober 2026.",
       "en": "What was heard, and how much better? The station-median result is +6.5 dB; the spot-pair median is +7.0 dB. Positive values favor G3ZIL. Actual dark-mode application capture from retained reports, October 24, 2026."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -421,7 +421,7 @@
       "prepared_on": "2026-10-24",
       "sha256": "b0e2bee1202e2b8e08a31343fae5a19ad31a4ef757293e856cde15d67d162c11",
       "source_capture_key": "demo-1-segment",
-      "source_capture_path": "docs/website/assets/screenshots/demo-1-segment.jpg",
+      "source_capture_path": "docs/website/demo-1-segment.jpg",
       "source_capture_provenance": {
         "accepted_capture_report": {
           "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
@@ -559,21 +559,21 @@
       },
       "source_capture_sha256": "1558b9feb515ff5c7854b126ce9ad55b7c7052e0c833916cb443f3fb72f501ec"
     },
-    "source_path": "docs/website/assets/figures/landing-demo1-snr.webp",
+    "source_path": "docs/website/landing-demo1-snr.webp",
     "title": {
-      "de": "SNR-Differenz und Empfangskategorien",
+      "de": "SNR difference and decode outcomes",
       "en": "SNR difference and decode outcomes"
     },
     "width": 1112
   },
   {
     "alt": {
-      "de": "Vollständige Diagramme der SNR-Differenz im Zeitverlauf und nach UTC-Stunde für den Vergleich im April 2017, einschließlich Achsen, Legenden, Beschriftung der nichtlinearen Skala und des gesamten Joint-Spot-Medians von +7,0 dB.",
+      "de": "Vollständige chronologische und nach UTC-Stunden zusammengefasste SNR-Differenzdiagramme für den Vergleich im April 2017 mit Achsen, Legenden, Beschriftungen der nichtlinearen Skala und dem gesamten Spot-Paar-Median von +7,0 dB.",
       "en": "Complete chronological and UTC-hour SNR-difference charts for the April 2017 comparison, retaining axes, legends, nonlinear-scale labels and the +7.0 dB overall spot-pair median."
     },
     "asset_path": "assets/figures/landing-demo1-temporal.webp",
     "caption": {
-      "de": "Blieb der Unterschied gleich? Tagesmediane und die Ansicht nach UTC-Stunde zeigen, wie die gepaarten SNR-Differenzen variieren. Das schattierte Band enthält die mittleren 50 % der Beobachtungen. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "de": "Blieb der Unterschied gleich? Tagesmediane und die UTC-Stundenansicht zeigen, wie die gepaarten SNR-Differenzen variieren. Das schattierte Band umfasst die mittleren 50% der Beobachtungen. Tatsächliche Aufnahme der Anwendung im dunklen Modus aus beibehaltenen Empfangsberichten, 24. Oktober 2026.",
       "en": "Did the difference stay the same? Daily medians and the UTC-hour view show how the paired SNR differences vary. The shaded band is the middle 50% of observations. Actual dark-mode application capture from retained reports, October 24, 2026."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -591,7 +591,7 @@
       "prepared_on": "2026-10-24",
       "sha256": "296867972885f3b89ced03bf2d2881f693ba690214cfa506019b6892aad30e9f",
       "source_capture_key": "demo-1-temporal",
-      "source_capture_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+      "source_capture_path": "docs/website/demo-1-temporal.jpg",
       "source_capture_provenance": {
         "accepted_capture_report": {
           "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
@@ -729,21 +729,21 @@
       },
       "source_capture_sha256": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00"
     },
-    "source_path": "docs/website/assets/figures/landing-demo1-temporal.webp",
+    "source_path": "docs/website/landing-demo1-temporal.webp",
     "title": {
-      "de": "Im Zeitverlauf",
+      "de": "Over time",
       "en": "Over time"
     },
     "width": 1112
   },
   {
     "alt": {
-      "de": "Vollständige Abbildung zur zeitlichen Evidenzabdeckung für G3ZIL mit täglichen und nach UTC-Stunde zusammengefassten Stations- und Senderzykluszahlen, Linien für Joint Evidence Share sowie dem Hinweis zur Target-Aktivität.",
+      "de": "Vollständige Abbildung der zeitlichen Datengrundlage und von ΔDecode für G3ZIL gegenüber G4HZX, einschließlich chronologischer und nach UTC-Stunden zusammengefasster Stationsbeobachtungen, gepaarter und einseitiger Ergebnisse auf Spot-Ebene sowie Linien für das Verhältnis der Stationszahlen und das zusammengefasste ΔDecode.",
       "en": "Complete temporal evidence and ΔDecode figure for G3ZIL versus G4HZX, including chronological and UTC-hour station presence, paired and one-sided spot-level outcomes, and station reach advantage and pooled ΔDecode lines."
     },
     "asset_path": "assets/figures/landing-demo1-coverage.webp",
     "caption": {
-      "de": "Wie viel Evidenz trägt das Muster? Prüfe neben dem SNR die Anzahl der Stationen und Senderzyklen. Joint Evidence Share ist keine Empfangserfolgsquote. Echte App-Aufnahme im dunklen Design vom 13. Oktober 2026.",
+      "de": "Wie viele Beobachtungsdaten stützen das Muster? Prüfe die beobachteten Stationen und die Ergebnisse auf Spot-Ebene gemeinsam mit ΔSNR und ΔDecode. Die Stationskategorie „Both observed“ erfordert kein Spot-Paar im selben Zyklus, und ΔDecode ist keine Erfolgsquote über alle Sendeversuche. Tatsächliche Aufnahme der Anwendung im dunklen Modus aus beibehaltenen Empfangsberichten, 24. Oktober 2026.",
       "en": "How much evidence supports the pattern? Check station presence and spot-level outcomes alongside ΔSNR and ΔDecode. Both observed station presence does not require a same-cycle spot pair, and ΔDecode is not a success rate over all transmission attempts. Actual dark-mode application capture from retained reports, October 24, 2026."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -761,7 +761,7 @@
       "prepared_on": "2026-10-24",
       "sha256": "83f2ba8d1c03628b814f629d4b8929aecea4e8f1c7ede677d057b9df5b7cbc87",
       "source_capture_key": "demo-1-temporal",
-      "source_capture_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+      "source_capture_path": "docs/website/demo-1-temporal.jpg",
       "source_capture_provenance": {
         "accepted_capture_report": {
           "path": "source/archive/spot-pair-renderers/pre-typography-runtime/accepted-captures/demo-1/capture-report.json",
@@ -899,9 +899,9 @@
       },
       "source_capture_sha256": "e1d1804b36a24e9024d65a4220c6963cd1e46726434b119ac2d32bb5c5643a00"
     },
-    "source_path": "docs/website/assets/figures/landing-demo1-coverage.webp",
+    "source_path": "docs/website/landing-demo1-coverage.webp",
     "title": {
-      "de": "Evidenzabdeckung",
+      "de": "Evidence coverage",
       "en": "Evidence coverage"
     },
     "width": 1112

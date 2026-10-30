@@ -1,12 +1,12 @@
 [
   {
     "alt": {
-      "de": "WSPRadar-Karte zum RX-Benchmark von G3ZIL und G4HZX mit 57 767 Joint Spots und 792 gemeinsam beobachteten Sendestationen.",
+      "de": "WSPRadar-Karten für RX Benchmark, die G3ZIL und G4HZX anhand von ΔSNR bei gleicher Stationsgewichtung und zusammengefasstem ΔDecode vergleichen, mit Legenden zu beobachteten Stationen und Einstellungen der Mindestanforderungen.",
       "en": "WSPRadar RX Benchmark maps comparing G3ZIL and G4HZX through station-balanced ΔSNR and pooled ΔDecode, with station-level presence legends and qualification settings."
     },
     "asset_path": "assets/screenshots/demo-1-map.jpg",
     "caption": {
-      "de": "Live-Aufnahme der Anwendung mit der unveränderten Vorgabe für April 2017. Die Sektorfarben zeigen stationsgleichgewichtetes ΔSNR für G3ZIL minus G4HZX; die Markierungen unterscheiden Decode Outcomes. Karte, Legende, Skala und Evidenzzahlen sind vollständig sichtbar.",
+      "de": "Aufnahme der Anwendung mit der aktuellen Demo für April 2017 aus beibehaltenen Empfangsberichten. Die Sektorfarben fassen ΔSNR bei gleicher Stationsgewichtung (G3ZIL minus G4HZX) und zusammengefasstes ΔDecode für dieselben Aufbauten zusammen; Marker unterscheiden Dekodierergebnisse auf Stationsebene. Die vollständigen Karten, Legenden, Skalen und Einstellungen der Mindestanforderungen bleiben sichtbar.",
       "en": "Application capture of the current April 2017 demo from retained reports. Sector colors summarize station-balanced ΔSNR (G3ZIL minus G4HZX) and pooled ΔDecode for the same setups; markers distinguish station-level decode outcomes. The complete maps, legends, scales, and qualification settings remain visible."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -147,21 +147,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-1-map.jpg",
+    "source_path": "docs/website/demo-1-map.jpg",
     "stage": "map",
     "title": {
-      "de": "Kartenansicht: der April-Vergleich",
+      "de": "Map View: the April comparison",
       "en": "Map View: the April comparison"
     }
   },
   {
     "alt": {
-      "de": "Bereichsauswahl und drei Benchmark-Evidenzdiagramme im Segment-Inspektor für den vollständigen April-Vergleich mit 792 beitragenden Sendestationen und 57 767 Joint Spots.",
+      "de": "Bedienelemente von „Segment Inspector“, drei Histogramme der Ansicht „Benchmark Statistics“ und Tabellen der Ergebnisse auf Stations- und Spot-Ebene für den vollständigen April-Vergleich mit 792 beitragenden TX-Stationsidentitäten und 57 767 Spot-Paaren.",
       "en": "Segment Inspector controls, three Benchmark Statistics histograms, and station and spot outcome tables for the full April comparison, showing 792 contributing TX station identities and 57 767 spot pairs."
     },
     "asset_path": "assets/screenshots/demo-1-segment.jpg",
     "caption": {
-      "de": "Full Range und All Directions behalten den vollständigen Demo-Bereich bei. Lies Decode Outcomes zusammen mit den Stationsmedianen und der Joint-Spot-Verteilung: Sie beschreiben unterschiedliche Gewichtungen der Evidenz.",
+      "de": "„Full Range“ und „All Directions“ erhalten den vollständigen Umfang der Demo. Lies „Decode Volume“ zusammen mit den Verteilungen gepaarter Spots und Stationsmediane und prüfe anschließend die Tabellen der Ergebnisse auf Stations- und Spot-Ebene: Sie beschreiben unterschiedliche Mengen von Beobachtungsdaten und Gewichtungen.",
       "en": "Full Range and All Directions retain the complete demo scope. Read Decode Volume alongside the paired-spot and station-median distributions, then check the station and spot outcome tables: they describe different evidence populations and weightings."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -302,21 +302,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-1-segment.jpg",
+    "source_path": "docs/website/demo-1-segment.jpg",
     "stage": "segment",
     "title": {
-      "de": "Segment-Inspektor: Bereich wählen und beurteilen",
+      "de": "Segment Inspector: define and assess the scope",
       "en": "Segment Inspector: define and assess the scope"
     }
   },
   {
     "alt": {
-      "de": "ΔSNR-Dichte, Intervallmediane, Bänder der mittleren 50 Prozent und zeitliche Evidenzabdeckung für G3ZIL gegenüber G4HZX im April 2017.",
+      "de": "ΔSNR-Dichte, Intervallmediane, Bänder der mittleren 50% und zeitliche Abdeckung der Beobachtungsdaten im April 2017 für G3ZIL gegenüber G4HZX.",
       "en": "April 2017 ΔSNR density, interval medians, middle-50-percent bands, and temporal evidence coverage for G3ZIL versus G4HZX."
     },
     "asset_path": "assets/screenshots/demo-1-temporal.jpg",
     "caption": {
-      "de": "Die unveränderte Demo verwendet chronologische 24-Stunden-Intervalle. Vergleiche ΔSNR im Zeitverlauf mit der Zusammenfassung nach UTC-Stunde und prüfe anschließend die zugehörige Evidenzabdeckung. Die Stundenansicht fasst verschiedene Tage zusammen.",
+      "de": "Die aktuelle Demo verwendet chronologische Intervalle von 24 Stunden. Vergleiche ΔSNR im Zeitverlauf mit der Zusammenfassung nach UTC-Stunde und prüfe anschließend die zugehörige zeitliche Datengrundlage und ΔDecode. Die nach UTC-Stunde zusammengefasste Ansicht verbindet unterschiedliche Tage.",
       "en": "The current demo uses 24-hour chronological bins. Compare ΔSNR over time with UTC-hour folding, then check the corresponding temporal evidence and ΔDecode. The folded view combines different dates."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -457,21 +457,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-1-temporal.jpg",
+    "source_path": "docs/website/demo-1-temporal.jpg",
     "stage": "temporal",
     "title": {
-      "de": "Zeitliche Evidenz: Veränderung und Abdeckung",
+      "de": "Temporal Evidence: change and coverage",
       "en": "Temporal Evidence: change and coverage"
     }
   },
   {
     "alt": {
-      "de": "Tabelle Station Insights mit ausgewähltem DJ0ABR in JN68nt und den zugehörigen ΔSNR-Diagrammen im Zeitverlauf und nach UTC-Stunde.",
+      "de": "Tabelle „Station Insights“ mit ausgewähltem DJ0ABR in JN68nt, gefolgt von dessen chronologischen und nach UTC-Stunden zusammengefassten ΔSNR-Diagrammen.",
       "en": "Station Insights table with DJ0ABR at JN68nt selected, followed by its chronological and UTC-hour ΔSNR charts."
     },
     "asset_path": "assets/screenshots/demo-1-stations.jpg",
     "caption": {
-      "de": "Die Vorgabe wählt DJ0ABR in JN68nt aus. Seine 2 334 Joint Spots ermöglichen einen funkwegspezifischen Vergleich; die dargestellte 12-Stunden-Ansicht ist zusammen mit der breiteren geografischen Evidenz zu lesen.",
+      "de": "Die Voreinstellung wählt DJ0ABR in JN68nt. Dessen 2 334 Spot-Paare stützen einen Vergleich dieses Funkpfads; die dargestellte 12-Stunden-Ansicht sollte gemeinsam mit den umfassenderen geografischen Beobachtungsdaten gelesen werden.",
       "en": "The preset selects DJ0ABR at JN68nt. Its 2 334 spot pairs support a path-specific comparison; the displayed 12-hour view should be read alongside the broader geographic evidence."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -612,21 +612,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-1-stations.jpg",
+    "source_path": "docs/website/demo-1-stations.jpg",
     "stage": "stations",
     "title": {
-      "de": "Station Insights: dem Funkweg von DJ0ABR folgen",
+      "de": "Station Insights: follow the DJ0ABR path",
       "en": "Station Insights: follow the DJ0ABR path"
     }
   },
   {
     "alt": {
-      "de": "Live-Drill-Down-Tabelle für DJ0ABR in JN68nt mit gepaarten UTC-Beobachtungen und SNR-Werten von G3ZIL und G4HZX.",
+      "de": "Tabelle „Drill-Down“ für DJ0ABR in JN68nt mit gepaarten UTC-Beobachtungen und SNR-Werten von G3ZIL und G4HZX.",
       "en": "Drill-Down table for DJ0ABR at JN68nt, showing paired UTC observations and SNR values from G3ZIL and G4HZX."
     },
     "asset_path": "assets/screenshots/demo-1-drilldown.jpg",
     "caption": {
-      "de": "Die ersten sichtbaren Zeilen zeigen UTC-Zeit, genaue Stationskennung und Locator, Referenz sowie normierte SNR-Werte. Tabellenfilter und Zoom ändern die untersuchte Ansicht, nicht die abgeschlossene Analyse.",
+      "de": "Die sichtbaren ersten Zeilen nennen UTC-Zeit, exakte Station und Locator, Referenz sowie normierte SNR-Werte. Tabellenfilter und Zoom verändern die untersuchte Ansicht; sie definieren die abgeschlossene Analyse nicht neu.",
       "en": "The visible first rows identify UTC time, exact station and locator, Reference, and normalized SNR values. Table filtering and zooming affect the inspected view; they do not redefine the completed analysis."
     },
     "demo_id": "griffiths_squibb_fig3",
@@ -767,21 +767,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-1-drilldown.jpg",
+    "source_path": "docs/website/demo-1-drilldown.jpg",
     "stage": "drilldown",
     "title": {
-      "de": "Drill-Down: gepaarte Beobachtungen prüfen",
+      "de": "Drill-Down: inspect the paired observations",
       "en": "Drill-Down: inspect the paired observations"
     }
   },
   {
     "alt": {
-      "de": "Live-ΔSNR-Evidenz über drei Tage mit negativen Medianen in frühen Stunden und positiven Tagesmedianen sowie Abdeckung der gepaarten Evidenz.",
+      "de": "ΔSNR-Beobachtungsdaten über drei Tage mit negativen Medianen in frühen Stunden und positiven Medianen tagsüber, ergänzt durch zeitliche Datengrundlage und ΔDecode.",
       "en": "Three-day ΔSNR evidence with negative early-hour and positive daytime medians, plus temporal evidence and ΔDecode."
     },
     "asset_path": "assets/screenshots/demo-2-temporal.jpg",
     "caption": {
-      "de": "Die Live-Vorgabe verwendet chronologische 12-Stunden-Intervalle und eine Zusammenfassung nach UTC-Stunde. Die Mediane der frühen Stunden sprechen für G4HZX, die meisten Tagesmediane für G3ZIL. Prüfe die einzelnen Tage und die Abdeckung, bevor du ein Tagesmuster interpretierst.",
+      "de": "Die aktuelle Demo verwendet chronologische Intervalle von 12 Stunden und eine Zusammenfassung in einstündigen UTC-Intervallen. Die Mediane früher Stunden sprechen für G4HZX, die meisten Mediane der Tagesstunden für G3ZIL. Prüfe die einzelnen Tage und die Abdeckung, bevor du ein Tagesmuster interpretierst.",
       "en": "The current demo uses 12-hour chronological bins and one-hour UTC folding. Early-hour medians favor G4HZX while most daytime medians favor G3ZIL. Check the separate dates and coverage before interpreting a daily pattern."
     },
     "demo_id": "griffiths_squibb_fig6",
@@ -927,21 +927,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-2-temporal.jpg",
+    "source_path": "docs/website/demo-2-temporal.jpg",
     "stage": "temporal",
     "title": {
-      "de": "Zeitliche Evidenz: Tag und Nacht",
+      "de": "Temporal Evidence: day and night",
       "en": "Temporal Evidence: day and night"
     }
   },
   {
     "alt": {
-      "de": "Karte G3ZIL gegenüber G4HZX für den 5.–7. April 2017 mit geografischen ΔSNR-Sektoren und vollständiger Evidenzlegende.",
+      "de": "Karte von G3ZIL gegenüber G4HZX für den 5.–7. April 2017 mit geografischen ΔSNR-Sektoren und vollständiger Legende zur Datengrundlage.",
       "en": "G3ZIL versus G4HZX map for 5–7 April 2017, with geographic ΔSNR sectors and the full evidence legend."
     },
     "asset_path": "assets/screenshots/demo-2-map.jpg",
     "caption": {
-      "de": "Die Live-Vorgabe für den 5.–7. April enthält 200 gemeinsam beobachtete Sendestationen und 6 459 Joint Spots. Ungefärbte Sektoren weisen keine Antennennullstellen nach; ihnen fehlt eine gestützte Sektorschätzung.",
+      "de": "Die aktuelle Demo für den 5.–7. April enthält 200 Sendestationsidentitäten mit gepaarten Beobachtungen und 6 459 Spot-Paare. Ungefärbte Sektoren belegen keine Nullstellen des Antennendiagramms; ihnen fehlt eine ausreichend gestützte Sektorkennzahl.",
       "en": "The current 5–7 April demo contains 200 transmitting station identities with paired observations and 6 459 spot pairs. Uncolored sectors do not demonstrate antenna nulls; they lack a supported sector estimate."
     },
     "demo_id": "griffiths_squibb_fig6",
@@ -1087,21 +1087,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-2-map.jpg",
+    "source_path": "docs/website/demo-2-map.jpg",
     "stage": "map",
     "title": {
-      "de": "Kartenansicht: der Drei-Tage-Vergleich",
+      "de": "Map View: the three-day comparison",
       "en": "Map View: the three-day comparison"
     }
   },
   {
     "alt": {
-      "de": "Live-ΔSNR-Zeitreihe und Evidenzabdeckung für M7AEO in IO82 mit der Stufe um den 8. Mai und der Referenzkorrektur von +1,6 dB.",
+      "de": "ΔSNR-Zeitreihe und zeitliche Datengrundlage von M7AEO IO82 mit dem Sprung um den 8. Mai und der SNR-Korrektur der Referenz von +1,6 dB.",
       "en": "M7AEO IO82 ΔSNR time series and temporal evidence, displaying the step around 8 May and the +1.6 dB Reference correction."
     },
     "asset_path": "assets/screenshots/demo-5-selected-evidence.jpg",
     "caption": {
-      "de": "M7AEO in IO82 trägt 1 441 Joint Spots bei. Der ausgewählte Funkweg zeigt den Übergang zu höheren Werten um den 8. Mai; die vorgegebene Referenzkorrektur von +1,6 dB ist angewendet. Das vollständige Abdeckungsdiagramm macht die überwiegend nächtliche Beobachtung sichtbar.",
+      "de": "M7AEO in IO82 trägt 1 441 Spot-Paare bei. Der ausgewählte Funkpfad zeigt den Anstieg um den 8. Mai bei angewendeter voreingestellter SNR-Korrektur der Referenz von +1,6 dB. Das vollständige Abdeckungspanel macht sichtbar, dass die Beobachtungen überwiegend nachts vorliegen.",
       "en": "M7AEO at IO82 contributes 1 441 spot pairs. The selected path shows the upward transition around 8 May, with the preset +1.6 dB Reference correction applied. The complete coverage panel makes the predominantly nighttime sampling visible."
     },
     "demo_id": "vanhamel_rx_buddy",
@@ -1247,21 +1247,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-5-selected-evidence.jpg",
+    "source_path": "docs/website/demo-5-selected-evidence.jpg",
     "stage": "selected_evidence",
     "title": {
-      "de": "Evidenz der ausgewählten Station: die Antennendrehung",
+      "de": "Selected Station Evidence: the antenna rotation",
       "en": "Selected Station Evidence: the antenna rotation"
     }
   },
   {
     "alt": {
-      "de": "Live-Karte des Zander-TX-Benchmarks von SK0WE/P gegenüber SK0WE/1 mit negativen ΔSNR-Sektoren über Europa und Richtung Nordamerika.",
+      "de": "Zander-Karte für TX Benchmark zum Vergleich von SK0WE/P mit SK0WE/1, mit negativen ΔSNR-Sektoren über Europa und in Richtung Nordamerika.",
       "en": "Zander TX Benchmark map comparing SK0WE/P with SK0WE/1, showing negative ΔSNR sectors across Europe and toward North America."
     },
     "asset_path": "assets/screenshots/demo-6-map.jpg",
     "caption": {
-      "de": "Die unveränderte Vorgabe 09:45–10:30 UTC liefert 166 Joint Spots von 37 beitragenden Empfängern. Negative Sektoren sprechen für die Referenzstation SK0WE/1; das Muster beschreibt relative Leistung auf beobachteten Funkwegen, kein vollständiges Antennenstrahlungsdiagramm.",
+      "de": "Die aktuelle Demo für 09:45–10:30 UTC liefert 166 Spot-Paare von 37 beitragenden Empfängern. Negative Sektoren sprechen für die Referenzstation SK0WE/1; ihr Muster beschreibt den relativen Vergleich auf den untersuchten Funkpfaden, kein vollständiges Antennenstrahlungsdiagramm.",
       "en": "The current 09:45–10:30 UTC demo yields 166 spot pairs from 37 contributing receivers. Negative sectors favor the Reference station SK0WE/1; their pattern describes sampled relative performance, not a complete antenna radiation pattern."
     },
     "demo_id": "zander_tx_buddy",
@@ -1390,21 +1390,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-6-map.jpg",
+    "source_path": "docs/website/demo-6-map.jpg",
     "stage": "map",
     "title": {
-      "de": "Kartenansicht: beobachtete Sendefunkwege",
+      "de": "Map View: sampled transmitting paths",
       "en": "Map View: sampled transmitting paths"
     }
   },
   {
     "alt": {
-      "de": "Zander-Segment-Inspektor mit 37 beitragenden Empfangsstationen, 166 Joint Spots, Decode Outcomes, Stationsmedianen und Joint-Spot-ΔSNR-Histogramm.",
+      "de": "Zanders Ansicht „Segment Inspector“ mit 37 beitragenden RX-Stationsidentitäten, 166 Spot-Paaren, drei Histogrammen der Ansicht „Benchmark Statistics“ und Tabellen der Ergebnisse auf Stations- und Spot-Ebene.",
       "en": "Zander Segment Inspector with 37 contributing RX station identities, 166 spot pairs, three Benchmark Statistics histograms, and station and spot outcome tables."
     },
     "asset_path": "assets/screenshots/demo-6-segment.jpg",
     "caption": {
-      "de": "Dieselben 166 Joint Spots ergeben den angezeigten Mittelwert von −6,8 dB. Vergleiche das mittlere Histogramm der Stationsmediane mit dem rechten Joint-Spot-Histogramm: Gleichgewichtung der Empfänger und Gleichgewichtung der Beobachtungen beantworten unterschiedliche Fragen.",
+      "de": "Dieselben 166 Spot-Paare ergeben den dargestellten arithmetischen Mittelwert von −6,8 dB. Vergleiche die Verteilung qualifizierter gepaarter Spots mit der Verteilung qualifizierter Stationsmediane: Gleiche Beobachtungsgewichtung und gleiche Empfängergewichtung beantworten unterschiedliche Fragen.",
       "en": "The same 166 spot pairs give the displayed mean of −6.8 dB. Compare the qualifying paired-spot distribution with the qualifying station-median distribution: equal observation weighting and equal receiver weighting answer different questions."
     },
     "demo_id": "zander_tx_buddy",
@@ -1533,21 +1533,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the frozen current-terminology runtime with the twelve archived pre-typography rendering files restored; current demo settings are unchanged. The source snapshot is uncommitted work on this base revision, not the base commit itself."
     },
-    "source_path": "docs/website/assets/screenshots/demo-6-segment.jpg",
+    "source_path": "docs/website/demo-6-segment.jpg",
     "stage": "segment",
     "title": {
-      "de": "Benchmark-Evidenz: Empfänger und Joint Spots",
+      "de": "Benchmark Evidence: receivers versus Spot pairs",
       "en": "Benchmark Evidence: receivers versus Spot pairs"
     }
   },
   {
     "alt": {
-      "de": "Live-Station-Insights zum Milazzo-Beispiel mit ausgewähltem VE6PDQ in DO34ir und drei Joint Spots sowie dünn besetzten ΔSNR-Evidenzdiagrammen.",
+      "de": "Milazzos Ansicht „Station Insights“ mit ausgewähltem VE6PDQ DO34ir und drei Spot-Paaren neben der separaten Identität VE6PDQ DO34 mit zwei Paaren, gefolgt von Diagrammen der spärlichen ΔSNR-Beobachtungsdaten.",
       "en": "Milazzo Station Insights with VE6PDQ DO34ir selected and three spot pairs, alongside the separate VE6PDQ DO34 identity with two pairs, followed by sparse ΔSNR evidence charts."
     },
     "asset_path": "assets/screenshots/demo-7-stations.jpg",
     "caption": {
-      "de": "Dieser Live-Lauf mit wspr.live vom 13. Oktober 2026 liefert drei RX Joint Spots für VE6PDQ in DO34ir, während die aufbewahrte Publikationsrekonstruktion fünf dokumentiert. Diese Abweichung ist hier nicht geklärt. Unterscheide dieses datierte Live-Ergebnis von der festen Rekonstruktion; keines der beiden erlaubt allein aus diesem Funkweg eine breite Antennenaussage.",
+      "de": "Die aktuelle Demo wählt VE6PDQ in DO34ir mit drei RX-Spot-Paaren. VE6PDQ in DO34 ist eine separate gemeldete Identität mit zwei weiteren Paaren; gemeinsam ergeben sie die fünf Paare in der beibehaltenen Rekonstruktion der Veröffentlichung. Lies die vollständigen Locatoren getrennt; diese spärliche Datengrundlage des Funkpfads stützt keine weitreichende Schlussfolgerung über Antennen.",
       "en": "The current demo selects VE6PDQ at DO34ir, with three RX spot pairs. VE6PDQ at DO34 is a separate reported identity with two more pairs; together they account for the five pairs in the retained publication reconstruction. Read the full locators separately; this sparse path evidence does not support a broad antenna conclusion."
     },
     "demo_id": "milazzo_tx_buddy",
@@ -1669,21 +1669,21 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the uncommitted Spot pairs terminology migration on this base revision; the base commit alone does not contain the displayed terminology."
     },
-    "source_path": "docs/website/assets/screenshots/demo-7-stations.jpg",
+    "source_path": "docs/website/demo-7-stations.jpg",
     "stage": "stations",
     "title": {
-      "de": "Station Insights: wenige gepaarte Beobachtungen",
+      "de": "Station Insights: sparse paired evidence",
       "en": "Station Insights: sparse paired evidence"
     }
   },
   {
     "alt": {
-      "de": "Drill-Down-Tabelle mit den drei zurückgegebenen Paaren für VE6PDQ in DO34ir und ΔSNR-Werten von 8, 22 und 7 dB.",
+      "de": "Tabelle „Drill-Down“ mit den drei zurückgegebenen Paaren von VE6PDQ DO34ir und ΔSNR-Werten von 8, 22 und 7 dB.",
       "en": "Drill-Down table showing the three returned VE6PDQ DO34ir pairs with ΔSNR values of 8, 22, and 7 dB."
     },
     "asset_path": "assets/screenshots/demo-7-drilldown.jpg",
     "caption": {
-      "de": "Die Live-Tabelle enthält gepaarte Meldungen vom 19. Dezember 2010 um 14:46 UTC sowie vom 20. Dezember um 09:04 und 15:46 UTC. Sie enthält drei statt der fünf Paare aus der aufbewahrten Rekonstruktion. Die Aufnahme hält das aktuelle Abfrageergebnis fest, ohne die Rekonstruktion zu ersetzen oder die Vorgabe zu verändern.",
+      "de": "Die Tabelle für den ausgewählten VE6PDQ (DO34ir) listet gepaarte Empfangsberichte am 19. Dezember 2010 um 14:46 UTC und am 20. Dezember um 09:04 und 15:46 UTC mit ΔSNR-Werten von +8, +22 und +7 dB. Die beiden anderen Paare der Rekonstruktion gehören zu VE6PDQ (DO34), einem separaten gemeldeten Locator. Diese Ansicht bewahrt die Paarungsregel mit exakter Identität.",
       "en": "The selected VE6PDQ (DO34ir) table lists paired reports at 19 December 2010 14:46 UTC and 20 December 09:04 and 15:46 UTC, with ΔSNR values of +8, +22 and +7 dB. The other two reconstruction pairs belong to VE6PDQ (DO34), a separate reported locator. This view preserves the exact-identity matching rule."
     },
     "demo_id": "milazzo_tx_buddy",
@@ -1805,10 +1805,10 @@
       "visual_review": "Complete current application panels, matching current demo controls and selected full station identities, checked before installation.",
       "working_tree_note": "Captured from the uncommitted Spot pairs terminology migration on this base revision; the base commit alone does not contain the displayed terminology."
     },
-    "source_path": "docs/website/assets/screenshots/demo-7-drilldown.jpg",
+    "source_path": "docs/website/demo-7-drilldown.jpg",
     "stage": "drilldown",
     "title": {
-      "de": "Drill-Down: alle drei Live-Paare",
+      "de": "Drill-Down: all three live pairs",
       "en": "Drill-Down: all three live pairs"
     }
   }
