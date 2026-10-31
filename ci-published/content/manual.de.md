@@ -742,6 +742,8 @@ Prüfe zunächst Hardware und Firmware wie unten beschrieben. Wähle anschließe
 
 **1. Hardware und Firmware prüfen.**
 
+Mit dem physischen Ultimate3S ist hier der Bausatz mit dem Si5351A-Synthesizer gemeint. Der ursprüngliche Ultimate3 mit AD9850 sendet die erweiterten WSPR-Nachrichten abwechselnd in getrennten Sendezyklen statt unmittelbar aufeinanderfolgend und ist deshalb kein idealer Kandidat für die unten beschriebene Anleitung mit erweiterten Nachrichten.
+
 Verwende ein Band, das beide Geräte unterstützen. Prüfe beim QMX die Hardwarevariante und Bandkonfiguration; bestücke einen physischen Ultimate3S mit dem richtigen Ausgangstiefpassfilter bzw. wähle diesen aus.
 
 Für QMX/QMX+ kennzeichnet die [offizielle Firmwarehistorie](https://www.qrp-labs.com/qmx.html) mit Stand **25. Oktober 2026** `1_04_010` als stabile Version; später aufgeführte Versionen sind Betaversionen. Die erste Version `1_04_000` war ausschließlich für QMX+ vorgesehen. Version `1_04_009` korrigierte WSPR-Aussendungen **250 Hz unterhalb der vorgesehenen Frequenz**, und `1_04_010` enthält weitere Korrekturen für Virtual U3S. Verwende eine unterstützte Version mit diesen Korrekturen und prüfe beim Aktualisieren die Versionshistorie.
@@ -812,11 +814,17 @@ Wähle unten **ein** Band. Lege Target zunächst auf die untere Frequenz und die
 
 Die Signalmitten liegen 100 Hz auseinander; jede liegt 50 Hz vom näheren Rand des 200 Hz breiten WSPR-Unterbands entfernt. Bestätige, dass die vollständigen abgestrahlten Signale darin bleiben <a href="#ref-12">[Ref-12]</a>.
 
+Beim QMX geht die Uhrzeit bei `Real time clock = Software` verloren, wenn die Stromversorgung getrennt wird; übernimm UTC nach dem Einschalten erneut vom GPS oder stelle die Uhrzeit manuell ein. Damit die Uhr im ausgeschalteten QMX+ weiterläuft, sind `Real time clock = QMX+ Internal` und eine eingesetzte CR2032-Batterie erforderlich. Diese Auswahl der Uhrenquelle ist unabhängig von `GPS source`; die Auswahl des internen GPS allein sorgt nicht dafür, dass die Uhr im ausgeschalteten Zustand weiterläuft.
+
 **Starten, eine Stunde beobachten, dann den Vergleich aufzeichnen.**
 
 Prüfe vor dem Start UTC. Setze bei Virtual U3S die Haupteinstellung `Enable` auf `ENABLED` und verlasse das Menü; verwende beim Ultimate3S die Start-Aktion der rechten Taste, um in den Run-Modus zu wechseln. Beobachte den oben beschriebenen Zeitplan für das gewählte Verfahren; beide Geräte müssen die entsprechenden Phasen gemeinsam senden.
 
-Wenn du GPS-Frequenzkalibrierung verwendest, stelle sicher, dass sie vor dem nächsten erwarteten Start beendet ist. Setze bei einem internen QLG3 im QMX+ `GPS source = QMX+ Internal`. Beim physischen U3S erfordert die Kalibrierung einen `Cal Step` ungleich null und eine Leerlaufpause, die länger als `Cal Time + 4 seconds` ist; eine GPS-Verbindung allein belegt keine erfolgreiche Kalibrierung.
+Wenn du GPS-Frequenzkalibrierung verwendest, stelle sicher, dass sie vor dem nächsten erwarteten Start beendet ist.
+
+Setze bei einem internen QLG3 im QMX+ `GPS source = QMX+ Internal`. Wähle für ein externes GPS am QMX `GPS source = Paddle port` und verbinde gemäß der Anschlussanleitung des Herstellers das 1-PPS-Signal mit der Spitze des Klinkensteckers und die seriellen NMEA-Daten mit 9600 Baud mit dessen Ring. Versorge das GPS-Modul separat mit Strom; der QMX stellt über diesen Anschluss keine Stromversorgung dafür bereit.
+
+Beim physischen U3S erfordert die Kalibrierung einen `Cal Step` ungleich null und eine Leerlaufpause, die länger als `Cal Time + 4 seconds` ist; eine GPS-Verbindung allein belegt keine erfolgreiche Kalibrierung. Schließe sowohl die seriellen NMEA-Daten als auch 1 PPS an, damit UTC und Locator automatisch eingestellt werden und die Frequenz kalibriert werden kann. Verwende unter `GPS {Mode Baud}` die Einstellung `Mode = 2` für einen Empfänger, dessen Zeitreferenz die steigende PPS-Flanke ist, und passe `Baud` an dessen serielle Ausgabe an, üblicherweise `009,600`. PPS allein liefert weder UTC noch den Locator.
 
 Beobachte die Sendefrequenzen und Starts, auch nach einem Neustart. Schließe die Prüfungen der einzelnen Geräte, der simultanen Signale und der Datenbank in [5.3–5.4](#sec-simultaneous-tx-setup-3) ab. Beginne den Messzeitraum erst, wenn beide exakten Identitäten in den vorgesehenen Zyklen und an den vorgesehenen Standorten erscheinen. Wiederhole den Versuch anschließend mit **vertauschten Frequenzzuordnungen** nach [5.6](#sec-simultaneous-tx-setup-6), damit das Ergebnis nicht an eine dauerhafte Zuordnung unten/oben gebunden ist.
 

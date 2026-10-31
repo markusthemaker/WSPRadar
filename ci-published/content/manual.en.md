@@ -742,6 +742,8 @@ First check the hardware and firmware below. Then choose [two distinct callsigns
 
 **1. Check the hardware and firmware.**
 
+The physical Ultimate3S referred to here is the kit with the Si5351A synthesizer. The original Ultimate3 with an AD9850 sends extended-WSPR messages in alternate transmission cycles rather than consecutively, so it is not an ideal candidate for the extended-message recipe below.
+
 Use a band supported by both units. Check the QMX hardware variant and band configuration; on a physical Ultimate3S, fit/select the correct output low-pass filter.
 
 For QMX/QMX+, the [official firmware history](https://www.qrp-labs.com/qmx.html) labels `1_04_010` the stable release as of **25 October 2026**; later listed releases are beta. The initial `1_04_000` was QMX+-only. Release `1_04_009` corrected WSPR transmission **250 Hz below the intended frequency**, and `1_04_010` includes further Virtual U3S fixes. Use a supported release with those corrections and check the history when updating.
@@ -812,11 +814,17 @@ Choose **one** band below. Initially put the Target at the lower frequency and t
 
 The centers are 100 Hz apart; each is 50 Hz from its nearer edge of the 200 Hz WSPR sub-band. Confirm the complete radiated signals remain inside it <a href="#ref-12">[Ref-12]</a>.
 
+On QMX, `Real time clock = Software` loses its time when power is removed; restore UTC from GPS or set it manually after power-up. On QMX+, retaining time while powered off requires `Real time clock = QMX+ Internal` and an installed CR2032 battery. This clock-source setting is separate from `GPS source`; selecting the internal GPS alone does not enable clock retention.
+
 **Start, observe one hour, then collect the comparison.**
 
 Verify UTC before starting. On Virtual U3S, set the main `Enable` to `ENABLED` and exit the menu; on Ultimate3S, use the right-button Start action to enter Run mode. Observe the schedule for your selected route above; both units must transmit corresponding phases together.
 
-If using GPS frequency calibration, ensure it finishes before the next expected start. For an internal QLG3 on QMX+, set `GPS source = QMX+ Internal`. On physical U3S, calibration requires a nonzero `Cal Step` and an idle gap longer than `Cal Time + 4 seconds`; GPS connection alone does not establish successful calibration.
+If using GPS frequency calibration, ensure it finishes before the next expected start.
+
+For an internal QLG3 on QMX+, set `GPS source = QMX+ Internal`. For an external GPS on QMX, select `GPS source = Paddle port`, connect the 1 PPS signal to the jack tip and 9600-baud NMEA serial data to the ring, following the manufacturer's wiring instructions. Power the GPS module separately; QMX does not supply its power through this connector.
+
+On physical U3S, calibration requires a nonzero `Cal Step` and an idle gap longer than `Cal Time + 4 seconds`; GPS connection alone does not establish successful calibration. For automatic UTC and locator setting as well as frequency calibration, connect both NMEA serial data and 1 PPS. In `GPS {Mode Baud}`, use `Mode = 2` for a receiver whose timing reference is the rising PPS edge, and set `Baud` to match its serial output, commonly `009,600`. PPS alone does not supply UTC or the locator.
 
 Observe the transmitted frequencies and starts, including after a restart. Complete the individual-unit, simultaneous-signal and database checks in [5.3–5.4](#sec-simultaneous-tx-setup-3). Begin the measurement window only when both exact identities appear in the intended cycles and locations. Then repeat with the **frequency assignments exchanged**, following [5.6](#sec-simultaneous-tx-setup-6), so the result is not tied to a permanent lower/upper assignment.
 

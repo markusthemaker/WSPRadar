@@ -1881,12 +1881,12 @@
       "sha256": "1e965a90943cb6a2954ea6ab3ebe727ba1bdac8e37512a3bb1f464f70f8bd71e"
     },
     "manual.de.md": {
-      "bytes": 281622,
-      "sha256": "a59243e889cb7351e2d044bc3f30a5ba40ed440e0f8b6bade4efbba15938cb1a"
+      "bytes": 283247,
+      "sha256": "1d62e19c9b55478a1693ff3b1918c5fd978fabc759d0a461f98e1b3c3d0af6d3"
     },
     "manual.en.md": {
-      "bytes": 230124,
-      "sha256": "cd96dd77839b40cf5bb2164a4525f44db0eb1e06c3beea1ee9b46b7c8e1cba5d"
+      "bytes": 231386,
+      "sha256": "e52d0839a65f184f0991772983bb2788f9836baed4069e186b1dec6f7ce5ad62"
     },
     "screenshots.json": {
       "bytes": 113716,
@@ -1899,7 +1899,7 @@
   },
   "manual_source_update": {
     "preserved_nonmanual_payload_files": 71,
-    "previous_bundle_manifest_sha256": "4a60e7e7cc3656c8becebc2f228a5bf25504b46312deb2082d2fa7073e0d60a3",
+    "previous_bundle_manifest_sha256": "196e3679759ae19cdb7da54b2066d8e196c655a491a7afb12b1c2303921ed895",
     "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
     "scope": [
       "manual.de.md",
@@ -1910,8 +1910,8 @@
     "source_text_sha256": {
       "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
       "docs/manual/disclaimer_de.md": "c65d3497ef6d4e7af83e351182d21efc99cfc950b147fe33dc9ef76062ef2462",
-      "docs/manual/doc_de.py": "ad4c8915f828c243af05ed60507adffabe5e1e48b7f28cdc76eb77d79fff341b",
-      "docs/manual/doc_en.py": "9d5179fe429c68e4cd92981f1336af2dd0e6e0b9f4e7e85fff0e90cc8caff870"
+      "docs/manual/doc_de.py": "8e53fa7f443325db735a05bda851d10fcd53674cc867ba25ad6dd537668bb137",
+      "docs/manual/doc_en.py": "ed4d9c9253b93821bb7da2b76d863b9d6e8bc28a50e67f96de7bae7b287d79a8"
     }
   },
   "manual_source_update_history": [
@@ -2617,6 +2617,23 @@
         "docs/manual/disclaimer_de.md": "e317bbe3591a00fe790aacd63ef89a2116d152400d6e859b0b06aeaa0fc8c765",
         "docs/manual/doc_de.py": "76e4bc64ca96a394e330d4c60247436386b52d5407b0d7b8ac6088316ed76529",
         "docs/manual/doc_en.py": "b242ef8ae8cfcd9ae1128831dafc6e2551aa034a1dcc7310e9392f50938579e6"
+      }
+    },
+    {
+      "preserved_nonmanual_payload_files": 71,
+      "previous_bundle_manifest_sha256": "4a60e7e7cc3656c8becebc2f228a5bf25504b46312deb2082d2fa7073e0d60a3",
+      "provenance_note": "Only the selected complete canonical manuals are synchronized. Unselected manuals retain their existing payloads and file entries. The top-level revision and every nonmanual file entry retain their existing base-bundle provenance. Source text hashes use UTF-8 with LF line endings for identical checks across Git checkout platforms. Demo descriptions, configurations, walkthroughs and scientific assets are unchanged. This synchronization does not render or publish the website.",
+      "scope": [
+        "manual.de.md",
+        "manual.en.md"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "docs/manual/disclaimer.md": "7ae8d3dcba7e3f5fc109345b35ed97788c1d7a90430103c1af5b493024cd3574",
+        "docs/manual/disclaimer_de.md": "c65d3497ef6d4e7af83e351182d21efc99cfc950b147fe33dc9ef76062ef2462",
+        "docs/manual/doc_de.py": "ad4c8915f828c243af05ed60507adffabe5e1e48b7f28cdc76eb77d79fff341b",
+        "docs/manual/doc_en.py": "9d5179fe429c68e4cd92981f1336af2dd0e6e0b9f4e7e85fff0e90cc8caff870"
       }
     }
   ],
