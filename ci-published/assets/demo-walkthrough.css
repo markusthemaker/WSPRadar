@@ -104,7 +104,7 @@
 @media print{.case-study{display:block;margin:0;padding:0}.case-nav,.case-dialog{display:none!important}.case-hero{display:block}.case-study h1,.case-study h2,.case-study h3,.case-study p{color:#111}.case-row,.case-setup,.case-metrics{break-inside:avoid}.case-placeholder{background:white}}
 /* Longer Markdown chapters retain the same visual rhythm and readable tables. */
 .case-introduction{max-width:90ch;margin:4px 0 26px}.case-introduction h2{font-size:28px}.case-introduction h3{font-size:23px}
-.case-setup{align-items:start}.case-row-full{grid-template-columns:minmax(0,1fr)}.case-row-full .case-copy{grid-column:1/-1!important;grid-row:auto!important}.case-row-full .case-copy>p{max-width:90ch}
+.case-setup{align-items:start}.case-row-full{grid-template-columns:minmax(0,1fr)}.case-row-full .case-copy{grid-column:1/-1!important;grid-row:auto!important}.case-row-full .case-copy>p{max-width:none}
 .case-copy h4{font-size:22px;line-height:1.3;color:#d8ecfb;margin:24px 0 12px}.case-copy h3:not(:first-child){margin-top:32px}.case-copy .table-scroll{max-width:100%;margin:20px 0}.case-copy table{font-size:16px}.case-copy th,.case-copy td{padding:6px 12px;white-space:normal;min-width:100px}.case-copy blockquote{margin:20px 0;padding:12px 20px;border-left:3px solid var(--case-green);background:#041c2a}.case-media>.figure-block+.figure-block{margin-top:24px}.case-copy a{overflow-wrap:anywhere}.case-window{overflow-wrap:anywhere}
 @media(max-width:759px){.case-row .case-copy h3:not(:first-child){padding-left:0;display:block;min-height:0;font-size:25px}.case-introduction h2{font-size:27px}.case-introduction h3{font-size:22px}}
 .case-row.case-row-reverse .case-media{grid-column:1;grid-row:1}.case-row.case-row-reverse .case-copy{grid-column:2;grid-row:1}.case-evidence-group{scroll-margin-top:24px}.case-evidence-group .case-evidence-group .case-row{background:#03121e;border-radius:7px;margin:14px 0;padding-right:18px}.case-row-full .case-copy{grid-column:1/-1!important}
@@ -119,6 +119,7 @@
   .case-study>section,.case-study>div{grid-column:1}
 }
 /* Keep shared badge alignment separate from authored subheadings. */
+.case-evidence>.case-evidence-group>.case-row{--case-heading-inset:0px}
 .case-row .case-copy .case-step-heading>h3{margin:0;padding:0;min-height:0;display:block}
 @media(max-width:759px){.case-row .case-copy .case-step-heading>h3{font-size:27px}}
 /* Figures float within their text: paragraphs regain full width beneath them. */

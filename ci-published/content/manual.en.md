@@ -153,7 +153,7 @@ Follow one feature from the map to its contributing stations and individual obse
         * [8.4.1 Scope, geography and filters](#sec-7-view-scope)
         * [8.4.2 Geographic summaries](#sec-7-view-geography)
         * [8.4.3 Chronological evidence](#sec-7-view-time)
-        * [8.4.4 Combining dates by UTC hour](#sec-7-view-folding)
+        * [8.4.4 Combining dates by UTC or local solar hour](#sec-7-view-folding)
         * [8.4.5 Selected Station Evidence](#sec-7-view-station)
         * [8.4.6 Spread and display scales](#sec-7-view-spread)
     * [8.5 How strong is the conclusion?](#sec-7-claims)
@@ -257,7 +257,7 @@ Use one path through the results, rather than trying to read every panel at once
 <a id="sec-3-6a"></a>
 <a id="sec-3-6b"></a>
 
-**2.** <strong class="defined-term">Segment Inspector</strong> **— how broad and persistent is it?** Choose the directions and distances to examine. This <strong class="defined-term">active scope</strong> controls the segment statistics and temporal figures. Compare station and observation counts, then check individual dates before calling a combined UTC-hour pattern recurring. In <strong class="defined-term">Benchmark Statistics</strong>, compare the spot-pair and station-median ΔSNR distributions: frequently observed stations contribute more to the first.
+**2.** <strong class="defined-term">Segment Inspector</strong> **— how broad and persistent is it?** Choose the directions and distances to examine. This <strong class="defined-term">active scope</strong> controls the segment statistics and temporal figures. Compare station and observation counts, then check individual dates before calling a folded hour-of-day pattern recurring. In <strong class="defined-term">Benchmark Statistics</strong>, compare the spot-pair and station-median ΔSNR distributions: frequently observed stations contribute more to the first.
 
 <a id="sec-3-7"></a>
 <a id="sec-3-7a"></a>
@@ -1250,7 +1250,17 @@ This <strong class="defined-term">strongest-report rule</strong> is a best-obser
 
 That precedent does not establish that the maximum is the intended signal, or that both setups selected the same spectral component. Means and medians would describe different features of the available reports; none of these statistics identifies the intended component by itself. Later medians summarize the retained values and cannot undo this earlier selection.
 
-**The Benchmark decoding-reach plots use a different SNR basis.** <strong class="defined-term">From Signal Quality to Decoding Reach</strong> retains each setup's strongest **original reported SNR** for each remote identity and cycle. It applies neither 30 dBm normalization nor Reference correction. Its curves count observed spots and stations at raw-SNR cutoffs; they do not replace normalized paired ΔSNR. See [RX Benchmark](#sec-3-rx-benchmark) and [TX Benchmark](#sec-3-tx-benchmark) for their place in the comparison.
+**The Benchmark decoding-reach plots use a different SNR basis.** <strong class="defined-term">Decodes & Stations: From Strong Signals to Weak-Signal Reception</strong> retains each setup's strongest **original reported SNR** for each remote identity and cycle. It applies neither 30 dBm normalization nor Reference correction. Its curves count observed spots and stations at raw-SNR cutoffs; they do not replace normalized paired ΔSNR. See [RX Benchmark](#sec-3-rx-benchmark) and [TX Benchmark](#sec-3-tx-benchmark) for their place in the comparison.
+
+As signals weaken relative to noise and approach the limits of WSPR decoding, how do the two setups compare? These curves progressively include lower-SNR reports, showing how decoded-spot and distinct-station totals grow. They also include **one-sided decodes** — reception recorded for only one setup — which paired ΔSNR cannot capture.
+
+The upper panels are **Paired spots**, **One-sided spots**, and **All decoded spots**. The lower panels are **Stations with paired spots**, **Exclusive stations**, and **All observed stations**. **Exclusive stations** means station identities observed by only one setup anywhere within the selected scope. Stations observed by both setups without a spot pair appear separately in the **Both observed, no pairs: +n stations** annotation; they are included in **All observed stations**, not in the exclusive-station curves.
+
+At **“≥ −20 dB”**, read the number of reports with a reported SNR of −20 dB or higher. Station panels count stations with at least one eligible report meeting that cutoff. Moving right lowers the cutoff and includes weaker reports. Each endpoint includes all observations belonging to that panel in the selected scope. For example, **≥ −20 dB** includes reports at −20 dB and all higher SNR values, such as −15 or −10 dB; it excludes reports at −21 or −25 dB. **This is a counting filter applied to already-decoded reports, not a receiver sensitivity setting.** All three panels within a row use identical zero-based Y-axis limits, ticks and count units; spot and station rows have separate scales.
+
+Each curve uses that setup’s raw reported SNR, without power or Reference-offset correction. Right-hand endpoints show each panel’s totals. In **All decoded spots** and **All observed stations**: spots = paired + one-sided; stations = stations with pairs + both observed without pairs + stations exclusive to that setup. The three station categories are not a decomposition of spot counts. Their endpoint identity need not hold at earlier cutoffs: a station's strongest one-sided report can exceed its strongest paired report.
+
+A rise between adjacent cutoffs counts reports — or newly included stations — in that SNR interval. Horizontal separation between paired curves is not the paired ΔSNR distribution. Missing-side SNR is unknown.
 
 
 <a id="sec-7-activity-eligibility"></a>
@@ -1448,7 +1458,7 @@ The lower row compares `(J + T) / (J + R)`, as defined in [Section 8.2.3](#sec-7
 
 **Both secondary axes use signed ratio labels.** Above the central **1×** favors Target; below it favors Reference. In the upper row **2×** means twice as many stations; in the lower row it means twice as many decodes. Read the factor on the favored setup's side; these are not linear ratio axes. Exclusive observations have an explicit endpoint; bins with no support remain gaps. Selected-station coverage uses that station's pooled ΔDecode, not Station Reach Advantage.
 
-<strong class="defined-term">Chronological views</strong> preserve time order. UTC-hour views combine dates under [Section 8.4.4](#sec-7-view-folding), where station membership is assessed separately for each date and hour. The historical **Joint Evidence Share**, `J / (J + T + R)`, measures paired overlap and is no longer the temporal line. Neither current line verifies uptime, counts events missed by both, or establishes a causal antenna advantage.
+<strong class="defined-term">Chronological views</strong> preserve time order. Folded-hour views combine dates under [Section 8.4.4](#sec-7-view-folding), where station membership is assessed separately for each date and hour. The historical **Joint Evidence Share**, `J / (J + T + R)`, measures paired overlap and is no longer the temporal line. Neither current line verifies uptime, counts events missed by both, or establishes a causal antenna advantage.
 
 
 <a id="sec-2-6"></a>
@@ -1574,7 +1584,7 @@ An <strong class="defined-term">interquartile range (IQR)</strong> is the differ
 <a id="sec-7-8-3"></a>
 ##### 8.4.3 Chronological evidence
 
-**Chronological views preserve the sequence of the run.** Bins start at the selected UTC start and use the chosen width; the final bin can be shorter. Empty intervals remain missing evidence, not invented **0 dB** or **0%** observations. The usual offered widths and defaults depend on the complete run duration, not the span of observed reports. A valid saved choice can remain available outside those usual choices; see [Section 10.5](#sec-5-5).
+**Chronological views preserve the sequence of the run.** Bins start at the selected UTC start and use the chosen width; the final bin can be shorter. **Time basis** changes the displayed clock and dates, while bin boundaries, observation membership and statistical values remain unchanged. Empty intervals remain missing evidence, not invented **0 dB** or **0%** observations. The usual offered widths and defaults depend on the complete run duration, not the span of observed reports. A valid saved choice can remain available outside those usual choices; see [Section 10.5](#sec-5-5).
 
 **Benchmark ΔSNR** pools retained spot pairs from qualifying stations within each bin and shows their median and distribution. Frequently observed paths can therefore contribute more pairs than others. Coverage separately retains all eligible Paired and one-sided outcomes and distinct-station presence, using the two advantage metrics in [Section 8.2.4](#sec-7-benchmark-coverage). An empty ΔSNR layer can coexist with non-qualifying Paired or one-sided evidence; it does not prove that the database returned no reports.
 
@@ -1586,13 +1596,21 @@ Within each chronological bin, a station contributes at most one median deviatio
 
 
 <a id="sec-7-view-folding"></a>
-##### 8.4.4 Combining dates by UTC hour
+##### 8.4.4 Combining dates by UTC or local solar hour
 
-<strong class="defined-term">UTC-hour folding</strong> combines observations from the same clock hour across dates. It shows an hour-of-day association while removing the sequence of individual dates. It is separate from chronological binning: with a **12:17 UTC** start, a **1h** chronological bin spans **12:17 to 13:17**, while folding groups observations by clock hours such as **12:00 to 13:00**, using only the part inside the selected window.
+With **Time basis: UTC**, <strong class="defined-term">UTC-hour folding</strong> combines observations from the same clock hour across dates. It shows an hour-of-day association while removing the sequence of individual dates. It is separate from chronological binning: with a **12:17 UTC** start, a **1h** chronological bin spans **12:17 to 13:17**, while folding groups observations by clock hours such as **12:00 to 13:00**, using only the part inside the selected window.
+
+**Time aggregation** controls only the chronological panels and retains the existing interval choices. The adjacent **Time basis** control selects **UTC** or **Local Solar** for every chronological and folded SNR, decode and coverage panel, including the selected station and focused plots. Folded panels always use fixed one-hour bins. New configurations default to Local Solar; explicit saved values are honored. Existing demo configurations without this field retain UTC; only the Milazzo demo explicitly uses Local Solar.
+
+Time basis applies to both panels. The chronological panel follows individual dates; switching clocks changes its displayed dates and times, not its aggregation intervals or statistics. The folded panel combines matching hours across dates, so switching clocks can change its hourly summaries. Local Solar refers to the Target QTH, with solar noon at 12:00; it is not civil time or daylight-saving time. Source timestamps remain UTC.
+
+The solar reference describes the Target location, not every remote station or the whole propagation path.
+
+Local Solar means **local apparent solar time**. The Target locator supplies the longitude contribution; the date-dependent equation of time is sampled daily across the run and its boundaries, then interpolated onto distinct WSPR-cycle times. This is not one constant offset for the entire run. Folded observations are regrouped before hourly summaries, without shifting precomputed medians or changing pairing, filtering, qualification, raw evidence or whole-run statistics. Switching reuses retained evidence without a database request. Folded date membership, represented days and hourly coverage denominators all follow the selected basis, including solar-date rollover. [US Naval Observatory: The Equation of Time](https://aa.usno.navy.mil/faq/eqtime).
 
 Different layers combine their evidence differently:
 
-| Layer | What contributes at one UTC hour | How it is summarized |
+| Layer | What contributes at one hour in the selected basis | How it is summarized |
 |---|---|---|
 | **Benchmark ΔSNR** | Retained spot pairs from qualifying stations across represented dates. | Median and distribution of the pooled pairs; frequently observed paths contribute more values. |
 | **Performance SNR deviation** | One median deviation per station, date and hour. | The median and distribution of those values. Stations present on more dates, and dates containing more stations, contribute more values. |
@@ -1607,7 +1625,7 @@ Extra observations within one station/date/hour do not add weight to the Perform
 
 For Performance, total station support is the number of station/date/hour presences divided by that slot count. Its success/Miss split uses that hour's station-balanced Decode Rate, calculated from each station's pooled successes and opportunities. Opportunity support is the pooled opportunity count divided by the same denominator. For example, if two represented dates have **six** and **zero** opportunities in one included hour, its average support is **three**. The second date must have relevant evidence elsewhere to be represented. This averaging creates no extra misses: Decode Rate still uses the confirmed opportunities.
 
-**Benchmark coverage keeps each date's station classifications separate.** Classify each identity within each UTC date and hour, sum the daily **Both observed**, **Only Target** and **Only Reference** counts, then divide by the represented date-hour count for the upper bars. A station seen only by Target on Monday and only by Reference on Tuesday does not become Both observed on either date. The Station Reach Advantage line uses the sums of the daily Target and Reference station totals, not an average of daily ratios.
+**Benchmark coverage keeps each date's station classifications separate.** Classify each identity within each date and hour in the selected basis, sum the daily **Both observed**, **Only Target** and **Only Reference** counts, then divide by the represented date-hour count for the upper bars. A station seen only by Target on Monday and only by Reference on Tuesday does not become Both observed on either date. The Station Reach Advantage line uses the sums of the daily Target and Reference station totals, not an average of daily ratios.
 
 The lower bars similarly divide pooled native outcome counts by the represented date-hour count. Their ΔDecode line uses pooled decode totals across dates. Neither line unions station membership across the whole period or averages the daily advantage values.
 
@@ -1628,6 +1646,8 @@ Selected Station Evidence normally follows **one exact remote identity**. Select
 When outlier reporting is enabled, Benchmark can also select **multiple identities** and pool their qualifying spot pairs for ΔSNR. This gives each pair equal weight, not each path. ΔDecode Temporal Coverage is available only when **one path** is selected. Selection, station-list filtering and zoom do not recalculate qualification or rerun detection.
 
 **Focused Drill-Down shows native retained observations:** one consolidated paired ΔSNR value for Benchmark, or one successful normalized Target SNR for Performance, at its actual WSPR-cycle time. These processed points are distinct from temporal-bin medians and density summaries; they are not untouched database rows. In Benchmark, retained pair rows remain available below the station minimum, but the focused ΔSNR plot also requires the station to qualify over the full filtered period.
+
+Focused plots use the selected **Time basis** for their displayed clock, including event markers and baseline intervals. The Drill-Down table and focus editors retain UTC so every observation remains traceable to its original cycle.
 
 **Outlier Focus** can include the candidate and its full supported baseline periods before and after, even when that exceeds an ordinary focus interval. It uses the completed detector result rather than fitting a new detector to the focused subset. Local baselines and departure guides apply to that candidate; they are not confidence intervals or independent qualification tests. Changing focus or display bins changes the view, not the completed scientific result.
 
@@ -1903,7 +1923,7 @@ The ZIP contains `config/` and either `benchmark/` or `performance/`, according 
 | <strong class="defined-term">Station Insights CSV</strong> | Benchmark `table_station_insights.csv` follows the global or optionally Inspector-filtered station list. Performance `table_station_insights_current_segment.csv` follows its active Inspector scope. Both also follow Station Insights column filters, with scope and filters recorded in metadata. Empty tables retain headers. |
 | <strong class="defined-term">Drill-Down CSV files</strong> | Row-level evidence for selected stations or all stations in the active segment. The selected-station table can follow focus and table filters. Both files retain headers when empty. |
 | <strong class="defined-term">Outlier CSV files</strong> | `table_delta_snr_outlier_event_paths.csv` summarizes qualifying path events; `table_delta_snr_outlier_paired_evidence.csv` contains their chronological spot pairs, including corrected Reference SNR. Both cover the active segment and join through IDs valid only within this package. Reporting off: files absent. Reporting on with no findings: headers only. Findings remain candidates, not confirmed physical events. |
-| <strong class="defined-term">Map, segment and temporal figures</strong> | The map covers the completed analysis. Segment and temporal figures follow the active segment, including applicable chronological and UTC-hour views. |
+| <strong class="defined-term">Map, segment and temporal figures</strong> | The map covers the completed analysis. Segment and temporal figures follow the active segment, including applicable chronological and folded-hour views. |
 | <strong class="defined-term">Selected-station figures</strong> | Benchmark uses the selected identity's full-run evidence; Performance follows its active scope. With outlier reporting enabled, Benchmark can instead show pooled ΔSNR for multiple selected paths. |
 | <strong class="defined-term">Drill-Down focus figures</strong> | Additional figures for exactly one selected station and its active focus interval. They preserve individual observations and chronological context alongside the ordinary selected-station figures. Candidate guides apply to the focused episode. |
 
@@ -1932,7 +1952,7 @@ Use this part to look up a setting or resolve a problem. [Part I](#part-i) expla
 
 ### 10. Controls and Configuration
 
-Changing the analysis choice, identities, band, UTC window, Reference correction, filters or evidence requirements clears the completed result and requires a new **Run**. Changing an Inspector selection, station-list filter, time aggregation or Drill-Down view does not rerun the analysis.
+Changing the analysis choice, identities, band, UTC window, Reference correction, filters or evidence requirements clears the completed result and requires a new **Run**. Changing an Inspector selection, station-list filter, time aggregation, time basis or Drill-Down view does not rerun the analysis.
 
 <a id="sec-5-1"></a>
 
@@ -2025,7 +2045,8 @@ These controls inspect the completed evidence without changing its classificatio
 | **Heard only by other stations. / Only other signals heard.** | Shows Performance peers whose confirmed opportunities were all misses. This is a saved visibility choice. |
 | **Include one-sided evidence** | Shows Benchmark identities without spot pairs and one-sided Drill-Down observations. This saved visibility choice changes neither coverage totals nor qualification. |
 | **Selected station row** | Saves the exact callsign-plus-locator selection: normally one per result type; multiple Benchmark identities are supported when outlier reporting is enabled. |
-| **Time aggregation** | Changes chronological display bins; Inspector and selected-station choices are saved separately. Pairing, opportunities and fixed one-hour UTC profiles remain unchanged. |
+| **Time aggregation** | Changes chronological display bins; Inspector and selected-station choices are saved separately. Pairing, opportunities and fixed one-hour folded bins remain unchanged. |
+| **Time basis** | Selects UTC or Local Solar consistently across chronological and folded Inspector, selected-station and focused SNR, decode and coverage panels. The basis is saved in configurations, shared analysis links and export metadata. Switching changes the displayed chronological clock while preserving UTC bins and their statistics; folded observations are regrouped before their hourly summaries. Whole-run statistics remain unchanged. |
 | **Zoom window / <strong class="defined-term">Outlier Focus</strong>** | Focuses Drill-Down on an interval for exactly one selected station. **Filter table** then narrows table rows only. Focus and Drill-Down table filters are not saved in configurations or analysis links. |
 
 Chronological bin choices depend on the **complete run duration**. A valid saved choice takes precedence over the default and remains available even outside the usual choices below:

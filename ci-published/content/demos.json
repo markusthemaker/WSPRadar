@@ -41,6 +41,7 @@
       },
       "results_view": {
         "benchmark": {
+          "folded_time_basis": "utc",
           "segment_evidence_time_bin": "24h",
           "selected_directions": "all",
           "selected_ranges": "all",
@@ -258,6 +259,7 @@
       },
       "results_view": {
         "benchmark": {
+          "folded_time_basis": "utc",
           "segment_evidence_time_bin": "auto",
           "selected_directions": "all",
           "selected_ranges": "all",
@@ -461,6 +463,7 @@
       },
       "results_view": {
         "performance": {
+          "folded_time_basis": "utc",
           "segment_evidence_time_bin": "12h",
           "selected_directions": "all",
           "selected_ranges": "all",
@@ -656,6 +659,7 @@
       },
       "results_view": {
         "benchmark": {
+          "folded_time_basis": "utc",
           "segment_evidence_time_bin": "auto",
           "selected_directions": "all",
           "selected_ranges": "all",
@@ -868,6 +872,7 @@
       },
       "results_view": {
         "benchmark": {
+          "folded_time_basis": "utc",
           "segment_evidence_time_bin": "12h",
           "selected_directions": "all",
           "selected_ranges": "all",
@@ -1085,6 +1090,7 @@
       },
       "results_view": {
         "benchmark": {
+          "folded_time_basis": "utc",
           "segment_evidence_time_bin": "10m",
           "selected_directions": "all",
           "selected_ranges": "all",
@@ -1300,6 +1306,7 @@
       },
       "results_view": {
         "benchmark": {
+          "folded_time_basis": "local_solar",
           "segment_evidence_time_bin": "12h",
           "selected_directions": "all",
           "selected_ranges": "all",
