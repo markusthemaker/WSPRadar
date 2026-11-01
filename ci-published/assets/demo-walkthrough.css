@@ -129,6 +129,7 @@
 .case-row.case-row-reverse .case-media{float:left;margin:0 28px 22px 0}
 .case-setup-media-left .case-media{float:left;margin:0 28px 22px 0}
 .case-copy>ul,.case-copy>ol{padding-left:1.4em;list-style-position:inside}
+#published-figures .case-copy>ul{padding-left:0}
 .case-copy .table-scroll{clear:both}
 .case-figure-inverted img,.case-image-inverted{filter:invert(1)}
 .case-filter-definitions{position:absolute;pointer-events:none}
