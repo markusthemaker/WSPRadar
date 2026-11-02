@@ -159,7 +159,7 @@
 </tr>
 <tr>
 <td><strong>Abhängigkeit und Verallgemeinerung</strong></td>
-<td>Empfangsberichte teilen Stationen, Zeiträume, Geografie und Ausbreitung. Eine Zeilenzahl ist keine unabhängige Stichprobengröße. WSPRadar liefert keine Konfidenzintervalle, Signifikanztests oder kausale Schlussfolgerung.</td>
+<td>Empfangsberichte teilen Stationen, Zeiträume, Geografie und Ausbreitung. Eine Zeilenzahl belegt keine unabhängige Stichprobengröße. Konfidenzintervalle für Mittelwerte verwenden ein ausdrücklich benanntes Modell mit Unabhängigkeitsannahme und sind nicht allgemein für WSPR validiert. WSPRadar liefert keine automatischen Signifikanztests oder kausalen Schlussfolgerungen.</td>
 </tr>
 </tbody>
 </table></div>
@@ -187,7 +187,12 @@
 <li>Berichtete Kennzahl und ihre Gewichtung;</li>
 <li>qualifizierte Identitäten und bestätigte Empfangsgelegenheiten für Performance;</li>
 <li>Stationen mit gepaarten Beobachtungen und Anzahlen von Spot-Paaren für Benchmark;</li>
-<li>Zusammenfassungen auf Stations- und Beobachtungsebene;</li>
+<li>
+<p>Zusammenfassungen auf Stations- und Beobachtungsebene;</p>
+</li>
+<li>
+<p>Bei einem berichteten Konfidenzintervall: zugehöriger Mittelwert, Konfidenzniveau, Methode, beobachtete Paaranzahl, Halbbreite oder vollständige Grenzen, Verfügbarkeitsstatus und Unabhängigkeitsannahme;</p>
+</li>
 <li>Verhältnis der Stationszahlen, zusammengefasstes ΔDecode und relevante Anzahlen gepaarter Ereignisse, Ereignisse nur des Targets und nur der Referenz;</li>
 <li>geografischer und zeitlicher Bereich, einschließlich einer einflussreichen Identität oder eines kurzen Intervalls; und</li>
 <li>Übereinstimmung innerhalb des Analyselaufs und etwaige Wiederholung in einem separaten Lauf.</li>
@@ -225,7 +230,7 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Metadaten des Analyselaufs</strong></td>
-<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem seinen Datenmodus, die zutreffende Betriebserklärung oder Bestätigung der Auswertung historischer Empfangsberichte sowie die Methodenversion. Diese Erklärungen sind kein unabhängiger Betriebsnachweis.</td>
+<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem seinen Datenmodus, die zutreffende Betriebserklärung oder Bestätigung der Auswertung historischer Empfangsberichte, die Methodenversion, die ausgewählte zeitliche Statistik, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Diese Erklärungen sind kein unabhängiger Betriebsnachweis.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Verarbeitete Beobachtungsdaten</strong></td>
@@ -257,6 +262,8 @@
 </tr>
 </tbody>
 </table></div>
+<p>Numerische Benchmark-Statistikexporte behalten Mittelwert, Stichprobenstandardabweichung, Standardfehler, untere und obere Intervallgrenze, Halbbreite, Alpha, Methode, beobachtete Paaranzahl sowie Verfügbarkeit und Status mit voller Genauigkeit. Die Tabellenanzeige <strong>± Halbbreite</strong> ersetzt diese Werte nicht. <strong>Mittelwert der Stationsmittelwerte</strong>, <strong>Median der Stationsmediane</strong> und <strong>Mittelwert der Stationsmediane</strong> werden getrennt benannt; für den ersten wird kein aggregiertes Konfidenzintervall angegeben. Beibehaltene datierte UTC-Beobachtungen und vollständige Stationsidentitäten bleiben für spätere abhängigkeitsbewusste Auswertungen verfügbar.</p>
+<p>Die maschinenlesbaren Felder des Konfidenzintervallergebnisses umfassen <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> und <code>status</code>. Zeitliche Profile bewahren vollständige Intervallgrenzen in <code>ci_lower</code> und <code>ci_upper</code> und die beobachtete Anzahl beitragender Paare in <code>ci_n</code>, einschließlich null bei leeren Intervallen. Die übergeordnete Angabe <code>statistics_availability</code> und <code>spots.distribution_status</code> unterscheiden eine nicht verfügbare zugrunde liegende Verteilung von verfügbaren zwischengespeicherten Statistiken oder Konfidenzintervallen.</p>
 <p>Bewahre Metadaten zusammen mit den Beobachtungsdaten auf: Die Konfiguration allein kann nicht jede Auswahl rekonstruieren. Fehlende Metadaten zur Datenauswahl bleiben unbekannt; sie belegen nicht, dass der Standardfilter verwendet wurde. Siehe <a href="/de/documentation/sec-6/#sec-6-4">Abschnitt 11.4</a>. Der Bereich der Segmentdetails, der Stationslistenbereich und der Bereich ausgewählter Stationen beziehungsweise des Fokus sind verschieden; eine Benchmark-Stationsabbildung darf nicht als auf Richtung und Entfernung der Segmentdetails begrenzt gelesen werden.</p>
 <p>Die Dateinamen der Benchmark-Abbildungen benennen ihre Größen:</p>
 <ul>
@@ -268,7 +275,7 @@
 </ul>
 <p>Diese Dateien sind enthalten, wenn die nötigen Beobachtungsdaten und Auswahlen verfügbar sind. Der Archivname bleibt <code>WSPRadar_export_YYYY_MM_DD__HH_MM.zip</code>. Bewahre das ursprüngliche Paket zusammen mit den externen Aufzeichnungen aus <a href="/de/documentation/sec-8/#sec-8-3">Abschnitt 9.3</a> auf; eine spätere Abfrage oder ein erneuter Lauf kann andere Datensätze oder Ergebnisse liefern.</p>
 <div style="page-break-before: always;"></div><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/sec-7/">Zurück: 8. Wissenschaftliche Methoden</a><a href="/de/documentation/part-ii/">Weiter: Teil IV: Bedienelemente und Fehlersuche</a></nav></article></div></main>
-    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark"><span class="brand-prefix">WSP</span><span class="brand-radar">Radar</span> v1.0.0 RC3</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Konzipiert von Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), programmiert mit OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark"><span class="brand-prefix">WSP</span><span class="brand-radar">Radar</span> v1.0 RC4</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Konzipiert von Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), programmiert mit OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
   </div>
 </body>
 </html>
