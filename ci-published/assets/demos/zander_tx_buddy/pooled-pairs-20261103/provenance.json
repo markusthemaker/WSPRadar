@@ -1,0 +1,47 @@
+{
+  "demo_id": "zander_tx_buddy",
+  "generated_utc": "2026-11-02T23:16:47.834956+00:00",
+  "method": "Native production renderers over retained evidence from verified offline production SQL and filters; no provider fetch and no pixel edits.",
+  "configuration": {
+    "path": "config/demos/03_zander_tx_buddy_experiment_a.config",
+    "bytes": 3526,
+    "sha256": "500294dac9336840ec0319423a27114e3c57b04fcba20833704e5e8442a4693c"
+  },
+  "retained_evidence": {
+    "path": ".tmp/station-mean-ci/zander_experiment_a_v1-retained.parquet",
+    "bytes": 14592,
+    "sha256": "bad8ecd74a96193050654b61d11d3e69af76c1ef8046629ecf6a12d47e96e61e"
+  },
+  "raw_evidence": {
+    "path": "tests/regression/reference_fixtures/zander_experiment_a_v1/source_rows.parquet",
+    "sha256": "0c579e9cd744e5ec565fcabb45d9770284abe27ad3f0b2a93d9dc746eeb9be6e"
+  },
+  "confidence_level": 0.95,
+  "max_segment_ci_half_width_db": 0.5,
+  "source_hashes": {
+    "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+    "core/mean_ci.py": "881a5cc3529350bf6dd23c1b174f1bc9b60f8c5619143a6cda9a01a5fba625ff",
+    "core/plot_engine.py": "9c75aee11e4735f7372a3fa17cd5c642cddcb7e838091a35048b572da2e78ae0",
+    "ui/plots/evidence_figures.py": "00764e26026e08927a4bde9ef812908b88bc40a457c9adf70442168bc0633806",
+    "ui/inspector/preparation.py": "b57df1f4b6f6fc0e2d2378699a9feefdb46fa9d74d639d9a634fdaff54a636fd",
+    "ui/components/inspector_statistics.py": "33c0b0be87edc0708636eb80e4cb1719a28479ecf51ac5b6c5f0d0c30c12858f"
+  },
+  "figures": [
+    {
+      "path": ".tmp/pooled-pair-doc-refresh/native/zander_tx_buddy/map.png",
+      "bytes": 1297206,
+      "sha256": "6107d2f82101b2a1b65cf7e439044fa2a01d399fbbb53467e1cad55735dbb092",
+      "width": 3384,
+      "height": 3518
+    },
+    {
+      "path": ".tmp/pooled-pair-doc-refresh/native/zander_tx_buddy/statistics.png",
+      "bytes": 478434,
+      "sha256": "2ab4b908254ef9199c782359bf3afc5ff2c6f21a5b1c0be0b7a422a20fd35155",
+      "width": 3774,
+      "height": 2849
+    }
+  ],
+  "segment_count": 10,
+  "colored_segments": 0
+}

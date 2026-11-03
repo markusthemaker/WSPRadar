@@ -144,6 +144,7 @@ body{background:#000b19}
 .demo-metrics:has(>.demo-metric:only-child){grid-template-columns:1fr}
 .demo-metric{border-left:2px solid #356551;padding-left:16px;min-width:0}
 .demo-metric>strong{display:block;font:700 47px/1.08 Rajdhani,Arial,sans-serif;color:var(--product-green);white-space:nowrap;margin-bottom:8px}
+.demo-metric.measured-result>strong{white-space:normal}
 .demo-metric .result-label{font-size:16px;line-height:1.3;font-weight:600;margin:0 0 8px}
 .demo-metric .result-detail{font-size:15px;line-height:1.5;color:#b6c9da;margin:0}
 .result-detail span{display:block}

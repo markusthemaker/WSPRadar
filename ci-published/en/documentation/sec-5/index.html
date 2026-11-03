@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="/assets/fonts.css">
   <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=1a6c10d30cef2383">
   <link rel="stylesheet" href="/assets/site.css">
-  <link rel="stylesheet" href="/assets/landing.css?v=a3f1629fa45eff04">
+  <link rel="stylesheet" href="/assets/landing.css?v=cbff5261467c11f6">
   <script src="/assets/site.js" defer></script>
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
@@ -143,8 +143,8 @@
 </tr>
 </tbody>
 </table></div>
-<p><strong>Operating confirmation:</strong> for your own Benchmark, confirm common operation as described in <a href="/en/documentation/sec-2/#sec-2-2">Section 1.2</a>. Changing identities, direction, band or period clears the confirmation. Loading a personal configuration or ordinary analysis link requires fresh acknowledgement; saved declarations do not verify operation.</p>
-<p><strong>Historical replay</strong> uses a separate acknowledgement of uncertain historical operation, not a controlled-operation declaration. Ordinary replay loads require fresh acknowledgement, including legacy analysis links with <code>run=1</code>. Opening a link never starts an analysis. Built-in demos preselect the declaration appropriate to their documented mode; the Milazzo demo uses the historical-limits acknowledgement. A link selecting an installed demo opens Guided Review directly with that demo selected; its experiment notes remain available in the collapsed <strong>00 Guided demo</strong> panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acknowledgement. Loading a demo alone still does not run it.</p>
+<p><strong>Benchmark acceptance:</strong> every Benchmark requires <strong>I have confirmed common operation, or accept the limitations when it is unverified.</strong> Check common operation as described in <a href="/en/documentation/sec-2/#sec-2-2">Section 1.2</a>; when it is unverified, interpret the observations within the stated limitations. Changing identities, direction, band or period clears acceptance. Loading a personal configuration or ordinary analysis link requires fresh acceptance; a saved acceptance does not verify operation.</p>
+<p>The same acceptance applies to <strong>historical observations</strong>, including Milazzo; there is no separate historical mode. Ordinary analysis links require fresh acceptance, including links with the inert <code>run=1</code> parameter. Opening a link never starts an analysis. Built-in demos preselect this acceptance; their experiment notes explain known operating conditions and uncertainties. A link selecting an installed demo opens Guided Review directly with that demo selected; its experiment notes remain available in the collapsed <strong>00 Guided demo</strong> panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acceptance. Loading a demo alone still does not run it.</p>
 <h5>Reference-side SNR correction sign</h5>
 <p>A <strong>positive correction raises Reference SNR and reduces ΔSNR</strong>. If a common-input calibration measured Target minus Reference as <strong>+1.6 dB</strong>, enter <strong>+1.6 dB</strong>. Correction does not change decode counts or raw cumulative-SNR curves. To collect a baseline, use <strong>No correction</strong>; WSPRadar does not determine an offset automatically. See <a href="/en/documentation/sec-b/#sec-reference-snr-calibration">Chapter 6</a> for calibration and its limits.</p>
 <p><a id="sec-5-4"></a></p>
@@ -181,11 +181,6 @@
 <td>Removes peers <strong>at or beyond</strong> the limit from the analyzed population and exports. This changes the analysis, not just the map view.</td>
 </tr>
 <tr>
-<td><strong>Minimum spot pairs per station for ΔSNR</strong></td>
-<td><strong>1</strong>; 1–50</td>
-<td>Benchmark: qualifies each exact station identity over the full filtered period. One-sided reports do not satisfy this requirement.</td>
-</tr>
-<tr>
 <td><strong>Minimum confirmed opportunities per station</strong></td>
 <td><strong>5</strong>; 1–100</td>
 <td>Performance: requires this many successes plus confirmed misses per identity. Lower values produce coarser, less-supported rates.</td>
@@ -197,19 +192,35 @@
 </tr>
 <tr>
 <td><strong>Minimum qualifying stations per segment for ΔSNR</strong></td>
-<td><strong>5</strong>; 1–10</td>
-<td>Benchmark: requires this many identities meeting the spot-pair minimum before the segment receives ΔSNR coloring.</td>
+<td><strong>3</strong>; 1–50</td>
+<td>Visible station-count requirement. Count qualifying identities that contribute at least one eligible pair to the segment. A segment also needs an available, non-degenerate pooled-pair CI within the maximum half-width.</td>
+</tr>
+<tr>
+<td><strong>Shared confidence level</strong></td>
+<td><strong>95%</strong>; 70%, 80%, 90%, 95%, 99%</td>
+<td>One shared setting governs map and Inspector mean CIs: pooled map pairs, individual stations, pooled Spots, temporal/folded bins and the existing equal-station aggregate. Higher confidence widens a non-degenerate interval for the same data and can change map qualification; it does not change contributing observations or means.</td>
+</tr>
+<tr>
+<td><strong>Maximum ΔSNR map CI (± dB)</strong></td>
+<td><strong>0.5</strong>; finite positive value</td>
+<td>Editable numeric map setting: 0.5 means a CI no wider than <strong>mean ±0.5 dB</strong>. Coloring requires the unrounded pooled-pair CI half-width to be no greater than this value. The station-count requirement remains in force.</td>
+</tr>
+<tr>
+<td><strong>Minimum observed stations per segment for ΔDecode</strong></td>
+<td><strong>3</strong>; 1–50</td>
+<td>Count distinct callsign/full-reported-locator identities with at least one retained event in the segment, including one-sided identities. The observed-event share requirement must also be met.</td>
 </tr>
 <tr>
 <td><strong>Minimum observed-event share per segment for ΔDecode (%)</strong></td>
 <td><strong>1%</strong>; 0–5%, steps of 0.5%</td>
-<td>Benchmark: requires this share of the full filtered run's observed events, rounded up to a whole event. At <strong>0%</strong>, every nonempty segment qualifies.</td>
+<td>Benchmark: requires this share of the full filtered run's observed events, rounded up to a whole event. At <strong>0%</strong>, every nonempty segment meets this requirement; the observed-station minimum still applies.</td>
 </tr>
 </tbody>
 </table></div>
-<p>The <strong>one-pair default</strong> for ΔSNR preserves sensitivity by keeping sparsely observed paths eligible. Use <strong>Minimum qualifying stations per segment for ΔSNR</strong> — default <strong>5</strong> — to prevent a single path alone from determining a segment's ΔSNR color. A station with one pair contributes just one ΔSNR observation.</p>
-<p>The ΔDecode requirement's full-run denominator stays fixed when you crop or select a segment. ΔDecode has no separate per-station minimum. These requirements measure evidence volume, not confidence.</p>
-<p>Benchmark segments with observed evidence but below the relevant threshold are gray hatched; retained station observations remain available. The ΔSNR pair minimum does not remove decodes from ΔDecode. In Performance, evidence outside the distance limit may still establish Target activity, without adding those peers to the analyzed population.</p>
+<p>The map station-count requirement is <strong>three</strong> by default, with range <strong>1–50</strong>. Coloring additionally requires an available, non-degenerate pooled-pair CI at the shared level, <strong>95%</strong> by default, with unrounded half-width no greater than <strong>0.5 dB</strong> by default. A half-width of <strong>0.5004 dB fails a 0.5 dB limit</strong>, even if a display rounds it to 0.50. The half-width setting changes map qualification and shading only; the confidence setting governs existing mean CIs as well. Neither setting deletes eligible evidence from the Inspector. The compact summary reads <strong>CI ± 0.5 dB</strong> and <strong>Shared confidence level: 95%</strong> at the defaults; both values follow the current settings.</p>
+<p>The ΔDecode requirement's full-run denominator stays fixed when you crop or select a segment. ΔDecode has no separate per-station event minimum and does not reuse ΔSNR station qualification. Its observed-station minimum and event-share requirement both apply. These requirements describe station breadth and evidence volume, not confidence.</p>
+<p>The <strong>ΔSNR evidence requirements</strong> and <strong>ΔDecode evidence requirements</strong> appear side by side where screen width permits, with the relevant station minimum first in each section. On narrow screens they stack. <strong>Expert Settings</strong> follows these requirements and contains <strong>Identify ΔSNR outlier candidates</strong> and its optional controls.</p>
+<p>Benchmark segments with observed evidence but below the relevant threshold are gray hatched; retained station observations remain available. The paired-evidence requirement for ΔSNR does not remove decodes from ΔDecode. In Performance, evidence outside the distance limit may still establish Target activity, without adding those peers to the analyzed population.</p>
 <p>Once you manually change either exclusion, that choice persists across Question changes. Stored configurations, demos and analysis links also preserve their explicit exclusions.</p>
 <p><a id="sec-5-5"></a></p>
 <h4>10.5 Map, inspector and export controls</h4>
@@ -252,13 +263,22 @@
 </tr>
 <tr>
 <td><strong>Time basis</strong></td>
-<td>Selects UTC or Local Solar consistently across chronological and folded Inspector, selected-station and focused SNR, decode and coverage panels. The basis is saved in configurations, shared analysis links and export metadata. Switching changes the displayed chronological clock while preserving UTC bins and their statistics; folded observations are regrouped before their hourly summaries. Whole-run statistics remain unchanged.</td>
+<td>Selects UTC or Local Solar independently for segment and selected-station plots, with UTC as the new-analysis default at both levels. Each choice applies to that level’s chronological and folded SNR, decode and coverage panels; focused plots follow the selected-station choice. Both choices are saved in configurations, shared analysis links and export metadata. Switching changes the displayed chronological clock while preserving UTC bins and their statistics; folded observations are regrouped before their hourly summaries. Whole-run statistics remain unchanged.</td>
+</tr>
+<tr>
+<td><strong>ΔSNR statistic: Median / Mean</strong></td>
+<td>Benchmark temporal ΔSNR only. Mean is the default for new analyses. Segment and selected-station plots keep independent choices. If a current configuration omits a statistic, that level defaults to Mean; explicit saved choices are honored. The Milazzo demo opens both levels with Median. Median shows the existing median and Bin IQR; Mean shows the arithmetic mean and its available configured pointwise CI. Both preserve eligible observations, bins and pair weighting. Both choices are saved in configurations, shared analysis links and export metadata. Benchmark Statistics, maps, ΔDecode and evidence counts remain unchanged.</td>
+</tr>
+<tr>
+<td><strong>Zoom window / <strong class="defined-term">Outlier Focus</strong></strong></td>
+<td>Focuses Drill-Down on an interval for exactly one selected station. <strong>Filter table</strong> then narrows table rows only. Focus and Drill-Down table filters are not saved in configurations or analysis links.</td>
 </tr>
 </tbody>
 </table></div>
-<p>| <strong>ΔSNR statistic: Median / Mean</strong> | Benchmark temporal ΔSNR only. Median is the default and the fallback for older configurations. Median shows the existing median and Bin IQR; Mean shows the arithmetic mean and its available configured pointwise CI. Both preserve eligible observations, bins and pair weighting. The choice is saved in configurations, shared analysis links and export metadata. Benchmark Statistics, maps, ΔDecode and evidence counts remain unchanged. |
-| <strong>Zoom window / <strong class="defined-term">Outlier Focus</strong></strong> | Focuses Drill-Down on an interval for exactly one selected station. <strong>Filter table</strong> then narrows table rows only. Focus and Drill-Down table filters are not saved in configurations or analysis links. |</p>
-<p><strong>CI configuration:</strong> These settings are stored under <code>results_view.benchmark</code>, alongside <code>temporal_statistic</code>, and preserved in shared analysis links and export metadata. <code>ci_alpha</code> defaults to <code>0.05</code> and must be strictly between 0 and 1. It specifies the total two-sided tail probability; the confidence level is <code>100 × (1 − ci_alpha)%</code>. <code>ci_method</code> defaults to <code>iid_student_t</code>. The same configuration values govern individual station means, pooled qualifying-pair means and temporal-bin means; no pooled interval is assigned to the aggregate mean of station means. See <a href="/en/documentation/sec-7/#sec-7-dependence-bias">Section 8.5.1</a> for the calculation and assumptions.</p>
+<p><strong>CI configuration:</strong> These settings are stored under <code>advanced_parameters</code> and preserved in shared analysis links and export metadata. The independent <code>segment_temporal_statistic</code> and <code>station_temporal_statistic</code> remain under <code>results_view</code>. <code>evidence_confidence_level_percent</code> defaults to <code>95</code> and must be strictly between 0 and 100. The corresponding internal <code>ci_alpha = 1 − evidence_confidence_level_percent / 100</code> specifies the total two-sided tail probability and must be strictly between 0 and 1; the confidence level is <code>100 × (1 − ci_alpha)%</code>. <code>evidence_confidence_interval_method</code> defaults to <code>iid_student_t</code>. The same confidence configuration governs individual station means, pooled qualifying-pair means, temporal/folded-bin means, pooled map-pair means and the existing equal-station aggregate for the selected Inspector scope. Each interval uses its own contributing unit and sample SD: pairs for the map and pooled Spots, station means for the Stations aggregate. Benchmark Statistics estimators and populations remain unchanged. The map additionally has its own maximum CI half-width requirement; that threshold does not filter Inspector scope statistics. See <a href="/en/documentation/sec-7/#sec-7-dependence-bias">Section 8.5.1</a> for the calculation and assumptions.</p>
+<p>Saved configurations express the shared confidence setting as <code>advanced_parameters.evidence_confidence_level_percent</code> and <code>advanced_parameters.evidence_confidence_interval_method</code>; the internal <code>ci_alpha</code> remains the corresponding two-sided tail probability. The map limit is stored as <code>advanced_parameters.evidence_max_segment_ci_half_width_db</code>. Saved configurations preserve the effective station-count requirements, shared confidence and map CI limit. An absent half-width uses the default <strong>0.5 dB</strong>; an explicitly supplied value must be finite and strictly positive. Invalid values require correction rather than silent replacement.</p>
+<p><strong>ΔDecode configuration:</strong> Benchmark configuration documents explicitly require <code>settings.advanced_parameters.evidence_min_decode_stations_per_segment</code>, alongside <code>settings.advanced_parameters.evidence_min_decode_event_share_percent</code>. The station minimum is an integer from <strong>1 to 50</strong>; new analyses default to <strong>3</strong>. Existing installed Benchmark demos explicitly use <strong>1</strong> to preserve their reviewed coloring. Older Benchmark configuration documents missing the required field are rejected rather than silently assigned a new map requirement. Shared links use <code>min_decode_stations_per_segment</code> for this separate ΔDecode setting.</p>
+<p>Shared links record the effective Benchmark station minimum explicitly. A link with unresolved, retired or invalid optional parameters restores its recognized valid settings and lists the parameter names that need manual selection before running. Retired names are not aliases and are not silently migrated. Invalid or ambiguous required identity, comparison design or time settings prevent loading. Links load settings only; they do not authorize a new analysis.</p>
 <p>Chronological bin choices depend on the <strong>complete run duration</strong>. A valid saved choice takes precedence over the default and remains available even outside the usual choices below:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -294,7 +314,7 @@
 <p>Manual zoom offers <strong>Off</strong> and the <strong>1h</strong>, <strong>3h</strong>, <strong>6h</strong>, <strong>12h</strong> or <strong>24h</strong> windows that fit within the completed run. Choose a UTC center or move with <strong>Earlier / Later</strong>. Outlier Focus includes the event and its surrounding baseline evidence and may exceed 24 hours. The export can include separate focused figures; <a href="/en/documentation/sec-8/#sec-8-4">Section 9.4</a> defines their scope.</p>
 <p><a id="sec-5-6"></a></p>
 <h4>10.6 Benchmark outlier-detection controls</h4>
-<p><strong>Identify ΔSNR outlier candidates</strong> is off by default. Enable it only when investigating temporary departures in paired evidence; see <a href="/en/documentation/sec-3/#sec-outlier">Section 2.5</a>.</p>
+<p>Under <strong>Expert Settings</strong>, <strong>Identify ΔSNR outlier candidates</strong> is off by default. Enable it only when investigating temporary departures in paired evidence; see <a href="/en/documentation/sec-3/#sec-outlier">Section 2.5</a>.</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
 <tr>

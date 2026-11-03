@@ -132,6 +132,9 @@
 .case-copy>ul,.case-copy>ol{padding-left:1.4em;list-style-position:inside}
 #published-figures .case-copy>ul{padding-left:0}
 .case-copy .table-scroll{clear:both}
+.case-media>.table-scroll{width:100%;margin:18px 0 0}
+.case-media>.table-scroll table{width:100%}
+.case-media>.table-scroll th,.case-media>.table-scroll td{white-space:normal;min-width:0}
 .case-figure-inverted img,.case-image-inverted{filter:invert(1)}
 .case-filter-definitions{position:absolute;pointer-events:none}
 @media(min-width:760px) and (max-width:1100px){

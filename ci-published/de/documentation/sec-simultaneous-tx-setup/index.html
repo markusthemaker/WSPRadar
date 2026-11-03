@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="/assets/fonts.css">
   <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=1a6c10d30cef2383">
   <link rel="stylesheet" href="/assets/site.css">
-  <link rel="stylesheet" href="/assets/landing.css?v=a3f1629fa45eff04">
+  <link rel="stylesheet" href="/assets/landing.css?v=cbff5261467c11f6">
   <script src="/assets/site.js" defer></script>
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
@@ -63,7 +63,7 @@
 </tr>
 <tr>
 <td><strong>2. Konfigurieren</strong></td>
-<td>Befolge die Anleitung für deine Hardware in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5">5.5</a>. Beginne bei QRP Labs mit einem aktivierten Eintrag für die gewählte Rufzeichenvariante. Das ZachTek-Verfahren erfordert die modellspezifische Firmwareänderung vor den Prüfungen am Messplatz.</td>
+<td>Befolge die Anleitung für deine Hardware in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5">5.5</a>. Beginne bei QRP Labs mit einem aktivierten Eintrag für die gewählte Rufzeichenvariante. Das ZachTek-Verfahren verwendet die modellspezifische Standardkonfiguration vor den Prüfungen am Messplatz.</td>
 </tr>
 <tr>
 <td><strong>3. Am Messplatz prüfen</strong></td>
@@ -139,10 +139,10 @@
 <li><strong>Zeit und Band:</strong> Synchronisiere beide Sender auf genaue UTC, vorzugsweise mit Satellitenzeit wie GPS, und wähle dasselbe Band.</li>
 <li><strong>Ausgewählte Zyklen:</strong> Verwende dieselbe deterministische Wiederholung und prüfe dieselben Starts in geraden Minuten. Beide Signalwege müssen in jedem vorgesehenen Vergleichszyklus vollständige Nachrichten senden.</li>
 <li><strong>Phasen der Nachrichtenfolge:</strong> Wenn erweitertes WSPR aktiviert ist, prüfe, dass die entsprechenden Phasen gemeinsam stattfinden, auch nach einem Neustart. Nur die erste Phase abzugleichen reicht nicht aus.</li>
-<li><strong>Frequenzabstand:</strong> Platziere in den QRP-Labs-Beispielen mit festen Frequenzen die Signalmitten nominal <strong>100 Hz auseinander</strong>, wobei beide vollständigen Signale mit ausreichendem Rand innerhalb des 200 Hz breiten WSPR-Sendeunterbands liegen müssen. Der angepasste ZachTek-Build verwendet stattdessen die getrennten unteren und oberen Frequenzfenster aus <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3">5.5.2</a>.</li>
+<li><strong>Frequenzabstand:</strong> Platziere in den QRP-Labs-Beispielen mit festen Frequenzen die Signalmitten nominal <strong>100 Hz auseinander</strong>, wobei beide vollständigen Signale mit ausreichendem Rand innerhalb des 200 Hz breiten WSPR-Sendeunterbands liegen müssen. Das ZachTek-Verfahren verwendet stattdessen die standardmäßige zufällige Frequenzwahl aus <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3">5.5.2</a>; sie garantiert keinen Mindestabstand.</li>
 </ol>
-<p>Verwende die ausgearbeiteten 40-m- oder 20-m-Einstellungen in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-1">5.5.1</a>. Diese Einstellungen geben <strong>abgestrahlte HF-Frequenzen</strong> an, nicht die USB-Einstellfrequenzen eines Empfängers. Die zitierten QRP-Labs-Handbücher definieren die WSPR-Einstellung als Signalmitte; die ZachTek-Quellcodeänderung steuert den niedrigsten Ton, also <strong class="defined-term">Ton 0</strong>. Verwende die Konvention deiner genauen Firmware <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a> <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a>.</p>
-<p>Prüfe die einzelnen Frequenzen mit geeigneten Messgeräten und untersuche anschließend beide Signale gemeinsam in einer Wasserfall- oder Spektrumanzeige eines Empfängers. Bestätige den vorgesehenen Abstand oder die vorgesehenen Frequenzfenster sowie die Randabstände der vollständigen Signale. Ein größerer Abstand verringert diese Randabstände. Wiederhole die Zeit- und Frequenzprüfungen nach einem Neustart, Firmwareupdate oder einer Konfigurationsänderung.</p>
+<p>Verwende die ausgearbeiteten 40-m- oder 20-m-Einstellungen in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-1">5.5.1</a>. Diese Einstellungen geben <strong>abgestrahlte HF-Frequenzen</strong> an, nicht die USB-Einstellfrequenzen eines Empfängers. Die zitierten QRP-Labs-Handbücher definieren die WSPR-Einstellung als Signalmitte; die zitierte ZachTek-Firmware verwendet den niedrigsten Ton, also <strong class="defined-term">Ton 0</strong>. Verwende die Konvention deiner genauen Firmware <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a> <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a>.</p>
+<p>Prüfe die einzelnen Frequenzen mit geeigneten Messgeräten und untersuche anschließend beide Signale gemeinsam in einer Wasserfall- oder Spektrumanzeige eines Empfängers. Bestätige bei Aufbauten mit festen Frequenzen den vorgesehenen Abstand; untersuche bei der standardmäßigen zufälligen Frequenzwahl von ZachTek die Frequenzplatzierung über mehrere Folgen und gehe dauerhaft identischen Frequenzwahlen nach. Prüfe in beiden Fällen die Randabstände der vollständigen Signale. Ein größerer Abstand zwischen festen Frequenzen verringert diese Randabstände. Wiederhole die Zeit- und Frequenzprüfungen nach einem Neustart, Firmwareupdate oder einer Konfigurationsänderung.</p>
 <p><a id="sec-simultaneous-tx-setup-3"></a></p>
 <h4>5.3 Leistung und Signalqualität im simultanen Betrieb prüfen</h4>
 <p><strong>Miss zuerst die tatsächliche Leistung; stelle danach ihren gemeldeten Wert ein.</strong> Das WSPR-dBm-Feld beschreibt die Leistung. Die Eingabe eines anderen Werts stellt die HF-Ausgangsleistung des Senders nicht selbst ein.</p>
@@ -317,7 +317,8 @@
 <p>Verwende für das Verfahren mit einem Rufzeichen und zwei Suffixen den Frequenztausch zwischen Analyseläufen in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-6">5.6</a>. Ein erweiterter Eintrag verwendet bereits zwei Zyklen; ein zweiter erweiterter Eintrag verändert die Länge der Folge und die Belegung. Der Ablauf des gewöhnlichen Verfahrens und die obige 20%-Berechnung gelten deshalb nicht. Bewahre das vollständige Type-2-/Type-3-Paar, bevor du die Frequenz änderst.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3"></a></p>
 <h5>5.5.2 ZachTek-Firmware 2.19</h5>
-<p>Dies ist ein <strong>anspruchsvolles, modellspezifisches Verfahren</strong>: Es verbindet gewöhnliche Konfiguration mit einer Quellcodeänderung, die die beiden Sender in getrennten Frequenzbereichen hält. Das ausgearbeitete Beispiel verwendet die auf eine bestimmte Revision festgelegte ESP8285-Firmware in <a href="/de/documentation/sec-ref/#ref-29">Ref-29</a>, Revision <code>1657468ea27052167191a7deda2440a535567ecd</code>, die <strong>WSPR-TX XP Plus, <code>Product_Model = 1048</code></strong> auswählt. Andere Modelle erfordern eine gesondert geprüfte Anleitung. In dieser Datei ist der Sleep-Aufruf für lange Pausen bei Mini/Pico deaktiviert, und beim Pico erzwingt der Start die Höhenmeldung; die folgenden Pausen- und Leistungsanweisungen gelten daher für den ausgewählten 1048-Build.</p>
+<p>Dieser Aufbau nutzt die integrierte Zeitsteuerung und die standardmäßige zufällige Frequenzwahl von ZachTek; <strong>eine angepasste Firmware mit getrennten Frequenzfenstern ist nicht erforderlich</strong>. Das ausgearbeitete Beispiel verwendet die auf eine bestimmte Revision festgelegte ESP8285-Firmware in <a href="/de/documentation/sec-ref/#ref-29">Ref-29</a>, Revision <code>1657468ea27052167191a7deda2440a535567ecd</code>, die <strong>WSPR-TX XP Plus, <code>Product_Model = 1048</code></strong> auswählt. Andere Modelle erfordern eine gesondert geprüfte Anleitung. In dieser Datei ist der Sleep-Aufruf für lange Pausen bei Mini/Pico deaktiviert, und beim Pico erzwingt der Start die Höhenmeldung; die folgenden Pausen- und Leistungsanweisungen gelten daher für den ausgewählten 1048-Build.</p>
+<p>Verwende die Konfigurationssoftware für deine genaue Hardware und installierte Firmware. Die folgenden Parameternamen entsprechen dem zitierten Quellcode; sie sind keine Aufforderung, Firmware zu bearbeiten oder zu kompilieren. <strong>WSPRadar hat diese Anleitung nicht an ZachTek-Hardware validiert.</strong> Die Erläuterung des Herstellers stützt die Nutzung der vorhandenen Zeitsteuerung und zufälligen Frequenzwahl; sie ist keine Validierung sämtlicher nachfolgender modellspezifischer Einstellungen.</p>
 <p>Wähle das Verfahren passend zu den <strong>Sendekennungen im Funkbetrieb</strong>, die du verwenden wirst:</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
 <thead>
@@ -339,7 +340,7 @@
 </table></div>
 <p><strong>Beide Verfahren erfordern dieselbe Vorbereitung:</strong> Aktiviere nur das ausgewählte Versuchsband, setze <strong><code>PowerOption = Normal</code></strong> und verwende das tatsächliche QTH jedes Senders. Beide Geräte benötigen gültige GPS-Zeit <strong>und GPS-Position</strong>, auch wenn der gesendete Locator manuell eingegeben wird. Die normale Leistungsmeldung verwendet den eingestellten dBm-Wert als Nachrichtendaten; sie stellt nicht die HF-Ausgangsleistung ein. Der Höhenmodus ersetzt diesen Wert durch Telemetrie. Miss vor dem Sendebetrieb die tatsächliche Leistung und wähle ihren codierten Wert wie in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-3">Abschnitt 5.3</a> beschrieben.</p>
 <p>Zwei Aufbauten am selben Standort sollten ihr gemeinsames tatsächliches QTH melden. Bei zwei unterschiedlichen Stationen meldet jeder Sender sein eigenes QTH; das Ergebnis vergleicht die vollständigen installierten Stationen und ihre unterschiedlichen Funkpfade. Halte die Zuordnung der Identitäten zu den physischen Signalwegen im Versuchsprotokoll fest.</p>
-<p>Schließe nach der Konfiguration einer der beiden folgenden Varianten das gemeinsame Verfahren <strong>Frequenz-Patch → Build → Messplatz → Sendebetrieb</strong> in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> ab. Der angepasste Build mit getrennten Frequenzfenstern ist für beide Rufzeichenvarianten erforderlich.</p>
+<p>Schließe nach der Konfiguration einer der beiden folgenden Varianten das gemeinsame Verfahren <strong>Zeitsteuerung → Messplatz → Sendebetrieb</strong> in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> ab. Behalte auf beiden Geräten die standardmäßige zufällige Frequenzwahl bei; eine Zuordnung zu einem unteren und oberen Frequenzfenster ist nicht erforderlich.</p>
 <p><a id="sec-zachtek-two-ordinary-callsigns"></a></p>
 <h6>5.5.2.1 Zwei verschiedene Rufzeichen</h6>
 <p>Verwende dieses Verfahren, wenn Target und Referenz jeweils ein anderes gültiges Rufzeichen haben, das in das gewöhnliche Type-1-WSPR-Format passt. Die Rufzeichen können zwei zulässige Aufbauten an einer Station oder zwei getrennte Stationen kennzeichnen; sie benötigen keine Suffixe, um unterscheidbar zu sein.</p>
@@ -349,7 +350,7 @@
 <li>Wähle ausdrücklich <strong>no prefix/suffix</strong> (<code>SuPreFixOption = None</code> im zitierten Quellcode). Tue dies auch, wenn das angezeigte Basisrufzeichen bereits gewöhnlich ist: Nur diesen Text zu ändern deaktiviert kein zuvor ausgewähltes Suffix oder Präfix. Gespeicherte Suffixzeichen können unbenutzt erhalten bleiben; der Auswahlschalter entscheidet über Type 1.</li>
 <li>Setze auf beiden Geräten <strong><code>LocationPrecision = 4</code></strong>. Die Genauigkeit <code>6</code> würde auch bei einem gewöhnlichen Rufzeichen eine Type-3-Aussendung hinzufügen.</li>
 <li>Aktiviere dasselbe einzelne Versuchsband, verwende <strong><code>PowerOption = Normal</code></strong>, behalte das tatsächliche QTH jedes Geräts bei und setze auf beiden <strong><code>TimeSlotCode = 7</code></strong> sowie <strong><code>TXPause = 480</code> Sekunden</strong>.</li>
-<li>Bereite die Builds für das untere und obere Frequenzfenster in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> vor und weise jedem Fenster ein Gerät zu. Behalte die Zuordnung der Rufzeichen zu ihren dokumentierten physischen Signalwegen bei.</li>
+<li>Behalte auf beiden Geräten die standardmäßige zufällige Frequenzwahl bei und fahre mit <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> fort. Behalte die Zuordnung der Rufzeichen zu ihren dokumentierten physischen Signalwegen bei.</li>
 </ol>
 <p>Der vorgesehene Zeitplan wiederholt sich alle zwanzig Minuten:</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
@@ -383,7 +384,7 @@
 <li>Wähle auf beiden Geräten die <strong>Suffixoption</strong> (<code>SuPreFixOption = Sufix</code> im Quellcode). Trage in das separate Suffixfeld jedes Geräts ein anderes zulässiges Suffix aus einem Zeichen ein. Dokumentiere, welche vollständige Sendekennung zu Target und welche zur Referenz gehört.</li>
 <li>Setze auf beiden Geräten <strong><code>LocationPrecision = 6</code></strong>. Damit wird Type 3 automatisch nach Type 2 hinzugefügt; die Genauigkeit <code>4</code> würde nur Type 2 senden. Du schaltest die Nachrichtentypen nicht von Hand um.</li>
 <li>Aktiviere dasselbe einzelne Versuchsband, verwende <strong><code>PowerOption = Normal</code></strong>, behalte das tatsächliche QTH jedes Geräts bei und setze auf beiden <strong><code>TimeSlotCode = 7</code></strong> sowie <strong><code>TXPause = 480</code> Sekunden</strong>.</li>
-<li>Bereite die Builds für das untere und obere Frequenzfenster in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> vor und weise jedem Fenster ein Gerät zu. Behalte die Zuordnung der vollständigen Rufzeichen mit Suffix zu ihren dokumentierten physischen Signalwegen bei.</li>
+<li>Behalte auf beiden Geräten die standardmäßige zufällige Frequenzwahl bei und fahre mit <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> fort. Behalte die Zuordnung der vollständigen Rufzeichen mit Suffix zu ihren dokumentierten physischen Signalwegen bei.</li>
 </ol>
 <p>Der vorgesehene Zeitplan wiederholt sich alle zwanzig Minuten:</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
@@ -408,10 +409,10 @@
 </tbody>
 </table></div>
 <p>Wenn diese Wiederholung eingehalten wird, verwendet jeder Sender <strong>6 von 30 WSPR-Zyklen pro Stunde: 20%</strong> der verfügbaren Zyklen. Beide Phasen verwenden innerhalb dieser Folge dieselbe ausgewählte Frequenz. Die zweite Nachricht folgt nach einer festen Pause von neun Sekunden auf das Ende der ersten; ihr Start wird nicht gesondert gegen den GPS-Zeitschlitz geprüft. Die konfigurierte <code>TXPause</code> folgt auf das vollständige Paar und ist nicht die Lücke zwischen dessen beiden Phasen.</p>
-<p><strong>Behalte die Grenzen des Quellcodes im Blick.</strong> Die Type-3-Hash-Bildung für zweistellige Ziffernsuffixe ist deaktiviert. Der präfixbasierte Type-3-Codepfad baut zudem seine Rufzeichenzeichenfolge neu auf, ohne vor dem Hashen die abschließende Null zu schreiben; deshalb ist er in dieser Revision kein zuverlässiges Verfahren. Die obige Variante mit einem Suffix aus einem Zeichen verwendet den implementierten Bildungspfad; der Patch für die Frequenzfenster repariert keinen der beiden nicht unterstützten Codepfade. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
+<p><strong>Behalte die Grenzen des Quellcodes im Blick.</strong> Die Type-3-Hash-Bildung für zweistellige Ziffernsuffixe ist deaktiviert. Der präfixbasierte Type-3-Codepfad baut zudem seine Rufzeichenzeichenfolge neu auf, ohne vor dem Hashen die abschließende Null zu schreiben; deshalb ist er in dieser Revision kein zuverlässiges Verfahren. Die obige Variante mit einem Suffix aus einem Zeichen verwendet den implementierten Bildungspfad. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
 <p>Beobachte, dass die entsprechenden Type-2- und Type-3-Phasen gemeinsam stattfinden, auch nach einem Neustart. Prüfe nach <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">Abschnitt 5.4</a> beide vollständigen Identitäten in den Empfänger- bzw. Datenbankbeobachtungen für beide Phasen. Übereinstimmende Konfigurationswerte allein belegen weder korrekte Hash-Auflösung noch vollständige synchronisierte Aussendungen.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3-1"></a></p>
-<h6>5.5.2.3 Gemeinsame Zeitsteuerung, Frequenzfenster und Prüfung</h6>
+<h6>5.5.2.3 Gemeinsame Zeitsteuerung, zufällige Frequenzwahl und Prüfung</h6>
 <p><strong>Zeitplan und Pause aufeinander abstimmen.</strong> Beide ausgearbeiteten Verfahren verwenden Code <code>7</code>. Wenn du einen anderen festen Start wählst, gleiche <code>TimeSlotCode</code> auf beiden Geräten ab und verwende die folgenden Regeln:</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
 <thead>
@@ -433,73 +434,15 @@
 </table></div>
 <p><code>TXPause</code> ist eine Wartezeit in <strong>Sekunden nach dem Durchlauf der aktivierten Bänder</strong>, kein Zeitraum von Start zu Start. Bei einem aktivierten Band folgt sie auf jede vollständige Folge aus einer oder zwei Nachrichten. Lasse genügend Zeit, um die Folge zu beenden, die Pause einzuhalten und vor dem nächsten geplanten Start wieder bereit zu sein. Eine Pause von acht Minuten nach einer Folge aus zwei Nachrichten kann den nächsten Zehn-Minuten-Start auslassen; die ausgearbeiteten Zwanzig-Minuten-Zeitpläne lassen Raum für ihre Nachrichten und diese Pause.</p>
 <p>Verwende für diese Anleitungen die obigen festen Codes. Code <code>16</code> erlaubt den nächsten verfügbaren Start in einer geraden Minute; Code <code>17</code> reagiert auf eine geänderte Position oder den Beginn einer Stunde. Keiner von beiden stellt die hier verwendete ausgewählte feste Wiederholung her. Die zufällige Frequenzwahl wählt nicht die Zeitschlitze aus; prüfe deshalb bei der Vorabprüfung die tatsächlichen Starts beider Sender. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
-<p><strong>Frequenzplatzierung patchen.</strong> Die Originalfirmware zieht einen ganzzahligen Versatz von <strong>−100 bis einschließlich +99 Hz</strong> um die nominale Frequenz des Bands. Zwei unveränderte Geräte können deshalb nahe beieinanderliegende Positionen wählen. Bereite getrennt beschriftete Quellkopien für Sender A und Sender B vor und weise jedem ein <strong class="defined-term">Frequenzfenster</strong> zu — einen eingeschränkten Frequenzbereich.</p>
-<p>Die folgenden Versätze beziehen sich auf die <strong>Mitte</strong> des 200 Hz breiten WSPR-Sendeunterbands: beispielsweise <code>7.040100 MHz</code> auf 40 m oder <code>14.097100 MHz</code> auf 20 m. Bestätige, dass beide Builds dieselbe korrekte nominale Frequenz verwenden. In dieser Firmware ist <code>freq</code> <strong>Ton 0</strong>, die niedrigste der vier gesendeten Tonfrequenzen.</p>
-<p>Suche in <code>DoWSPR()</code> diese Anweisung <strong>zweimal</strong>: nach dem ersten <code>NextFreq()</code> und nach dem späteren <code>NextFreq()</code> des Bandzyklus:</p>
-<pre><code class="language-cpp">freq = freq + (100ULL * random (-100, 100));
-</code></pre>
-<p>Ersetze <strong>beide Vorkommen im Quellcode für A</strong> durch:</p>
-<pre><code class="language-cpp">freq = freq - (100ULL * random(31, 91));
-// random lower lane: -90 through -31 Hz
-</code></pre>
-<p>Ersetze <strong>beide Vorkommen im Quellcode für B</strong> durch:</p>
-<pre><code class="language-cpp">freq = freq + (100ULL * random(30, 90));
-// random upper lane: +30 through +89 Hz
-</code></pre>
-<p>Das obere Argument von <code>random()</code> ist ausgeschlossen. <code>freq</code> verwendet <strong>Einheiten von 0,01 Hz</strong>; die Multiplikation des gezogenen Ganzzahlwerts mit <code>100ULL</code> wandelt deshalb Hertz in diese Einheiten um. Die Änderung für das untere Frequenzfenster subtrahiert einen positiven Betrag. Wird nur eines der Quellcodevorkommen geändert, bleibt entweder die erste oder eine spätere Folge bei der ursprünglichen Platzierung. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
-<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
-<thead>
-<tr>
-<th>Programmierte Größe</th>
-<th style="text-align: right;">Wert</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>A: Ton 0 im unteren Frequenzfenster</td>
-<td style="text-align: right;"><code>−90…−31 Hz</code> relativ zur Mitte</td>
-</tr>
-<tr>
-<td>B: Ton 0 im oberen Frequenzfenster</td>
-<td style="text-align: right;"><code>+30…+89 Hz</code> relativ zur Mitte</td>
-</tr>
-<tr>
-<td>Kleinster Abstand der Ton-0-Frequenzen</td>
-<td style="text-align: right;"><strong>61 Hz</strong></td>
-</tr>
-<tr>
-<td>Spanne der vier Tonmitten in diesem Quellcode</td>
-<td style="text-align: right;"><strong>4,38 Hz</strong>, etwa <strong>4,4 Hz</strong></td>
-</tr>
-<tr>
-<td>Kleinster Abstand zwischen den nächstgelegenen Tonmitten</td>
-<td style="text-align: right;"><strong>56,62 Hz</strong>, etwa <strong>57 Hz</strong></td>
-</tr>
-<tr>
-<td>Äußerer Abstand von Ton 0 zum nominalen Unterbandrand</td>
-<td style="text-align: right;">Unterer Rand: <strong>10 Hz</strong>; oberer Rand: <strong>11 Hz</strong></td>
-</tr>
-<tr>
-<td>Abstand des höchsten Tons im oberen Frequenzfenster unterhalb des oberen Rands</td>
-<td style="text-align: right;"><strong>6,62 Hz</strong>, etwa <strong>6,6 Hz</strong></td>
-</tr>
-</tbody>
-</table></div>
-<p>Dies sind die vorgegebenen Positionen der Tonmitten. Oszillatorfehler, Drift und tatsächliche spektrale Breite erfordern weiterhin Messungen. Bestätige, dass beide vollständigen Signale mit ausreichendem Rand innerhalb des Sendeunterbands bleiben.</p>
-<p>Jede neue Folge zieht erneut eine Position im Frequenzfenster; aufeinanderfolgende Ziehungen <strong>können denselben Wert ergeben</strong>. Wenn die Genauigkeit <code>6</code> Type 3 hinzufügt, verwendet dieser Partner <strong>dieselbe ausgewählte Frequenz</strong> wie die vorhergehende Type-1- oder Type-2-Nachricht. Die nächste Ziehung erfolgt nach dem nächsten <code>NextFreq()</code>; die Versätze addieren sich nicht auf.</p>
-<p><strong>Build erstellen und Unterlagen zur Wiederherstellung aufbewahren.</strong> Vor dem Kompilieren oder Flashen:</p>
-<ul>
-<li>Prüfe das genaue Hardwaremodell und die Revision, die werkseitige Oszillatorkalibrierung und die installierte Filterkonfiguration. Die zitierte Datei wählt Modell <code>1048</code>; allein das Ändern einer Modellnummer belegt keine Kompatibilität mit anderer Relais- oder Filterhardware.</li>
-<li>Befolge die Build-Voraussetzungen im Kopf der festgelegten Quellrevision: das ESP8266-Boardpaket, <strong>Generic ESP8285 module</strong>, <strong>DTR</strong>-Reset, Uploadgeschwindigkeit <strong>57,600</strong>, den richtigen seriellen Port und <strong>NeoGPS by Slash Devin</strong>. In dessen <code>NMEAGPS_cfg.h</code> müssen <code>NMEAGPS_PARSE_GSV</code>, <code>NMEAGPS_PARSE_SATELLITE_INFO</code> und <code>NMEAGPS_PARSE_SATELLITES</code> aktiviert sein.</li>
-<li>Bewahre ein wiederherstellbares Abbild der Originalfirmware sowie Aufzeichnungen der Benutzereinstellungen und werkseitigen Kalibrierungs-/Filtereinstellungen auf. Dokumentiere Quellrevision, beide Frequenzfenster-Patches, Werkzeug- und Bibliotheksversionen, Build-Einstellungen und Hashes der Binärdateien. Der Quellkopf legt nicht jede Build-Abhängigkeit auf eine bestimmte Version fest. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></li>
-</ul>
-<p><strong>Am Messplatz prüfen, dann im Sendebetrieb.</strong> Prüfe nach dem Flashen jedes Gerät einzeln an geeigneten Lasten oder mit einer sicher gedämpften Messanordnung; bei Geräten am selben Standort prüfe außerdem beide gemeinsam. Prüfe tatsächliche Frequenzplatzierung, vollständigen zeitlichen Nachrichtenablauf, Ausgangsleistung, Filterung und spektrale Reinheit, bevor du Antennen anschließt. Untersuche bei Geräten an getrennten Stationen den simultanen Empfang während der anschließenden Vorabprüfung im Sendebetrieb an einem gemeinsamen Empfänger. Verwende dieselben Bedingungen für die PC-Steuerung, die für den Versuch geplant sind; Steuerbefehle können in dieser Firmware eine Aussendung unterbrechen.</p>
-<p>Schließe die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">Datenbank-Vorabprüfung aus Abschnitt 5.4</a> mit der vorgesehenen niedrigen Sendeleistung ab. Bestätige, dass beide Identitäten in ihren zugewiesenen Frequenzfenstern bleiben und in den vorgesehenen Zyklen Spot-Paare gemeinsamer Empfänger erzeugen. Wiederhole die Start- und Platzierungsprüfungen nach einem Neustart.</p>
-<p>Eine veränderliche Position innerhalb eines Frequenzfensters kann die Abhängigkeit von einer festen Störfrequenz verringern; A belegt jedoch weiterhin stets den unteren und B den oberen Bereich. <strong>Vertausche für einen Bestätigungslauf die Frequenzfensterzuordnung</strong>, während die Identitäten ihren physischen Signalwegen zugeordnet bleiben:</p>
-<pre><code class="language-text">Run 1: A = lower random lane, B = upper random lane
-Run 2: A = upper random lane, B = lower random lane
-</code></pre>
-<p>Ein Vorteil, der bei diesem Tausch der Antenne oder dem Sendezweig folgt, ist stärker durch die Daten gestützt als einer, der dem Frequenzfenster folgt. Verwende <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-6">Abschnitt 5.6</a>, um den wiederholten Aufbau oder Kreuztausch zu dokumentieren.</p>
+<p><strong>Die standardmäßige zufällige Frequenzwahl verwenden.</strong> Die Originalfirmware zieht einen ganzzahligen Versatz von <strong>−100 bis einschließlich +99 Hz</strong> um die nominale Frequenz des Bands. Behalte dieses Standardverhalten auf beiden Geräten bei, statt getrennte Frequenzfenster zuzuweisen. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
+<p>Nach Auskunft von <strong>Harry Zachrisson (ZachTek, persönliche Mitteilung)</strong> initialisiert jedes Gerät beim Einschalten seinen Zufallszahlengenerator mit <strong>thermischem Rauschen, das der eingebaute Analog-Digital-Wandler (ADC) erfasst</strong>. Der Startwert stammt aus Rauschen, nicht aus einer Temperaturmessung. Dadurch sollen die Sender auch bei gleichzeitigem Einschalten unterschiedliche Folgen von Sendefrequenzen verwenden; ein übereinstimmender Sendezeitplan erzwingt keine übereinstimmende Frequenzwahl.</p>
+<p><strong>Gelegentliche Überlappungen bleiben möglich.</strong> Unterschiedliche Startwerte garantieren nicht, dass in jeder Folge verschiedene Frequenzen gewählt werden. Unter der Annahme unabhängiger, gleichverteilter Ziehungen aus den 200 Ein-Hertz-Versätzen dieses Quellcodes beträgt die Wahrscheinlichkeit für <strong>genau denselben Versatz 0,5% je neuer Ziehung</strong>; Versätze mit <strong>höchstens 5 Hz Abstand treten mit ungefähr 5,4% Wahrscheinlichkeit</strong> auf. Diese berechneten Beispiele beschreiben die Frequenznähe zwischen den beiden Versuchssendern, keine gemessene Störungsrate, keinen sicheren Mindestabstand und keine Schätzung des SNR-Fehlers. Unabhängige zufällige Frequenzwahl macht dauerhaft identische Frequenzfolgen unwahrscheinlich, garantiert aber keinen Mindestabstand.</p>
+<p>Die Versätze beziehen sich auf die <strong>Mitte</strong> des 200 Hz breiten WSPR-Sendeunterbands: beispielsweise <code>7.040100 MHz</code> auf 40 m oder <code>14.097100 MHz</code> auf 20 m. Bestätige, dass beide Geräte dieselbe korrekte nominale Frequenz verwenden. In dieser Firmware ist <code>freq</code> <strong>Ton 0</strong>, die niedrigste der vier gesendeten Tonfrequenzen, und verwendet <strong>Einheiten von 0,01 Hz</strong>. Oszillatorfehler, Drift und tatsächliche spektrale Breite erfordern weiterhin Messungen. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
+<p>Jede neue Folge zieht erneut eine Frequenzposition; aufeinanderfolgende Ziehungen <strong>können denselben Wert ergeben</strong>. Wenn die Genauigkeit <code>6</code> Type 3 hinzufügt, verwendet dieser Partner <strong>dieselbe ausgewählte Frequenz</strong> wie die vorhergehende Type-1- oder Type-2-Nachricht. Die nächste Ziehung erfolgt nach dem nächsten <code>NextFreq()</code>; die Versätze addieren sich nicht auf. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
+<p><strong>Die Konfiguration dokumentieren.</strong> Prüfe das genaue Hardwaremodell und die Revision, die werkseitige Oszillatorkalibrierung und die installierte Filterkonfiguration. Dokumentiere die installierte Firmwareversion und sämtliche Einstellungen des Experiments. Der zitierte Quellcode wählt Modell <code>1048</code>; installiere diesen Build nicht auf einem anderen Modell, nur um dieses Beispiel nachzustellen. Behalte die für deine Hardware vorgesehene Herstellerfirmware bei.</p>
+<p><strong>Am Messplatz prüfen, dann im Sendebetrieb.</strong> Prüfe nach der Konfiguration jedes Gerät einzeln an geeigneten Lasten oder mit einer sicher gedämpften Messanordnung; bei Geräten am selben Standort prüfe außerdem beide gemeinsam. Prüfe tatsächliche Frequenzplatzierung, vollständigen zeitlichen Nachrichtenablauf, Ausgangsleistung, Filterung und spektrale Reinheit, bevor du Antennen anschließt. Untersuche bei Geräten an getrennten Stationen den simultanen Empfang während der anschließenden Vorabprüfung im Sendebetrieb an einem gemeinsamen Empfänger. Verwende dieselben Bedingungen für die PC-Steuerung, die für den Versuch geplant sind; Steuerbefehle können in dieser Firmware eine Aussendung unterbrechen.</p>
+<p>Schließe die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">Datenbank-Vorabprüfung aus Abschnitt 5.4</a> mit der vorgesehenen niedrigen Sendeleistung ab. Bestätige, dass beide Identitäten das vorgesehene Band verwenden, sich die Frequenzpositionen über mehrere Folgen hinweg verändern und gemeinsame Empfänger in den vorgesehenen Zyklen Spot-Paare liefern. Wiederhole die Start- und Frequenzprüfungen nach einem Neustart. Untersuche dauerhaft identische Frequenzwahlen oder unerwartete zeitliche Abläufe, bevor du den Messzeitraum beginnst.</p>
+<p><strong>Durch Wiederholung oder Hardware-Kreuztausch bestätigen.</strong> Beide Geräte verwenden denselben Bereich für die zufällige Frequenzwahl; es gibt deshalb keine festen unteren und oberen Frequenzzuordnungen zu vertauschen. Verwende einen neuen Messzeitraum und tausche, soweit praktikabel, die untersuchten Antennen oder Bauteile zwischen den Sendeketten. Dokumentiere dabei die Zuordnung der Identitäten zu den Bauteilen. Verwende <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-6">Abschnitt 5.6</a>, um den wiederholten Aufbau oder Kreuztausch zu dokumentieren.</p>
 <p><a id="sec-simultaneous-tx-setup-6"></a></p>
 <h4>5.6 Durch Tausch oder Kreuztausch bestätigen</h4>
 <p>Nutze den ersten Analyselauf, um ein Muster zu erkennen, das bestätigt werden sollte. Verwende für den nächsten physischen Versuch einen <strong>neuen UTC-Zeitraum</strong> mit vergleichbarer Dauer und Abdeckung der Tageszeiten. Behalte das vorgesehene Band, den Zeitplan, die Leistungen, Filter und den primären Auswertungsumfang bei und dokumentiere unvermeidbare Änderungen.</p>
@@ -514,7 +457,7 @@ Run 2: A = upper random lane, B = lower random lane
 <tbody>
 <tr>
 <td><strong>Frequenztausch</strong></td>
-<td>Vertausche die unteren und oberen festen Positionen oder zufällig belegten Frequenzfenster, während du die dokumentierten physischen Signalwege beibehältst.</td>
+<td>Vertausche bei Aufbauten mit steuerbarer Frequenzzuordnung die unteren und oberen festen Positionen, während du die dokumentierten physischen Signalwege beibehältst.</td>
 <td>Ein Effekt, der der Frequenzposition folgt, etwa schmalbandige Störungen, der Durchlasskurve des Empfängers oder frequenzabhängiges Senderverhalten.</td>
 </tr>
 <tr>
@@ -524,7 +467,7 @@ Run 2: A = upper random lane, B = lower random lane
 </tr>
 </tbody>
 </table></div>
-<p>Bei einem QRP-Labs-Aufbau, der bereits einen überprüften Frequenztausch innerhalb des Laufs verwendet, behalte die Prüfung je Frequenzposition bei und nutze zur Bestätigung eine separate Wiederholung oder einen Hardware-Kreuztausch. Tausche beim ZachTek-Verfahren mit Frequenzfenstern die Fensterzuordnung zwischen den Läufen.</p>
+<p>Bei einem QRP-Labs-Aufbau, der bereits einen überprüften Frequenztausch innerhalb des Laufs verwendet, behalte die Prüfung je Frequenzposition bei und nutze zur Bestätigung eine separate Wiederholung oder einen Hardware-Kreuztausch. Nutze beim ZachTek-Verfahren mit standardmäßiger zufälliger Frequenzwahl eine separate Wiederholung oder einen Hardware-Kreuztausch; es gibt keine festen Frequenzfensterzuordnungen zu vertauschen.</p>
 <p>Bewahre die Ergebnisse des ursprünglichen Laufs, des Frequenztauschs und des Hardware-Kreuztauschs getrennt auf. Fasse sie nur zusammen, wenn Target-/Referenzrollen, Korrekturvorzeichen und Analyseumfänge aufeinander abgestimmt wurden. Bewahre die in <a href="/de/documentation/sec-8/#sec-8-3">Abschnitt 9.3</a> beschriebenen Aufbau- und Betriebsaufzeichnungen auf.</p>
 <p>Übereinstimmung in einem neuen kontrollierten Lauf stützt die Wiederholbarkeit des Experiments. Übereinstimmung zwischen zwei Nachrichtenphasen innerhalb eines Laufs ist Übereinstimmung innerhalb eines Analyselaufs. Die Ausbreitung kann sich zwischen den Läufen weiterhin unterscheiden; interpretiere die Bestätigung im Rahmen dessen, was kontrolliert wurde.</p>
 <div style="page-break-before: always;"></div><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/sec-a/">Zurück: 4. Parallele WSJT-X-Instanzen für simultanen Empfang</a><a href="/de/documentation/sec-b/">Weiter: 6. Kalibrierung des Referenz-SNR</a></nav></article></div></main>

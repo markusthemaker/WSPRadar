@@ -10,50 +10,50 @@
     "order": 1,
     "settings": {
       "advanced_parameters": {
-        "delta_snr_outlier_reporting": false,
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 10000,
-        "min_decode_event_share_percent": 1.0,
-        "min_qualifying_stations_per_map_segment": 5,
-        "min_spot_pairs_per_station": 1,
-        "solar_state": "all"
+        "evidence_confidence_interval_method": "iid_student_t",
+        "evidence_confidence_level_percent": 95,
+        "evidence_min_decode_event_share_percent": 1.0,
+        "evidence_min_decode_stations_per_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 5,
+        "expert_delta_snr_outlier_reporting": false,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 10000,
+        "scope_solar_state": "all"
       },
-      "comparison_parameters": {
-        "evidence_mode": "controlled",
-        "historical_replay_acknowledged": false,
-        "mode": "reference_station",
-        "operation_confirmed": true,
+      "benchmark_parameters": {
+        "benchmark_conditions_accepted": true,
         "reference_callsign": "G4HZX",
-        "reference_qth": "IO91",
-        "snr_correction_db": 0.0,
-        "snr_correction_mode": "no_offset"
+        "reference_locator": "IO91",
+        "reference_snr_correction_db": 0.0,
+        "reference_snr_correction_mode": "no_offset"
       },
       "core_parameters": {
-        "analysis_direction": "rx",
+        "analysis_mode": "rx_benchmark",
         "band": "40m",
-        "callsign": "G3ZIL",
-        "qth": "IO90HW",
-        "time_selection": {
+        "target_callsign": "G3ZIL",
+        "target_locator": "IO90HW",
+        "time_window": {
           "end_utc": "2017-05-01T00:00Z",
           "start_utc": "2017-04-01T00:00Z"
         }
       },
       "results_view": {
-        "benchmark": {
-          "folded_time_basis": "utc",
-          "segment_evidence_time_bin": "24h",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": [
-            {
-              "callsign": "DJ0ABR",
-              "locator": "JN68NT"
-            }
-          ],
-          "show_unpaired": false,
-          "station_evidence_time_bin": "12h"
-        }
+        "include_one_sided_evidence": false,
+        "segment_chronological_time_bin": "12h",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_temporal_statistic": "mean",
+        "segment_time_basis": "utc",
+        "selected_station_identities": [
+          {
+            "callsign": "DJ0ABR",
+            "locator": "JN68NT"
+          }
+        ],
+        "station_chronological_time_bin": "12h",
+        "station_temporal_statistic": "mean",
+        "station_time_basis": "utc"
       }
     },
     "settings_summary": [
@@ -146,17 +146,6 @@
         }
       },
       {
-        "key": "min_spot_pairs_per_station",
-        "label": {
-          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
-          "en": "Minimum spot pairs per station for ΔSNR"
-        },
-        "value": {
-          "de": "1",
-          "en": "1"
-        }
-      },
-      {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
           "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
@@ -165,6 +154,17 @@
         "value": {
           "de": "5",
           "en": "5"
+        }
+      },
+      {
+        "key": "min_decode_stations_per_segment",
+        "label": {
+          "de": "Mindestzahl beobachteter Stationen je Segment für ΔDecode",
+          "en": "Minimum observed stations per segment for ΔDecode"
+        },
+        "value": {
+          "de": "1",
+          "en": "1"
         }
       },
       {
@@ -196,8 +196,8 @@
           "en": "Time bins"
         },
         "value": {
-          "de": "Segment: 24h; Station: 12h",
-          "en": "Segment: 24h; station: 12h"
+          "de": "Segment: 12h; Station: 12h",
+          "en": "Segment: 12h; station: 12h"
         }
       },
       {
@@ -220,53 +220,53 @@
   {
     "config_path": "configs/griffiths_squibb_fig6.config",
     "description": {
-      "de": "[Publikation: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nDiese Demo erweitert die erste Demo zu Griffiths und Squibb: Vom Vergleich über den gesamten Monat in Abbildung 3 geht es zum Tagesmuster in **Abbildung 6**. Im Mittelpunkt steht der **5.–7. April 2017**, verglichen werden dieselben beiden Empfangsstationen auf 40 m: **G3ZIL mit einem niedrig aufgehängten horizontalen Dipol** und **G4HZX mit einer Vertikalantenne ohne Radials**.\n\n[**Vergleich zu Abbildung 6 (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Vergleiche die veröffentlichte Originalabbildung mit einer Rekonstruktion und dem WSPRadar-Diagramm.\n\nWSPRadar paart Empfangsberichte derselben Sendestation aus demselben zweiminütigen WSPR-Zyklus. Die Differenz ihrer Signal-Rausch-Abstände lautet **ΔSNR = G3ZIL − G4HZX**: Positive Werte sprechen für G3ZIL, negative für G4HZX, und 0 dB bedeutet gleiches gemeldetes SNR.\n\nÖffne **Segmentdetails → Datengrundlage im Zeitverlauf** und untersuche **Δ SNR by UTC Hour (1 h bins)**. Dieses Diagramm fasst Beobachtungen derselben Stunde von allen drei Tagen zusammen — beispielsweise erscheinen Empfangsberichte zwischen 07:00 und 08:00 UTC gemeinsam, unabhängig von ihrem Datum. Diese *Zusammenfassung nach UTC-Stunde* hilft dabei, ein Tagesmuster zu erkennen.\n\nAchte auf den Vorteil von G4HZX in den frühen Stunden: Die Stundenmediane liegen bei etwa **−1 bis −3 dB zwischen 01 und 04 UTC**. Ab **05 UTC** werden sie positiv und erreichen **+5 bis +8 dB zwischen 07 und 20 UTC**. Die Markierungen zeigen die Stundenmediane, das schattierte Band die mittleren 50 % der Beobachtungen und die Farben, wo sich Beobachtungen konzentrieren.\n\nVergleiche dies mit **Δ SNR over Time**, um zu sehen, wie sich das Muster zwischen den einzelnen Tagen unterscheidet. Nutze die Karte und die **Segmentdetails**, um verschiedene Richtungen und Entfernungen zu untersuchen, oder wähle in der **Stationsauswertung** eine Sendestation aus, um einen einzelnen Funkpfad zu betrachten.\n\nDies sind Muster in den zusammengefassten Beobachtungen, kein für jede Aussendung gleichermaßen geltendes Ergebnis. Wie in der ersten Demo umfasst der Vergleich die Einflüsse von Antenne, Standort, Geräten und lokalem Störpegel; er grenzt ihre Ursachen nicht voneinander ab.",
-      "en": "[Publication: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nThis demo extends the first Griffiths and Squibb demo, moving from the month-long comparison in Figure 3 to the daily pattern in **Figure 6**. It focuses on **5–7 April 2017**, comparing the same two receiving stations on 40 m: **G3ZIL, using a low horizontal dipole**, and **G4HZX, using a vertical antenna without radials**.\n\n[**Figure 6 comparison (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Compare the original published figure with a reconstruction and the WSPRadar chart.\n\nWSPRadar matches reports of the same transmitting station from the same two-minute WSPR cycle. Their signal-to-noise ratio difference is **ΔSNR = G3ZIL − G4HZX**: positive values favour G3ZIL, negative values favour G4HZX, and 0 dB means equal reported SNR.\n\nGo to **Segment Inspector → Temporal Evidence**, and explore **Δ SNR by UTC Hour (1 h bins)**. This chart combines observations from the same hour on all three dates — for example, reports between 07:00 and 08:00 UTC appear together, regardless of their date. This is called *UTC-hour folding* and helps reveal a daily pattern.\n\nLook for G4HZX’s advantage in the early hours: the hourly medians are about **−1 to −3 dB at 01–04 UTC**. They become positive from **05 UTC**, reaching **+5 to +8 dB at 07–20 UTC**. The markers show hourly medians, the shaded band shows the middle 50% of observations, and the colours show where observations are concentrated.\n\nCompare this with **Δ SNR over Time** to see how the pattern differs between the individual dates. Use the map and **Segment Inspector** to explore different directions and distances, or select a transmitting station in **Station Insights** to examine one radio path.\n\nThese are patterns in the combined observations, not a result shared by every transmission. As in the first demo, the comparison includes antenna, location, equipment and local-noise effects; it does not isolate their causes."
+      "de": "[Publikation: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nDiese Demo erweitert die erste Demo zu Griffiths und Squibb: Vom Vergleich über den gesamten Monat in Abbildung 3 geht es zum Tagesmuster in **Abbildung 6**. Im Mittelpunkt steht der **5.–7. April 2017**, verglichen werden dieselben beiden Empfangsstationen auf 40 m: **G3ZIL mit einem niedrig aufgehängten horizontalen Dipol** und **G4HZX mit einer Vertikalantenne ohne Radials**.\n\n[**Vergleich zu Abbildung 6 (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Vergleiche die veröffentlichte Originalabbildung mit einer Rekonstruktion und dem WSPRadar-Diagramm.\n\nWSPRadar paart Empfangsberichte derselben Sendestation aus demselben zweiminütigen WSPR-Zyklus. Die Differenz ihrer Signal-Rausch-Abstände lautet **ΔSNR = G3ZIL − G4HZX**: Positive Werte sprechen für G3ZIL, negative für G4HZX, und 0 dB bedeutet gleiches gemeldetes SNR.\n\nÖffne **Segmentdetails → Datengrundlage im Zeitverlauf** und untersuche **Δ SNR by UTC Hour (1 h bins)**. Dieses Diagramm fasst Beobachtungen derselben Stunde von allen drei Tagen zusammen — beispielsweise erscheinen Empfangsberichte zwischen 07:00 und 08:00 UTC gemeinsam, unabhängig von ihrem Datum. Diese *Zusammenfassung nach UTC-Stunde* hilft dabei, ein Tagesmuster zu erkennen.\n\nDie Demo startet mit **Mittelwert**. Wähle **Median** für den unten beschriebenen Vergleich.\n\nAchte auf den Vorteil von G4HZX in den frühen Stunden: Die Stundenmediane liegen bei etwa **−1 bis −3 dB zwischen 01 und 04 UTC**. Ab **05 UTC** werden sie positiv und erreichen **+5 bis +8 dB zwischen 07 und 20 UTC**. Die Markierungen zeigen die Stundenmediane, das schattierte Band die mittleren 50 % der Beobachtungen und die Farben, wo sich Beobachtungen konzentrieren.\n\nVergleiche dies mit **Δ SNR over Time**, um zu sehen, wie sich das Muster zwischen den einzelnen Tagen unterscheidet. Nutze die Karte und die **Segmentdetails**, um verschiedene Richtungen und Entfernungen zu untersuchen, oder wähle in der **Stationsauswertung** eine Sendestation aus, um einen einzelnen Funkpfad zu betrachten.\n\nDies sind Muster in den zusammengefassten Beobachtungen, kein für jede Aussendung gleichermaßen geltendes Ergebnis. Wie in der ersten Demo umfasst der Vergleich die Einflüsse von Antenne, Standort, Geräten und lokalem Störpegel; er grenzt ihre Ursachen nicht voneinander ab.",
+      "en": "[Publication: Griffiths, G., & Squibb, N. J. (2017). Improving HF Band SNR. Practical Wireless, October 2017, pp. 23–26](https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf)\n\nThis demo extends the first Griffiths and Squibb demo, moving from the month-long comparison in Figure 3 to the daily pattern in **Figure 6**. It focuses on **5–7 April 2017**, comparing the same two receiving stations on 40 m: **G3ZIL, using a low horizontal dipole**, and **G4HZX, using a vertical antenna without radials**.\n\n[**Figure 6 comparison (PDF)**](https://wspradar.org/assets/demos/griffiths_fig6_paper_v1/WSPRadar_Demo_Griffiths_Figure6.pdf): Compare the original published figure with a reconstruction and the WSPRadar chart.\n\nWSPRadar matches reports of the same transmitting station from the same two-minute WSPR cycle. Their signal-to-noise ratio difference is **ΔSNR = G3ZIL − G4HZX**: positive values favour G3ZIL, negative values favour G4HZX, and 0 dB means equal reported SNR.\n\nGo to **Segment Inspector → Temporal Evidence**, and explore **Δ SNR by UTC Hour (1 h bins)**. This chart combines observations from the same hour on all three dates — for example, reports between 07:00 and 08:00 UTC appear together, regardless of their date. This is called *UTC-hour folding* and helps reveal a daily pattern.\n\nThe demo opens with **Mean** selected. Choose **Median** for the comparison described below.\n\nLook for G4HZX’s advantage in the early hours: the hourly medians are about **−1 to −3 dB at 01–04 UTC**. They become positive from **05 UTC**, reaching **+5 to +8 dB at 07–20 UTC**. The markers show hourly medians, the shaded band shows the middle 50% of observations, and the colours show where observations are concentrated.\n\nCompare this with **Δ SNR over Time** to see how the pattern differs between the individual dates. Use the map and **Segment Inspector** to explore different directions and distances, or select a transmitting station in **Station Insights** to examine one radio path.\n\nThese are patterns in the combined observations, not a result shared by every transmission. As in the first demo, the comparison includes antenna, location, equipment and local-noise effects; it does not isolate their causes."
     },
     "id": "griffiths_squibb_fig6",
     "launch_url": "https://app.wspradar.org/?v=1&demo=griffiths_squibb_fig6#wspradar-parameter-settings",
     "order": 2,
     "settings": {
       "advanced_parameters": {
-        "delta_snr_outlier_reporting": false,
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 10000,
-        "min_decode_event_share_percent": 1.0,
-        "min_qualifying_stations_per_map_segment": 1,
-        "min_spot_pairs_per_station": 1,
-        "solar_state": "all"
+        "evidence_confidence_interval_method": "iid_student_t",
+        "evidence_confidence_level_percent": 95,
+        "evidence_min_decode_event_share_percent": 1.0,
+        "evidence_min_decode_stations_per_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 1,
+        "expert_delta_snr_outlier_reporting": false,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 10000,
+        "scope_solar_state": "all"
       },
-      "comparison_parameters": {
-        "evidence_mode": "controlled",
-        "historical_replay_acknowledged": false,
-        "mode": "reference_station",
-        "operation_confirmed": true,
+      "benchmark_parameters": {
+        "benchmark_conditions_accepted": true,
         "reference_callsign": "G4HZX",
-        "reference_qth": "IO91",
-        "snr_correction_db": 0.0,
-        "snr_correction_mode": "no_offset"
+        "reference_locator": "IO91",
+        "reference_snr_correction_db": 0.0,
+        "reference_snr_correction_mode": "no_offset"
       },
       "core_parameters": {
-        "analysis_direction": "rx",
+        "analysis_mode": "rx_benchmark",
         "band": "40m",
-        "callsign": "G3ZIL",
-        "qth": "IO90HW",
-        "time_selection": {
+        "target_callsign": "G3ZIL",
+        "target_locator": "IO90HW",
+        "time_window": {
           "end_utc": "2017-04-07T23:45Z",
           "start_utc": "2017-04-05T00:00Z"
         }
       },
       "results_view": {
-        "benchmark": {
-          "folded_time_basis": "utc",
-          "segment_evidence_time_bin": "auto",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": null,
-          "show_unpaired": false,
-          "station_evidence_time_bin": "6h"
-        }
+        "include_one_sided_evidence": false,
+        "segment_chronological_time_bin": "auto",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_temporal_statistic": "mean",
+        "segment_time_basis": "utc",
+        "selected_station_identities": null,
+        "station_chronological_time_bin": "6h",
+        "station_temporal_statistic": "mean",
+        "station_time_basis": "utc"
       }
     },
     "settings_summary": [
@@ -359,10 +359,10 @@
         }
       },
       {
-        "key": "min_spot_pairs_per_station",
+        "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
-          "en": "Minimum spot pairs per station for ΔSNR"
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
+          "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
           "de": "1",
@@ -370,10 +370,10 @@
         }
       },
       {
-        "key": "min_qualifying_stations_per_map_segment",
+        "key": "min_decode_stations_per_segment",
         "label": {
-          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
-          "en": "Minimum qualifying stations per segment for ΔSNR"
+          "de": "Mindestzahl beobachteter Stationen je Segment für ΔDecode",
+          "en": "Minimum observed stations per segment for ΔDecode"
         },
         "value": {
           "de": "1",
@@ -441,41 +441,37 @@
     "order": 3,
     "settings": {
       "advanced_parameters": {
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 22000,
-        "min_confirmed_opportunities_per_peer": 3,
-        "min_qualifying_stations_per_map_segment": 1,
-        "solar_state": "all"
-      },
-      "comparison_parameters": {
-        "mode": "none"
+        "evidence_min_confirmed_opportunities_per_station": 3,
+        "evidence_min_qualifying_stations_per_map_segment": 1,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 22000,
+        "scope_solar_state": "all"
       },
       "core_parameters": {
-        "analysis_direction": "rx",
+        "analysis_mode": "rx_performance",
         "band": "40m",
-        "callsign": "G3ZIL",
-        "qth": "IO90HW",
-        "time_selection": {
+        "target_callsign": "G3ZIL",
+        "target_locator": "IO90HW",
+        "time_window": {
           "end_utc": "2017-05-01T00:00Z",
           "start_utc": "2017-04-01T00:00Z"
         }
       },
       "results_view": {
-        "performance": {
-          "folded_time_basis": "utc",
-          "segment_evidence_time_bin": "12h",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": [
-            {
-              "callsign": "HB0QRP",
-              "locator": "JN47"
-            }
-          ],
-          "show_zero_target": false,
-          "station_evidence_time_bin": "12h"
-        }
+        "include_stations_without_target_decodes": false,
+        "segment_chronological_time_bin": "12h",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_time_basis": "utc",
+        "selected_station_identities": [
+          {
+            "callsign": "HB0QRP",
+            "locator": "JN47"
+          }
+        ],
+        "station_chronological_time_bin": "12h",
+        "station_time_basis": "utc"
       }
     },
     "settings_summary": [
@@ -628,45 +624,46 @@
     "order": 4,
     "settings": {
       "advanced_parameters": {
-        "delta_snr_outlier_reporting": false,
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 2500,
-        "min_decode_event_share_percent": 1.0,
-        "min_qualifying_stations_per_map_segment": 1,
-        "min_spot_pairs_per_station": 50,
-        "solar_state": "all"
+        "evidence_confidence_interval_method": "iid_student_t",
+        "evidence_confidence_level_percent": 95,
+        "evidence_max_segment_ci_half_width_db": 0.1,
+        "evidence_min_decode_event_share_percent": 1.0,
+        "evidence_min_decode_stations_per_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 1,
+        "expert_delta_snr_outlier_reporting": false,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 2500,
+        "scope_solar_state": "all"
       },
-      "comparison_parameters": {
-        "evidence_mode": "controlled",
-        "historical_replay_acknowledged": false,
-        "mode": "reference_station",
-        "operation_confirmed": true,
+      "benchmark_parameters": {
+        "benchmark_conditions_accepted": true,
         "reference_callsign": "ON4AWM1",
-        "reference_qth": "JO20",
-        "snr_correction_db": 0.0,
-        "snr_correction_mode": "establish_offset"
+        "reference_locator": "JO20",
+        "reference_snr_correction_db": 0.0,
+        "reference_snr_correction_mode": "establish_offset"
       },
       "core_parameters": {
-        "analysis_direction": "rx",
+        "analysis_mode": "rx_benchmark",
         "band": "160m",
-        "callsign": "ON4AWM0",
-        "qth": "JO20OT",
-        "time_selection": {
+        "target_callsign": "ON4AWM0",
+        "target_locator": "JO20OT",
+        "time_window": {
           "end_utc": "2021-02-13T06:00Z",
           "start_utc": "2021-02-06T06:00Z"
         }
       },
       "results_view": {
-        "benchmark": {
-          "folded_time_basis": "utc",
-          "segment_evidence_time_bin": "auto",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": null,
-          "show_unpaired": false,
-          "station_evidence_time_bin": "6h"
-        }
+        "include_one_sided_evidence": false,
+        "segment_chronological_time_bin": "auto",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_temporal_statistic": "mean",
+        "segment_time_basis": "utc",
+        "selected_station_identities": null,
+        "station_chronological_time_bin": "6h",
+        "station_temporal_statistic": "mean",
+        "station_time_basis": "utc"
       }
     },
     "settings_summary": [
@@ -759,21 +756,21 @@
         }
       },
       {
-        "key": "min_spot_pairs_per_station",
-        "label": {
-          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
-          "en": "Minimum spot pairs per station for ΔSNR"
-        },
-        "value": {
-          "de": "50",
-          "en": "50"
-        }
-      },
-      {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
           "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
           "en": "Minimum qualifying stations per segment for ΔSNR"
+        },
+        "value": {
+          "de": "1",
+          "en": "1"
+        }
+      },
+      {
+        "key": "min_decode_stations_per_segment",
+        "label": {
+          "de": "Mindestzahl beobachteter Stationen je Segment für ΔDecode",
+          "en": "Minimum observed stations per segment for ΔDecode"
         },
         "value": {
           "de": "1",
@@ -841,50 +838,50 @@
     "order": 5,
     "settings": {
       "advanced_parameters": {
-        "delta_snr_outlier_reporting": false,
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 5000,
-        "min_decode_event_share_percent": 1.0,
-        "min_qualifying_stations_per_map_segment": 3,
-        "min_spot_pairs_per_station": 3,
-        "solar_state": "all"
+        "evidence_confidence_interval_method": "iid_student_t",
+        "evidence_confidence_level_percent": 95,
+        "evidence_min_decode_event_share_percent": 1.0,
+        "evidence_min_decode_stations_per_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 3,
+        "expert_delta_snr_outlier_reporting": false,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 5000,
+        "scope_solar_state": "all"
       },
-      "comparison_parameters": {
-        "evidence_mode": "controlled",
-        "historical_replay_acknowledged": false,
-        "mode": "reference_station",
-        "operation_confirmed": true,
+      "benchmark_parameters": {
+        "benchmark_conditions_accepted": true,
         "reference_callsign": "ON4AWM1",
-        "reference_qth": "JO20",
-        "snr_correction_db": 1.6,
-        "snr_correction_mode": "established_offset"
+        "reference_locator": "JO20",
+        "reference_snr_correction_db": 1.6,
+        "reference_snr_correction_mode": "established_offset"
       },
       "core_parameters": {
-        "analysis_direction": "rx",
+        "analysis_mode": "rx_benchmark",
         "band": "160m",
-        "callsign": "ON4AWM0",
-        "qth": "JO20OT",
-        "time_selection": {
+        "target_callsign": "ON4AWM0",
+        "target_locator": "JO20OT",
+        "time_window": {
           "end_utc": "2021-05-15T07:00Z",
           "start_utc": "2021-05-01T17:15Z"
         }
       },
       "results_view": {
-        "benchmark": {
-          "folded_time_basis": "utc",
-          "segment_evidence_time_bin": "12h",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": [
-            {
-              "callsign": "M7AEO",
-              "locator": "IO82"
-            }
-          ],
-          "show_unpaired": false,
-          "station_evidence_time_bin": "12h"
-        }
+        "include_one_sided_evidence": false,
+        "segment_chronological_time_bin": "12h",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_temporal_statistic": "mean",
+        "segment_time_basis": "utc",
+        "selected_station_identities": [
+          {
+            "callsign": "M7AEO",
+            "locator": "IO82"
+          }
+        ],
+        "station_chronological_time_bin": "12h",
+        "station_temporal_statistic": "mean",
+        "station_time_basis": "utc"
       }
     },
     "settings_summary": [
@@ -977,17 +974,6 @@
         }
       },
       {
-        "key": "min_spot_pairs_per_station",
-        "label": {
-          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
-          "en": "Minimum spot pairs per station for ΔSNR"
-        },
-        "value": {
-          "de": "3",
-          "en": "3"
-        }
-      },
-      {
         "key": "min_qualifying_stations_per_map_segment",
         "label": {
           "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
@@ -996,6 +982,17 @@
         "value": {
           "de": "3",
           "en": "3"
+        }
+      },
+      {
+        "key": "min_decode_stations_per_segment",
+        "label": {
+          "de": "Mindestzahl beobachteter Stationen je Segment für ΔDecode",
+          "en": "Minimum observed stations per segment for ΔDecode"
+        },
+        "value": {
+          "de": "1",
+          "en": "1"
         }
       },
       {
@@ -1059,45 +1056,46 @@
     "order": 6,
     "settings": {
       "advanced_parameters": {
-        "delta_snr_outlier_reporting": false,
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 10000,
-        "min_decode_event_share_percent": 1.0,
-        "min_qualifying_stations_per_map_segment": 2,
-        "min_spot_pairs_per_station": 1,
-        "solar_state": "all"
+        "evidence_confidence_interval_method": "iid_student_t",
+        "evidence_confidence_level_percent": 95,
+        "evidence_max_segment_ci_half_width_db": 1.0,
+        "evidence_min_decode_event_share_percent": 1.0,
+        "evidence_min_decode_stations_per_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 1,
+        "expert_delta_snr_outlier_reporting": false,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 10000,
+        "scope_solar_state": "all"
       },
-      "comparison_parameters": {
-        "evidence_mode": "controlled",
-        "historical_replay_acknowledged": false,
-        "mode": "reference_station",
-        "operation_confirmed": true,
+      "benchmark_parameters": {
+        "benchmark_conditions_accepted": true,
         "reference_callsign": "SK0WE/1",
-        "reference_qth": "JO97",
-        "snr_correction_db": 0.0,
-        "snr_correction_mode": "no_offset"
+        "reference_locator": "JO97",
+        "reference_snr_correction_db": 0.0,
+        "reference_snr_correction_mode": "no_offset"
       },
       "core_parameters": {
-        "analysis_direction": "tx",
+        "analysis_mode": "tx_benchmark",
         "band": "20m",
-        "callsign": "SK0WE/P",
-        "qth": "JO97",
-        "time_selection": {
-          "end_utc": "2022-05-21T10:30Z",
-          "start_utc": "2022-05-21T09:45Z"
+        "target_callsign": "SK0WE/P",
+        "target_locator": "JO97",
+        "time_window": {
+          "end_utc": "2022-05-21T10:20Z",
+          "start_utc": "2022-05-21T09:52Z"
         }
       },
       "results_view": {
-        "benchmark": {
-          "folded_time_basis": "utc",
-          "segment_evidence_time_bin": "10m",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": null,
-          "show_unpaired": false,
-          "station_evidence_time_bin": "1h"
-        }
+        "include_one_sided_evidence": false,
+        "segment_chronological_time_bin": "2m",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_temporal_statistic": "mean",
+        "segment_time_basis": "utc",
+        "selected_station_identities": null,
+        "station_chronological_time_bin": "2m",
+        "station_temporal_statistic": "mean",
+        "station_time_basis": "utc"
       }
     },
     "settings_summary": [
@@ -1163,8 +1161,8 @@
           "en": "UTC window"
         },
         "value": {
-          "de": "2022-05-21T09:45Z → 2022-05-21T10:30Z",
-          "en": "2022-05-21T09:45Z → 2022-05-21T10:30Z"
+          "de": "2022-05-21T09:52Z → 2022-05-21T10:20Z",
+          "en": "2022-05-21T09:52Z → 2022-05-21T10:20Z"
         }
       },
       {
@@ -1190,10 +1188,10 @@
         }
       },
       {
-        "key": "min_spot_pairs_per_station",
+        "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
-          "en": "Minimum spot pairs per station for ΔSNR"
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
+          "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
           "de": "1",
@@ -1201,14 +1199,14 @@
         }
       },
       {
-        "key": "min_qualifying_stations_per_map_segment",
+        "key": "min_decode_stations_per_segment",
         "label": {
-          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
-          "en": "Minimum qualifying stations per segment for ΔSNR"
+          "de": "Mindestzahl beobachteter Stationen je Segment für ΔDecode",
+          "en": "Minimum observed stations per segment for ΔDecode"
         },
         "value": {
-          "de": "2",
-          "en": "2"
+          "de": "1",
+          "en": "1"
         }
       },
       {
@@ -1240,8 +1238,8 @@
           "en": "Time bins"
         },
         "value": {
-          "de": "Segment: 10m; Station: 1h",
-          "en": "Segment: 10m; station: 1h"
+          "de": "Segment: 2m; Station: 2m",
+          "en": "Segment: 2m; station: 2m"
         }
       },
       {
@@ -1275,55 +1273,55 @@
     "order": 7,
     "settings": {
       "advanced_parameters": {
-        "delta_snr_outlier_reporting": false,
-        "exclude_moving_stations": false,
-        "exclude_special_callsigns": false,
-        "max_peer_distance_km": 5000,
-        "min_decode_event_share_percent": 1.0,
-        "min_qualifying_stations_per_map_segment": 1,
-        "min_spot_pairs_per_station": 1,
-        "solar_state": "all"
+        "evidence_confidence_interval_method": "iid_student_t",
+        "evidence_confidence_level_percent": 95,
+        "evidence_min_decode_event_share_percent": 1.0,
+        "evidence_min_decode_stations_per_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 1,
+        "expert_delta_snr_outlier_reporting": false,
+        "scope_exclude_moving_stations": false,
+        "scope_exclude_special_callsigns": false,
+        "scope_max_distance_km": 5000,
+        "scope_solar_state": "all"
       },
-      "comparison_parameters": {
-        "evidence_mode": "historical_replay",
-        "historical_replay_acknowledged": true,
-        "mode": "reference_station",
-        "operation_confirmed": false,
+      "benchmark_parameters": {
+        "benchmark_conditions_accepted": true,
         "reference_callsign": "WB6RQN",
-        "reference_qth": "CM98",
-        "snr_correction_db": 0.0,
-        "snr_correction_mode": "no_offset"
+        "reference_locator": "CM98",
+        "reference_snr_correction_db": 0.0,
+        "reference_snr_correction_mode": "no_offset"
       },
       "core_parameters": {
-        "analysis_direction": "rx",
+        "analysis_mode": "rx_benchmark",
         "band": "40m",
-        "callsign": "KP4MD",
-        "qth": "CM98",
-        "time_selection": {
+        "target_callsign": "KP4MD",
+        "target_locator": "CM98",
+        "time_window": {
           "end_utc": "2010-12-20T20:00Z",
           "start_utc": "2010-12-19T12:00Z"
         }
       },
       "results_view": {
-        "benchmark": {
-          "folded_time_basis": "local_solar",
-          "segment_evidence_time_bin": "12h",
-          "selected_directions": "all",
-          "selected_ranges": "all",
-          "selected_stations": [
-            {
-              "callsign": "VE6PDQ",
-              "locator": "DO34IR"
-            }
-          ],
-          "show_unpaired": false,
-          "station_evidence_time_bin": "3h",
-          "station_filters": {
-            "station_callsigns": [
-              "VE6PDQ"
-            ]
+        "include_one_sided_evidence": false,
+        "segment_chronological_time_bin": "12h",
+        "segment_directions": "all",
+        "segment_distance_ranges": "all",
+        "segment_temporal_statistic": "median",
+        "segment_time_basis": "local_solar",
+        "selected_station_identities": [
+          {
+            "callsign": "VE6PDQ",
+            "locator": "DO34IR"
           }
-        }
+        ],
+        "station_chronological_time_bin": "3h",
+        "station_list_filters": {
+          "callsigns": [
+            "VE6PDQ"
+          ]
+        },
+        "station_temporal_statistic": "median",
+        "station_time_basis": "local_solar"
       }
     },
     "settings_summary": [
@@ -1416,10 +1414,10 @@
         }
       },
       {
-        "key": "min_spot_pairs_per_station",
+        "key": "min_qualifying_stations_per_map_segment",
         "label": {
-          "de": "Mindestzahl an Spot-Paaren je Station für ΔSNR",
-          "en": "Minimum spot pairs per station for ΔSNR"
+          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
+          "en": "Minimum qualifying stations per segment for ΔSNR"
         },
         "value": {
           "de": "1",
@@ -1427,10 +1425,10 @@
         }
       },
       {
-        "key": "min_qualifying_stations_per_map_segment",
+        "key": "min_decode_stations_per_segment",
         "label": {
-          "de": "Mindestzahl qualifizierter Stationen je Segment für ΔSNR",
-          "en": "Minimum qualifying stations per segment for ΔSNR"
+          "de": "Mindestzahl beobachteter Stationen je Segment für ΔDecode",
+          "en": "Minimum observed stations per segment for ΔDecode"
         },
         "value": {
           "de": "1",

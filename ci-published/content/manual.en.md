@@ -121,7 +121,7 @@ Follow one feature from the map to its contributing stations and individual obse
         * [5.5.2 ZachTek firmware 2.19](#sec-simultaneous-tx-setup-5-3)
             * [5.5.2.1 Two distinct callsigns](#sec-zachtek-two-ordinary-callsigns)
             * [5.5.2.2 One callsign with two suffixes](#sec-simultaneous-tx-setup-5-3-2)
-            * [5.5.2.3 Shared timing, frequency lanes and verification](#sec-simultaneous-tx-setup-5-3-1)
+            * [5.5.2.3 Shared timing, frequency randomization and verification](#sec-simultaneous-tx-setup-5-3-1)
     * [5.6 Confirm by exchange or crossover](#sec-simultaneous-tx-setup-6)
 * [6. Reference SNR Calibration](#sec-reference-snr-calibration)
 
@@ -236,7 +236,7 @@ Confirm the operating conditions independently:
 - **RX Benchmark:** both receivers listened on the selected band with functioning uploads throughout the period. This does not require a decode in every cycle.
 - **TX Benchmark:** both transmitters sent in the same WSPR cycles, with aligned schedules and message patterns.
 
-Keep supporting operating records. WSPRadar records your confirmation; it cannot verify continuous operation from successful reports. <strong class="defined-term">Historical replay</strong>, used by the maintained Milazzo example and saved replay configurations, describes historical reports without independently verified common operation. It requires acknowledgement of those limits, rather than a claim of controlled operation; see [Section 10.3](#sec-5-3).
+Keep supporting operating records. WSPRadar cannot verify continuous operation from successful reports. Every Benchmark uses the same acceptance: **I have confirmed common operation, or accept the limitations when it is unverified.** This also applies to the maintained Milazzo example and other historical reports without independently verified common operation. Acceptance records neither which alternative applies nor independent proof of operation; see [Section 10.3](#sec-5-3).
 
 Leave **Reference SNR correction** at **No correction** unless you have an independently established offset valid for this setup. See [calibration guidance](#sec-reference-snr-calibration).
 
@@ -288,11 +288,11 @@ Read the section for your chosen analysis. The essentials below explain what the
 - <strong class="defined-term">ΔSNR</strong> (delta SNR) is Target SNR minus corrected Reference SNR for a spot pair. Positive favors Target; negative favors Reference; **0 dB** means equal SNR. For example, **+3 dB** means 3 dB higher Target SNR in that comparison. It cannot describe a signal decoded on only one side.
 - <strong class="defined-term">ΔDecode</strong> compares total observed decodes, including one-sided reports. The map's ratio legend is direct: **2× on the Target side** means twice the Reference decode total; **1×** means equal totals; <strong class="defined-term">Exclusive</strong> means only one side has decodes. Signals missed by both setups remain unknown, so ΔDecode is not a success rate over all transmissions. See [the exact calculation](#sec-7-benchmark-aggregation).
 
-The ΔSNR map gives every station meeting its spot-pair minimum over the filtered run equal weight: first take each station's <strong class="defined-term">median</strong> — the middle ordered value, or the average of the two middle values — then the median of those station medians. ΔDecode uses <strong class="defined-term">pooled totals</strong>: it adds all retained decodes, so frequently observed stations contribute more. These measures can favor different setups. Benchmark ΔSNR time plots pool spot pairs from qualifying stations within each bin, so frequently observed paths can have more influence than on the ΔSNR map.
+The ΔSNR map pools all eligible paired ΔSNR values from stations with retained paired evidence over the filtered run and calculates their <strong class="defined-term">arithmetic mean</strong>, giving each pair equal weight. It colors a segment only when both the station minimum and the pooled-pair CI precision requirement are met. ΔDecode uses <strong class="defined-term">pooled totals</strong>: it adds all retained decodes, so frequently observed stations contribute more. These measures can favor different setups. Benchmark ΔSNR time plots likewise pool eligible spot pairs within each bin; frequently observed paths can contribute more pairs to both summaries.
 
 **Performance counts confirmed opportunities.** A <strong class="defined-term">confirmed opportunity</strong> is one remote identity and cycle in which a Target success occurred, or activity evidence at both ends supports counting a miss. <strong class="defined-term">Decode Rate</strong> is successes divided by successes plus confirmed misses, expressed as a percentage. Unknown activity is excluded; the RX and TX rules are explained below.
 
-A <strong class="defined-term">qualifying station</strong> meets the configured evidence minimum for the metric: spot pairs for ΔSNR, confirmed opportunities for Performance. Map segments have separate support requirements. Counts establish how much evidence is present, not statistical confidence or independent physical stations.
+A <strong class="defined-term">qualifying station</strong> has retained paired evidence for ΔSNR or meets the configured confirmed-opportunity minimum for Performance. Map segments have separate support and precision requirements. Station counts show how many distinct reported station identities contribute, not how many independent physical stations have been sampled. The ΔSNR map additionally requires an available, non-degenerate <strong class="defined-term">IID Student-t CI</strong> for its pooled pair mean, with unrounded half-width at or below the selected limit. This is a nominal model-based precision check, not proof that pair observations are independent.
 
 **Check the SNR basis.** WSPRadar adjusts successful SNR to a common **reported transmit power of 1 W (30 dBm)**. This adjusts the comparison, not the observed decode counts, and cannot repair incorrect power reports. The cumulative Decodes & Stations plots inside the Segment Inspector are the exception: they use <strong class="defined-term">raw reported SNR</strong>, without power adjustment or Reference correction. Details are in [Section 8.1.2](#sec-7-normalization-consolidation).
 
@@ -311,7 +311,7 @@ For a controlled RX Benchmark, both receivers must have been listening and repor
 2. Use the cumulative SNR plots to distinguish additional decodes from additional distinct transmitters. A one-sided decode need not add a new station.
 3. In the Inspector, check whether the difference persists across several transmitters and times. Inspect a representative path in Station Insights and Drill-Down.
 
-The minimum spot-pair count qualifies a station for ΔSNR; it does not remove its observed decodes from ΔDecode. The two maps have different support requirements. Sparse evidence can produce a large value, so read counts as well as colors. See [evidence thresholds](#sec-5-4).
+Paired evidence qualifies a station for ΔSNR; all its observed decodes remain in ΔDecode. The two maps have different support requirements. Sparse evidence can produce a large value, so read counts as well as colors. See [evidence thresholds](#sec-5-4).
 
 <a id="sec-2-3"></a>
 <a id="sec-3-rx-benchmark-hardware"></a>
@@ -521,7 +521,7 @@ Keep concise station notes with the ZIP: antennas and feedlines, chain or splitt
 | **Controlled simultaneous TX** | [Chapter 5](#sec-simultaneous-tx-setup): plan the common requirements, apply the 5.5 model recipe, then complete 5.2–5.3 bench checks and 5.4 database preflight. 5.6 confirms the result. | Clean, correctly placed signals produce same-cycle reports from common receivers under both intended identities. |
 | **Documented RX SNR correction** | [Chapter 6](#sec-reference-snr-calibration): common-input measurement, consistency checks, signed correction and independent validation. | The offset is stable within recorded conditions and supported by separate validation evidence. |
 
-Use instructions for the exact hardware and firmware; the ZachTek split-lane recipe requires custom firmware. When ready, return to [Section 1.2](#sec-2-2). Keep **No correction** unless an offset is justified.
+Use instructions for the exact hardware and firmware; the ZachTek recipe uses standard scheduling and frequency randomization. When ready, return to [Section 1.2](#sec-2-2). Keep **No correction** unless an offset is justified.
 
 
 
@@ -617,7 +617,7 @@ With transmission enabled, `Tx Pct = 100%` makes both instances attempt every cy
 
 WSPRadar recommends using about **5–20% of available cycles** for this experiment, with the lower end preferred on busy bands or during longer tests. This is an operating recommendation, not a WSPR protocol limit. A percentage of selected cycles and the RF key-down duty cycle are different quantities.
 
-For a sparse simultaneous-TX comparison, use hardware with a deterministic schedule and verify its actual starts. [Chapter 5](#sec-simultaneous-tx-setup) gives routes for QMX/QMX+ Virtual U3S, Ultimate3S, and an advanced, model-specific ZachTek firmware procedure.
+For a sparse simultaneous-TX comparison, use hardware with a deterministic schedule and verify its actual starts. [Chapter 5](#sec-simultaneous-tx-setup) gives routes for QMX/QMX+ Virtual U3S, Ultimate3S, and a model-specific ZachTek configuration procedure using standard firmware.
 
 
 
@@ -633,7 +633,7 @@ Use this order of work:
 | Stage | Action |
 |---|---|
 | **1. Plan** | Choose valid transmitting identities and a matching message pattern in [5.1](#sec-simultaneous-tx-setup-1). Record which identity belongs to each physical path. |
-| **2. Configure** | Follow the recipe for your hardware in [5.5](#sec-simultaneous-tx-setup-5). For QRP Labs, start with one enabled entry using your chosen callsign route. The ZachTek route requires the model-specific firmware modification before the bench checks. |
+| **2. Configure** | Follow the recipe for your hardware in [5.5](#sec-simultaneous-tx-setup-5). For QRP Labs, start with one enabled entry using your chosen callsign route. The ZachTek route uses the model-specific standard configuration before the bench checks. |
 | **3. Check on the bench** | Verify timing and signal placement in [5.2](#sec-simultaneous-tx-setup-2), then actual power and simultaneous signal quality in [5.3](#sec-simultaneous-tx-setup-3). |
 | **4. Check the reports** | Complete a short on-air and database preflight in [5.4](#sec-simultaneous-tx-setup-4), then open the measurement window. |
 | **5. Confirm the finding** | Repeat with exchanged frequency positions or hardware assignments as described in [5.6](#sec-simultaneous-tx-setup-6). |
@@ -692,11 +692,11 @@ After applying the [hardware recipe](#sec-simultaneous-tx-setup-5), verify the p
 1. **Time and band:** synchronize both transmitters to accurate UTC, preferably satellite time such as GPS, and select the same band.
 2. **Selected cycles:** use the same deterministic recurrence and verify the same even-minute starts. Both paths must transmit complete messages in each intended comparison cycle.
 3. **Sequence phases:** when extended WSPR is enabled, verify corresponding phases together, including after a restart. Matching the first phase alone is insufficient.
-4. **Frequency separation:** for the fixed-frequency QRP Labs examples, place the signal centers nominally **100 Hz apart**, with both complete signals comfortably inside the 200 Hz WSPR transmit sub-band. The ZachTek custom build instead uses the disjoint lower and upper lanes in [5.5.2](#sec-simultaneous-tx-setup-5-3).
+4. **Frequency separation:** for the fixed-frequency QRP Labs examples, place the signal centers nominally **100 Hz apart**, with both complete signals comfortably inside the 200 Hz WSPR transmit sub-band. The ZachTek route instead uses standard frequency randomization as described in [5.5.2](#sec-simultaneous-tx-setup-5-3); it does not guarantee a minimum separation.
 
-Use the worked 40 m or 20 m settings in [5.5.1](#sec-simultaneous-tx-setup-5-1). Those settings specify **radiated RF frequencies**, not a receiver's USB dial frequencies. The cited QRP Labs manuals define the WSPR setting as the signal center; the ZachTek source patch controls the lowest tone, or <strong class="defined-term">tone 0</strong>. Use the convention for your exact firmware <a href="#ref-12">[Ref-12]</a> <a href="#ref-29">[Ref-29]</a>.
+Use the worked 40 m or 20 m settings in [5.5.1](#sec-simultaneous-tx-setup-5-1). Those settings specify **radiated RF frequencies**, not a receiver's USB dial frequencies. The cited QRP Labs manuals define the WSPR setting as the signal center; the cited ZachTek firmware uses the lowest tone, or <strong class="defined-term">tone 0</strong>. Use the convention for your exact firmware <a href="#ref-12">[Ref-12]</a> <a href="#ref-29">[Ref-29]</a>.
 
-Check individual frequencies with suitable measurement equipment, then use a receiver waterfall or spectrum display to inspect both signals together. Confirm the intended separation or lanes and the complete signals' edge margins. Increasing separation reduces those margins. Repeat the timing and frequency checks after a restart, firmware update or configuration change.
+Check individual frequencies with suitable measurement equipment, then use a receiver waterfall or spectrum display to inspect both signals together. For fixed-frequency setups, confirm the intended separation; for ZachTek's standard randomization, inspect frequency placement over several sequences and investigate persistently identical selections. In both cases, check the complete signals' edge margins. Increasing fixed-frequency separation reduces those margins. Repeat the timing and frequency checks after a restart, firmware update or configuration change.
 
 
 
@@ -854,7 +854,9 @@ For the one-callsign/two-suffix route, use the between-run frequency exchange in
 <a id="sec-simultaneous-tx-setup-5-3"></a>
 ##### 5.5.2 ZachTek firmware 2.19
 
-This is an **advanced, model-specific route**: it combines ordinary configuration with a source change that keeps the two transmitters in separate frequency regions. The worked example uses the pinned ESP8285 firmware in [Ref-29](#ref-29), revision `1657468ea27052167191a7deda2440a535567ecd`, which selects **WSPR-TX XP Plus, `Product_Model = 1048`**. Other models require a separately checked recipe. In this file, the Mini/Pico long-pause sleep call is disabled, and Pico startup forces altitude reporting; the pause and power instructions below therefore apply to the selected 1048 build.
+This setup uses ZachTek's built-in scheduling and standard frequency randomization; **no custom frequency-lane firmware is required**. The worked example uses the pinned ESP8285 firmware in [Ref-29](#ref-29), revision `1657468ea27052167191a7deda2440a535567ecd`, which selects **WSPR-TX XP Plus, `Product_Model = 1048`**. Other models require a separately checked recipe. In this file, the Mini/Pico long-pause sleep call is disabled, and Pico startup forces altitude reporting; the pause and power instructions below therefore apply to the selected 1048 build.
+
+Use the configuration software for your exact hardware and installed firmware. The parameter names below follow the cited source; they are not instructions to edit or compile firmware. **This recipe has not been validated by WSPRadar on ZachTek hardware.** The manufacturer's clarification supports using the standard scheduling and randomization functions; it is not a validation of every model-specific setting below.
 
 Choose the route that matches the **on-air transmitting identities** you will use:
 
@@ -867,7 +869,7 @@ Choose the route that matches the **on-air transmitting identities** you will us
 
 Two colocated setups should report their common physical QTH. At two different stations, each transmitter reports its own QTH; the result compares complete installed stations and their different propagation paths. Keep the identity-to-physical-path mapping in the experiment record.
 
-After configuring either route below, complete the shared **frequency patch → build → bench → on-air** procedure in [Section 5.5.2.3](#sec-simultaneous-tx-setup-5-3-1). The custom lane build is required for both callsign routes.
+After configuring either route below, complete the shared **timing → bench → on-air** procedure in [Section 5.5.2.3](#sec-simultaneous-tx-setup-5-3-1). Keep standard frequency randomization on both units; no lower/upper frequency-lane assignment is needed.
 
 <a id="sec-zachtek-two-ordinary-callsigns"></a>
 ###### 5.5.2.1 Two distinct callsigns
@@ -880,7 +882,7 @@ Use this route when the Target and Reference each have a different valid callsig
 2. Explicitly select **no prefix/suffix** (`SuPreFixOption = None` in the cited source). Do this even if the displayed base call is already ordinary: changing that text alone does not disable a previously selected suffix or prefix. Stored suffix characters can remain unused; the selector is what chooses Type 1.
 3. Set **`LocationPrecision = 4`** on both units. Precision `6` would add a Type 3 transmission even with an ordinary callsign.
 4. Enable the same single test band, use **`PowerOption = Normal`**, retain each unit's truthful QTH, and set **`TimeSlotCode = 7`** and **`TXPause = 480` seconds** on both.
-5. Prepare the lower-lane and upper-lane builds in [Section 5.5.2.3](#sec-simultaneous-tx-setup-5-3-1), assigning one unit to each lane. Keep the callsigns attached to their documented physical paths.
+5. Keep standard frequency randomization on both units and continue with [Section 5.5.2.3](#sec-simultaneous-tx-setup-5-3-1). Keep the callsigns attached to their documented physical paths.
 
 The intended schedule repeats every twenty minutes:
 
@@ -902,7 +904,7 @@ Use this route when two transmitting setups use one base callsign with two disti
 2. Select the **suffix option** on both units (`SuPreFixOption = Sufix` in the source). Enter a different permitted single-character suffix in each unit's separate suffix field. Record which complete on-air identity belongs to Target and which belongs to Reference.
 3. Set **`LocationPrecision = 6`** on both units. This adds Type 3 after Type 2 automatically; precision `4` would send Type 2 alone. You do not switch the message types by hand.
 4. Enable the same single test band, use **`PowerOption = Normal`**, retain each unit's truthful QTH, and set **`TimeSlotCode = 7`** and **`TXPause = 480` seconds** on both.
-5. Prepare the lower-lane and upper-lane builds in [Section 5.5.2.3](#sec-simultaneous-tx-setup-5-3-1), assigning one unit to each lane. Keep the complete suffixed callsigns attached to their documented physical paths.
+5. Keep standard frequency randomization on both units and continue with [Section 5.5.2.3](#sec-simultaneous-tx-setup-5-3-1). Keep the complete suffixed callsigns attached to their documented physical paths.
 
 The intended schedule repeats every twenty minutes:
 
@@ -913,12 +915,12 @@ The intended schedule repeats every twenty minutes:
 
 When this recurrence is maintained, each transmitter uses **6 of 30 WSPR cycles per hour: 20%** of the available cycles. Both phases use the same selected frequency within that sequence. The second message follows a fixed nine-second pause after the first finishes; it does not receive a separate GPS-slot start check. The configured `TXPause` follows the complete pair, not the gap between its two phases.
 
-**Keep the source limitations in view.** The Type 3 hash construction for two-digit suffixes is disabled. The prefix-based Type 3 path also rebuilds its callsign string without writing the terminating zero before hashing, so it is not a reliable recipe in this revision. The single-character-suffix route above uses the implemented construction path; the frequency-lane patch does not repair either unsupported path. <a href="#ref-29">[Ref-29]</a>
+**Keep the source limitations in view.** The Type 3 hash construction for two-digit suffixes is disabled. The prefix-based Type 3 path also rebuilds its callsign string without writing the terminating zero before hashing, so it is not a reliable recipe in this revision. The single-character-suffix route above uses the implemented construction path. <a href="#ref-29">[Ref-29]</a>
 
 Observe corresponding Type 2 and Type 3 phases together, including after a restart. Verify both complete identities in the receiver/database evidence for both phases through [Section 5.4](#sec-simultaneous-tx-setup-4). Matching configuration values alone do not establish correct hash resolution or complete synchronized transmissions.
 
 <a id="sec-simultaneous-tx-setup-5-3-1"></a>
-###### 5.5.2.3 Shared timing, frequency lanes and verification
+###### 5.5.2.3 Shared timing, frequency randomization and verification
 
 **Keep the schedule and pause consistent.** Both worked routes use code `7`. If you choose a different fixed start, match `TimeSlotCode` on both units and use the following rules:
 
@@ -931,64 +933,23 @@ Observe corresponding Type 2 and Type 3 phases together, including after a resta
 
 Use the fixed codes above for these recipes. Code `16` allows the next available even-minute start; code `17` responds to a changed location or the top of an hour. Neither establishes the selected fixed recurrence used here. Frequency randomization does not select the time slots, so check both actual starts during preflight. <a href="#ref-29">[Ref-29]</a>
 
-**Patch the frequency placement.** Stock firmware draws an integer offset from **−100 through +99 Hz** around the band's nominal frequency. Two stock units can therefore select nearby positions. Prepare separately labelled source copies for transmitter A and transmitter B, with one assigned to each <strong class="defined-term">frequency lane</strong> — a restricted frequency range.
+**Use standard frequency randomization.** Stock firmware draws an integer offset from **−100 through +99 Hz** around the band's nominal frequency. Keep this standard behavior on both units rather than assigning separate frequency lanes. <a href="#ref-29">[Ref-29]</a>
 
-The offsets below are relative to the **center** of the 200 Hz WSPR transmit sub-band: for example, `7.040100 MHz` on 40 m or `14.097100 MHz` on 20 m. Confirm that both builds use the same correct nominal frequency. In this firmware, `freq` is **tone 0**, the lowest of the four transmitted tone frequencies.
+According to **Harry Zachrisson (ZachTek, personal communication)**, each unit seeds its random-number generator at startup using **thermal noise sampled by the built-in analog-to-digital converter (ADC)**. This is noise-based seeding, not temperature measurement. It is intended to give the transmitters different frequency sequences even when they start at the same time; matching the transmission schedule does not force matching frequency selections.
 
-In `DoWSPR()`, find this statement **twice**: after the first `NextFreq()` and after the later band-cycle `NextFreq()`:
+**Occasional overlap remains possible.** Different seeds do not guarantee different frequencies in every sequence. Assuming independent, uniform selection among the 200 one-hertz offsets in this source, the probability of choosing **exactly the same offset is 0.5% per new selection**; offsets **no more than 5 Hz apart occur with approximately 5.4% probability**. These calculated examples describe frequency proximity between the two test transmitters, not a measured interference rate, a safe spacing threshold or an estimate of SNR error. Independent randomization makes persistently identical frequency sequences unlikely, but does not guarantee a minimum separation.
 
-```cpp
-freq = freq + (100ULL * random (-100, 100));
-```
+The offsets are relative to the **center** of the 200 Hz WSPR transmit sub-band: for example, `7.040100 MHz` on 40 m or `14.097100 MHz` on 20 m. Confirm that both units use the same correct nominal frequency. In this firmware, `freq` is **tone 0**, the lowest of the four transmitted tone frequencies, and uses **0.01 Hz units**. Oscillator error, drift and actual spectral width still require measurement. <a href="#ref-29">[Ref-29]</a>
 
-Replace **both occurrences in A's source** with:
+Each new sequence draws a frequency position again; consecutive draws **can repeat**. When precision `6` adds Type 3, that partner uses the **same selected frequency** as the preceding Type 1 or Type 2 message. The next draw occurs after the next `NextFreq()`; offsets do not accumulate. <a href="#ref-29">[Ref-29]</a>
 
-```cpp
-freq = freq - (100ULL * random(31, 91));
-// random lower lane: -90 through -31 Hz
-```
+**Keep a configuration record.** Check the exact hardware model and revision, factory oscillator calibration, and installed filter configuration. Record the installed firmware version and all settings used in the experiment. The cited source selects model `1048`; do not install that build on a different model merely to reproduce this example. Retain the manufacturer's firmware for your hardware.
 
-Replace **both occurrences in B's source** with:
+**Check on the bench, then on air.** After configuring, test each unit separately into suitable loads or a safely attenuated measurement arrangement; for colocated units, also test both together. Check actual frequency placement, complete message timing, output power, filtering and spectral purity before connecting antennas. For units at separate stations, inspect simultaneous reception during the subsequent common-receiver on-air preflight. Use the same PC-control conditions planned for the run; control commands can interrupt a transmission in this firmware.
 
-```cpp
-freq = freq + (100ULL * random(30, 90));
-// random upper lane: +30 through +89 Hz
-```
+Complete [Section 5.4's database preflight](#sec-simultaneous-tx-setup-4) at the intended low on-air power. Confirm that both identities use the intended band, that frequency positions vary over a series of sequences, and that common receivers produce pairs in the intended cycles. Repeat the start and frequency checks after a restart. Investigate persistently identical frequency selections or unexpected timing before beginning the measurement window.
 
-The upper argument of `random()` is excluded. `freq` uses **0.01 Hz units**, so multiplying an integer draw by `100ULL` converts hertz to those units. The lower-lane edit subtracts a positive amount. Changing only one source occurrence leaves either the first or a later sequence at stock placement. <a href="#ref-29">[Ref-29]</a>
-
-| Commanded quantity | Value |
-|---|---:|
-| A: lower-lane tone 0 | `−90…−31 Hz` from the center |
-| B: upper-lane tone 0 | `+30…+89 Hz` from the center |
-| Minimum tone-0 separation | **61 Hz** |
-| Four-tone center span in this source | **4.38 Hz**, about **4.4 Hz** |
-| Minimum gap between the nearest tone centers | **56.62 Hz**, about **57 Hz** |
-| Outer tone-0 margin to the nominal sub-band edge | Lower edge: **10 Hz**; upper edge: **11 Hz** |
-| Highest upper-lane tone's margin below the upper edge | **6.62 Hz**, about **6.6 Hz** |
-
-These are commanded tone-center positions. Oscillator error, drift and actual spectral width still require measurement. Confirm that both complete signals remain comfortably inside the transmit sub-band.
-
-Each new sequence draws a lane position again; consecutive draws **can repeat**. When precision `6` adds Type 3, that partner uses the **same selected frequency** as the preceding Type 1 or Type 2 message. The next draw occurs after the next `NextFreq()`; offsets do not accumulate.
-
-**Build and preserve a recovery record.** Before compiling or flashing:
-
-- Check the exact hardware model and revision, factory oscillator calibration, and installed filter configuration. The cited file selects model `1048`; changing a model number alone does not establish compatibility with different relay or filter hardware.
-- Follow the pinned source header's build prerequisites: the ESP8266 board package, **Generic ESP8285 module**, **DTR** reset, **57,600** upload speed, the correct serial port, and **NeoGPS by Slash Devin**. Its `NMEAGPS_cfg.h` must enable `NMEAGPS_PARSE_GSV`, `NMEAGPS_PARSE_SATELLITE_INFO` and `NMEAGPS_PARSE_SATELLITES`.
-- Keep a recoverable stock image and records of user settings and factory calibration/filter settings. Record the source revision, both lane patches, tool and library versions, build settings, and binary hashes. The source header does not pin every build dependency. <a href="#ref-29">[Ref-29]</a>
-
-**Check on the bench, then on air.** After flashing, test each unit separately into suitable loads or a safely attenuated measurement arrangement; for colocated units, also test both together. Check actual frequency placement, complete message timing, output power, filtering and spectral purity before connecting antennas. For units at separate stations, inspect simultaneous reception during the subsequent common-receiver on-air preflight. Use the same PC-control conditions planned for the run; control commands can interrupt a transmission in this firmware.
-
-Complete [Section 5.4's database preflight](#sec-simultaneous-tx-setup-4) at the intended low on-air power. Confirm that both identities remain in their assigned lanes and produce pairs from common receivers in the intended cycles. Repeat the start and placement checks after a restart.
-
-Varying the position within a lane can reduce dependence on one fixed interfering frequency, but A still always occupies the lower region and B the upper region. For a confirmatory run, **reverse the lane assignments** while keeping the identities attached to their physical paths:
-
-```text
-Run 1: A = lower random lane, B = upper random lane
-Run 2: A = upper random lane, B = lower random lane
-```
-
-An advantage that follows the antenna or transmit path through that reversal is stronger evidence than one that follows the lane. Use [Section 5.6](#sec-simultaneous-tx-setup-6) to document the repeated or crossed setup.
+**Confirm by repetition or hardware crossover.** Both units use the same randomization range, so there are no fixed lower/upper frequency assignments to reverse. Use a new measurement window and, where practical, exchange the tested antennas or components between transmitter chains while documenting the identity-to-component mapping. Use [Section 5.6](#sec-simultaneous-tx-setup-6) to document the repeated or crossed setup.
 
 
 
@@ -999,10 +960,10 @@ Use the first run to identify a pattern worth confirming. For the next physical 
 
 | Control | What to change | What it helps distinguish |
 |---|---|---|
-| **Frequency exchange** | Exchange the lower and upper fixed positions or randomized lanes while retaining the documented physical paths. | An effect following frequency position, such as narrowband interference, receiver passband response or frequency-dependent transmitter behavior. |
+| **Frequency exchange** | For setups with controllable frequency assignments, exchange the lower and upper fixed positions while retaining the documented physical paths. | An effect following frequency position, such as narrowband interference, receiver passband response or frequency-dependent transmitter behavior. |
 | **Hardware crossover, where practical** | Exchange the antennas or tested components between transmitter chains. Record the identity-to-component mapping for every run. | An effect following the tested component versus one following the transmitter chain. |
 
-For a QRP Labs setup already using verified within-run frequency swapping, retain the per-position check and use a separate repetition or hardware crossover for confirmation. For the ZachTek lane recipe, exchange the lane assignments between runs.
+For a QRP Labs setup already using verified within-run frequency swapping, retain the per-position check and use a separate repetition or hardware crossover for confirmation. For the ZachTek standard-randomization route, use a separate repetition or hardware crossover; there are no fixed lane assignments to exchange.
 
 Preserve the original, frequency-exchanged and hardware-crossover results separately. Pool them only when Target/Reference roles, correction signs and analysis scopes have been aligned. Keep the setup and operating records described in [Section 9.3](#sec-8-3).
 
@@ -1256,7 +1217,7 @@ This <strong class="defined-term">strongest-report rule</strong> is a best-obser
 
 That precedent does not establish that the maximum is the intended signal, or that both setups selected the same spectral component. Means and medians would describe different features of the available reports; none of these statistics identifies the intended component by itself. Later medians summarize the retained values and cannot undo this earlier selection.
 
-**The Benchmark decoding-reach plots use a different SNR basis.** <strong class="defined-term">Decodes & Stations: From Strong Signals to Weak-Signal Reception</strong> retains each setup's strongest **original reported SNR** for each remote identity and cycle. It applies neither 30 dBm normalization nor Reference correction. Its curves count observed spots and stations at raw-SNR cutoffs; they do not replace normalized paired ΔSNR. The plots use only retained identities and observations in the active Inspector distances and directions, including paired and one-sided evidence below the ΔSNR station minimum. Changing that scope updates the curves and counts; it does not change the SNR basis. See [RX Benchmark](#sec-3-rx-benchmark) and [TX Benchmark](#sec-3-tx-benchmark) for their place in the comparison.
+**The Benchmark decoding-reach plots use a different SNR basis.** <strong class="defined-term">Decodes & Stations: From Strong Signals to Weak-Signal Reception</strong> retains each setup's strongest **original reported SNR** for each remote identity and cycle. It applies neither 30 dBm normalization nor Reference correction. Its curves count observed spots and stations at raw-SNR cutoffs; they do not replace normalized paired ΔSNR. The plots use only retained identities and observations in the active Inspector distances and directions, including all paired and one-sided evidence. Changing that scope updates the curves and counts; it does not change the SNR basis. See [RX Benchmark](#sec-3-rx-benchmark) and [TX Benchmark](#sec-3-tx-benchmark) for their place in the comparison.
 
 As signals weaken relative to noise and approach the limits of WSPR decoding, how do the two setups compare? These curves progressively include lower-SNR reports, showing how decoded-spot and distinct-station totals grow. They also include **one-sided decodes** — reception recorded for only one setup — which paired ΔSNR cannot capture.
 
@@ -1273,9 +1234,9 @@ A rise between adjacent cutoffs counts reports — or newly included stations �
 <a id="sec-7-3"></a>
 ##### 8.1.3 Operating conditions and eligibility
 
-**Controlled Benchmark relies on independently known common operation.** In RX, both receivers must have listened on the selected band with functioning reporting throughout the comparison period. In simultaneous TX, both transmitters must have transmitted in the same WSPR cycles. The operator's declaration records this experimental prerequisite; successful database reports cannot independently verify it.
+**Controlled Benchmark relies on independently known common operation.** In RX, both receivers must have listened on the selected band with functioning reporting throughout the comparison period. In simultaneous TX, both transmitters must have transmitted in the same WSPR cycles. The shared Benchmark acceptance records that common operation was confirmed or its limitations were accepted; successful database reports cannot independently verify operation.
 
-**Historical replay has a different interpretation.** It acknowledges that common operation is unverified rather than asserting a controlled experiment. The same observed-outcome and paired-ΔSNR calculations apply, but one-sided counts may also reflect schedules, outages or reporting interruptions. See [the acknowledgement controls](#sec-5-3) and [historical and retired designs](#sec-7-neighborhood).
+**When common operation is unverified, interpretation is limited.** Historical reports can describe observed differences without establishing a controlled experiment. The same observed-outcome and paired-ΔSNR calculations apply, but one-sided counts may also reflect schedules, outages or reporting interruptions. Every Benchmark uses [the same acceptance control](#sec-5-3); see also [historical and retired designs](#sec-7-neighborhood).
 
 Benchmark retains eligible observations from either exact setup under the same peer-cycle consolidation and population filters. A missing Target decode does not exclude Reference-only evidence, even if Target has no reports anywhere in that cycle or throughout the entire period. The converse applies to Target-only evidence. If neither side has a report, there is no observed outcome; WSPRadar adds no synthetic “both missed” row.
 
@@ -1313,27 +1274,26 @@ Benchmark describes two aspects of the same comparison: **the SNR difference whe
 
 These are <strong class="defined-term">native</strong> outcomes: matched, consolidated and scientifically filtered observations at the original WSPR-cycle level, before display aggregation.
 
-There is no fourth, both-missed outcome: if neither side reported the station, the database supplies no observed event. Benchmark retains one-sided evidence symmetrically, without a separate Target-activity witness. A spot pair still exists when its station has too few pairs to qualify for displayed ΔSNR summaries.
+There is no fourth, both-missed outcome: if neither side reported the station, the database supplies no observed event. Benchmark retains one-sided evidence symmetrically, without a separate Target-activity witness. A spot pair still supplies ΔSNR when its map segment does not meet the station-count or CI precision requirement.
 
-**Then classify each station over the filtered comparison period.** A station can have different native outcomes in different cycles. The ΔSNR map summarizes that history in five mutually exclusive station classes:
+**Then classify each station over the filtered comparison period.** A station can have different native outcomes in different cycles. The ΔSNR map summarizes that history in four mutually exclusive station classes:
 
 | Station class | Meaning over the comparison period |
 |---|---|
-| <strong class="defined-term">Paired (qualifying)</strong> | At least the configured minimum number of spot pairs; shown in strong green. |
-| <strong class="defined-term">Paired (not qualifying)</strong> | At least one pair, but fewer than the minimum; shown in pale green. |
+| <strong class="defined-term">Paired (qualifying)</strong> | Retained paired evidence; shown in strong green. |
 | <strong class="defined-term">Both observed, no pairs</strong> | Each setup observed the station, but always in different cycles. |
 | **Only Target** | All retained observations of this station are Target-only. |
 | **Only Reference** | All retained observations of this station are Reference-only. |
 
-These station classes do not relabel the underlying observations. A qualifying paired station can also supply Target-only and Reference-only events. **Both observed, no pairs** is a station class, never a fourth spot outcome. The ΔDecode map combines the two Paired station classes into one green category; all five original classes remain part of the observed population.
+These station classes do not relabel the underlying observations. A qualifying paired station can also supply Target-only and Reference-only events. **Both observed, no pairs** is a station class, never a fourth spot outcome. The ΔDecode map shows Paired stations in one green category; all four station classes remain part of the observed population.
 
 Below Decodes & Stations, the **Spots** card is on the left and the **Stations** card on the right; both describe all retained observed evidence in the same active scope. Each card introduces its counting unit, then shows the <strong class="defined-term">Union</strong> total: evidence observed by **Either** setup, with shared evidence counted once. The colored partition bar and legend divide that union into mutually exclusive groups. Green denotes Paired, amber denotes stations observed on both sides without pairs, magenta denotes Target-only evidence and cyan denotes Reference-only evidence.
 
 The tables use a **Breakdown** column, **Target** and **Reference** columns labeled with the actual callsigns, and a **Union** column. In **Spots**, the rows are **Paired spots**, **One-sided · Target decoded**, **One-sided · Reference decoded** and **All decoded spots**. A pair contributes one to each setup's total but only one to Union. Thus, **Union = Target total + Reference total − Paired**. One-sided spots remain in their native outcome rows even when their station also has paired observations elsewhere.
 
-In **Stations**, each exact callsign and full locator belongs to one of four groups: **Stations with paired spots**, **Both observed, no pairs**, **Exclusive to Target**, or **Exclusive to Reference**. The final **All observed stations** row adds those groups. A station observed by both setups contributes one to each setup total and one to Union, whether or not it has a same-cycle pair. Thus, **Union = Target total + Reference total − stations with pairs − Both observed, no pairs**. The aligned Spots row for **Both observed, no pairs** is intentionally blank because this is a station-history category, not a fourth spot outcome. These observed-count tables combine qualifying and non-qualifying paired evidence; the separate ΔSNR qualification rules remain unchanged.
+In **Stations**, each exact callsign and full locator belongs to one of four groups: **Stations with paired spots**, **Both observed, no pairs**, **Exclusive to Target**, or **Exclusive to Reference**. The final **All observed stations** row adds those groups. A station observed by both setups contributes one to each setup total and one to Union, whether or not it has a same-cycle pair. Thus, **Union = Target total + Reference total − stations with pairs − Both observed, no pairs**. The aligned Spots row for **Both observed, no pairs** is intentionally blank because this is a station-history category, not a fourth spot outcome. These observed-count tables retain all paired and one-sided evidence; ΔSNR uses the paired evidence.
 
-The later Benchmark Statistics cards contain the Median, Mean, applicable CI and ΔDecode metrics; there is no CI for the aggregate Stations mean.
+The later Benchmark Statistics cards contain the Median, Mean, applicable CI and ΔDecode metrics. The Stations card reports the mean of qualifying station means and its aggregate CI; the Spots card reports the pooled qualifying-pair mean and its separate CI.
 
 The Statistics subheaders identify the relevant support: stations and receiver decodes for ΔDecode, qualifying spot pairs for its ΔSNR histogram, and the same qualifying stations for both the station-mean and station-median histograms. Drill-Down retains the three native outcomes. Temporal coverage separately counts stations and station-cycle events as explained in [Section 8.2.4](#sec-7-benchmark-coverage).
 
@@ -1375,19 +1335,23 @@ In RX, both receivers observe the same transmitter. Its reported-power terms can
 
 **What qualifies for ΔSNR?**
 
-After the run's population, UTC, solar-state and geographic filters, each exact remote callsign-plus-full-locator identity must meet **Minimum spot pairs per station for ΔSNR**. Qualification is calculated over the full filtered comparison period, not again within each time bin, station selection or zoom. Qualifying stations supply the ΔSNR map, histograms, temporal summaries and outlier analysis.
+After the run's population, UTC, solar-state and geographic filters, each exact remote callsign-plus-full-locator identity with retained paired evidence qualifies for ΔSNR. Qualification is calculated over the full filtered comparison period, not again within each time bin, station selection or zoom. Qualifying stations supply the ΔSNR map, histograms, temporal summaries and outlier analysis.
 
-Below-threshold pairs and all one-sided observations remain in coverage, Station Insights, Drill-Down and exports. There is no separate minimum for a station's one-sided count. For example, at a minimum of five pairs, `100 Paired / 8 Only Target / 4 Only Reference` qualifies, while `4 / 100 / 100` does not. The observed counts stay unchanged in both cases. Changing ΔSNR qualification does not change ΔDecode or Station Reach Advantage.
+All pairs and one-sided observations remain in coverage, Station Insights, Drill-Down and exports. There is no separate minimum for a station's one-sided count. For example, both `100 Paired / 8 Only Target / 4 Only Reference` and `4 / 100 / 100` supply paired ΔSNR. The observed counts stay unchanged in both cases. The paired-evidence requirement for ΔSNR does not change ΔDecode or Station Reach Advantage.
 
-**How the ΔSNR map balances stations**
+**How the ΔSNR map pools qualifying pairs**
 
-1. Calculate each qualifying station's **median ΔSNR** from all its retained spot pairs.
-2. Calculate the segment's **median of those station medians**, giving each station one contribution.
-3. Color the segment only if it meets **Minimum qualifying stations per segment for ΔSNR**.
+1. Identify the retained paired evidence for each exact station identity over the full filtered comparison period, after existing scientific filters and before display-only map-segment or time selections.
+2. Within the map segment, pool all eligible paired ΔSNR values from those qualifying identities. Each native pair contributes once; one-sided observations do not supply paired ΔSNR.
+3. Calculate the <strong class="defined-term">arithmetic mean of the pooled paired differences</strong>, with **one equal weight per pair**. A station with more qualifying pairs contributes more to this map value.
+4. Calculate the nominal two-sided <strong class="defined-term">IID Student-t CI</strong> from those same paired differences, using their sample SD, pair count N and the shared confidence level.
+5. Count the distinct qualifying station identities that contribute at least one eligible pair to this segment. Color the segment only if that count meets the configured station minimum and the CI is available and non-degenerate, with an **unrounded half-width at or below the selected CI ± limit**.
 
-A median is the middle ordered value, or the average of the two middle values for an even count. The first median describes the typical retained difference on one station path; the second describes the typical qualifying station in that segment. Equal station weighting prevents a prolific reporter from dominating solely through its observation count.
+This map estimator matches the **Spots** mean and CI in the separate **Benchmark Statistics** section when the selected scope contains exactly the same qualifying pairs, SNR adjustments and confidence level. It is distinct from the equally weighted **mean of station means** in the Stations card and station-means histogram.
 
-The <strong class="defined-term">spot-pair median</strong> instead pools all pairs from qualifying stations and gives each pair equal weight. Using the default one-pair station minimum, these summaries can disagree:
+The pooled pair mean describes the average retained paired difference in the segment. It weights each qualifying pair equally, so a frequently observed station can contribute more than a sparsely observed station. Station qualification uses retained paired evidence over the full filtered period. The separate Stations summary gives each qualifying identity one equal contribution and remains unchanged. The map does not give station means or medians equal weight, and does not average individual-station or segment CIs. Its CI uses the sample SD of all contributing paired differences, including both within-station and between-station variation. Including this variation in the sample SD does not correct the standard error for dependence between observations.
+
+The <strong class="defined-term">spot-pair median</strong> uses the same pooled qualifying-pair population as the map mean, but summarizes the middle ordered value, or the average of the two middle values for an even count, rather than its arithmetic mean. Both give each pair equal weight. The separate station-median summary gives each qualifying station one contribution. With paired evidence for every station, these summaries can disagree:
 
 | Qualifying station | ΔSNR values (dB) | Station median |
 |---|---|---:|
@@ -1395,13 +1359,13 @@ The <strong class="defined-term">spot-pair median</strong> instead pools all pai
 | B | −2, −2 | −2 dB |
 | C | −1, −1 | −1 dB |
 
-The **median of station medians is −1 dB**, while the **pooled spot-pair median is +6 dB**. The mean of the three station medians is **+1 dB**; the pooled pair mean is **+3 dB**. Every calculation is correct, but each gives different weight to stations or extreme values. The lower-right station histogram shows the station medians and labels their median. The lower-left histogram shows station means and labels their mean. In this example every station's observations are identical, so its mean equals its median; the mean of station means is also **+1 dB**. This three-station segment can be colored only when the segment minimum is three or fewer; it would not meet the default of five.
+The **median of station medians is −1 dB**, while the **pooled spot-pair median is +6 dB**. The mean of the three station medians is **+1 dB**; the pooled pair mean is **+3 dB**. Every calculation is correct, but each gives different weight to stations or extreme values. The lower-right station histogram shows the station medians and labels their median. The upper-right histogram shows station means and labels their mean. In this example every station's observations are identical, so its mean equals its median; the mean of station means is also **+1 dB**. This three-station segment can meet the station-count requirement only when its minimum is three or fewer; it meets the default of three. For the map, each of the ten pairs has equal weight, giving the pooled mean **+3 dB**, not the **+1 dB** equal-station mean. Its pooled-pair CI must also meet the selected half-width requirement before the segment can be colored. All the station and pooled-pair summaries in the separate **Benchmark Statistics** section retain their existing definitions.
 
-**Benchmark Statistics keeps two station summaries and two pooled-pair summaries.** In the Stations table, **Mean ΔSNR** is the arithmetic mean of the individual qualifying stations' mean paired ΔSNR values; **Median ΔSNR** is the median of their median paired ΔSNR values. Both use exactly the same qualifying stations, giving each identity equal weight. The Spots table's Mean and Median pool the qualifying paired differences, giving each pair equal weight. Means are arithmetic averages of already formed Target-minus-Reference differences in dB, after the existing processing and correction.
+**Benchmark Statistics keeps two station summaries and two pooled-pair summaries.** In the Stations table, **Mean ΔSNR ± 95% CI** is the label at the default 95% confidence level. The row reports the arithmetic mean of the individual qualifying stations' mean paired ΔSNR values together with its aggregate CI half-width when available; the percentage follows the shared confidence level. **Median ΔSNR** remains the median of their median paired ΔSNR values, without a median CI. Both use exactly the same qualifying stations, giving each identity equal weight. The Spots table's Mean and Median pool the qualifying paired differences, giving each pair equal weight. Means are arithmetic averages of already formed Target-minus-Reference differences in dB, after the existing processing and correction.
 
 In the Spots summary card, **Mean ΔSNR ± 95% CI** presents the mean and its CI half-width together in one row, for example **+1.21 ± 0.04 dB**; the confidence percentage in the label follows the configured level. A double rule separates **ΔDecode** from the ΔSNR summaries in both cards.
 
-A separate example with unequal pair counts and a skewed path distinguishes the three means. For this arithmetic illustration, assume both stations meet the selected qualification rules, including a minimum paired count no greater than two:
+A separate example with unequal pair counts and a skewed path distinguishes the three means. For this arithmetic illustration, both stations have retained paired evidence:
 
 | Qualifying station | Retained paired ΔSNR values (dB) | Pair count | Station mean | Station median |
 |---|---|---:|---:|---:|
@@ -1410,13 +1374,15 @@ A separate example with unequal pair counts and a skewed path distinguishes the 
 
 The **mean of station means is +6 dB**, the **pooled pair mean is +5.6 dB**, and the **mean of station medians is +4 dB**. The **median of station medians is +4 dB**. These are different calculations on the same five pairs; no observation is removed to obtain them.
 
-The four-panel figure uses **ΔDecode — Decode Volume** at top left, **ΔSNR ± 95% CI - Qualifying spot pairs** at top right, **ΔSNR — Qualifying stations: means** at bottom left, and **ΔSNR — Qualifying stations: medians** at bottom right. Both lower panels show the same station count, one equally weighted value per station, common bin edges and common axis ranges. Their sole reference lines and numerical legend entries are **Mean of station means** on the left and **Median of station medians** on the right, matching the Stations table. The spot-pair panel labels both its mean and median above the plot. Coincident spot-pair markers retain their true positions and both legend entries. The confidence percentage in the spot-pair panel title follows the configured level (95% by default). When available, its **Mean** legend entry combines the pooled pair mean and the CI half-width as **mean ± half-width** in dB. This CI describes uncertainty of the pooled pair mean under the stated model; it does not describe histogram spread or uncertainty of the median. The **Median** legend entry remains separate.
+The four-panel figure uses **ΔSNR ± 95% CI - Qualifying spot pairs** at top left, **ΔDecode - Spot Decodes** at bottom left, **ΔSNR ± 95% CI - Qualifying station means** at top right, and **ΔSNR - Qualifying station medians** at bottom right. The summary tables follow the same grouping: Spots on the left and Stations on the right. Both right-hand panels show the same station count, one equally weighted value per station, common bin edges and common axis ranges. Their sole reference lines and numerical legend entries are **Mean of station means** above and **Median of station medians** below, matching the Stations table. The spot-pair panel labels both its mean and median above the plot. Coincident spot-pair markers retain their true positions and both legend entries. The confidence percentage in both mean-CI panel titles follows the shared level (95% by default). The **Mean of station means** legend displays the same estimate and aggregate CI half-width as the Stations card; its CI uses the spread across contributing station means. A degenerate zero-width interval is explicitly marked as degenerate, and an unavailable interval is identified without replacing it with zero. When available, its **Mean** legend entry combines the pooled pair mean and the CI half-width as **mean ± half-width** in dB. This CI describes uncertainty of the pooled pair mean under the stated model; it does not describe histogram spread or uncertainty of the median. The **Median** legend entry remains separate.
 
 Both station histograms use one adaptive bin width chosen from the finer positive Freedman–Diaconis or Sturges candidate calculated separately for the two distributions, rounded upward to a 1/2/5 step and widened if needed to keep the full combined range within 40 bars. Spot-pair histogram bins are unchanged. Negative bins use Reference cyan, positive bins use Target magenta, and the bin containing zero is neutral grey. A neutral bin can also contain nonzero values.
 
-The Stations and Spots tables and all four histograms describe the selected analysis and Inspector scope. The temporal **ΔSNR statistic** selector does not change them. The aggregate mean-of-means CI is deferred; the pooled-pair CI in the Spots table must not be read as uncertainty for that station aggregate.
+The Stations and Spots tables and all four histograms describe the selected analysis and Inspector scope. The temporal **ΔSNR statistic** selector does not change them. The aggregate <strong class="defined-term">mean-of-means CI</strong> in the Stations summary is calculated directly from qualifying station means in the selected Inspector scope, including contributing stations in hatched map segments. Each contributing station supplies its mean from eligible pairs in that scope. Its equal-station weighting and CI remain unchanged. The Spots summary pools eligible paired differences and supplies a separate mean and CI. For exactly the same single-segment pairs, adjustments and confidence level, the map mean and CI match that pooled Spots result. Combining segments requires pooling their eligible pair observations, not averaging their means or CIs. Changing only the map half-width limit changes map qualification without changing the Inspector's eligible population or summaries. Changing shared confidence changes the reported mean CIs and may also change map qualification, while leaving the means and contributing observations unchanged.
 
-The defaults are **one pair per station** and **five qualifying stations per segment**, with allowed ranges of **1–50** and **1–10**, respectively. A callsign at `JO31AA` and the same callsign at `JO31AB` count separately if both qualify. Their medians of `+2` and `+4 dB` yield `+3 dB` and support count **2**. These are reported identities, not proven independent physical sites.
+The map defaults to **three qualifying stations per segment**. The station-count control accepts **1–50**. A callsign at `JO31AA` and the same callsign at `JO31AB` count separately if both qualify and contribute an eligible pair to the segment; these are reported identities, not proven independent physical sites.
+
+For example, if the two identities each contribute one pair, `+2` and `+4 dB`, the map's pooled pair mean is `+3 dB`, its pair count N is **2**, and its station support count is **2**. With unequal pair counts, the map follows pair weights rather than assigning equal station weights. The station minimum and CI requirement both apply. A one-station segment can meet a configured station minimum of one. To receive a color, it must also have at least two contributing pairs, nonzero observed pair variance, and an available CI whose unrounded half-width meets the selected limit.
 
 **What medians protect against**
 
@@ -1457,13 +1423,21 @@ All retained stations in the active Inspector scope contribute, without another 
 
 **When a ΔDecode segment has enough evidence to be colored**
 
-The default minimum is **1% of the full filtered run's observed events**, adjustable from **0% to 5%** in **0.5%** steps. A segment must contain at least:
+Both ΔDecode evidence requirements must be met. **Minimum observed stations per segment for ΔDecode** defaults to **3**, adjustable from **1 to 50**. Count each distinct **callsign + full reported locator** identity with at least one retained event in that segment once, including Target-only and Reference-only identities. No paired observations or ΔSNR qualification are required.
+
+The event-share default minimum is **1% of the full filtered run's observed events**, adjustable from **0% to 5%** in **0.5%** steps. A segment must also contain at least:
 
 $$N_{\min}=\left\lceil\frac{p}{100}\,E_{\mathrm{run}}\right\rceil$$
 
-Here `p` is the selected percentage, `E_run` counts each retained station-cycle event once, and `ceil` means round upward to a whole event count. The run total is fixed before segment qualification. Map cropping, Inspector selection and below-threshold colors do not change it. At **0%**, every nonempty segment qualifies. No paired observations or minimum station count are required. This gate limits sparse coloring relative to the run; it is not a confidence level or a guarantee of diverse paths.
+Here `p` is the selected percentage, `E_run` counts each retained station-cycle event once, and `ceil` means round upward to a whole event count. The run total is fixed before segment qualification. Map cropping, Inspector selection and below-threshold colors do not change it. At **0%**, every nonempty segment meets the event-share requirement, but the station minimum still applies. The station requirement sets breadth across observed identities; the event-share requirement limits sparse coloring relative to the run. Neither is a confidence level or a guarantee of independent paths, and one frequently observed station can still dominate the pooled totals. Both requirements govern coloring only: all retained events remain in the pooled ΔDecode calculation and Inspector statistics.
 
 Both maps retain observed station markers. An observed segment below its metric's requirement is **gray hatched**; an empty segment is unfilled; zero ΔSNR and **1× ΔDecode** are valid results. ΔSNR and ΔDecode qualification are independent. Their color scales and the ΔDecode ratio legend are explained in [Section 8.4.6](#sec-7-view-spread).
+
+For ΔSNR, <strong class="defined-term">gray hatching</strong> can mean too few qualifying station identities, an unavailable or degenerate pooled-pair CI, or a half-width above the selected limit. To investigate, select the segment's exact distance and direction in **Segment Inspector**, then read the **Spots** mean and **± half-width** in the separate **Benchmark Statistics** section and check the contributing station and pair counts. The map itself has no numerical CI card. For the exact full-precision reason and interval status, use `benchmark/map_segments.parquet` in the analysis download; the Stations card's status concerns its different, equally weighted station-mean CI.
+
+With no contributing pairs, no map mean or CI is available. With one pair, its mean is defined but its sample SD, SE and CI are unavailable. With **two or more contributing pairs**, identical paired ΔSNR values give exactly zero unrounded sample SD: the export retains the calculated zero-width bounds with **degenerate** status, and the segment stays hatched. A zero-width interval does not establish zero physical uncertainty.
+
+Identical **station means** alone do not make the pooled-pair CI degenerate: within-station differences may still vary. Small positive widths retain enough displayed digits to distinguish them from zero. Qualification uses the unrounded width and does not require the CI to exclude zero; a zero mean can qualify when both requirements are met. Hatching does not remove eligible pairs or stations from Inspector scope statistics. Examine the contributing paths and dated evidence before changing the requirements; a broader interval limit or lower station minimum changes the acceptance rule, not the quality or independence of the observations.
 
 **Interpret the two maps together.** ΔSNR describes paired signal quality; ΔDecode describes the balance of total observed decodes. They can favor different setups. Equal decode totals can combine mostly paired events or substantial one-sided evidence that cancels. Events missed by both are absent, so ΔDecode is not an unconditional decoding probability or a Target win rate. Common-operation evidence, actual power, schedules and the observed station population remain essential context.
 
@@ -1594,7 +1568,7 @@ Solar classification uses solar elevation at **Target QTH at the WSPR-cycle time
 <a id="sec-7-8-1"></a>
 ##### 8.4.2 Geographic summaries
 
-**Benchmark** segment evidence counts include all observed identities in the active geographic scope; ΔSNR summaries use only qualifying identities. Sorting or filtering the station table, or selecting a row, does not redefine that segment population. The ΔSNR map uses the median of qualifying station medians; the ΔDecode map uses pooled total-decode advantage. [Section 8.2.3](#sec-7-benchmark-aggregation) defines both, including the separate Spot-pair distribution.
+**Benchmark** segment evidence counts include all observed identities in the active geographic scope; ΔSNR summaries use only qualifying identities. Sorting or filtering the station table, or selecting a row, does not redefine that segment population. The ΔSNR map uses the pooled arithmetic mean of qualifying paired differences, with equal weight per pair, and qualifies that same mean using its pooled-pair CI and the configured station minimum; the ΔDecode map uses pooled total-decode advantage. [Section 8.2.3](#sec-7-benchmark-aggregation) defines both, including the separate Spot-pair distribution.
 
 **Performance distance profiles** group stations by their calculated distance from Target QTH. Bin width follows the configured maximum peer distance:
 
@@ -1619,7 +1593,7 @@ An <strong class="defined-term">interquartile range (IQR)</strong> is the differ
 
 **Chronological views preserve the sequence of the run.** Bins start at the selected UTC start and use the chosen width; the final bin can be shorter. **Time basis** changes the displayed clock and dates, while bin boundaries, observation membership and statistical values remain unchanged. Empty intervals remain missing evidence, not invented **0 dB** or **0%** observations. The usual offered widths and defaults depend on the complete run duration, not the span of observed reports. A valid saved choice can remain available outside those usual choices; see [Section 10.5](#sec-5-5).
 
-**Benchmark ΔSNR** pools retained spot pairs from qualifying stations within each bin. **ΔSNR statistic: Median / Mean** selects their median with the existing IQR band, or their arithmetic mean with its configured pointwise CI. The density distribution, eligible pairs, chronological bin membership and pair weighting remain unchanged. Median is the default and the fallback for older configurations. Frequently observed paths can therefore contribute more pairs than others. Coverage separately retains all eligible Paired and one-sided outcomes and distinct-station presence, using the two advantage metrics in [Section 8.2.4](#sec-7-benchmark-coverage). An empty ΔSNR layer can coexist with non-qualifying Paired or one-sided evidence; it does not prove that the database returned no reports.
+**Benchmark ΔSNR** pools retained spot pairs from qualifying stations within each bin. **ΔSNR statistic: Median / Mean** selects their median with the existing IQR band, or their arithmetic mean with its configured pointwise CI. The density distribution, eligible pairs, chronological bin membership and pair weighting remain unchanged. Mean is the default for new analyses. Segment and selected-station plots keep independent choices. If a current configuration omits a statistic, that level defaults to Mean; explicit saved choices are honored. The Milazzo demo opens both levels with Median. Frequently observed paths can therefore contribute more pairs than others. Coverage separately retains all eligible Paired and one-sided outcomes and distinct-station presence, using the two advantage metrics in [Section 8.2.4](#sec-7-benchmark-coverage). An empty ΔSNR layer can coexist with non-qualifying Paired or one-sided evidence; it does not prove that the database returned no reports.
 
 **Performance successful-SNR deviation** compares each station with its own usual successful level. A station needs at least **three successful normalized observations** in the complete run window. Their median is its baseline; subtract that baseline from each successful SNR. For example, **−7 dB** against a **−10 dB** baseline gives a **+3 dB deviation**. Zero means that path's usual successful level, not Target–Reference equality.
 
@@ -1633,9 +1607,9 @@ Within each chronological bin, a station contributes at most one median deviatio
 
 With **Time basis: UTC**, <strong class="defined-term">UTC-hour folding</strong> combines observations from the same clock hour across dates. It shows an hour-of-day association while removing the sequence of individual dates. It is separate from chronological binning: with a **12:17 UTC** start, a **1h** chronological bin spans **12:17 to 13:17**, while folding groups observations by clock hours such as **12:00 to 13:00**, using only the part inside the selected window.
 
-**Time aggregation** controls only the chronological panels and retains the existing interval choices. The adjacent **Time basis** control selects **UTC** or **Local Solar** for every chronological and folded SNR, decode and coverage panel, including the selected station and focused plots. Folded panels always use fixed one-hour bins. New configurations default to Local Solar; explicit saved values are honored. Existing demo configurations without this field retain UTC; only the Milazzo demo explicitly uses Local Solar.
+**Time aggregation** controls only the chronological panels and retains the existing interval choices. The adjacent **Time basis** control selects **UTC** or **Local Solar** for the chronological and folded SNR, decode and coverage panels at that level. Segment plots and selected-station plots keep independent clock choices; focused plots follow the selected-station clock. Folded panels always use fixed one-hour bins. New analyses default to UTC at both levels; explicit saved values are honored. The Milazzo demo explicitly uses Local Solar and Median at both levels; the other Benchmark demos use UTC and Mean.
 
-For Benchmark, **ΔSNR statistic** sits beside **Time basis** and applies to both chronological and folded ΔSNR plots, including selected-station views. It changes the statistic and interval within the existing bins, not pairing, calibration, qualification or weighting. **Median** retains IQR; **Mean** uses the CI for the mean of those same pooled pairs. Benchmark Statistics remains fixed to the selected analysis and scope.
+For Benchmark, **ΔSNR statistic** sits beside **Time basis** and applies to both chronological and folded ΔSNR plots at that level. Segment and selected-station statistics can be selected independently, with Mean as the new-analysis default at both levels. It changes the statistic and interval within the existing bins, not pairing, calibration, qualification or weighting. **Median** retains IQR; **Mean** uses the CI for the mean of those same pooled pairs. Benchmark Statistics remains fixed to the selected analysis and scope.
 
 Time basis applies to both panels. The chronological panel follows individual dates; switching clocks changes its displayed dates and times, not its aggregation intervals or statistics. The folded panel combines matching hours across dates, so switching clocks can change its hourly summaries. Local Solar refers to the Target QTH, with solar noon at 12:00; it is not civil time or daylight-saving time. Source timestamps remain UTC.
 
@@ -1679,12 +1653,12 @@ In Benchmark Station Insights, **Median ΔSNR** and **Mean ΔSNR** use the same 
 
 | Analysis | Selected-station summaries |
 |---|---|
-| **Benchmark** | Chronological and folded ΔSNR summaries require the station to meet its spot-pair minimum over the full filtered period. Coverage separately retains Only Target, all Paired observations in one green category, and Only Reference. Its curve is that station's pooled ΔDecode, using the same signed ratio axis as the segment's Spot-level row. |
+| **Benchmark** | Chronological and folded ΔSNR summaries use the station's retained paired evidence over the full filtered period. Coverage separately retains Only Target, all Paired observations in one green category, and Only Reference. Its curve is that station's pooled ΔDecode, using the same signed ratio axis as the segment's Spot-level row. |
 | **Performance** | Chronological SNR uses actual normalized successful Target values; folded SNR uses one date-hour median per represented date. Success/Miss counts and Decode Rate describe that same path. With one station, both Decode Rate weightings coincide within a populated bin, although station presence and opportunity volume remain different support counts. |
 
 When outlier reporting is enabled, Benchmark can also select **multiple identities** and pool their qualifying spot pairs for ΔSNR. This gives each pair equal weight, not each path. ΔDecode Temporal Coverage is available only when **one path** is selected. Selection, station-list filtering and zoom do not recalculate qualification or rerun detection.
 
-**Focused Drill-Down shows native retained observations:** one consolidated paired ΔSNR value for Benchmark, or one successful normalized Target SNR for Performance, at its actual WSPR-cycle time. These processed points are distinct from temporal-bin means, medians and density summaries; they are not untouched database rows. In Benchmark, retained pair rows remain available below the station minimum, but the focused ΔSNR plot also requires the station to qualify over the full filtered period.
+**Focused Drill-Down shows native retained observations:** one consolidated paired ΔSNR value for Benchmark, or one successful normalized Target SNR for Performance, at its actual WSPR-cycle time. These processed points are distinct from temporal-bin means, medians and density summaries; they are not untouched database rows. In Benchmark, retained pair rows supply the focused ΔSNR plot; one-sided observations have no paired ΔSNR.
 
 Focused plots use the selected **Time basis** for their displayed clock, including event markers and baseline intervals. The Drill-Down table and focus editors retain UTC so every observation remains traceable to its original cycle.
 
@@ -1707,7 +1681,7 @@ The symmetric ± display applies only when bounds are symmetric about the estima
 
 **<strong class="defined-term">Density colors</strong> are relative within each panel.** The most populated cell is assigned **100**, and other cells are scaled in proportion to its count. This does not mean that the cell contains 100% of the evidence. Use the accompanying support counts to compare absolute volume between panels.
 
-**ΔSNR map colors.** Symmetric color limits adapt to the qualifying segment values. Compare the numerical legends across runs.
+**ΔSNR map colors.** Colors represent the <strong class="defined-term">pooled mean paired ΔSNR</strong>. Symmetric limits adapt to qualifying segment means; compare numerical legends across runs. Coloring requires the station minimum and an available, non-degenerate pooled-pair CI within the selected half-width limit. Shared confidence changes the CI, not the mean, and can therefore change which segments qualify. Each interval has <strong class="defined-term">nominal per-segment coverage</strong>; the whole map is not a simultaneous confidence region. Passing the precision limit is not a significance test and does not require exclusion of zero.
 
 **ΔSNR binning and axes.** Benchmark histograms normally use **1 dB** bins, use **0.5 dB** for a clear half-dB lattice, and coarsen broad ranges. Temporal density cells remain **1 dB** high and shift with Reference correction. For the same retained population, the cells and observations move together while cell counts and relative colors stay unchanged. Display binning neither rounds the retained observations nor changes their statistics; fractional observations need not lie at cell centers.
 
@@ -1743,19 +1717,49 @@ Station balancing reduces domination by prolific reporters, and medians reduce s
 
 **A descriptive mean or standard deviation does not require Gaussian data.** A mean describes an arithmetic average; standard deviation describes spread around that mean. Both can summarize a finite observed dataset without assuming a normal, bell-shaped distribution. Their usefulness depends on the quantity being summarized and the distribution's tails or extreme values. A median describes the middle value, and IQR measures the width of the middle half; these answer different questions and are less sensitive to extreme magnitudes. Choose the statistic for the intended quantity, rather than treating a non-normal distribution as a reason that a mean is invalid <a href="#ref-30">[Ref-30]</a>.
 
-Estimating uncertainty beyond the retained observations requires a justified sampling and dependence model. Non-normality alone does not make inference impossible. WSPRadar supplies an explicitly named **IID Student-t baseline** for individual station means, qualifying pooled-pair means and temporal-bin means. Its standard error and CI assume independent observations; pairing alone does not establish that assumption. WSPRadar does not supply p-values, statistical power, automatic significance badges or causal-effect estimates. Treating positively dependent reports as independent can understate uncertainty about future performance or a broader population.
+Estimating uncertainty beyond the retained observations requires a justified sampling and dependence model. Non-normality alone does not make inference impossible. WSPRadar supplies an explicitly named <strong class="defined-term">IID Student-t baseline</strong> for individual station means, qualifying pooled-pair means, temporal/folded-bin means, pooled-pair map means and equally weighted aggregates of qualifying station means. Its standard error and CI assume independent observations; pairing alone does not establish that assumption. WSPRadar does not supply p-values, statistical power, automatic significance badges or causal-effect estimates. Treating positively dependent reports as independent can understate uncertainty about future performance or a broader population.
 
 **How the baseline is calculated.** For retained paired differences `d₁, …, dₙ` in the exact displayed scope, the arithmetic mean is `d̄`. Sample SD uses denominator `n − 1`, and the baseline standard error is `s / √n`. The two-sided interval is:
 
 $$\bar d \pm t_{1-\alpha/2,\,n-1}\frac{s}{\sqrt n}$$
 
-`ci_alpha` is the total two-sided tail probability, not a calculated p-value; it must satisfy `0 < ci_alpha < 1`. The confidence level is `100 × (1 − ci_alpha)%`: the default `0.05` gives **95%**, while `0.10` gives **90%**. `ci_method = iid_student_t` names this initial baseline. Older configurations use `ci_alpha = 0.05` and the same named method. The count `n` is the observed qualifying pair count, not an estimated effective independent sample size. [NIST's mean-CI definition](https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm) gives the same symmetric Student-t form; its [sample-SD definition](https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm) uses `n − 1`.
+Internally, `ci_alpha` is the total two-sided tail probability, not a calculated p-value; it must satisfy `0 < ci_alpha < 1`. The confidence level is `100 × (1 − ci_alpha)%`: the default `0.05` gives **95%**, while `0.10` gives **90%**. `evidence_confidence_interval_method = iid_student_t` names this initial baseline in saved configurations. The current version-1 default `evidence_confidence_level_percent = 95` corresponds to the internal `ci_alpha = 0.05`. The count `n` is the observed qualifying pair count, not an estimated effective independent sample size. [NIST's mean-CI definition](https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm) gives the same symmetric Student-t form; its [sample-SD definition](https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm) uses `n − 1`.
 
-With no retained values, no mean is defined. With one, the mean can be calculated, but sample SD, standard error and CI are unavailable; display of that mean still follows the existing qualification rules. Zero sample variance is explicitly a degenerate sample: a zero-width model interval does not prove an exact physical offset. Existing evidence thresholds describe support and do not guarantee interval coverage. There is no CI for the aggregate **mean of station means** in this increment.
+With no retained values, no mean is defined. With one, the mean can be calculated, but sample SD, standard error and CI are unavailable; display of that mean still follows the existing qualification rules. Zero sample variance is explicitly a degenerate sample: a zero-width model interval does not prove an exact physical offset. Existing evidence thresholds describe support and do not guarantee interval coverage. For the aggregate <strong class="defined-term">mean of station means</strong> in the Stations summary, the CI is unavailable with fewer than two contributing stations, while any defined mean is preserved. With two or more contributing station means, zero unrounded across-station SD yields a degenerate zero-width interval retained with explicit status. The map uses a different interval: its count is the number of qualifying pairs and its SD is calculated across their paired differences. A degenerate station-mean CI does not by itself determine the map's pooled-pair CI status.
 
 **What the interval assumes and excludes.** Student-t coverage is exact under the usual independent, common normal-distribution sampling model and is otherwise an approximation where its conditions are adequate. A normal-looking histogram or a nonsignificant diagnostic test does not prove independence. The interval concerns the mean of the process represented by the retained pairs and selected scope. It is not a prediction interval for an individual spot, does not include systematic calibration error, and does not remove selection caused by requiring both decodes. A narrow interval does not establish a stable advantage on every cycle.
 
 This baseline has not been established as a WSPR-wide calibrated method. Before making that claim, representative retained paired datasets need assessment of chronological behavior, gaps, dependence, distribution shape, small samples, changing station composition and weak-signal selection, together with interval-width and known-effect simulation-coverage comparisons against at least one time-aware method. A universal `n ≥ 30` rule is not a substitute for that assessment. The runtime performs no automatic bootstrap in this increment.
+
+**<strong class="defined-term">CI for the equally weighted mean of station means</strong>.** Let `m_i` be each qualifying station's mean paired ΔSNR in the selected scope, and let `M` count the distinct station identities contributing at least one eligible pair in that scope. For M ≥ 2, calculate:
+
+$$\bar m=\frac{1}{M}\sum_{i=1}^{M}m_i,\qquad s_m^2=\frac{\sum_{i=1}^{M}(m_i-\bar m)^2}{M-1}$$
+
+$$h=t_{1-\alpha/2,\,M-1}\frac{s_m}{\sqrt M},\qquad CI=[\bar m-h,\bar m+h]$$
+
+Here `M` counts station means, not spot pairs. The confidence level is `1 − α`; at 95%, `α = 0.05`. The SD describes the observed spread across station means, and `s_m / √M` is the <strong class="defined-term">standard error</strong> under the stated model. With one contributing station, its mean remains defined but this aggregate CI is unavailable.
+
+This is a model-based interval under station-independence and sampling assumptions. The Student-t calculation is exact when those station means are independent observations from the same normal distribution; otherwise it is an approximation. Equal weighting alone does not establish these assumptions, especially with few stations or unequal numbers of pairs per station. Distinct callsigns and locators do not establish independence, and two stations do not establish robustness.
+
+The observed spread across station means reflects both differences between paths and uncertainty in the estimated station means. This calculation does not separately propagate individual-station SEs or correlations, use precision weights, or average station CIs. Correlated paths, common propagation, unequal within-path sampling and paired-decode selection can limit its interpretation. This equal-station interval applies to the selected Inspector scope and remains unchanged. The map uses a separate pooled-pair CI with pair count N and the sample SD of paired differences; it does not borrow this station-mean CI.
+
+The Stations scope result is recalculated directly from eligible station means. Map count and precision requirements control coloring and do not remove contributing stations in hatched segments from this estimate. Shared confidence changes this interval and the pooled map interval, but the map half-width threshold does not filter Stations or Spots summaries.
+
+**<strong class="defined-term">Pooled-pair map mean and CI</strong>.** For example, **+3.20 ± 0.49 dB** represents bounds **[+2.71, +3.69] dB** at the stated confidence level. Its half-width meets a **0.5 dB** precision limit, but coloring still requires the station minimum and a non-degenerate available CI. Within one map segment, let `d_1,...,d_N` be the eligible <strong class="defined-term">paired ΔSNR values</strong> from qualifying identities after existing pairing, corrections and scientific filters. N counts each contributing pair once, not decoded reports or stations. For N ≥ 2, calculate:
+
+$$\bar d=\frac{1}{N}\sum_{i=1}^{N}d_i,\qquad s_d^2=\frac{\sum_{i=1}^{N}(d_i-\bar d)^2}{N-1}$$
+
+$$SE=\frac{s_d}{\sqrt N},\qquad h=t_{1-\alpha/2,N-1}SE,\qquad CI=[\bar d-h,\bar d+h]$$
+
+The confidence level is `1 − α`; at the default 95%, `α = 0.05`. With no contributing pairs, the mean and CI are unavailable. With one pair, the mean is defined, but <strong class="defined-term">sample SD</strong>, SE and CI are unavailable. A station represented by one usable pair may contribute that pair to the pooled calculation even though its individual-station CI is unavailable.
+
+The pooled sample SD includes within-station and between-station variation. It is not the SD of station means, an average of station SDs or an average of individual CIs. A segment receives a color only if its configured qualifying-station minimum is met, N is at least two, the CI calculation is finite and available, the observed pair SD is positive, and its **unrounded** half-width is positive and no greater than the configured maximum. The station count includes only qualifying identities that contribute at least one usable pair to that segment. With N ≥ 2, retain a calculable degenerate zero-width interval numerically, record its degenerate status in the numeric export and hatch the segment. Exactly zero pair variance is distinct from positive variance or a positive width that merely rounds to zero.
+
+The mean and CI must describe the same complete qualifying pair population. Missing required variance information makes the CI unavailable; silently omitting affected groups to calculate a partial-population CI is not valid.
+
+This is a <strong class="defined-term">nominal IID Student-t baseline</strong>, exact under independent, identically distributed normal pair differences and otherwise approximate. Repeated observations on a path, adjacent WSPR cycles and shared propagation may be dependent. N is the observed pair count; the calculation makes no effective-sample-size adjustment for dependence. The interval does not incorporate systematic calibration error or remove paired-decode selection. A narrow interval does not establish independence, representative sampling or a physical cause. Coverage is nominal for each segment separately, not simultaneous over the map. The precision requirement is not a significance test: the interval may include zero and a mean of zero can qualify.
+
+For identical qualifying pairs, adjustments and confidence, this calculation matches the existing pooled Spots mean/CI in the separate **Benchmark Statistics** section. Its Stations equal-weight aggregate and across-station CI remain unchanged.
 
 
 <a id="sec-7-repeatability-control"></a>
@@ -1893,7 +1897,7 @@ A controlled Benchmark relies on independently known common operation. **Histori
 
 | Avoid | Evidence-matched wording |
 |---|---|
-| “Antenna A has 3 dB more gain than B.” | “For this band, UTC window and segment, the median of station-median ΔSNR was +3.0 dB for path A relative to B, supported by [n] qualifying identities and [m] spot pairs.” |
+| “Antenna A has 3 dB more gain than B.” | “For this band, UTC window and segment, the pooled mean paired ΔSNR was [mean] dB, with a [confidence]% CI of ±[half-width] dB for path A relative to B, supported by [n] qualifying identities and [m] spot pairs.” |
 | “My receiver sensitivity is 72%.” | “The Target's station-balanced Decode Rate was 72% across [n] qualifying remote identities during the stated window, using confirmed opportunities.” |
 | “Performance should be close to 100%.” | “Decode Rate is conditional on confirmed opportunities; 100% is not an expected baseline.” |
 | “A is statistically significantly better.” | “The descriptive median ΔSNR favored A among the selected spot pairs; no significance test was performed.” |
@@ -1948,7 +1952,7 @@ If an outlier candidate contributes to the conclusion, also record that reportin
 - stations with paired observations and spot-pair counts for Benchmark;
 - station-level and observation-level summaries;
 
-- for a reported mean CI, the associated mean, confidence level, method, observed pair count, half-width or full bounds, availability/status and independence assumption;
+- for a reported mean CI, the associated mean value and estimator, confidence level, method, contributing unit and count, half-width or full bounds, availability/status and independence assumption; for the Stations aggregate, retain station count and across-station SD/SE; for a pooled map mean, retain qualifying pair count N, paired-difference SD/SE, qualifying station count, the configured station-count requirement actually used, the maximum half-width and qualification reason;
 - Station Reach Advantage, pooled ΔDecode and relevant Paired, Target-only and Reference-only counts;
 - geographic and temporal scope, including an influential identity or short interval; and
 - within-run consistency and any repetition in a separate run.
@@ -1977,8 +1981,9 @@ The ZIP contains `config/` and either `benchmark/` or `performance/`, according 
 |---|---|
 | <strong class="defined-term">Disclaimer</strong> | `disclaimer.txt` contains the complete [Experimental Use & Disclaimer](#sec-disclaimer) in English. It accompanies every package. |
 | **Configuration** | `wspradar_config.config` restores analysis settings and supported view choices for another run. It does not contain the original observations. |
-| <strong class="defined-term">Run metadata</strong> | `run_metadata.json` records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its evidence mode, applicable operating declaration or historical-replay acknowledgement, method version, selected temporal statistic, CI alpha and method, and the aggregation definitions used for the station and pooled-pair summaries. These declarations are not independent proof of operation. |
+| <strong class="defined-term">Run metadata</strong> | `run_metadata.json` records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its conditions acceptance, method version, selected segment and station temporal statistics, CI alpha and method, and the aggregation definitions used for the station and pooled-pair summaries. Acceptance does not identify whether common operation was confirmed or its limitations accepted, and is not independent proof of operation. |
 | <strong class="defined-term">Processed evidence</strong> | `analysis_cache.parquet` contains retained evidence across the completed analysis's full geographic scope after scientific filtering. It is not restricted to the selected segment and is not an untouched database download. |
+| <strong class="defined-term">Benchmark map-segment results</strong> | `benchmark/map_segments.parquet` records the map's pooled qualifying-pair mean, pair count N, paired-difference sample SD and SE, CI bounds and half-width, confidence/alpha and method, CI status, qualifying station count and station-count requirement, maximum CI half-width, and qualification reason. Existing segment fields and descriptive summaries retain their own estimator names. Hatched segments retain any calculable mean and numeric interval/status. |
 | <strong class="defined-term">Station Insights CSV</strong> | Benchmark `table_station_insights.csv` follows the global or optionally Inspector-filtered station list. Performance `table_station_insights_current_segment.csv` follows its active Inspector scope. Both also follow Station Insights column filters, with scope and filters recorded in metadata. Empty tables retain headers. |
 | <strong class="defined-term">Drill-Down CSV files</strong> | Row-level evidence for selected stations or all stations in the active segment. The selected-station table can follow focus and table filters. Both files retain headers when empty. |
 | <strong class="defined-term">Outlier CSV files</strong> | `table_delta_snr_outlier_event_paths.csv` summarizes qualifying path events; `table_delta_snr_outlier_paired_evidence.csv` contains their chronological spot pairs, including corrected Reference SNR. Both cover the active segment and join through IDs valid only within this package. Reporting off: files absent. Reporting on with no findings: headers only. Findings remain candidates, not confirmed physical events. |
@@ -1986,7 +1991,9 @@ The ZIP contains `config/` and either `benchmark/` or `performance/`, according 
 | <strong class="defined-term">Selected-station figures</strong> | Benchmark uses the selected identity's full-run evidence; Performance follows its active scope. With outlier reporting enabled, Benchmark can instead show pooled ΔSNR for multiple selected paths. |
 | <strong class="defined-term">Drill-Down focus figures</strong> | Additional figures for exactly one selected station and its active focus interval. They preserve individual observations and chronological context alongside the ordinary selected-station figures. Candidate guides apply to the focused episode. |
 
-Benchmark numeric exports preserve the mean, sample SD, standard error, CI lower bound, upper bound, symmetric half-width, alpha, method, observed paired-observation count and availability/status at full precision. The displayed **±h** value is a presentation of those bounds, not a replacement for them. Missing and degenerate states remain distinguishable. Metadata identifies the temporal statistic and the summarized population; the aggregate Stations mean is a **mean of station means**, with no aggregate CI. Retained processed evidence preserves dated UTC timestamps and full station identities even when a figure folds observations by hour. The shared result fields are `n`, `mean`, `sample_sd`, `standard_error`, `lower`, `upper`, `half_width`, `alpha`, `method`, `available` and `status`; temporal-bin exports identify the corresponding bounds as `ci_lower` and `ci_upper`. Temporal-bin exports also retain the observed integer paired-observation count as `ci_n`, including zero for empty bins. Top-level `statistics_availability` and `spots.distribution_status` distinguish unavailable raw spot distributions from valid cached summary statistics and CI values.
+Benchmark numeric exports preserve the mean, sample SD, standard error, CI lower bound, upper bound, symmetric half-width, alpha, method, contributing count and availability/status at full precision. The count denotes paired observations for individual-station and pooled-pair CIs, and station means for aggregate station CIs. The displayed **±h** value is a presentation of those bounds, not a replacement for them. Missing and degenerate states remain distinguishable. Metadata identifies the temporal statistic and the summarized population; the aggregate Stations mean is a **mean of station means**, with its own CI calculated across those station means. These Stations definitions remain unchanged. Map-segment exports instead describe the pooled qualifying-pair mean and its own CI, together with pair count N, paired SD/SE, qualifying station count, the station-count requirement, maximum CI half-width, and qualification reason. Degenerate intervals retain numeric zero-width bounds together with explicit status. Retained processed evidence preserves dated UTC timestamps and full station identities even when a figure folds observations by hour. The shared result fields are `n`, `mean`, `sample_sd`, `standard_error`, `lower`, `upper`, `half_width`, `alpha`, `method`, `available` and `status`; temporal-bin exports identify the corresponding bounds as `ci_lower` and `ci_upper`. Temporal-bin exports also retain the observed integer paired-observation count as `ci_n`, including zero for empty bins. Top-level `statistics_availability` and `spots.distribution_status` distinguish unavailable raw spot distributions from valid cached summary statistics and CI values.
+
+The selected-scope equal-station aggregate remains recorded in `benchmark_mean_statistics.stations.mean_ci`; the pooled Spots result remains separate. `benchmark_maps.delta_snr` identifies the pooled qualifying-pair map estimator, equal-pair weighting, CI method and contributing unit, count and precision qualification settings, and segment-result file. An Inspector scope can contain multiple segments and must not be confused with a single map segment. When the Inspector selects exactly that segment's qualifying pairs, adjustments and confidence level, the map and pooled Spots results agree.
 
 Keep metadata with the evidence: configuration alone cannot reconstruct every selection. Missing data-selection metadata remains unknown; it does not establish that the standard filter was used. See [Section 11.4](#sec-6-4). Inspector scope, station-list scope and selected-station/focus scope are distinct; a Benchmark station figure must not be read as limited to the Inspector's direction and distance.
 
@@ -2056,9 +2063,9 @@ A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-
 | **Known Reference QTH (4 characters, optional)** | Leave blank to discover the location from reports, or enter an independently known grid-4. One discovered grid resolves automatically; several require your choice. A known location does not establish operation. |
 | **Reference SNR correction** | Default **No correction** applies **0.0 dB**. Choose **Use a documented correction** only for an established offset valid for this setup. The signed field accepts **−99.9 to +99.9 dB**; blank means **0.0**. Use a decimal point. A documented zero remains distinct from no established correction. |
 
-**Operating confirmation:** for your own Benchmark, confirm common operation as described in [Section 1.2](#sec-2-2). Changing identities, direction, band or period clears the confirmation. Loading a personal configuration or ordinary analysis link requires fresh acknowledgement; saved declarations do not verify operation.
+**Benchmark acceptance:** every Benchmark requires **I have confirmed common operation, or accept the limitations when it is unverified.** Check common operation as described in [Section 1.2](#sec-2-2); when it is unverified, interpret the observations within the stated limitations. Changing identities, direction, band or period clears acceptance. Loading a personal configuration or ordinary analysis link requires fresh acceptance; a saved acceptance does not verify operation.
 
-**Historical replay** uses a separate acknowledgement of uncertain historical operation, not a controlled-operation declaration. Ordinary replay loads require fresh acknowledgement, including legacy analysis links with `run=1`. Opening a link never starts an analysis. Built-in demos preselect the declaration appropriate to their documented mode; the Milazzo demo uses the historical-limits acknowledgement. A link selecting an installed demo opens Guided Review directly with that demo selected; its experiment notes remain available in the collapsed **00 Guided demo** panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acknowledgement. Loading a demo alone still does not run it.
+The same acceptance applies to **historical observations**, including Milazzo; there is no separate historical mode. Ordinary analysis links require fresh acceptance, including links with the inert `run=1` parameter. Opening a link never starts an analysis. Built-in demos preselect this acceptance; their experiment notes explain known operating conditions and uncertainties. A link selecting an installed demo opens Guided Review directly with that demo selected; its experiment notes remain available in the collapsed **00 Guided demo** panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acceptance. Loading a demo alone still does not run it.
 
 ##### Reference-side SNR correction sign
 
@@ -2078,17 +2085,21 @@ For ΔDecode, an <strong class="defined-term">observed event</strong> is one rem
 | **Exclude Moving Stations** | Performance **on**; Benchmark **off** | Excludes peer callsigns reported in more than one grid-4 in the otherwise eligible global reports, **before distance filtering**. This may reflect movement or incorrect metadata. |
 | **Solar state at Target QTH** | **All 24h** | Keeps all cycles, daylight above **+6°**, nighttime below **−6°**, or greyline between those elevations at the Target. |
 | **Maximum peer distance from Target (km)** | **22 000**; choices 2 500 / 5 000 / 10 000 / 15 000 / 20 000 / 22 000 | Removes peers **at or beyond** the limit from the analyzed population and exports. This changes the analysis, not just the map view. |
-| **Minimum spot pairs per station for ΔSNR** | **1**; 1–50 | Benchmark: qualifies each exact station identity over the full filtered period. One-sided reports do not satisfy this requirement. |
 | **Minimum confirmed opportunities per station** | **5**; 1–100 | Performance: requires this many successes plus confirmed misses per identity. Lower values produce coarser, less-supported rates. |
 | **Minimum qualifying stations per map segment** | **1**; 1–10 | Performance: requires this many qualifying identities before a segment is drawn. |
-| **Minimum qualifying stations per segment for ΔSNR** | **5**; 1–10 | Benchmark: requires this many identities meeting the spot-pair minimum before the segment receives ΔSNR coloring. |
-| **Minimum observed-event share per segment for ΔDecode (%)** | **1%**; 0–5%, steps of 0.5% | Benchmark: requires this share of the full filtered run's observed events, rounded up to a whole event. At **0%**, every nonempty segment qualifies. |
+| **Minimum qualifying stations per segment for ΔSNR** | **3**; 1–50 | Visible station-count requirement. Count qualifying identities that contribute at least one eligible pair to the segment. A segment also needs an available, non-degenerate pooled-pair CI within the maximum half-width. |
+| **Shared confidence level** | **95%**; 70%, 80%, 90%, 95%, 99% | One shared setting governs map and Inspector mean CIs: pooled map pairs, individual stations, pooled Spots, temporal/folded bins and the existing equal-station aggregate. Higher confidence widens a non-degenerate interval for the same data and can change map qualification; it does not change contributing observations or means. |
+| **Maximum ΔSNR map CI (± dB)** | **0.5**; finite positive value | Editable numeric map setting: 0.5 means a CI no wider than **mean ±0.5 dB**. Coloring requires the unrounded pooled-pair CI half-width to be no greater than this value. The station-count requirement remains in force. |
+| **Minimum observed stations per segment for ΔDecode** | **3**; 1–50 | Count distinct callsign/full-reported-locator identities with at least one retained event in the segment, including one-sided identities. The observed-event share requirement must also be met. |
+| **Minimum observed-event share per segment for ΔDecode (%)** | **1%**; 0–5%, steps of 0.5% | Benchmark: requires this share of the full filtered run's observed events, rounded up to a whole event. At **0%**, every nonempty segment meets this requirement; the observed-station minimum still applies. |
 
-The **one-pair default** for ΔSNR preserves sensitivity by keeping sparsely observed paths eligible. Use **Minimum qualifying stations per segment for ΔSNR** — default **5** — to prevent a single path alone from determining a segment's ΔSNR color. A station with one pair contributes just one ΔSNR observation.
+The map station-count requirement is **three** by default, with range **1–50**. Coloring additionally requires an available, non-degenerate pooled-pair CI at the shared level, **95%** by default, with unrounded half-width no greater than **0.5 dB** by default. A half-width of **0.5004 dB fails a 0.5 dB limit**, even if a display rounds it to 0.50. The half-width setting changes map qualification and shading only; the confidence setting governs existing mean CIs as well. Neither setting deletes eligible evidence from the Inspector. The compact summary reads **CI ± 0.5 dB** and **Shared confidence level: 95%** at the defaults; both values follow the current settings.
 
-The ΔDecode requirement's full-run denominator stays fixed when you crop or select a segment. ΔDecode has no separate per-station minimum. These requirements measure evidence volume, not confidence.
+The ΔDecode requirement's full-run denominator stays fixed when you crop or select a segment. ΔDecode has no separate per-station event minimum and does not reuse ΔSNR station qualification. Its observed-station minimum and event-share requirement both apply. These requirements describe station breadth and evidence volume, not confidence.
 
-Benchmark segments with observed evidence but below the relevant threshold are gray hatched; retained station observations remain available. The ΔSNR pair minimum does not remove decodes from ΔDecode. In Performance, evidence outside the distance limit may still establish Target activity, without adding those peers to the analyzed population.
+The **ΔSNR evidence requirements** and **ΔDecode evidence requirements** appear side by side where screen width permits, with the relevant station minimum first in each section. On narrow screens they stack. **Expert Settings** follows these requirements and contains **Identify ΔSNR outlier candidates** and its optional controls.
+
+Benchmark segments with observed evidence but below the relevant threshold are gray hatched; retained station observations remain available. The paired-evidence requirement for ΔSNR does not remove decodes from ΔDecode. In Performance, evidence outside the distance limit may still establish Target activity, without adding those peers to the analyzed population.
 
 Once you manually change either exclusion, that choice persists across Question changes. Stored configurations, demos and analysis links also preserve their explicit exclusions.
 
@@ -2107,12 +2118,17 @@ These controls inspect the completed evidence without changing its classificatio
 | **Include one-sided evidence** | Shows Benchmark identities without spot pairs and one-sided Drill-Down observations. This saved visibility choice changes neither coverage totals nor qualification. |
 | **Selected station row** | Saves the exact callsign-plus-locator selection: normally one per result type; multiple Benchmark identities are supported when outlier reporting is enabled. |
 | **Time aggregation** | Changes chronological display bins; Inspector and selected-station choices are saved separately. Pairing, opportunities and fixed one-hour folded bins remain unchanged. |
-| **Time basis** | Selects UTC or Local Solar consistently across chronological and folded Inspector, selected-station and focused SNR, decode and coverage panels. The basis is saved in configurations, shared analysis links and export metadata. Switching changes the displayed chronological clock while preserving UTC bins and their statistics; folded observations are regrouped before their hourly summaries. Whole-run statistics remain unchanged. |
-
-| **ΔSNR statistic: Median / Mean** | Benchmark temporal ΔSNR only. Median is the default and the fallback for older configurations. Median shows the existing median and Bin IQR; Mean shows the arithmetic mean and its available configured pointwise CI. Both preserve eligible observations, bins and pair weighting. The choice is saved in configurations, shared analysis links and export metadata. Benchmark Statistics, maps, ΔDecode and evidence counts remain unchanged. |
+| **Time basis** | Selects UTC or Local Solar independently for segment and selected-station plots, with UTC as the new-analysis default at both levels. Each choice applies to that level’s chronological and folded SNR, decode and coverage panels; focused plots follow the selected-station choice. Both choices are saved in configurations, shared analysis links and export metadata. Switching changes the displayed chronological clock while preserving UTC bins and their statistics; folded observations are regrouped before their hourly summaries. Whole-run statistics remain unchanged. |
+| **ΔSNR statistic: Median / Mean** | Benchmark temporal ΔSNR only. Mean is the default for new analyses. Segment and selected-station plots keep independent choices. If a current configuration omits a statistic, that level defaults to Mean; explicit saved choices are honored. The Milazzo demo opens both levels with Median. Median shows the existing median and Bin IQR; Mean shows the arithmetic mean and its available configured pointwise CI. Both preserve eligible observations, bins and pair weighting. Both choices are saved in configurations, shared analysis links and export metadata. Benchmark Statistics, maps, ΔDecode and evidence counts remain unchanged. |
 | **Zoom window / <strong class="defined-term">Outlier Focus</strong>** | Focuses Drill-Down on an interval for exactly one selected station. **Filter table** then narrows table rows only. Focus and Drill-Down table filters are not saved in configurations or analysis links. |
 
-**CI configuration:** These settings are stored under `results_view.benchmark`, alongside `temporal_statistic`, and preserved in shared analysis links and export metadata. `ci_alpha` defaults to `0.05` and must be strictly between 0 and 1. It specifies the total two-sided tail probability; the confidence level is `100 × (1 − ci_alpha)%`. `ci_method` defaults to `iid_student_t`. The same configuration values govern individual station means, pooled qualifying-pair means and temporal-bin means; no pooled interval is assigned to the aggregate mean of station means. See [Section 8.5.1](#sec-7-dependence-bias) for the calculation and assumptions.
+**CI configuration:** These settings are stored under `advanced_parameters` and preserved in shared analysis links and export metadata. The independent `segment_temporal_statistic` and `station_temporal_statistic` remain under `results_view`. `evidence_confidence_level_percent` defaults to `95` and must be strictly between 0 and 100. The corresponding internal `ci_alpha = 1 − evidence_confidence_level_percent / 100` specifies the total two-sided tail probability and must be strictly between 0 and 1; the confidence level is `100 × (1 − ci_alpha)%`. `evidence_confidence_interval_method` defaults to `iid_student_t`. The same confidence configuration governs individual station means, pooled qualifying-pair means, temporal/folded-bin means, pooled map-pair means and the existing equal-station aggregate for the selected Inspector scope. Each interval uses its own contributing unit and sample SD: pairs for the map and pooled Spots, station means for the Stations aggregate. Benchmark Statistics estimators and populations remain unchanged. The map additionally has its own maximum CI half-width requirement; that threshold does not filter Inspector scope statistics. See [Section 8.5.1](#sec-7-dependence-bias) for the calculation and assumptions.
+
+Saved configurations express the shared confidence setting as `advanced_parameters.evidence_confidence_level_percent` and `advanced_parameters.evidence_confidence_interval_method`; the internal `ci_alpha` remains the corresponding two-sided tail probability. The map limit is stored as `advanced_parameters.evidence_max_segment_ci_half_width_db`. Saved configurations preserve the effective station-count requirements, shared confidence and map CI limit. An absent half-width uses the default **0.5 dB**; an explicitly supplied value must be finite and strictly positive. Invalid values require correction rather than silent replacement.
+
+**ΔDecode configuration:** Benchmark configuration documents explicitly require `settings.advanced_parameters.evidence_min_decode_stations_per_segment`, alongside `settings.advanced_parameters.evidence_min_decode_event_share_percent`. The station minimum is an integer from **1 to 50**; new analyses default to **3**. Existing installed Benchmark demos explicitly use **1** to preserve their reviewed coloring. Older Benchmark configuration documents missing the required field are rejected rather than silently assigned a new map requirement. Shared links use `min_decode_stations_per_segment` for this separate ΔDecode setting.
+
+Shared links record the effective Benchmark station minimum explicitly. A link with unresolved, retired or invalid optional parameters restores its recognized valid settings and lists the parameter names that need manual selection before running. Retired names are not aliases and are not silently migrated. Invalid or ambiguous required identity, comparison design or time settings prevent loading. Links load settings only; they do not authorize a new analysis.
 
 Chronological bin choices depend on the **complete run duration**. A valid saved choice takes precedence over the default and remains available even outside the usual choices below:
 
@@ -2129,7 +2145,7 @@ Manual zoom offers **Off** and the **1h**, **3h**, **6h**, **12h** or **24h** wi
 
 #### 10.6 Benchmark outlier-detection controls
 
-**Identify ΔSNR outlier candidates** is off by default. Enable it only when investigating temporary departures in paired evidence; see [Section 2.5](#sec-outlier).
+Under **Expert Settings**, **Identify ΔSNR outlier candidates** is off by default. Enable it only when investigating temporary departures in paired evidence; see [Section 2.5](#sec-outlier).
 
 | Control | Default / range | Effect |
 |---|---|---|
@@ -2164,7 +2180,7 @@ Read notices against the settings of the **completed run**. An observed count an
 | **Reports returned, but none remain** | Review station exclusions, solar state and maximum peer distance. These may remove the retrieved population. |
 | **No qualifying Performance stations** | Compare confirmed opportunities with the station minimum. Check both endpoint-activity evidence and population filters; unknown activity is not a confirmed miss. |
 | **Performance stations exist, but no map segment qualifies** | Inspect station evidence and compare each segment's qualifying-station count with its minimum. Missing map output is not a zero Decode Rate. |
-| **Benchmark ΔSNR is missing or hatched** | Check for the same remote identities in the same cycles, common operation and synchronized schedules. Then check station pair counts and the segment station minimum. One-sided evidence can still support ΔDecode. |
+| **Benchmark ΔSNR is missing or hatched** | Check for the same remote identities in the same cycles, common operation and synchronized schedules. Then check station pair eligibility and the segment's contributing station count. Select the exact segment in **Segment Inspector** and compare the pooled **Spots** mean and ± half-width in the separate **Benchmark Statistics** section with the selected CI ± limit. The full-precision interval status and qualification reason are in `benchmark/map_segments.parquet`. A CI may be unavailable, degenerate or wider than the selected limit. With at least two contributing pairs, exactly zero variance across their differences gives a degenerate interval and the segment remains hatched; equal station means alone do not imply zero pair variance. Check paths and dated evidence before changing the requirements. One-sided evidence can still support ΔDecode, and eligible observations in hatched segments remain in Inspector scope statistics. |
 | **ΔDecode is hatched despite observed reports** | Compare the segment's event count with the full-run event-share requirement. Selecting a smaller area does not lower that requirement. |
 | **Station list is unexpectedly empty** | Clear Station Insights column filters and review visibility toggles. In Benchmark, also check **Filter by selected segment and distance**. |
 | **Unexpected ΔSNR sign** | Check Target/Reference and physical path assignments, correction sign and power reports. Reconcile an individual pair in Drill-Down. |

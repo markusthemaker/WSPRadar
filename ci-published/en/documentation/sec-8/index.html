@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="/assets/fonts.css">
   <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=1a6c10d30cef2383">
   <link rel="stylesheet" href="/assets/site.css">
-  <link rel="stylesheet" href="/assets/landing.css?v=a3f1629fa45eff04">
+  <link rel="stylesheet" href="/assets/landing.css?v=cbff5261467c11f6">
   <script src="/assets/site.js" defer></script>
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
@@ -105,7 +105,7 @@
 <tbody>
 <tr>
 <td>“Antenna A has 3 dB more gain than B.”</td>
-<td>“For this band, UTC window and segment, the median of station-median ΔSNR was +3.0 dB for path A relative to B, supported by [n] qualifying identities and [m] spot pairs.”</td>
+<td>“For this band, UTC window and segment, the pooled mean paired ΔSNR was [mean] dB, with a [confidence]% CI of ±[half-width] dB for path A relative to B, supported by [n] qualifying identities and [m] spot pairs.”</td>
 </tr>
 <tr>
 <td>“My receiver sensitivity is 72%.”</td>
@@ -191,7 +191,7 @@
 <p>station-level and observation-level summaries;</p>
 </li>
 <li>
-<p>for a reported mean CI, the associated mean, confidence level, method, observed pair count, half-width or full bounds, availability/status and independence assumption;</p>
+<p>for a reported mean CI, the associated mean value and estimator, confidence level, method, contributing unit and count, half-width or full bounds, availability/status and independence assumption; for the Stations aggregate, retain station count and across-station SD/SE; for a pooled map mean, retain qualifying pair count N, paired-difference SD/SE, qualifying station count, the configured station-count requirement actually used, the maximum half-width and qualification reason;</p>
 </li>
 <li>Station Reach Advantage, pooled ΔDecode and relevant Paired, Target-only and Reference-only counts;</li>
 <li>geographic and temporal scope, including an influential identity or short interval; and</li>
@@ -230,11 +230,15 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Run metadata</strong></td>
-<td><code>run_metadata.json</code> records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its evidence mode, applicable operating declaration or historical-replay acknowledgement, method version, selected temporal statistic, CI alpha and method, and the aggregation definitions used for the station and pooled-pair summaries. These declarations are not independent proof of operation.</td>
+<td><code>run_metadata.json</code> records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its conditions acceptance, method version, selected segment and station temporal statistics, CI alpha and method, and the aggregation definitions used for the station and pooled-pair summaries. Acceptance does not identify whether common operation was confirmed or its limitations accepted, and is not independent proof of operation.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Processed evidence</strong></td>
 <td><code>analysis_cache.parquet</code> contains retained evidence across the completed analysis's full geographic scope after scientific filtering. It is not restricted to the selected segment and is not an untouched database download.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Benchmark map-segment results</strong></td>
+<td><code>benchmark/map_segments.parquet</code> records the map's pooled qualifying-pair mean, pair count N, paired-difference sample SD and SE, CI bounds and half-width, confidence/alpha and method, CI status, qualifying station count and station-count requirement, maximum CI half-width, and qualification reason. Existing segment fields and descriptive summaries retain their own estimator names. Hatched segments retain any calculable mean and numeric interval/status.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Station Insights CSV</strong></td>
@@ -262,7 +266,8 @@
 </tr>
 </tbody>
 </table></div>
-<p>Benchmark numeric exports preserve the mean, sample SD, standard error, CI lower bound, upper bound, symmetric half-width, alpha, method, observed paired-observation count and availability/status at full precision. The displayed <strong>±h</strong> value is a presentation of those bounds, not a replacement for them. Missing and degenerate states remain distinguishable. Metadata identifies the temporal statistic and the summarized population; the aggregate Stations mean is a <strong>mean of station means</strong>, with no aggregate CI. Retained processed evidence preserves dated UTC timestamps and full station identities even when a figure folds observations by hour. The shared result fields are <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> and <code>status</code>; temporal-bin exports identify the corresponding bounds as <code>ci_lower</code> and <code>ci_upper</code>. Temporal-bin exports also retain the observed integer paired-observation count as <code>ci_n</code>, including zero for empty bins. Top-level <code>statistics_availability</code> and <code>spots.distribution_status</code> distinguish unavailable raw spot distributions from valid cached summary statistics and CI values.</p>
+<p>Benchmark numeric exports preserve the mean, sample SD, standard error, CI lower bound, upper bound, symmetric half-width, alpha, method, contributing count and availability/status at full precision. The count denotes paired observations for individual-station and pooled-pair CIs, and station means for aggregate station CIs. The displayed <strong>±h</strong> value is a presentation of those bounds, not a replacement for them. Missing and degenerate states remain distinguishable. Metadata identifies the temporal statistic and the summarized population; the aggregate Stations mean is a <strong>mean of station means</strong>, with its own CI calculated across those station means. These Stations definitions remain unchanged. Map-segment exports instead describe the pooled qualifying-pair mean and its own CI, together with pair count N, paired SD/SE, qualifying station count, the station-count requirement, maximum CI half-width, and qualification reason. Degenerate intervals retain numeric zero-width bounds together with explicit status. Retained processed evidence preserves dated UTC timestamps and full station identities even when a figure folds observations by hour. The shared result fields are <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> and <code>status</code>; temporal-bin exports identify the corresponding bounds as <code>ci_lower</code> and <code>ci_upper</code>. Temporal-bin exports also retain the observed integer paired-observation count as <code>ci_n</code>, including zero for empty bins. Top-level <code>statistics_availability</code> and <code>spots.distribution_status</code> distinguish unavailable raw spot distributions from valid cached summary statistics and CI values.</p>
+<p>The selected-scope equal-station aggregate remains recorded in <code>benchmark_mean_statistics.stations.mean_ci</code>; the pooled Spots result remains separate. <code>benchmark_maps.delta_snr</code> identifies the pooled qualifying-pair map estimator, equal-pair weighting, CI method and contributing unit, count and precision qualification settings, and segment-result file. An Inspector scope can contain multiple segments and must not be confused with a single map segment. When the Inspector selects exactly that segment's qualifying pairs, adjustments and confidence level, the map and pooled Spots results agree.</p>
 <p>Keep metadata with the evidence: configuration alone cannot reconstruct every selection. Missing data-selection metadata remains unknown; it does not establish that the standard filter was used. See <a href="/en/documentation/sec-6/#sec-6-4">Section 11.4</a>. Inspector scope, station-list scope and selected-station/focus scope are distinct; a Benchmark station figure must not be read as limited to the Inspector's direction and distance.</p>
 <p>Benchmark figure filenames identify their quantities:</p>
 <ul>

@@ -1,0 +1,47 @@
+{
+  "demo_id": "griffiths_squibb_fig3",
+  "generated_utc": "2026-11-02T23:16:41.072702+00:00",
+  "method": "Native production renderers over retained evidence from verified offline production SQL and filters; no provider fetch and no pixel edits.",
+  "configuration": {
+    "path": "config/demos/00a_griffiths_squibb_fig3.config",
+    "bytes": 3840,
+    "sha256": "fefeac89277077dd2bbada5fe1a8fc43f5b4389c546b44bc796dc2babd3c5364"
+  },
+  "retained_evidence": {
+    "path": ".tmp/station-mean-ci/griffiths_fig3_temporal_v1-retained.parquet",
+    "bytes": 1347354,
+    "sha256": "14edb2105039e012f4fca427de3917ff8984922efe6b0b02a91df45c7bbf6985"
+  },
+  "raw_evidence": {
+    "path": "tests/regression/reference_fixtures/griffiths_fig3_temporal_v1/source_rows.parquet",
+    "sha256": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd"
+  },
+  "confidence_level": 0.95,
+  "max_segment_ci_half_width_db": 0.5,
+  "source_hashes": {
+    "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+    "core/mean_ci.py": "881a5cc3529350bf6dd23c1b174f1bc9b60f8c5619143a6cda9a01a5fba625ff",
+    "core/plot_engine.py": "9c75aee11e4735f7372a3fa17cd5c642cddcb7e838091a35048b572da2e78ae0",
+    "ui/plots/evidence_figures.py": "00764e26026e08927a4bde9ef812908b88bc40a457c9adf70442168bc0633806",
+    "ui/inspector/preparation.py": "b57df1f4b6f6fc0e2d2378699a9feefdb46fa9d74d639d9a634fdaff54a636fd",
+    "ui/components/inspector_statistics.py": "33c0b0be87edc0708636eb80e4cb1719a28479ecf51ac5b6c5f0d0c30c12858f"
+  },
+  "figures": [
+    {
+      "path": ".tmp/pooled-pair-doc-refresh/native/griffiths_squibb_fig3/map.png",
+      "bytes": 1524317,
+      "sha256": "12ea7c56a5a601865069a5c5e8bb83a26371a97f4349b99350fb90f279cd763d",
+      "width": 3411,
+      "height": 3518
+    },
+    {
+      "path": ".tmp/pooled-pair-doc-refresh/native/griffiths_squibb_fig3/statistics.png",
+      "bytes": 487309,
+      "sha256": "a5627ed882a1c776bcedf97c222232318d2f14bb2315b8d34708410a8a465a38",
+      "width": 3774,
+      "height": 2849
+    }
+  ],
+  "segment_count": 37,
+  "colored_segments": 11
+}

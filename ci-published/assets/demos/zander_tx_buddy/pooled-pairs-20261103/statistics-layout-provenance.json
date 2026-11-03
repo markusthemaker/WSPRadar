@@ -1,0 +1,113 @@
+{
+  "demo_id": "zander_tx_buddy",
+  "generated_utc": "2026-11-03T12:31:26.296208+00:00",
+  "scope": "Statistics title harmonization only; approved column ordering, scientific inputs, counts and calculations retained.",
+  "method": "Current production preparation and renderer over hash-verified previously retained full-precision evidence; no provider retrieval and no pixel edits.",
+  "configuration": {
+    "path": "config/demos/03_zander_tx_buddy_experiment_a.config",
+    "bytes": 3797,
+    "sha256": "9fe5485d63563723f46d84b95b9521d0c8199b47d78aa831de7d9112f12f7fe7"
+  },
+  "retained_evidence": {
+    "path": ".tmp/station-mean-ci/zander_experiment_a_v1-retained.parquet",
+    "bytes": 14592,
+    "sha256": "bad8ecd74a96193050654b61d11d3e69af76c1ef8046629ecf6a12d47e96e61e"
+  },
+  "raw_evidence": {
+    "path": "tests/regression/reference_fixtures/zander_experiment_a_v1/source_rows.parquet",
+    "bytes": 14206,
+    "sha256": "0c579e9cd744e5ec565fcabb45d9770284abe27ad3f0b2a93d9dc746eeb9be6e"
+  },
+  "previous_native": {
+    "path": "website/source/assets/demos/zander_tx_buddy/pooled-pairs-20261103/statistics.png",
+    "bytes": 483320,
+    "sha256": "31c83952c58803ccca307385d6c964693970fca528f02658ef96fdb288e29fd6"
+  },
+  "previous_provenance": {
+    "path": "website/source/assets/demos/zander_tx_buddy/pooled-pairs-20261103/provenance.json",
+    "bytes": 2140,
+    "sha256": "37cbf2bf05de02b1c88ed19fcc9203a3180a3a8e67fc9b175791ce4535056c1a"
+  },
+  "source_hashes": {
+    "ui/plots/evidence_figures.py": "3cb239905d401d079a57a90d3352281e09e9c77e4ea2200192beda9d273eda3c",
+    "ui/inspector/preparation.py": "577d583f7fb950f98b053aa0d0126390abde16a1c48619a86c9ee5e5605e1ed9",
+    "ui/components/inspector_statistics.py": "cefcec22e65bd8fcb553576e1dcd47bba8ede6839a32749f01e63f529ca4464f",
+    "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+    "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+    "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+    "localization/figures_en.py": "609c74e6c5c5fa6d304100787932f93a0d1758d09d28518edcca6e2b21fa6fa5",
+    "localization/figures_de.py": "e3ab25366c555e8fd63b78c64171ba6678020b5c9dfd2ca887544225bf0da5d4"
+  },
+  "figure": {
+    "path": "assets/demos/zander_tx_buddy/pooled-pairs-20261103/statistics.png",
+    "bytes": 482684,
+    "sha256": "22641ed32092fe6e556402b32eef3a2aab1d4aee0942b7a5223227c9e00b40de",
+    "width": 3774,
+    "height": 2849
+  },
+  "counts": {
+    "spot_histogram": 166,
+    "station_mean_histogram": 37,
+    "station_histogram": 37
+  },
+  "layout_verified": true,
+  "titles": [
+    "ΔSNR ± 95% CI - Qualifying spot pairs",
+    "ΔDecode - Spot Decodes",
+    "ΔSNR ± 95% CI - Qualifying station means",
+    "ΔSNR - Qualifying station medians"
+  ],
+  "titles_verified": true,
+  "previous_title_refresh": {
+    "demo_id": "zander_tx_buddy",
+    "generated_utc": "2026-11-03T12:19:27.484575+00:00",
+    "scope": "Statistics panel ordering only: paired differences upper left, decode volume lower left, station means upper right, station medians lower right. Scientific inputs and calculations retained.",
+    "method": "Current production preparation and renderer over hash-verified previously retained full-precision evidence; no provider retrieval and no pixel edits.",
+    "configuration": {
+      "path": "config/demos/03_zander_tx_buddy_experiment_a.config",
+      "bytes": 3854,
+      "sha256": "64c7be56d0129b468366a58b54b6f3f08d83976cece83be04870e27a9410c0cf"
+    },
+    "retained_evidence": {
+      "path": ".tmp/station-mean-ci/zander_experiment_a_v1-retained.parquet",
+      "bytes": 14592,
+      "sha256": "bad8ecd74a96193050654b61d11d3e69af76c1ef8046629ecf6a12d47e96e61e"
+    },
+    "raw_evidence": {
+      "path": "tests/regression/reference_fixtures/zander_experiment_a_v1/source_rows.parquet",
+      "bytes": 14206,
+      "sha256": "0c579e9cd744e5ec565fcabb45d9770284abe27ad3f0b2a93d9dc746eeb9be6e"
+    },
+    "previous_native": {
+      "path": "website/source/assets/demos/zander_tx_buddy/pooled-pairs-20261103/statistics.png",
+      "bytes": 478434,
+      "sha256": "2ab4b908254ef9199c782359bf3afc5ff2c6f21a5b1c0be0b7a422a20fd35155"
+    },
+    "previous_provenance": {
+      "path": "website/source/assets/demos/zander_tx_buddy/pooled-pairs-20261103/provenance.json",
+      "bytes": 2140,
+      "sha256": "37cbf2bf05de02b1c88ed19fcc9203a3180a3a8e67fc9b175791ce4535056c1a"
+    },
+    "source_hashes": {
+      "ui/plots/evidence_figures.py": "a8f8be6a07e98c100ee4beee7faacfa74ef646b2c4f570c74e4b91f7d633b599",
+      "ui/inspector/preparation.py": "7ef824e6967414910dc37e20b1db90909bd5f991239414c2be86c88214d6138f",
+      "ui/components/inspector_statistics.py": "cefcec22e65bd8fcb553576e1dcd47bba8ede6839a32749f01e63f529ca4464f",
+      "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+      "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+      "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231"
+    },
+    "figure": {
+      "path": "assets/demos/zander_tx_buddy/pooled-pairs-20261103/statistics.png",
+      "bytes": 483320,
+      "sha256": "31c83952c58803ccca307385d6c964693970fca528f02658ef96fdb288e29fd6",
+      "width": 3774,
+      "height": 2849
+    },
+    "counts": {
+      "spot_histogram": 166,
+      "station_mean_histogram": 37,
+      "station_histogram": 37
+    },
+    "layout_verified": true
+  }
+}

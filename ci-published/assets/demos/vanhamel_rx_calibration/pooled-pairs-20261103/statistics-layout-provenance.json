@@ -1,0 +1,113 @@
+{
+  "demo_id": "vanhamel_rx_calibration",
+  "generated_utc": "2026-11-03T12:31:24.491049+00:00",
+  "scope": "Statistics title harmonization only; approved column ordering, scientific inputs, counts and calculations retained.",
+  "method": "Current production preparation and renderer over hash-verified previously retained full-precision evidence; no provider retrieval and no pixel edits.",
+  "configuration": {
+    "path": "config/demos/01_vanhamel_rx_calibration.config",
+    "bytes": 3799,
+    "sha256": "fdd58bf679f3a444f5acc3b1544c7dbd629baa4ef6cb7561ea736dbf43b016e0"
+  },
+  "retained_evidence": {
+    "path": ".tmp/station-mean-ci/vanhamel_rx_calibration_v1-retained.parquet",
+    "bytes": 29814,
+    "sha256": "daab63c4a28b8c47b1bcbf095f3a6b893a667cf02bd366dca821bc0ec92e4be8"
+  },
+  "raw_evidence": {
+    "path": "tests/regression/reference_fixtures/vanhamel_rx_calibration_v1/source_rows.parquet",
+    "bytes": 56558,
+    "sha256": "4309174b108f9e178cbfe0c793221d10d612d6cac55729a290b9bf9c83d71f0a"
+  },
+  "previous_native": {
+    "path": "website/source/assets/demos/vanhamel_rx_calibration/pooled-pairs-20261103/statistics.png",
+    "bytes": 472844,
+    "sha256": "d7d3177ad091cc84d8b7ea56bd0e0354514f27402054370a195b562c4a04d607"
+  },
+  "previous_provenance": {
+    "path": "website/source/assets/demos/vanhamel_rx_calibration/pooled-pairs-20261103/provenance.json",
+    "bytes": 2167,
+    "sha256": "0303f4cbfbf6840f084867cffd497e69d1f25c1c35b7be7dab52f543c794574a"
+  },
+  "source_hashes": {
+    "ui/plots/evidence_figures.py": "3cb239905d401d079a57a90d3352281e09e9c77e4ea2200192beda9d273eda3c",
+    "ui/inspector/preparation.py": "577d583f7fb950f98b053aa0d0126390abde16a1c48619a86c9ee5e5605e1ed9",
+    "ui/components/inspector_statistics.py": "cefcec22e65bd8fcb553576e1dcd47bba8ede6839a32749f01e63f529ca4464f",
+    "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+    "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+    "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+    "localization/figures_en.py": "609c74e6c5c5fa6d304100787932f93a0d1758d09d28518edcca6e2b21fa6fa5",
+    "localization/figures_de.py": "e3ab25366c555e8fd63b78c64171ba6678020b5c9dfd2ca887544225bf0da5d4"
+  },
+  "figure": {
+    "path": "assets/demos/vanhamel_rx_calibration/pooled-pairs-20261103/statistics.png",
+    "bytes": 472186,
+    "sha256": "8060ddb9b4d549cea998d284d6e99ab3b0a1fd6b1bae9ae798b734f6565b1e5e",
+    "width": 3774,
+    "height": 2849
+  },
+  "counts": {
+    "spot_histogram": 1143,
+    "station_mean_histogram": 10,
+    "station_histogram": 10
+  },
+  "layout_verified": true,
+  "titles": [
+    "ΔSNR ± 95% CI - Qualifying spot pairs",
+    "ΔDecode - Spot Decodes",
+    "ΔSNR ± 95% CI - Qualifying station means",
+    "ΔSNR - Qualifying station medians"
+  ],
+  "titles_verified": true,
+  "previous_title_refresh": {
+    "demo_id": "vanhamel_rx_calibration",
+    "generated_utc": "2026-11-03T12:19:25.716962+00:00",
+    "scope": "Statistics panel ordering only: paired differences upper left, decode volume lower left, station means upper right, station medians lower right. Scientific inputs and calculations retained.",
+    "method": "Current production preparation and renderer over hash-verified previously retained full-precision evidence; no provider retrieval and no pixel edits.",
+    "configuration": {
+      "path": "config/demos/01_vanhamel_rx_calibration.config",
+      "bytes": 3856,
+      "sha256": "9a7c0cc65a9f5de508ef1a529ac061b846150e58ac80ba9d8878f238a34853a7"
+    },
+    "retained_evidence": {
+      "path": ".tmp/station-mean-ci/vanhamel_rx_calibration_v1-retained.parquet",
+      "bytes": 29814,
+      "sha256": "daab63c4a28b8c47b1bcbf095f3a6b893a667cf02bd366dca821bc0ec92e4be8"
+    },
+    "raw_evidence": {
+      "path": "tests/regression/reference_fixtures/vanhamel_rx_calibration_v1/source_rows.parquet",
+      "bytes": 56558,
+      "sha256": "4309174b108f9e178cbfe0c793221d10d612d6cac55729a290b9bf9c83d71f0a"
+    },
+    "previous_native": {
+      "path": "website/source/assets/demos/vanhamel_rx_calibration/pooled-pairs-20261103/statistics.png",
+      "bytes": 469293,
+      "sha256": "114739eea45ee921b5d3b50aa813fa26c351c7d70d0da33c4ed22205c28fb42e"
+    },
+    "previous_provenance": {
+      "path": "website/source/assets/demos/vanhamel_rx_calibration/pooled-pairs-20261103/provenance.json",
+      "bytes": 2167,
+      "sha256": "0303f4cbfbf6840f084867cffd497e69d1f25c1c35b7be7dab52f543c794574a"
+    },
+    "source_hashes": {
+      "ui/plots/evidence_figures.py": "a8f8be6a07e98c100ee4beee7faacfa74ef646b2c4f570c74e4b91f7d633b599",
+      "ui/inspector/preparation.py": "7ef824e6967414910dc37e20b1db90909bd5f991239414c2be86c88214d6138f",
+      "ui/components/inspector_statistics.py": "cefcec22e65bd8fcb553576e1dcd47bba8ede6839a32749f01e63f529ca4464f",
+      "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+      "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+      "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231"
+    },
+    "figure": {
+      "path": "assets/demos/vanhamel_rx_calibration/pooled-pairs-20261103/statistics.png",
+      "bytes": 472844,
+      "sha256": "d7d3177ad091cc84d8b7ea56bd0e0354514f27402054370a195b562c4a04d607",
+      "width": 3774,
+      "height": 2849
+    },
+    "counts": {
+      "spot_histogram": 1143,
+      "station_mean_histogram": 10,
+      "station_histogram": 10
+    },
+    "layout_verified": true
+  }
+}

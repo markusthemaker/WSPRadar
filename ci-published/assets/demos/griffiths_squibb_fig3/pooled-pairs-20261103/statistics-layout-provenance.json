@@ -1,0 +1,113 @@
+{
+  "demo_id": "griffiths_squibb_fig3",
+  "generated_utc": "2026-11-03T12:31:23.579103+00:00",
+  "scope": "Statistics title harmonization only; approved column ordering, scientific inputs, counts and calculations retained.",
+  "method": "Current production preparation and renderer over hash-verified previously retained full-precision evidence; no provider retrieval and no pixel edits.",
+  "configuration": {
+    "path": "config/demos/00a_griffiths_squibb_fig3.config",
+    "bytes": 4101,
+    "sha256": "e3d3ecd3be87961c4bfe3cbe35e12067f44090eb18e1973b1cdd949b47914eef"
+  },
+  "retained_evidence": {
+    "path": ".tmp/station-mean-ci/griffiths_fig3_temporal_v1-retained.parquet",
+    "bytes": 1347354,
+    "sha256": "14edb2105039e012f4fca427de3917ff8984922efe6b0b02a91df45c7bbf6985"
+  },
+  "raw_evidence": {
+    "path": "tests/regression/reference_fixtures/griffiths_fig3_temporal_v1/source_rows.parquet",
+    "bytes": 1897979,
+    "sha256": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd"
+  },
+  "previous_native": {
+    "path": "website/source/assets/demos/griffiths_squibb_fig3/pooled-pairs-20261103/statistics.png",
+    "bytes": 494827,
+    "sha256": "11a90fcb29f941e8bca6d10bdfa37b48bac240cff22956d76d1c32611a8682b0"
+  },
+  "previous_provenance": {
+    "path": "website/source/assets/demos/griffiths_squibb_fig3/pooled-pairs-20261103/provenance.json",
+    "bytes": 2163,
+    "sha256": "44d3186fd4e2f866e03c6811f5296caaf18d568c6ae14de8ae5248c28abb2d34"
+  },
+  "source_hashes": {
+    "ui/plots/evidence_figures.py": "3cb239905d401d079a57a90d3352281e09e9c77e4ea2200192beda9d273eda3c",
+    "ui/inspector/preparation.py": "577d583f7fb950f98b053aa0d0126390abde16a1c48619a86c9ee5e5605e1ed9",
+    "ui/components/inspector_statistics.py": "cefcec22e65bd8fcb553576e1dcd47bba8ede6839a32749f01e63f529ca4464f",
+    "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+    "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+    "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231",
+    "localization/figures_en.py": "609c74e6c5c5fa6d304100787932f93a0d1758d09d28518edcca6e2b21fa6fa5",
+    "localization/figures_de.py": "e3ab25366c555e8fd63b78c64171ba6678020b5c9dfd2ca887544225bf0da5d4"
+  },
+  "figure": {
+    "path": "assets/demos/griffiths_squibb_fig3/pooled-pairs-20261103/statistics.png",
+    "bytes": 494197,
+    "sha256": "3ea1e91e2a2015f5c8c79973d0597637ee015a216275b6b1c862ea4db1248f8f",
+    "width": 3774,
+    "height": 2849
+  },
+  "counts": {
+    "spot_histogram": 57767,
+    "station_mean_histogram": 792,
+    "station_histogram": 792
+  },
+  "layout_verified": true,
+  "titles": [
+    "ΔSNR ± 95% CI - Qualifying spot pairs",
+    "ΔDecode - Spot Decodes",
+    "ΔSNR ± 95% CI - Qualifying station means",
+    "ΔSNR - Qualifying station medians"
+  ],
+  "titles_verified": true,
+  "previous_title_refresh": {
+    "demo_id": "griffiths_squibb_fig3",
+    "generated_utc": "2026-11-03T12:19:24.816568+00:00",
+    "scope": "Statistics panel ordering only: paired differences upper left, decode volume lower left, station means upper right, station medians lower right. Scientific inputs and calculations retained.",
+    "method": "Current production preparation and renderer over hash-verified previously retained full-precision evidence; no provider retrieval and no pixel edits.",
+    "configuration": {
+      "path": "config/demos/00a_griffiths_squibb_fig3.config",
+      "bytes": 4163,
+      "sha256": "d023ce27e54d95a989111718da82e348aafaf57719719c279f37b0ed258fca44"
+    },
+    "retained_evidence": {
+      "path": ".tmp/station-mean-ci/griffiths_fig3_temporal_v1-retained.parquet",
+      "bytes": 1347354,
+      "sha256": "14edb2105039e012f4fca427de3917ff8984922efe6b0b02a91df45c7bbf6985"
+    },
+    "raw_evidence": {
+      "path": "tests/regression/reference_fixtures/griffiths_fig3_temporal_v1/source_rows.parquet",
+      "bytes": 1897979,
+      "sha256": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd"
+    },
+    "previous_native": {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/pooled-pairs-20261103/statistics.png",
+      "bytes": 487309,
+      "sha256": "a5627ed882a1c776bcedf97c222232318d2f14bb2315b8d34708410a8a465a38"
+    },
+    "previous_provenance": {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/pooled-pairs-20261103/provenance.json",
+      "bytes": 2163,
+      "sha256": "44d3186fd4e2f866e03c6811f5296caaf18d568c6ae14de8ae5248c28abb2d34"
+    },
+    "source_hashes": {
+      "ui/plots/evidence_figures.py": "a8f8be6a07e98c100ee4beee7faacfa74ef646b2c4f570c74e4b91f7d633b599",
+      "ui/inspector/preparation.py": "7ef824e6967414910dc37e20b1db90909bd5f991239414c2be86c88214d6138f",
+      "ui/components/inspector_statistics.py": "cefcec22e65bd8fcb553576e1dcd47bba8ede6839a32749f01e63f529ca4464f",
+      "core/compare_engine.py": "9b59c346f353297d9e342336b29836ddd933f747157445eac24eb920177c5315",
+      "config/figure_typography.py": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f",
+      "config/figure_layouts.py": "5ca72517072ad876a1ede3cc7f8fde4770f35eca5b3b194eaf1a66e010656231"
+    },
+    "figure": {
+      "path": "assets/demos/griffiths_squibb_fig3/pooled-pairs-20261103/statistics.png",
+      "bytes": 494827,
+      "sha256": "11a90fcb29f941e8bca6d10bdfa37b48bac240cff22956d76d1c32611a8682b0",
+      "width": 3774,
+      "height": 2849
+    },
+    "counts": {
+      "spot_histogram": 57767,
+      "station_mean_histogram": 792,
+      "station_histogram": 792
+    },
+    "layout_verified": true
+  }
+}

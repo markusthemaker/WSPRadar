@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="/assets/fonts.css">
   <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=1a6c10d30cef2383">
   <link rel="stylesheet" href="/assets/site.css">
-  <link rel="stylesheet" href="/assets/landing.css?v=a3f1629fa45eff04">
+  <link rel="stylesheet" href="/assets/landing.css?v=cbff5261467c11f6">
   <script src="/assets/site.js" defer></script>
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
@@ -105,7 +105,7 @@
 <tbody>
 <tr>
 <td>„Antenne A hat 3 dB mehr Gewinn als B.“</td>
-<td>„Für dieses Band, UTC-Zeitfenster und Segment betrug der Median der Stationsmediane von ΔSNR +3,0 dB für Signalweg A gegenüber B, gestützt auf [n] qualifizierte Identitäten und [m] Spot-Paare.“</td>
+<td>„Für dieses Band, UTC-Zeitfenster und Segment betrug der Mittelwert des gepaarten ΔSNR über alle Paare [Mittelwert] dB mit einem [Konfidenzniveau]%-Konfidenzintervall von ±[Halbbreite] dB für Signalweg A gegenüber B, gestützt auf [n] qualifizierte Identitäten und [m] Spot-Paare.“</td>
 </tr>
 <tr>
 <td>„Meine Empfängerempfindlichkeit beträgt 72 %.“</td>
@@ -191,7 +191,7 @@
 <p>Zusammenfassungen auf Stations- und Beobachtungsebene;</p>
 </li>
 <li>
-<p>Bei einem berichteten Konfidenzintervall: zugehöriger Mittelwert, Konfidenzniveau, Methode, beobachtete Paaranzahl, Halbbreite oder vollständige Grenzen, Verfügbarkeitsstatus und Unabhängigkeitsannahme;</p>
+<p>Bei einem berichteten Konfidenzintervall: zugehöriger Mittelwert und Schätzer, Konfidenzniveau, Methode, beitragende Einheit und Anzahl, Halbbreite oder vollständige Grenzen, Verfügbarkeitsstatus und Unabhängigkeitsannahme; beim Aggregat <strong>Stationen</strong> außerdem Stationsanzahl und Standardabweichung beziehungsweise Standardfehler zwischen Stationsmittelwerten; beim Kartenmittelwert über alle Paare außerdem qualifizierte Paaranzahl N, Standardabweichung beziehungsweise Standardfehler der Paardifferenzen, qualifizierte Stationsanzahl, tatsächlich verwendete konfigurierte Stationsmindestzahl, maximale Halbbreite und Qualifikationsgrund;</p>
 </li>
 <li>Verhältnis der Stationszahlen, zusammengefasstes ΔDecode und relevante Anzahlen gepaarter Ereignisse, Ereignisse nur des Targets und nur der Referenz;</li>
 <li>geografischer und zeitlicher Bereich, einschließlich einer einflussreichen Identität oder eines kurzen Intervalls; und</li>
@@ -230,11 +230,15 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Metadaten des Analyselaufs</strong></td>
-<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem seinen Datenmodus, die zutreffende Betriebserklärung oder Bestätigung der Auswertung historischer Empfangsberichte, die Methodenversion, die ausgewählte zeitliche Statistik, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Diese Erklärungen sind kein unabhängiger Betriebsnachweis.</td>
+<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem die Bestätigung seiner Bedingungen, die Methodenversion, die ausgewählten zeitlichen Statistiken für Segment und Station, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Die Bestätigung unterscheidet nicht zwischen bestätigtem gemeinsamem Betrieb und akzeptierten Einschränkungen und ist kein unabhängiger Betriebsnachweis.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Verarbeitete Beobachtungsdaten</strong></td>
 <td><code>analysis_cache.parquet</code> enthält die beibehaltenen Beobachtungsdaten über den gesamten geografischen Bereich der abgeschlossenen Analyse nach wissenschaftlicher Filterung. Die Datei ist nicht auf das ausgewählte Segment beschränkt und kein unveränderter Datenbankdownload.</td>
+</tr>
+<tr>
+<td><strong class="defined-term">Benchmark-Kartensegmentergebnisse</strong></td>
+<td><code>benchmark/map_segments.parquet</code> dokumentiert den Kartenmittelwert über alle qualifizierten Paare, Paaranzahl N, Stichprobenstandardabweichung und Standardfehler der Paardifferenzen, Intervallgrenzen und Halbbreite, Konfidenzniveau beziehungsweise Alpha und Methode, KI-Status, qualifizierte Stationsanzahl und Stationsmindestzahl, maximale KI-Halbbreite sowie Qualifikationsgrund. Bestehende Segmentfelder und deskriptive Zusammenfassungen behalten ihre eigenen Schätzernamen. Schraffierte Segmente behalten einen berechenbaren Mittelwert und numerisches Intervall beziehungsweise Status.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Stationsauswertungs-CSV</strong></td>
@@ -262,8 +266,9 @@
 </tr>
 </tbody>
 </table></div>
-<p>Numerische Benchmark-Statistikexporte behalten Mittelwert, Stichprobenstandardabweichung, Standardfehler, untere und obere Intervallgrenze, Halbbreite, Alpha, Methode, beobachtete Paaranzahl sowie Verfügbarkeit und Status mit voller Genauigkeit. Die Tabellenanzeige <strong>± Halbbreite</strong> ersetzt diese Werte nicht. <strong>Mittelwert der Stationsmittelwerte</strong>, <strong>Median der Stationsmediane</strong> und <strong>Mittelwert der Stationsmediane</strong> werden getrennt benannt; für den ersten wird kein aggregiertes Konfidenzintervall angegeben. Beibehaltene datierte UTC-Beobachtungen und vollständige Stationsidentitäten bleiben für spätere abhängigkeitsbewusste Auswertungen verfügbar.</p>
+<p>Numerische Benchmark-Statistikexporte behalten Mittelwert, Stichprobenstandardabweichung, Standardfehler, untere und obere Intervallgrenze, Halbbreite, Alpha, Methode, beitragende Anzahl sowie Verfügbarkeit und Status mit voller Genauigkeit. Diese Anzahl bezeichnet gepaarte Beobachtungen bei Konfidenzintervallen einzelner Stationen und zusammengefasster Paare, dagegen Stationsmittelwerte bei aggregierten Stationskonfidenzintervallen. Die Tabellenanzeige <strong>± Halbbreite</strong> ersetzt diese Werte nicht. <strong>Mittelwert der Stationsmittelwerte</strong>, <strong>Median der Stationsmediane</strong> und <strong>Mittelwert der Stationsmediane</strong> werden getrennt benannt; der erste erhält sein eigenes Konfidenzintervall, berechnet über diese Stationsmittelwerte. Diese Definitionen von <strong>Stationen</strong> bleiben unverändert. Kartensegmentexporte beschreiben dagegen den Mittelwert über alle qualifizierten Paare und dessen eigenes Konfidenzintervall, einschließlich Paaranzahl N, Standardabweichung und Standardfehler der Paardifferenzen, qualifizierter Stationsanzahl, Stationsmindestzahl, maximaler KI-Halbbreite und Qualifikationsgrund. Entartete Intervalle behalten numerische Grenzen der Breite null zusammen mit ihrem ausdrücklichen Status. Beibehaltene datierte UTC-Beobachtungen und vollständige Stationsidentitäten bleiben für spätere abhängigkeitsbewusste Auswertungen verfügbar.</p>
 <p>Die maschinenlesbaren Felder des Konfidenzintervallergebnisses umfassen <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> und <code>status</code>. Zeitliche Profile bewahren vollständige Intervallgrenzen in <code>ci_lower</code> und <code>ci_upper</code> und die beobachtete Anzahl beitragender Paare in <code>ci_n</code>, einschließlich null bei leeren Intervallen. Die übergeordnete Angabe <code>statistics_availability</code> und <code>spots.distribution_status</code> unterscheiden eine nicht verfügbare zugrunde liegende Verteilung von verfügbaren zwischengespeicherten Statistiken oder Konfidenzintervallen.</p>
+<p>Das Aggregat mit gleicher Stationsgewichtung für den ausgewählten Bereich bleibt in <code>benchmark_mean_statistics.stations.mean_ci</code> dokumentiert; das zusammengefasste Spots-Ergebnis bleibt getrennt. <code>benchmark_maps.delta_snr</code> benennt den Kartenschätzer über alle qualifizierten Paare, die gleiche Paargewichtung, Konfidenzintervallmethode und beitragende Einheit, Anzahlen- und Präzisionsanforderungen sowie die Segmentergebnisdatei. Ein Bereich der Segmentdetails kann mehrere Segmente enthalten und darf nicht mit einem einzelnen Kartensegment verwechselt werden. Wenn die Segmentdetails genau die qualifizierten Paare eines Segments, dessen Anpassungen und Konfidenzniveau auswählen, stimmen Karten- und zusammengefasstes Spots-Ergebnis überein.</p>
 <p>Bewahre Metadaten zusammen mit den Beobachtungsdaten auf: Die Konfiguration allein kann nicht jede Auswahl rekonstruieren. Fehlende Metadaten zur Datenauswahl bleiben unbekannt; sie belegen nicht, dass der Standardfilter verwendet wurde. Siehe <a href="/de/documentation/sec-6/#sec-6-4">Abschnitt 11.4</a>. Der Bereich der Segmentdetails, der Stationslistenbereich und der Bereich ausgewählter Stationen beziehungsweise des Fokus sind verschieden; eine Benchmark-Stationsabbildung darf nicht als auf Richtung und Entfernung der Segmentdetails begrenzt gelesen werden.</p>
 <p>Die Dateinamen der Benchmark-Abbildungen benennen ihre Größen:</p>
 <ul>
