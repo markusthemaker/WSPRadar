@@ -230,11 +230,11 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Metadaten des Analyselaufs</strong></td>
-<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem die Bestätigung seiner Bedingungen, die Methodenversion, die ausgewählten zeitlichen Statistiken für Segment und Station, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Die Bestätigung unterscheidet nicht zwischen bestätigtem gemeinsamem Betrieb und akzeptierten Einschränkungen und ist kein unabhängiger Betriebsnachweis.</td>
+<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem die Bestätigung seiner Bedingungen, die Methodenversion, die ausgewählten zeitlichen Statistiken für Segment und Station, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Die Bestätigung unterscheidet nicht zwischen bestätigtem gemeinsamem Betrieb und akzeptierten Einschränkungen und ist kein unabhängiger Betriebsnachweis. TX Performance erhält die wissenschaftliche Auswahl <code>tx_snr_normalization_to_30dbm</code> und dokumentiert die wirksame Bezugsgröße unter <code>performance_snr</code>: <code>value_basis</code>, <code>normalization_to_30dbm</code>, die angewandte Formel und <code>decode_outcomes_changed: false</code>. Die Formel lautet bei ausgeschalteter Normierung <code>reported_snr</code> beziehungsweise bei eingeschalteter Normierung <code>reported_snr - reported_tx_power_dbm + 30</code>.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Verarbeitete Beobachtungsdaten</strong></td>
-<td><code>analysis_cache.parquet</code> enthält die beibehaltenen Beobachtungsdaten über den gesamten geografischen Bereich der abgeschlossenen Analyse nach wissenschaftlicher Filterung. Die Datei ist nicht auf das ausgewählte Segment beschränkt und kein unveränderter Datenbankdownload.</td>
+<td><code>analysis_cache.parquet</code> enthält die beibehaltenen Beobachtungsdaten über den gesamten geografischen Bereich der abgeschlossenen Analyse nach wissenschaftlicher Filterung. Die Datei ist nicht auf das ausgewählte Segment beschränkt und kein unveränderter Datenbankdownload. Performance-<code>target_snr</code> wird auf der gewählten Bezugsgröße des abgeschlossenen Laufs gespeichert; dieselbe Spalte ist nicht zugleich ursprünglich und normiert. Lies sie zusammen mit den Laufmetadaten.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Benchmark-Kartensegmentergebnisse</strong></td>
@@ -242,7 +242,7 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Stationsauswertungs-CSV</strong></td>
-<td>Bei Benchmark folgt <code>table_station_insights.csv</code> der globalen oder optional durch die Segmentdetails gefilterten Stationsliste. Bei Performance folgt <code>table_station_insights_current_segment.csv</code> dem aktiven Bereich der Segmentdetails. Beide folgen außerdem den Spaltenfiltern der Stationsauswertung; Bereich und Filter werden in den Metadaten dokumentiert. Leere Tabellen behalten ihre Kopfzeilen.</td>
+<td><code>table_station_insights.csv</code> folgt bei Performance und Benchmark der vollständigen oder optional durch die Segmentdetails gefilterten Stationsliste. Beide berücksichtigen außerdem die Sichtbarkeit von Stationen ohne Target-Dekodierungen beziehungsweise einseitigen Beobachtungen sowie die Spaltenfilter; Bereich und Filter stehen in den Metadaten. Stationskennzahlen behalten ihre Werte über den vollständigen Lauf. Leere Tabellen behalten ihre Kopfzeilen. Die separate <code>table_drilldown_all_stations_current_segment.csv</code> folgt weiterhin dem aktiven Bereich der Segmentdetails.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Detaildaten-CSV-Dateien</strong></td>
@@ -258,7 +258,7 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Abbildungen ausgewählter Stationen</strong></td>
-<td>Benchmark verwendet die vollständigen Daten der ausgewählten Identität aus dem Analyselauf; Performance folgt seinem aktiven Bereich. Bei aktivierter Ausreißerberichterstattung kann Benchmark stattdessen zusammengefasstes ΔSNR mehrerer ausgewählter Funkpfade zeigen.</td>
+<td>Benchmark und Performance verwenden die vollständigen Daten der ausgewählten Identität aus dem Analyselauf, unabhängig vom Stationslistenfilter. Bei aktivierter Ausreißerberichterstattung kann Benchmark stattdessen zusammengefasstes ΔSNR mehrerer ausgewählter Funkpfade zeigen. Performance enthält drei zeitliche Einzelstationsabbildungen: absolutes SNR, Dekodierquote nach Entfernung/Zeit und zeitliche Datengrundlage; die ausschließlich segmentbezogene Abweichungsabbildung entfällt.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Fokusabbildungen der Detaildaten</strong></td>
@@ -266,6 +266,47 @@
 </tr>
 </tbody>
 </table></div>
+<div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
+<thead>
+<tr>
+<th>Zeitliche Abbildung</th>
+<th>Datei im Performance-Paket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segment 1: absolutes SNR erfolgreicher Dekodierungen</td>
+<td><code>performance/figure_segment_temporal_snr_absolute.png</code></td>
+</tr>
+<tr>
+<td>Segment 2: Dekodierquote nach Entfernung/Zeit</td>
+<td><code>performance/figure_segment_temporal_decode_distance.png</code></td>
+</tr>
+<tr>
+<td>Segment 3: zeitliche Datengrundlage und zusammengefasste Dekodierquote</td>
+<td><code>performance/figure_segment_temporal_evidence.png</code></td>
+</tr>
+<tr>
+<td>Segment 4: Abweichungen vom Stationsvergleichsniveau des Laufs</td>
+<td><code>performance/figure_segment_temporal_snr_deviation.png</code></td>
+</tr>
+<tr>
+<td>Ausgewählte Station 1: absolutes SNR erfolgreicher Dekodierungen</td>
+<td><code>performance/figure_selected_station_snr_evidence.png</code></td>
+</tr>
+<tr>
+<td>Ausgewählte Station 2: Dekodierquote nach Entfernung/Zeit</td>
+<td><code>performance/figure_selected_station_decode_distance.png</code></td>
+</tr>
+<tr>
+<td>Ausgewählte Station 3: zeitliche Datengrundlage und zusammengefasste Dekodierquote</td>
+<td><code>performance/figure_selected_station_temporal_evidence.png</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Die Datei <code>config/run_metadata.json</code> im Paket erhält <code>performance_temporal_statistics</code>. <code>segment</code> behält seine Rolle für Segmentabweichungsmetadaten; <code>segment_absolute</code> beschreibt die neue absolute Ansicht, <code>selected_station</code> bleibt absolut, und <code>segment_decode_distance</code> / <code>selected_station_decode_distance</code> beschreiben Entfernungszellen. Diese Metadaten unterscheiden die Gewichte einzelner Beobachtungen, Zusammenfassung nach Tageszeit, Dichte relativ zum Maximum jedes Panels, tatsächliche zusammengefasste Prozentsätze, den gemeinsamen dargestellten Quotenbereich samt Ersatzbereichsstatus, Intervallverfügbarkeit und Behandlung festgehaltener Vergleichsniveaus. Die obigen Abbildungspfade liegen unterhalb des Paketwurzelverzeichnisses.</p>
+<p>Alle vier zeitlichen Segmentabbildungen sind im Ergebnispaket enthalten, auch wenn die Expertenansicht eingeklappt ist. Das Einzelstationspaket behält drei zeitliche Abbildungen und ergänzt keine Abweichungsabbildung.</p>
+<p>TX-Performance-Exporte erhalten <code>tx_snr_normalization_to_30dbm</code> und die wirksame SNR-Bezugsgröße. Die beibehaltenen <code>target_snr</code>-Werte und alle daraus abgeleiteten SNR-Tabellen, Abbildungen, Vergleichsniveaus und Intervalle verwenden diese eine Bezugsgröße des abgeschlossenen Laufs. Ursprüngliche und normierte Ergebnisse dürfen keine irreführende gemeinsame 30-dBm-Beschriftung tragen.</p>
 <p>Numerische Benchmark-Statistikexporte behalten Mittelwert, Stichprobenstandardabweichung, Standardfehler, untere und obere Intervallgrenze, Halbbreite, Alpha, Methode, beitragende Anzahl sowie Verfügbarkeit und Status mit voller Genauigkeit. Diese Anzahl bezeichnet gepaarte Beobachtungen bei Konfidenzintervallen einzelner Stationen und zusammengefasster Paare, dagegen Stationsmittelwerte bei aggregierten Stationskonfidenzintervallen. Die Tabellenanzeige <strong>± Halbbreite</strong> ersetzt diese Werte nicht. <strong>Mittelwert der Stationsmittelwerte</strong>, <strong>Median der Stationsmediane</strong> und <strong>Mittelwert der Stationsmediane</strong> werden getrennt benannt; der erste erhält sein eigenes Konfidenzintervall, berechnet über diese Stationsmittelwerte. Diese Definitionen von <strong>Stationen</strong> bleiben unverändert. Kartensegmentexporte beschreiben dagegen den Mittelwert über alle qualifizierten Paare und dessen eigenes Konfidenzintervall, einschließlich Paaranzahl N, Standardabweichung und Standardfehler der Paardifferenzen, qualifizierter Stationsanzahl, Stationsmindestzahl, maximaler KI-Halbbreite und Qualifikationsgrund. Entartete Intervalle behalten numerische Grenzen der Breite null zusammen mit ihrem ausdrücklichen Status. Beibehaltene datierte UTC-Beobachtungen und vollständige Stationsidentitäten bleiben für spätere abhängigkeitsbewusste Auswertungen verfügbar.</p>
 <p>Die maschinenlesbaren Felder des Konfidenzintervallergebnisses umfassen <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> und <code>status</code>. Zeitliche Profile bewahren vollständige Intervallgrenzen in <code>ci_lower</code> und <code>ci_upper</code> und die beobachtete Anzahl beitragender Paare in <code>ci_n</code>, einschließlich null bei leeren Intervallen. Die übergeordnete Angabe <code>statistics_availability</code> und <code>spots.distribution_status</code> unterscheiden eine nicht verfügbare zugrunde liegende Verteilung von verfügbaren zwischengespeicherten Statistiken oder Konfidenzintervallen.</p>
 <p>Das Aggregat mit gleicher Stationsgewichtung für den ausgewählten Bereich bleibt in <code>benchmark_mean_statistics.stations.mean_ci</code> dokumentiert; das zusammengefasste Spots-Ergebnis bleibt getrennt. <code>benchmark_maps.delta_snr</code> benennt den Kartenschätzer über alle qualifizierten Paare, die gleiche Paargewichtung, Konfidenzintervallmethode und beitragende Einheit, Anzahlen- und Präzisionsanforderungen sowie die Segmentergebnisdatei. Ein Bereich der Segmentdetails kann mehrere Segmente enthalten und darf nicht mit einem einzelnen Kartensegment verwechselt werden. Wenn die Segmentdetails genau die qualifizierten Paare eines Segments, dessen Anpassungen und Konfidenzniveau auswählen, stimmen Karten- und zusammengefasstes Spots-Ergebnis überein.</p>

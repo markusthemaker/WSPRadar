@@ -113,11 +113,16 @@
 <td>Default <strong>20m</strong>. Select one band.</td>
 </tr>
 <tr>
+<td><strong>SNR TX Normalization to 30 dBm</strong></td>
+<td>TX Performance only, to the right of Operating Band. Off for a new analysis: received SNR as reported. On: normalize using reported transmit power to 30 dBm (1 W). This is a scientific setting requiring an analysis rerun. Older settings without the field retain On. RX Performance and Benchmark remain normalized.</td>
+</tr>
+<tr>
 <td><strong>Start / End Date/Time (UTC)</strong></td>
 <td>Default: 24 hours ending at the current UTC minute. Dates start in 2008; a run may span at most <strong>31 elapsed days</strong>. Times retain minute precision.</td>
 </tr>
 </tbody>
 </table></div>
+<p>New TX Performance analyses default to the raw reported-SNR basis. Saved TX Performance configurations and links explicitly preserve the on/off boolean <code>tx_snr_normalization_to_30dbm</code>: in configurations it is <code>core_parameters.tx_snr_normalization_to_30dbm</code>, and the URL parameter has the same field name. An older configuration, link or completed-run record that lacks the field retains normalization on, preserving its former interpretation. Explicit true/false choices survive save, link, load and completed-run restoration. The setting is active only for TX Performance; it does not change RX Performance or Benchmark. Changing the scientific basis requires an analysis rerun; the observations and cached results for the two settings are kept separate. A loaded old run is not silently reinterpreted as raw SNR.</p>
 <p>A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-4) identifies a grid square; six characters identify a smaller subsquare.</p>
 <p><a id="sec-5-3"></a></p>
 <h4>10.3 Benchmark-design controls</h4>
@@ -177,8 +182,8 @@
 </tr>
 <tr>
 <td><strong>Maximum peer distance from Target (km)</strong></td>
-<td><strong>22 000</strong>; choices 2 500 / 5 000 / 10 000 / 15 000 / 20 000 / 22 000</td>
-<td>Removes peers <strong>at or beyond</strong> the limit from the analyzed population and exports. This changes the analysis, not just the map view.</td>
+<td><strong>Worldwide (≈20 015 km)</strong>; choices 2 500 / 5 000 / 10 000 / 15 000 km / Worldwide</td>
+<td>Numeric limits remove peers <strong>at or beyond</strong> the limit from the analyzed population and exports; Worldwide retains all geographic locations. This changes the analysis, not just the map view. A loaded 20 000 km limit remains available while selected and keeps its original meaning.</td>
 </tr>
 <tr>
 <td><strong>Minimum confirmed opportunities per station</strong></td>
@@ -198,7 +203,7 @@
 <tr>
 <td><strong>Shared confidence level</strong></td>
 <td><strong>95%</strong>; 70%, 80%, 90%, 95%, 99%</td>
-<td>One shared setting governs map and Inspector mean CIs: pooled map pairs, individual stations, pooled Spots, temporal/folded bins and the existing equal-station aggregate. Higher confidence widens a non-degenerate interval for the same data and can change map qualification; it does not change contributing observations or means.</td>
+<td>In Benchmark, one shared setting governs map and Inspector mean CIs: pooled map pairs, individual stations, pooled Spots, temporal/folded bins and the existing equal-station aggregate. Higher confidence widens an interval with nonzero width for the same data and can change map qualification; it does not change contributing observations or means. In Performance it governs chronological and folded SNR mean CIs at segment and selected-station level, without changing map qualification, counts, means, or the Median/IQR view. Valid custom imported levels are retained.</td>
 </tr>
 <tr>
 <td><strong>Maximum ΔSNR map CI (± dB)</strong></td>
@@ -235,11 +240,11 @@
 <tbody>
 <tr>
 <td><strong>Segment distance and direction</strong></td>
-<td>Changes Inspector statistics and time views. Performance Station Insights follows this scope. Saved separately for Performance and Benchmark.</td>
+<td>Changes Inspector statistics and time views. Station Insights follows this scope only when its optional segment-and-distance filter is enabled; station metrics and selected evidence retain the full run. Saved separately for Performance and Benchmark.</td>
 </tr>
 <tr>
 <td><strong>Filter by selected segment and distance</strong></td>
-<td>Optionally restricts the Benchmark station list; otherwise it is global. Selected-station evidence still covers the full run. This toggle is not saved.</td>
+<td>Optionally restricts the Performance or Benchmark station list; otherwise it is global. Selected-station evidence still covers the full run. It sits to the left of the counter-only/one-sided visibility control. This toggle is session-only and is not saved in configurations or shared links.</td>
 </tr>
 <tr>
 <td><strong>Station Insights → Filter</strong></td>
@@ -270,12 +275,17 @@
 <td>Benchmark temporal ΔSNR only. Mean is the default for new analyses. Segment and selected-station plots keep independent choices. If a current configuration omits a statistic, that level defaults to Mean; explicit saved choices are honored. The Milazzo demo opens both levels with Median. Median shows the existing median and Bin IQR; Mean shows the arithmetic mean and its available configured pointwise CI. Both preserve eligible observations, bins and pair weighting. Both choices are saved in configurations, shared analysis links and export metadata. Benchmark Statistics, maps, ΔDecode and evidence counts remain unchanged.</td>
 </tr>
 <tr>
+<td><strong>SNR statistic: Median / Mean</strong></td>
+<td>Performance temporal SNR at both independent levels, default Mean. Both chronological and folded views pool individual successful observations directly. Absolute SNR keeps those values; segment deviations subtract each station's selected run mean or median before pooling individual residuals. Mean shows its configured pointwise CI; Median shows IQR. Absolute density stays unchanged by the toggle; residual density can change with its baseline. Saved configurations, shared links, resumed completed runs and exports retain the selections. Decode Rates, counts, map qualification, standalone distance profiles and fixed station-table medians are unchanged.</td>
+</tr>
+<tr>
 <td><strong>Zoom window / <strong class="defined-term">Outlier Focus</strong></strong></td>
 <td>Focuses Drill-Down on an interval for exactly one selected station. <strong>Filter table</strong> then narrows table rows only. Focus and Drill-Down table filters are not saved in configurations or analysis links.</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>CI configuration:</strong> These settings are stored under <code>advanced_parameters</code> and preserved in shared analysis links and export metadata. The independent <code>segment_temporal_statistic</code> and <code>station_temporal_statistic</code> remain under <code>results_view</code>. <code>evidence_confidence_level_percent</code> defaults to <code>95</code> and must be strictly between 0 and 100. The corresponding internal <code>ci_alpha = 1 − evidence_confidence_level_percent / 100</code> specifies the total two-sided tail probability and must be strictly between 0 and 1; the confidence level is <code>100 × (1 − ci_alpha)%</code>. <code>evidence_confidence_interval_method</code> defaults to <code>iid_student_t</code>. The same confidence configuration governs individual station means, pooled qualifying-pair means, temporal/folded-bin means, pooled map-pair means and the existing equal-station aggregate for the selected Inspector scope. Each interval uses its own contributing unit and sample SD: pairs for the map and pooled Spots, station means for the Stations aggregate. Benchmark Statistics estimators and populations remain unchanged. The map additionally has its own maximum CI half-width requirement; that threshold does not filter Inspector scope statistics. See <a href="/en/documentation/sec-7/#sec-7-dependence-bias">Section 8.5.1</a> for the calculation and assumptions.</p>
+<p><strong>CI configuration:</strong> These settings are stored under <code>advanced_parameters</code> and preserved in shared analysis links and export metadata. The independent <code>segment_temporal_statistic</code> and <code>station_temporal_statistic</code> remain under <code>results_view</code>. <code>evidence_confidence_level_percent</code> defaults to <code>95</code> and must be strictly between 0 and 100. The corresponding internal <code>ci_alpha = 1 − evidence_confidence_level_percent / 100</code> specifies the total two-sided tail probability and must be strictly between 0 and 1; the confidence level is <code>100 × (1 − ci_alpha)%</code>. <code>evidence_confidence_interval_method</code> defaults to <code>iid_student_t</code>. In Benchmark, the same confidence configuration governs individual station means, pooled qualifying-pair means, temporal/folded-bin means, pooled map-pair means and the existing equal-station aggregate for the selected Inspector scope. Each interval uses its own contributing unit and sample SD: pairs for the map and pooled Spots, station means for the Stations aggregate. Benchmark Statistics estimators and populations remain unchanged. The map additionally has its own maximum CI half-width requirement; that threshold does not filter Inspector scope statistics. See <a href="/en/documentation/sec-7/#sec-7-dependence-bias">Section 8.5.1</a> for the calculation and assumptions.</p>
+<p>In Performance, the same saved confidence fields govern absolute and segment-deviation temporal means described above; each uses individual contributing successful observations or residuals. An omitted temporal statistic defaults to Mean independently at each level, and omitted confidence fields use 95% and <code>iid_student_t</code>. Explicit valid values are honored. These settings belong to presentation, not scientific input or provider-query identity. Performance does not gain the Benchmark map CI-half-width threshold.</p>
 <p>Saved configurations express the shared confidence setting as <code>advanced_parameters.evidence_confidence_level_percent</code> and <code>advanced_parameters.evidence_confidence_interval_method</code>; the internal <code>ci_alpha</code> remains the corresponding two-sided tail probability. The map limit is stored as <code>advanced_parameters.evidence_max_segment_ci_half_width_db</code>. Saved configurations preserve the effective station-count requirements, shared confidence and map CI limit. An absent half-width uses the default <strong>0.5 dB</strong>; an explicitly supplied value must be finite and strictly positive. Invalid values require correction rather than silent replacement.</p>
 <p><strong>ΔDecode configuration:</strong> Benchmark configuration documents explicitly require <code>settings.advanced_parameters.evidence_min_decode_stations_per_segment</code>, alongside <code>settings.advanced_parameters.evidence_min_decode_event_share_percent</code>. The station minimum is an integer from <strong>1 to 50</strong>; new analyses default to <strong>3</strong>. Existing installed Benchmark demos explicitly use <strong>1</strong> to preserve their reviewed coloring. Older Benchmark configuration documents missing the required field are rejected rather than silently assigned a new map requirement. Shared links use <code>min_decode_stations_per_segment</code> for this separate ΔDecode setting.</p>
 <p>Shared links record the effective Benchmark station minimum explicitly. A link with unresolved, retired or invalid optional parameters restores its recognized valid settings and lists the parameter names that need manual selection before running. Retired names are not aliases and are not silently migrated. Invalid or ambiguous required identity, comparison design or time settings prevent loading. Links load settings only; they do not authorize a new analysis.</p>
