@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/refresh_figure_headings.py",
+  "demo_id": "milazzo_tx_buddy",
+  "verification": {
+    "selected_identity": "VE6PDQ / DO34IR",
+    "paired_observations": 3,
+    "retained_station_cycles": 16,
+    "chronological_bin": "3h",
+    "folded_bin": "1h",
+    "time_basis": "local_solar",
+    "frozen_replay_verified": true
+  },
+  "figures": {
+    "milazzo-local-solar-snr": {
+      "bytes": 162602,
+      "sha256": "0d15b7c371dc0b3915df9b6ef6c9003ee77a9c3ed1ad3cb931eb477a7073a610",
+      "width": 1904,
+      "height": 977,
+      "selected_subtitle": "Selected station: VE6PDQ (TX) · DO34ir"
+    },
+    "milazzo-local-solar-decode": {
+      "bytes": 170086,
+      "sha256": "529714837437c81647db854f704f674316a38bae2ec9cf4cf1e5f2a9433cd91a",
+      "width": 1901,
+      "height": 870,
+      "selected_subtitle": "Selected station: VE6PDQ (TX) · DO34ir"
+    }
+  },
+  "renderer_sources": {
+    "scripts/internal/refresh_figure_headings.py": {
+      "bytes": 30168,
+      "sha256": "84882c8d62ed29fac322d9177fccb399e11b9b1d9b8fe46d1000a86c940d9852"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 31487,
+      "sha256": "34784c87a94930cba613b4fb05fe2968ecb2b44a70c3913ee1f8279ba4b8c1b8"
+    },
+    "core/plot_engine.py": {
+      "bytes": 51825,
+      "sha256": "cd49dab011b12195262536d420afa795d46e8541f5f440c95c6697370466cb82"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 126033,
+      "sha256": "949913fdb523747226ecd0d3867f81955569e6bf7acb89a734df31b30a723da3"
+    },
+    "ui/plots/opportunity_figures.py": {
+      "bytes": 151561,
+      "sha256": "bc8afc5c3b61a78052d90b7e3b2e22f8cde35ff1fb12a2a66eb6eb6e59c42cdb"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 147553,
+      "sha256": "b59a9fba0963c1a1da79c66b641493df5bf59f9f71bdfd09c75cbc7ef3c4baca"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 46589,
+      "sha256": "188be1b56cf35e1b36d072190fe930b9385952ad205815189cb573542a33e24b"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 26615,
+      "sha256": "4be45178a82d1dbbee4c264fa452ddc6c6532c193754bb20ecc48ee8c8dc66ff"
+    },
+    "localization/figures_en.py": {
+      "bytes": 20229,
+      "sha256": "1f623f98fc7e91e008186480bff0da8220361e7d50298ef6adae02cfec77de4b"
+    }
+  },
+  "network_access": "No provider retrieval; native rendering from retained completed-run observations"
+}

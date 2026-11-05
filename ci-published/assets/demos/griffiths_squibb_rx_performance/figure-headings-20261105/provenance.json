@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/refresh_figure_headings.py",
+  "demo_id": "griffiths_squibb_rx_performance",
+  "verification": {
+    "source_inputs": {
+      "current_demo": {
+        "path": "config/demos/00c_griffiths_squibb_performance.config",
+        "bytes": 4159,
+        "sha256": "55e03cf4138610da97b2c4b6cb95f50e2f49c7d1e21658fc4be728052774acf7"
+      },
+      "source/config/run_metadata.json": {
+        "path": "website/source/assets/demos/griffiths_squibb_rx_performance/source/config/run_metadata.json",
+        "bytes": 2670,
+        "sha256": "7d93e7b2a7d74af1b5d0fc784842603244446c4d8d96f054d2bf46d563a0dde4"
+      },
+      "source/config/wspradar_config.config": {
+        "path": "website/source/assets/demos/griffiths_squibb_rx_performance/source/config/wspradar_config.config",
+        "bytes": 3713,
+        "sha256": "b84efedf6f704c81ec8659204faf8e240f591c0df7c3466ce9ba9e8eba20fe7c"
+      },
+      "source/original_export.zip": {
+        "path": "website/source/assets/demos/griffiths_squibb_rx_performance/source/original_export.zip",
+        "bytes": 17414442,
+        "sha256": "ba2e68b9cb82d000eaf472ba9da4504dae1114afa05c23e198eae842390385ae"
+      },
+      "retained_parquet": {
+        "archive_member": "WSPRadar_export_2026_10_24__22_01/performance/analysis_cache.parquet",
+        "bytes": 6036724,
+        "sha256": "4ee39c6b549b93128527b7dd0c1485f719d833feb0c54330a6db2dba9c34a192"
+      },
+      "evidence/overview.json": {
+        "path": "website/source/assets/demos/griffiths_squibb_rx_performance/evidence/overview.json",
+        "bytes": 2063,
+        "sha256": "bb2e9b709fc81ba6f90d106988e0bafad7b515230aee7b0b7eff3db4d7a09f4c"
+      },
+      "evidence/map_segments.csv": {
+        "path": "website/source/assets/demos/griffiths_squibb_rx_performance/evidence/map_segments.csv",
+        "bytes": 5390,
+        "sha256": "ea7a2d5f7127c3ffa65e90db9c69b2ff4de084d23ba30e9626fba4c8d5dab38a"
+      },
+      "evidence/distance.csv": {
+        "path": "website/source/assets/demos/griffiths_squibb_rx_performance/evidence/distance.csv",
+        "bytes": 1102,
+        "sha256": "5d5500b31a449090305bebad9222df5ba2eafc3836240f8426681d05feb1f3be"
+      }
+    },
+    "verified_map_summary": {
+      "stations": 2107,
+      "heard_stations": 996,
+      "successes": 114086,
+      "misses": 559325,
+      "opportunities": 673411,
+      "segments": 57
+    },
+    "verified_distance_profile": {
+      "distance_edges_km": [
+        0.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0,
+        12500.0,
+        15000.0,
+        17500.0,
+        20015.086796020572
+      ],
+      "distance_qualifying_station_counts": [
+        1080,
+        48,
+        473,
+        349,
+        42,
+        15,
+        82,
+        18
+      ],
+      "distance_target_station_counts": [
+        776,
+        35,
+        143,
+        15,
+        5,
+        5,
+        12,
+        5
+      ],
+      "distance_target_counts": [
+        106324,
+        2578,
+        4570,
+        406,
+        38,
+        60,
+        71,
+        39
+      ],
+      "distance_counter_counts": [
+        288532,
+        11101,
+        131303,
+        91859,
+        1907,
+        3916,
+        18994,
+        11713
+      ],
+      "distance_confirmed_opportunity_counts": [
+        394856,
+        13679,
+        135873,
+        92265,
+        1945,
+        3976,
+        19065,
+        11752
+      ]
+    },
+    "original_counts": {
+      "all": {
+        "stations": 2107.0,
+        "heard_stations": 996.0,
+        "reach": 47.27100142382534,
+        "successes": 114086.0,
+        "misses": 559325.0,
+        "opportunities": 673411.0,
+        "station_balanced_rate": 17.896029139233384,
+        "opportunity_level_rate": 16.941511201925717,
+        "station_median_success_snr": -17.0,
+        "snr_station_count": 996.0,
+        "outcomes": {
+          "E - Elsewhere": 559325,
+          "T - Target": 113699,
+          "Target-only": 387
+        },
+        "min_station_opportunities": 3,
+        "min_timestamp": "2017-04-01 00:04:00+00:00",
+        "max_timestamp": "2017-04-30 23:58:00+00:00",
+        "unique_active_cycles_in_scope": 20016,
+        "cycles_with_scoped_qualified_success": 20010,
+        "duplicate_id_cycles": 0,
+        "non_onehot_outcomes": 0,
+        "misses_with_snr": 0,
+        "successes_without_snr": 0,
+        "max_km_rounding_difference": 0.49952632127497054,
+        "max_az_rounding_difference": 0.04996042713923998,
+        "zero_snr_successes": 2411,
+        "configured_distance_cap_km": 22000,
+        "configured_minimum_opportunities": 3,
+        "figure_distance_bin_km": 2500,
+        "missing_identity_rows": 0,
+        "malformed_locators": 0,
+        "below_minimum_opportunity_identities": 0,
+        "cycles_off_two_minute_grid": 0,
+        "max_distance_km": 19193.97928305915,
+        "identities_at_or_beyond_distance_cap": 0,
+        "outside_requested_window_rows": 0,
+        "stations_eligible_snr_deviation": 831,
+        "successes_eligible_snr_deviation": 113841,
+        "example_miss_cycle_target_witness_rows": 8,
+        "selected_csv_matches_full_scope_subset": true
+      },
+      "HB0QRP": {
+        "stations": 1.0,
+        "heard_stations": 1.0,
+        "reach": 100.0,
+        "successes": 3412.0,
+        "misses": 4350.0,
+        "opportunities": 7762.0,
+        "station_balanced_rate": 43.957742849780985,
+        "opportunity_level_rate": 43.957742849780985,
+        "station_median_success_snr": -15.0,
+        "snr_station_count": 1.0,
+        "outcomes": {
+          "E - Elsewhere": 4350,
+          "T - Target": 3368,
+          "Target-only": 44
+        },
+        "first": "2017-04-01 05:40:00+00:00",
+        "last": "2017-04-30 23:40:00+00:00"
+      }
+    },
+    "retained_renderer": {
+      "path": "website/source/archive/spot-pair-renderers/pre-typography-runtime/overlay/ui/plots/opportunity_figures.py",
+      "bytes": 117406,
+      "sha256": "9e63517a015ddb6faba8d2dafa0e0d13786b7413ab6fa0c259da3b15b1f57f07"
+    },
+    "temporal_contract": "Original 12h/UTC Median figures, rendered by the exact retained native Performance recipe/renderer with the current title presentation. Original station-balanced SNR summaries, station-balanced upper rate and pooled lower rate preserved. Current interactive aggregation is deliberately not substituted.",
+    "retained_profile_checks": "Chronological and folded station/opportunity rates and counts, plus SNR medians and observation/station-group counts, checked against retained profile CSVs"
+  },
+  "figures": {
+    "rx-performance-performance-map": {
+      "bytes": 1542889,
+      "sha256": "e814449004bfb0966a26c2335ba10ee2fbf343c843eb88e9aaea4ff84372636f",
+      "width": 3443,
+      "height": 3518,
+      "selected_subtitle": ""
+    },
+    "rx-performance-performance-evidence": {
+      "bytes": 690260,
+      "sha256": "856b53431eeb8cbd9991f959cff8a9532787ca677a6bc365f9825ab2421b1a79",
+      "width": 3853,
+      "height": 2167,
+      "selected_subtitle": "Eligible TX stations: 996 heard by Target · 1 111 heard by others only\nConfirmed opportunities: 114 086 Target decodes · 559 325 heard by others only"
+    },
+    "rx-performance-snr-deviation": {
+      "bytes": 618716,
+      "sha256": "1360d30fbb093a24afdbb9361c3f4b7b6dffbe99b182f7852d25f418e6c7fcfb",
+      "width": 3808,
+      "height": 1783,
+      "selected_subtitle": ""
+    },
+    "rx-performance-temporal-evidence": {
+      "bytes": 499222,
+      "sha256": "afa2160bb74bc760562bde8dbf7ec3d275bbd6f7b3d3ed8064ae8e6b400c414a",
+      "width": 3799,
+      "height": 1792,
+      "selected_subtitle": ""
+    },
+    "rx-performance-selected-station-snr": {
+      "bytes": 726400,
+      "sha256": "64af37789730ae7d5fc80ad5e81aaa0e1a03d058b8aafeef20fc0b21e32efb2c",
+      "width": 3808,
+      "height": 1878,
+      "selected_subtitle": "Selected station: HB0QRP (TX) · JN47"
+    },
+    "rx-performance-selected-station-evidence": {
+      "bytes": 562778,
+      "sha256": "a353f0aab1fb180bc10d734798eec512a83ab82391bf3b3e3c3c31f2368c8782",
+      "width": 3811,
+      "height": 1904,
+      "selected_subtitle": "Selected station: HB0QRP (TX) · JN47"
+    }
+  },
+  "renderer_sources": {
+    "scripts/internal/refresh_figure_headings.py": {
+      "bytes": 30168,
+      "sha256": "84882c8d62ed29fac322d9177fccb399e11b9b1d9b8fe46d1000a86c940d9852"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 31487,
+      "sha256": "34784c87a94930cba613b4fb05fe2968ecb2b44a70c3913ee1f8279ba4b8c1b8"
+    },
+    "core/plot_engine.py": {
+      "bytes": 51825,
+      "sha256": "cd49dab011b12195262536d420afa795d46e8541f5f440c95c6697370466cb82"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 126033,
+      "sha256": "949913fdb523747226ecd0d3867f81955569e6bf7acb89a734df31b30a723da3"
+    },
+    "ui/plots/opportunity_figures.py": {
+      "bytes": 151561,
+      "sha256": "bc8afc5c3b61a78052d90b7e3b2e22f8cde35ff1fb12a2a66eb6eb6e59c42cdb"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 147553,
+      "sha256": "b59a9fba0963c1a1da79c66b641493df5bf59f9f71bdfd09c75cbc7ef3c4baca"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 46589,
+      "sha256": "188be1b56cf35e1b36d072190fe930b9385952ad205815189cb573542a33e24b"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 26615,
+      "sha256": "4be45178a82d1dbbee4c264fa452ddc6c6532c193754bb20ecc48ee8c8dc66ff"
+    },
+    "localization/figures_en.py": {
+      "bytes": 20229,
+      "sha256": "1f623f98fc7e91e008186480bff0da8220361e7d50298ef6adae02cfec77de4b"
+    }
+  },
+  "network_access": "No provider retrieval; native rendering from retained completed-run observations"
+}

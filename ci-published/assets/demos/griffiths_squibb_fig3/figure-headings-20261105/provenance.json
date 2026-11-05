@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/refresh_figure_headings.py",
+  "demo_id": "griffiths_squibb_fig3",
+  "verification": {
+    "temporal_decode_map_and_cutoff": {
+      "source_evidence": {
+        "path": "website/source/assets/demos/griffiths_squibb_fig3/rc3/source/analysis_cache.parquet",
+        "bytes": 1445197,
+        "sha256": "997a30cd30447399ce818380a448597e59230b15fc181794192d15e1380fe8ed"
+      },
+      "analysis_context": {
+        "run_mode": "RX",
+        "callsign": "G3ZIL",
+        "qth": "IO90HW",
+        "band": "40m",
+        "comparison_mode": "reference_station",
+        "reference_callsign": "G4HZX",
+        "reference_qth": "IO91",
+        "benchmark_conditions_accepted": true,
+        "reference_snr_correction_db": 0.0,
+        "solar_state": "all",
+        "max_peer_distance_km": 10000,
+        "exclude_special_callsigns": false,
+        "exclude_moving_stations": false,
+        "min_spot_pairs_per_station": 1,
+        "min_confirmed_opportunities_per_peer": 5,
+        "min_qualifying_stations_per_map_segment": 5,
+        "min_decode_event_share_percent": 1.0,
+        "min_decode_stations_per_segment": 1
+      },
+      "decode_summary": {
+        "decode_val": 24.425894099353467,
+        "decode_cnt": 1132,
+        "decode_total_events": 125518,
+        "decode_paired_events": 57767,
+        "decode_target_only_events": 56260,
+        "decode_reference_only_events": 11491,
+        "decode_target_total": 114027,
+        "decode_reference_total": 69258,
+        "decode_net_events": 44769
+      },
+      "bins": {
+        "segment": "24h",
+        "selected": "12h"
+      },
+      "temporal_statistic": "median",
+      "folded_time_basis": "utc",
+      "ci_alpha": 0.05,
+      "ci_method": "iid_student_t",
+      "max_segment_ci_half_width_db": 0.5,
+      "retained_counts_match_previous": true
+    },
+    "snr_map_and_statistics": {
+      "source_evidence": {
+        "path": ".tmp/station-mean-ci/griffiths_fig3_temporal_v1-retained.parquet",
+        "bytes": 1347354,
+        "sha256": "14edb2105039e012f4fca427de3917ff8984922efe6b0b02a91df45c7bbf6985"
+      },
+      "analysis_context": {
+        "run_mode": "RX",
+        "callsign": "G3ZIL",
+        "qth": "IO90HW",
+        "band": "40m",
+        "comparison_mode": "reference_station",
+        "reference_callsign": "G4HZX",
+        "reference_qth": "IO91",
+        "benchmark_conditions_accepted": true,
+        "reference_snr_correction_db": 0.0,
+        "solar_state": "all",
+        "max_peer_distance_km": 10000,
+        "exclude_special_callsigns": false,
+        "exclude_moving_stations": false,
+        "min_spot_pairs_per_station": 1,
+        "min_confirmed_opportunities_per_peer": 5,
+        "min_qualifying_stations_per_map_segment": 5,
+        "min_decode_event_share_percent": 1.0,
+        "min_decode_stations_per_segment": 1
+      },
+      "decode_summary": {
+        "decode_val": 24.425894099353467,
+        "decode_cnt": 1132,
+        "decode_total_events": 125518,
+        "decode_paired_events": 57767,
+        "decode_target_only_events": 56260,
+        "decode_reference_only_events": 11491,
+        "decode_target_total": 114027,
+        "decode_reference_total": 69258,
+        "decode_net_events": 44769
+      },
+      "bins": {
+        "segment": "12h",
+        "selected": "12h"
+      },
+      "temporal_statistic": "mean",
+      "folded_time_basis": "utc",
+      "ci_alpha": 0.050000000000000044,
+      "ci_method": "iid_student_t",
+      "max_segment_ci_half_width_db": 0.5,
+      "retained_counts_match_previous": true
+    }
+  },
+  "figures": {
+    "rc3-demo1-map-typography-en-20261024": {
+      "bytes": 1516258,
+      "sha256": "f8ec6b317325ee1baf70b62ec7bf6b1ce325b534346b0182091c42335eb4c63d",
+      "width": 3411,
+      "height": 3518,
+      "selected_subtitle": ""
+    },
+    "rc3-demo1-reach-typography-en-20261024": {
+      "bytes": 434072,
+      "sha256": "658a5b05891b491ef29907b2b14fa6b4853a0d8a6b1f37d469430f7c1f4f8f93",
+      "width": 3852,
+      "height": 2572,
+      "selected_subtitle": "Cumulative counts: read left to right to include weaker reports."
+    },
+    "demo1-decode-advantage-map-typography-en-20261024": {
+      "bytes": 1531257,
+      "sha256": "a9002d2b8296fbc337dbb3dc97f9f92b30cb0348a97bbf6745c55a8a18e73351",
+      "width": 3451,
+      "height": 3518,
+      "selected_subtitle": ""
+    },
+    "demo1-benchmark-statistics-typography-en-20261024": {
+      "bytes": 493672,
+      "sha256": "2323a43dbe75508d92d580be349f31870b2bef11d9c6f270c08e0d11c138121c",
+      "width": 3774,
+      "height": 2849,
+      "selected_subtitle": ""
+    },
+    "demo1-temporal-delta-snr-typography-en-20261024": {
+      "bytes": 522189,
+      "sha256": "67e5ff7a1d0a39f5045aa5ca55f9279dc172c9e5aa2090cd68659422a443bde9",
+      "width": 3808,
+      "height": 1844,
+      "selected_subtitle": ""
+    },
+    "demo1-temporal-delta-decode-typography-en-20261024": {
+      "bytes": 458223,
+      "sha256": "4d689432cdef8c4fc31d8ea0677bc1284861d8ee04b94c75811f31b53317444c",
+      "width": 3842,
+      "height": 1639,
+      "selected_subtitle": ""
+    },
+    "demo1-selected-temporal-delta-snr-typography-en-20261024": {
+      "bytes": 784719,
+      "sha256": "c54f2efdbc331c37b52e2ea256e7cc70f947d3808e899f04afa723b31593c854",
+      "width": 3808,
+      "height": 1943,
+      "selected_subtitle": "Selected station: DJ0ABR (TX) · JN68nt"
+    },
+    "demo1-selected-temporal-delta-decode-typography-en-20261024": {
+      "bytes": 368541,
+      "sha256": "ee6425eaf6f730682ef784f2647970998863c39053d24d2e29356ba58bf00c4b",
+      "width": 3816,
+      "height": 1729,
+      "selected_subtitle": "Selected station: DJ0ABR (TX) · JN68nt"
+    }
+  },
+  "renderer_sources": {
+    "scripts/internal/refresh_figure_headings.py": {
+      "bytes": 30168,
+      "sha256": "84882c8d62ed29fac322d9177fccb399e11b9b1d9b8fe46d1000a86c940d9852"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 31487,
+      "sha256": "34784c87a94930cba613b4fb05fe2968ecb2b44a70c3913ee1f8279ba4b8c1b8"
+    },
+    "core/plot_engine.py": {
+      "bytes": 51825,
+      "sha256": "cd49dab011b12195262536d420afa795d46e8541f5f440c95c6697370466cb82"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 126033,
+      "sha256": "949913fdb523747226ecd0d3867f81955569e6bf7acb89a734df31b30a723da3"
+    },
+    "ui/plots/opportunity_figures.py": {
+      "bytes": 151561,
+      "sha256": "bc8afc5c3b61a78052d90b7e3b2e22f8cde35ff1fb12a2a66eb6eb6e59c42cdb"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 147553,
+      "sha256": "b59a9fba0963c1a1da79c66b641493df5bf59f9f71bdfd09c75cbc7ef3c4baca"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 46589,
+      "sha256": "188be1b56cf35e1b36d072190fe930b9385952ad205815189cb573542a33e24b"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 26615,
+      "sha256": "4be45178a82d1dbbee4c264fa452ddc6c6532c193754bb20ecc48ee8c8dc66ff"
+    },
+    "localization/figures_en.py": {
+      "bytes": 20229,
+      "sha256": "1f623f98fc7e91e008186480bff0da8220361e7d50298ef6adae02cfec77de4b"
+    }
+  },
+  "network_access": "No provider retrieval; native rendering from retained completed-run observations"
+}

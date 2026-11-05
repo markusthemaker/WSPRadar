@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/refresh_figure_headings.py",
+  "demo_id": "vanhamel_rx_calibration",
+  "verification": {
+    "source_evidence": {
+      "path": "website/source/assets/demos/vanhamel_rx_calibration/mean-ci-20261103/analysis_cache.parquet",
+      "bytes": 29814,
+      "sha256": "daab63c4a28b8c47b1bcbf095f3a6b893a667cf02bd366dca821bc0ec92e4be8"
+    },
+    "analysis_context": {
+      "run_mode": "RX",
+      "callsign": "ON4AWM0",
+      "qth": "JO20OT",
+      "band": "160m",
+      "comparison_mode": "reference_station",
+      "reference_callsign": "ON4AWM1",
+      "reference_qth": "JO20",
+      "benchmark_conditions_accepted": true,
+      "reference_snr_correction_db": 0.0,
+      "solar_state": "all",
+      "max_peer_distance_km": 2500,
+      "exclude_special_callsigns": false,
+      "exclude_moving_stations": false,
+      "min_spot_pairs_per_station": 1,
+      "min_confirmed_opportunities_per_peer": 5,
+      "min_qualifying_stations_per_map_segment": 1,
+      "min_decode_event_share_percent": 1.0,
+      "min_decode_stations_per_segment": 1
+    },
+    "counts": {
+      "observed_station_cycles": 1781,
+      "spot_pairs": 1450,
+      "paired_station_identities": 50,
+      "pair_count_min": 1,
+      "pair_count_max": 344,
+      "target_decodes": 1766,
+      "reference_decodes": 1465
+    },
+    "unchanged_numerical_contracts": [
+      "counts",
+      "pooled_mean_ci",
+      "station_mean_ci",
+      "temporal_12h",
+      "temporal_utc_hour"
+    ]
+  },
+  "figures": {
+    "rc3-calibration-statistics-typography-en-20261024": {
+      "bytes": 495938,
+      "sha256": "948c3c834f61554be97d6e4e1559e8f3c8869b461965abe73026c56ddf4567d7",
+      "width": 3774,
+      "height": 2849
+    },
+    "rc3-calibration-temporal-snr-typography-en-20261024": {
+      "bytes": 364791,
+      "sha256": "9b67dde24a8b63865cca11c663b022f5805ce91df52cca891ae164590d5619e8",
+      "width": 3820,
+      "height": 1826
+    },
+    "rc3-calibration-decodes-over-snr-typography-en-20261024": {
+      "bytes": 408992,
+      "sha256": "459f36f62cd72a4cef93d6c4b341b59ec41476dcce0ad532397eb8f0cbbbeaf2",
+      "width": 3807,
+      "height": 2572
+    }
+  },
+  "renderer_sources": {
+    "scripts/internal/refresh_figure_headings.py": {
+      "bytes": 30168,
+      "sha256": "84882c8d62ed29fac322d9177fccb399e11b9b1d9b8fe46d1000a86c940d9852"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 31487,
+      "sha256": "34784c87a94930cba613b4fb05fe2968ecb2b44a70c3913ee1f8279ba4b8c1b8"
+    },
+    "core/plot_engine.py": {
+      "bytes": 51825,
+      "sha256": "cd49dab011b12195262536d420afa795d46e8541f5f440c95c6697370466cb82"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 126033,
+      "sha256": "949913fdb523747226ecd0d3867f81955569e6bf7acb89a734df31b30a723da3"
+    },
+    "ui/plots/opportunity_figures.py": {
+      "bytes": 151561,
+      "sha256": "bc8afc5c3b61a78052d90b7e3b2e22f8cde35ff1fb12a2a66eb6eb6e59c42cdb"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 147553,
+      "sha256": "b59a9fba0963c1a1da79c66b641493df5bf59f9f71bdfd09c75cbc7ef3c4baca"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 46589,
+      "sha256": "188be1b56cf35e1b36d072190fe930b9385952ad205815189cb573542a33e24b"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 26615,
+      "sha256": "4be45178a82d1dbbee4c264fa452ddc6c6532c193754bb20ecc48ee8c8dc66ff"
+    },
+    "localization/figures_en.py": {
+      "bytes": 20229,
+      "sha256": "1f623f98fc7e91e008186480bff0da8220361e7d50298ef6adae02cfec77de4b"
+    }
+  },
+  "network_access": "No provider retrieval; native rendering from retained completed-run observations"
+}
