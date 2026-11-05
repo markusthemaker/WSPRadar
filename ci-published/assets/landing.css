@@ -274,7 +274,7 @@ body{background:#000b19}
 .why-steps>li:last-child{border-right:0}
 .why-steps>li:not(:last-child)::after{content:none}
 .why-step-heading h4{font:700 16px/1.2 Rajdhani,Arial,sans-serif}
-.why-steps>li>p{margin:0;font-size:14px;line-height:1.4}
+.why-steps>li>p{margin:0;font-size:14px;line-height:1.4;white-space:pre-line}
 @media(max-width:600px){.why-steps{grid-template-columns:1fr}.why-steps>li{border-right:0;border-bottom:1px solid #25465b;padding:11px 12px}.why-steps>li:last-child{border-bottom:0}.why-step-heading h4{font-size:18px}.why-steps>li>p{font-size:15px}}
 
 @media print{.real-example .result-gallery{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.result-preview{display:block;grid-row:auto}.result-preview a{height:auto;aspect-ratio:auto}.result-preview .result-image{height:auto}}
