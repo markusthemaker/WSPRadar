@@ -441,7 +441,7 @@
     "order": 3,
     "settings": {
       "advanced_parameters": {
-        "evidence_min_confirmed_opportunities_per_station": 3,
+        "evidence_min_confirmed_opportunities_per_station": 1,
         "evidence_min_qualifying_stations_per_map_segment": 1,
         "scope_exclude_moving_stations": false,
         "scope_exclude_special_callsigns": false,
@@ -537,8 +537,8 @@
           "en": "Minimum confirmed opportunities per station"
         },
         "value": {
-          "de": "3",
-          "en": "3"
+          "de": "1",
+          "en": "1"
         }
       },
       {

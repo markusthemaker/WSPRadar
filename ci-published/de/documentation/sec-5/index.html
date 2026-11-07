@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="/assets/fonts.css">
   <link rel="stylesheet" href="/content/assets/brand/product-tokens.css?v=1a6c10d30cef2383">
   <link rel="stylesheet" href="/assets/site.css">
-  <link rel="stylesheet" href="/assets/landing.css?v=316d5fefb600629c">
+  <link rel="stylesheet" href="/assets/landing.css?v=ccf49760096c5cf2">
   <script src="/assets/site.js" defer></script>
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
@@ -84,6 +84,7 @@
 </tr>
 </tbody>
 </table></div>
+<p>Änderst du nach einem Analyselauf die Analyseeinstellungen in <strong>Geführt</strong> oder <strong>Kompakt</strong>, öffnet sich der eingeklappte Bereich <strong>Prüfung</strong> wieder, sobald die Einstellungen gültig sind. Dort findest du <strong>Konfiguration speichern</strong> und die Startschaltfläche für die gewählte Analyserichtung.</p>
 <p><strong>Tastatur:</strong> Mit <code>Tab</code> und <code>Shift+Tab</code> wechselst du zwischen den Bedienelementen. In der geführten Ansicht prüft ein vorwärts gerichteter <code>Tab</code> über das Ende eines Einstellungsbereichs hinaus die Eingaben und öffnet den nächsten Schritt, genau wie <strong>Weiter</strong>. Bei Fehlern springt der Fokus zum ersten ungültigen Feld zurück. Das Erreichen der Prüfung startet die Analyse nicht. Die separaten Hilfesymbole <code>?</code> erfordern ein Zeigegerät.</p>
 <p>Das Laden oder Speichern einer Konfiguration startet keine Analyse. Nicht unterstützte alte Formate werden abgewiesen. Eine Kompatibilitätsausnahme akzeptiert ein vollständiges, gültiges Paar der früheren ΔDecode-Schwellenwerte für absolute Anzahlen und ersetzt sie mit einem Hinweis durch den <strong>Standardwert von 1 % Ereignisanteil</strong>; Anzahlen werden dabei nicht in Prozentwerte umgerechnet. Prüfe geladene Einstellungen vor dem Start.</p>
 <p><a id="sec-5-2"></a></p>
@@ -190,7 +191,7 @@
 <tr>
 <td><strong>Mindestzahl bestätigter Empfangsgelegenheiten je Station</strong></td>
 <td><strong>5</strong>; 1–100</td>
-<td>Performance: Verlangt diese Anzahl erfolgreicher Dekodierungen plus bestätigter Nichtdekodierungen je Identität. Niedrigere Werte ergeben gröber abgestufte Quoten mit geringerer Datengrundlage.</td>
+<td>Performance: Verlangt diese Anzahl erfolgreicher Dekodierungen plus bestätigter Nichtdekodierungen je Identität. Niedrigere Werte ergeben gröber abgestufte Quoten mit geringerer Datengrundlage. Für Identitäten mit wenigen Empfangsgelegenheiten gilt zusätzlich der serverseitig konfigurierte Filter zur Bestätigung durch weitere Empfänger; siehe <a href="/de/documentation/sec-7/#sec-7-performance-opportunities">Abschnitt 8.3.1</a>.</td>
 </tr>
 <tr>
 <td><strong>Mindestzahl qualifizierter Stationen je Kartensegment</strong></td>
@@ -277,12 +278,20 @@
 <td>Ändert ausschließlich die statistische Größe und das zugehörige Intervall zeitlicher Benchmark-ΔSNR-Ansichten. <strong>Mittelwert</strong> ist der Standard für neue Analysen. Segment- und Einzelstationsdiagramme speichern die Auswahl unabhängig voneinander. Wenn eine aktuelle Konfiguration eine Statistik nicht angibt, verwendet diese Ebene standardmäßig Mittelwert; ausdrücklich gespeicherte Werte werden beachtet. Die Milazzo-Demo startet auf beiden Ebenen mit Median. Median zeigt den Median mit Bin IQR; Mittelwert zeigt das arithmetische Mittel mit verfügbarem punktweisem Konfidenzintervall zum eingestellten Konfidenzniveau. Beide Modi erhalten zulässige Beobachtungen, Intervalle und Paargewichtung. Beide Einstellungen werden in Konfigurationen, geteilten Analyselinks und Exportmetadaten gespeichert. Feste Benchmark-Statistik, Karten, ΔDecode und Anzahlen der Datengrundlage bleiben unverändert.</td>
 </tr>
 <tr>
+<td><strong>Beibehaltene Einstellung für Performance-SNR-Markierungen</strong></td>
+<td>Das optionale, nur für Performance geltende <code>results_view.performance_snr_statistic</code> akzeptiert weiterhin <code>mean</code> oder <code>median</code> und verwendet ohne Angabe <code>mean</code>. Konfigurationen und geteilte Links erhalten diese Kompatibilitätseinstellung. Diese Einstellung wurde für das frühere Histogramm des SNR erfolgreicher Dekodierungen verwendet. Die aktuelle Auswahl in <strong>Spot- und Stationsdekodierungen</strong> verwendet die unabhängige Einstellung darunter.</td>
+</tr>
+<tr>
+<td><strong>Spot- und Stationsdekodierungen → Zusammenfassende Statistik (Performance)</strong></td>
+<td>Wählt <strong>Mittelwert</strong> oder <strong>Median</strong> für die fünf SNR-Markierungen und die Mittelwerte oder Mediane der Stationsdekodierquoten unten rechts, je Klasse und über „All SNR“, sowie die entsprechenden Kennwerte in der Karte Stationen. Häufigkeitskategorien, Anzahlen, Spot-Dekodierquote und Anteil erfasster Gegenstationen bleiben fest. Das optionale, nur für Performance geltende <code>results_view.performance_snr_reach_statistic</code> akzeptiert <code>mean</code> oder <code>median</code>, unabhängig von den zeitlichen Einstellungen. Ohne Angabe gilt <code>mean</code>. Konfigurationen, geteilte Links, wiederhergestellte abgeschlossene Läufe und Exporte erhalten die Auswahl.</td>
+</tr>
+<tr>
 <td><strong>SNR-Statistik: Median / Mittelwert</strong></td>
 <td>Zeitliche Performance-SNR-Ansichten auf beiden unabhängig einstellbaren Ebenen, standardmäßig Mittelwert. Chronologische und Tageszeitansichten fassen einzelne erfolgreiche Beobachtungen unmittelbar zusammen. Absolutes SNR behält diese Werte; Segmentabweichungen ziehen den gewählten Laufmittelwert oder Laufmedian jeder Station ab, bevor einzelne Abweichungen zusammengefasst werden. Mittelwert zeigt sein eingestelltes punktweises Konfidenzintervall (KI); Median zeigt IQR. Die absolute Dichte bleibt beim Wechsel unverändert; die Abweichungsdichte kann sich mit ihrem Vergleichsniveau ändern. Gespeicherte Konfigurationen, geteilte Links, wiederhergestellte abgeschlossene Läufe und Exporte erhalten die Auswahl. Dekodierquoten, Anzahlen, Kartenqualifikation, eigenständige Entfernungsprofile und feste Mediane der Stationstabelle bleiben unverändert.</td>
 </tr>
 <tr>
 <td><strong>Zoom-Zeitfenster / <strong class="defined-term">Möglicher Ausreißer im Detail</strong></strong></td>
-<td>Beschränkt die Detaildaten für genau eine ausgewählte Station auf ein Zeitintervall. <strong>Tabelle filtern</strong> schränkt anschließend nur die Tabellenzeilen ein. Die Fokussierung und Tabellenfilter der Detaildaten werden weder in Konfigurationen noch in Analyselinks gespeichert.</td>
+<td>Beschränkt die Detaildaten für genau eine ausgewählte Station auf ein Zeitintervall. <strong>Tabelle filtern</strong> grenzt anschließend die angezeigten Zeilen und die exportierte Detailtabelle der Auswahl ein. Die Detaildiagramme verwenden das gesamte Zoom-Zeitfenster. Die Fokussierung und Tabellenfilter der Detaildaten werden weder in Konfigurationen noch in Analyselinks gespeichert.</td>
 </tr>
 </tbody>
 </table></div>
@@ -354,7 +363,7 @@
 </tbody>
 </table></div>
 <p>Alle drei Anforderungen und die Prüfungen des Detektors auf eine ausreichende Datengrundlage gelten für jede Ereignisdauer. Wenn du einen Mindestwert senkst oder die zulässige Differenz der Vergleichsniveaus erhöhst, werden mehr Fälle für den Bericht zugelassen. Änderungen der Detektoreinstellungen erfordern einen neuen <strong>Analyselauf</strong>; die Erkennung ist unabhängig von der Breite der dargestellten Zeitintervalle und verändert die gewöhnlichen Benchmark-Karten nicht. <a href="/de/documentation/sec-7/#sec-7-outliers">Abschnitt 8.6</a> beschreibt das Verfahren und seine Grenzen im Einzelnen.</p><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/part-ii/">Zurück: Teil IV: Bedienelemente und Fehlersuche</a><a href="/de/documentation/sec-6/">Weiter: 11. Fehlersuche und Datenqualität</a></nav></article></div></main>
-    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark"><span class="brand-prefix">WSP</span><span class="brand-radar">Radar</span> v1.0 RC4</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Konzipiert von Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), programmiert mit OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
+    <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark"><span class="brand-prefix">WSP</span><span class="brand-radar">Radar</span> v1.0 RC5</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Konzipiert von Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), programmiert mit OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
   </div>
 </body>
 </html>

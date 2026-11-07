@@ -43,6 +43,18 @@ body{background:#000b19}
 .landing-header .hero-actions .button.secondary:hover,.landing .button.secondary:hover{background:var(--product-control-active-bg);border-color:var(--product-control-accent)}
 .hero-reassurance{font-size:14px;line-height:1.4;color:var(--text);margin:0}
 .landing-header .radar-artwork img{aspect-ratio:auto;clip-path:none;border-radius:0}
+/* Keep the app's artwork-only edge blend; live text and actions stay outside it. */
+@media screen{
+  .landing-header .radar-artwork{position:relative;isolation:isolate}
+  .landing-header .radar-artwork::before,
+  .landing-header .radar-artwork::after{content:"";position:absolute;z-index:1;pointer-events:none}
+  .landing-header .radar-artwork::before{inset:0 0 0 auto;width:4%;background:linear-gradient(to left,var(--product-bg,#000b19),transparent)}
+  .landing-header .radar-artwork::after{inset:0;background:linear-gradient(to right,var(--product-bg,#000b19),transparent 1%),linear-gradient(to bottom,transparent 85%,var(--product-bg,#000b19))}
+}
+/* Both wide artworks' handwritten captions reach into the right fade. */
+@media screen and (min-width:601px){
+  .landing-header .radar-artwork::before{-webkit-mask-image:linear-gradient(to bottom,#000 61%,transparent 65%,transparent 83%,#000 87%);mask-image:linear-gradient(to bottom,#000 61%,transparent 65%,transparent 83%,#000 87%)}
+}
 .landing-header .button,.landing .button:not(.secondary){font-weight:700}
 .landing-header .button:hover,.landing .button:not(.secondary):hover{box-shadow:none}
 .landing-header .navigation .nav-toggle:hover{background:var(--product-control-active-bg);border-color:var(--product-control-accent)}
@@ -360,7 +372,6 @@ html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
   .documentation-reader-page {--page-header-overlap:90px}
   :is(.documentation-index-page,.documentation-reader-page,.community-page,.demos-index-page,.demo-case-page) .site-header.landing-header {margin-bottom:0}
   :is(.documentation-index-page,.documentation-reader-page,.community-page,.demos-index-page,.demo-case-page) .site-shell>main {position:relative;isolation:isolate;margin-top:calc(-1 * var(--page-header-overlap))}
-  :is(.documentation-index-page,.documentation-reader-page,.community-page,.demos-index-page,.demo-case-page) .site-header .radar-visual::after {content:"";position:absolute;inset:auto 0 0;height:min(120px,30%);background:linear-gradient(transparent,#000b19);pointer-events:none}
   .demos-index-page main>.demos-landing,.demo-case-page main>.case-study {margin-top:0}
   .demos-index-page .demos-landing .hero {padding-top:0}
   .demos-index-page .demos-landing .hero .eyebrow,
@@ -403,7 +414,6 @@ html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
   .landing-header .hero-analysis-intro{margin:20px 0 0;padding:0}
   .site-header.landing-header{margin-bottom:28px}
   .site-shell>main{margin-top:0!important}
-  .site-header.landing-header .radar-visual::after{content:none}
   :is(.documentation-index-page,.documentation-reader-page,.community-page,.demos-index-page,.demo-case-page) .site-header.landing-header{margin-bottom:28px}
   .site-shell main .figure-block {
     max-width:none;
