@@ -38,10 +38,10 @@
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
   <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script><link rel="stylesheet" href="/assets/demo-walkthrough.css"><script src="/assets/demo-walkthrough.js?v=64d35a8d0bae79b5" defer></script>
-  <link rel="stylesheet" href="/assets/print.css?v=da19d9a8693c152d" media="print">
-  <script src="/assets/print.js?v=da19d9a8693c152d" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=55c3772a74fd981c" media="print">
+  <script src="/assets/print.js?v=55c3772a74fd981c" defer></script>
 </head>
-<body>
+<body class="documentation-full-page">
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="site-shell">
     <div class="site-navigation-shell landing-header"><nav class="navigation" aria-label="Menu"><a class="nav-brand" href="/en/" aria-label="WSPRadar.org — Introduction"><span><span class="brand-prefix">WSP</span><span class="brand-radar">Radar</span>.org</span></a><button class="nav-toggle" aria-controls="nav-links" aria-expanded="true">Menu</button><div class="nav-links" id="nav-links"><span class="nav-separator" aria-hidden="true">·</span><a href="/en/" data-product-nav="overview">Introduction</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/demos/" data-product-nav="demos">Guided Demos</a><span class="nav-separator" aria-hidden="true">·</span><a href="https://app.wspradar.org/" data-product-nav="analysis">WSPRadar App</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/documentation/" data-product-nav="documentation" aria-current="page">Documentation</a><span class="nav-separator" aria-hidden="true">·</span><a href="/en/community/" data-product-nav="community">Community</a></div><details class="language-selector"><summary aria-label="Change language: English" title="Change language"><span class="language-current" lang="en">EN</span><span class="language-chevron" aria-hidden="true">⌄</span></summary><div class="language-options" role="group" aria-label="Change language"><a class="language-option" href="/en/documentation/full/" lang="en" hreflang="en" aria-current="true"><span>English</span></a><a class="language-option" href="/de/documentation/full/" lang="de" hreflang="de"><span>Deutsch</span></a></div></details></nav></div><header class="site-header landing-header" style="--print-header-image:url(&quot;/assets/landing/web/hero-2172.webp&quot;)"><div class="radar-visual"><div class="phone-hero-intro"><p class="phone-hero-title">Turn WSPR spots <br class="phone-headline-break">into <span class="hero-insight">real insights.</span></p><p>Understand and compare your ham radio station with global WSPR data — easily, and for free.</p></div><div class="hero-artwork-stage"><picture class="radar-artwork" lang="en"><source media="(max-width: 600px)" type="image/webp" srcset="/assets/landing/web/radar-phone-globe-480.webp 480w, /assets/landing/web/radar-phone-globe-768.webp 768w, /assets/landing/web/radar-phone-globe-992.webp 992w" sizes="calc(100vw - 32px)" width="480" height="200"><source media="(max-width: 600px)" type="image/png" srcset="/assets/landing/web/radar-phone-globe.png" width="480" height="200"><source type="image/webp" srcset="/assets/landing/web/hero-480.webp 480w, /assets/landing/web/hero-768.webp 768w, /assets/landing/web/hero-1280.webp 1280w, /assets/landing/web/hero-1600.webp 1600w, /assets/landing/web/hero-2172.webp 2172w" sizes="(max-width:580px) calc(100vw - 17px), (max-width:1280px) calc(100vw - 24px), 1256px" width="1280" height="427"><img lang="en" src="/assets/landing/web/hero-1280.png" width="1280" height="427" alt="WSPRadar. Turn WSPR spots into real insights. Understand and compare your ham radio station with global WSPR data, easily and for free. Real data, real insights, better decisions. Illustrated signal paths connect a station in Europe with the world; this artwork is not a measured result." fetchpriority="high" loading="eager"></picture></div></div></header>
@@ -196,10 +196,40 @@
 <p><strong>Part III: Scientific Foundations, Methods and Claims</strong></p>
 <ul>
 <li><a href="#sec-d">7. Literature, Prior Art and Positioning</a><ul>
-<li><a href="#sec-d-1">7.1 From reporting network to experimental dataset</a></li>
-<li><a href="#sec-d-2">7.2 Making observational WSPR data interpretable</a></li>
-<li><a href="#sec-d-3">7.3 Antenna and station-comparison lineage</a></li>
-<li><a href="#sec-d-4">7.4 Analysis infrastructure and related tools</a></li>
+<li><a href="#sec-d-1">7.1 From reporting network to experimental dataset</a><ul>
+<li><a href="#sec-d-taylor-walker">7.1.1 Joe Taylor, K1JT, and Bruce Walker, W1BW: a shared experimental resource.</a></li>
+<li><a href="#sec-d-frissell">7.1.2 Nathaniel Frissell and collaborators: amateur observations in space science.</a></li>
+</ul>
+</li>
+<li><a href="#sec-d-2">7.2 Making observational WSPR data interpretable</a><ul>
+<li><a href="#sec-d-lo">7.2.1 Lo and collaborators, 2022: establish activity before interpreting silence.</a></li>
+<li><a href="#sec-d-griffiths-robinett-elmore">7.2.2 Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, and Glenn Elmore, N6GN, 2019–2020: measure noise alongside reception.</a></li>
+</ul>
+</li>
+<li><a href="#sec-d-3">7.3 Antenna and station-comparison lineage</a><ul>
+<li><a href="#sec-d-destrem">7.3.1 Patrick Destrem, F6IRF, 2008: automated switching and geographic comparison.</a></li>
+<li><a href="#sec-d-preston">7.3.2 Charles Preston, KL7OA, later K7TAA, 2009 and 2017: simultaneous comparison.</a></li>
+<li><a href="#sec-d-toledo">7.3.3 Sivan Toledo, 2010: a useful negative result about timing.</a></li>
+<li><a href="#sec-d-milazzo">7.3.4 Carol F. Milazzo, KP4MD, 2011: compare complete stations in both directions.</a></li>
+<li><a href="#sec-d-griffiths-squibb">7.3.5 Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, 2017: compare, investigate and retest.</a></li>
+<li><a href="#sec-d-vanhamel">7.3.6 Vanhamel, Machiels and Lamy, 2022: characterize the receiving chains.</a></li>
+<li><a href="#sec-d-zander">7.3.7 Jens Zander, 2022: state the comparison model and its assumptions.</a></li>
+<li><a href="#sec-d-rietdorf">7.3.8 Thomas Rietdorf, DL2OAH, 2026: a synchronized multiband station comparison.</a></li>
+<li><a href="#sec-d-ostergaard">7.3.9 Dale Ostergaard, N3HXZ, 2026: practical sequential antenna comparisons.</a></li>
+</ul>
+</li>
+<li><a href="#sec-d-4">7.4 Analysis infrastructure and related tools</a><ul>
+<li><a href="#sec-d-griffiths-robinett">7.4.1 Gwyn Griffiths and Rob Robinett, 2020: reusable database analysis.</a></li>
+<li><a href="#sec-d-wspr-live">7.4.2 Arne and the wspr.live project, with computing resources from HB9VQQ.</a></li>
+<li><a href="#sec-d-wsprdaemon">7.4.3 Rob Robinett, AI6VN, and the WSPRdaemon community.</a></li>
+<li><a href="#sec-d-farfield-lab">7.4.4 Tim, K5OHY — FarField Lab: accessible sequential antenna benchmarking.</a></li>
+<li><a href="#sec-d-wspr-rocks">7.4.5 Phil, VK7JJ — WSPR.Rocks</a></li>
+<li><a href="#sec-d-wsprlite-dxplorer">7.4.6 Richard Newstead and SOTABEAMS — WSPRlite/DXplorer</a></li>
+<li><a href="#sec-d-wspr-station-compare">7.4.7 Walter Machiels, ON4AWM — WSPR-Station-Compare</a></li>
+<li><a href="#sec-d-antenna-performance-analysis">7.4.8 Fred, W6BSD — Antenna Performance Analysis</a></li>
+<li><a href="#sec-d-watt">7.4.9 Colin Murray, GM4EAU — WATT</a></li>
+</ul>
+</li>
 <li><a href="#sec-d-5">7.5 What WSPRadar inherits, integrates and adds</a></li>
 </ul>
 </li>
@@ -402,7 +432,7 @@
 <p>A station needs spot pairs for ΔSNR; all its observed decodes still count toward ΔDecode. The two maps have different requirements. A large value can come from only a few observations, so read the counts as well as the colors. See <a href="#sec-5-4">evidence thresholds</a>.</p>
 <p><a id="sec-2-3"></a>
 <a id="sec-3-rx-benchmark-hardware"></a></p>
-<h5>2.1.1 Reference Setup/Station</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.1.1</span> <span class="manual-heading-title">Reference Setup/Station</span></h5>
 <p><strong>Controlled local setup.</strong> Run separately identified receiving paths at the same time for the antennas, feedlines, filters, preamplifiers or receivers you want to compare. Check both exact reporting callsigns and locations in the database. A shared four-character locator does not establish that the equipment is at the same physical site or uses identical signal paths.</p>
 <p>Keep non-tested parts of the chains equal, or measure their differences: receiver, gain, filtering, audio, decoder and uploads can all affect the result. A common-input calibration or swapping components between chains helps check whether an observed difference follows the tested component. Components intended to be common must actually be shared. See <a href="#sec-a">parallel WSJT-X instances</a> and <a href="#sec-reference-snr-calibration">Reference calibration</a>.</p>
 <p>RX reporting callsigns such as <code>CALL</code> and <code>CALL/P</code> can distinguish the receiving paths if the software and database preserve them. They do not change the remote transmitter's message format.</p>
@@ -418,7 +448,7 @@
 <p><a id="sec-2-4"></a>
 <a id="sec-2-4-simultaneous"></a>
 <a id="sec-3-tx-benchmark-simultaneous"></a></p>
-<h5>2.2.1 Reference Setup/Station</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.2.1</span> <span class="manual-heading-title">Reference Setup/Station</span></h5>
 <p><strong>Controlled local setup.</strong> Use two separately identifiable transmit chains with different valid callsigns, synchronized WSPR cycles, clear separated frequencies, measured and truthfully reported power, and adequate RF isolation. One transmitter alternating between antennas cannot provide simultaneous spot pairs.</p>
 <p><strong>Prefer two different valid ordinary callsigns.</strong> Choose callsigns that each fit the one-transmission WSPR format, carrying callsign, locator and power together.</p>
 <p>If <strong class="defined-term">compound callsigns</strong> — callsigns with an added prefix or suffix — are needed, two distinct valid compound callsigns can also work. For this controlled comparison, use matching, verified message sequences and align their corresponding transmissions. <a href="#sec-simultaneous-tx-setup-1">Section 5.1</a> explains the callsign choices and the message formats they produce.</p>
@@ -457,23 +487,23 @@
 <h4>2.5 Find and Review Temporary ΔSNR Departures</h4>
 <p>This optional expert diagnostic looks for temporary changes in paired ΔSNR separately for each remote station. The report treats each exact callsign and full reported locator as one <strong class="defined-term">path</strong>. Complete the ordinary Benchmark review first. A possible outlier is a reason to investigate, not an identified physical event.</p>
 <p><a id="sec-outlier-1"></a></p>
-<h5>2.5.1 When to use this expert diagnostic</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.1</span> <span class="manual-heading-title">When to use this expert diagnostic</span></h5>
 <p>Use it when a temporary change matters to your question and enough spot pairs exist before, during and after it. One-sided reports provide context but no missing ΔSNR. An empty report may mean insufficient surrounding evidence, not an unchanged path.</p>
 <p>Enable <strong>Identify ΔSNR outlier candidates</strong>, review the <a href="#sec-5-6">three expert controls</a>, then run the analysis. Changing the settings requires another explicit run.</p>
 <p><a id="sec-outlier-2"></a>
 <a id="sec-outlier-3"></a></p>
-<h5>2.5.2 How detection works in practice</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.2</span> <span class="manual-heading-title">How detection works in practice</span></h5>
 <p>The <strong class="defined-term">local baseline</strong> estimates the path's usual ΔSNR from supported observations before and after a candidate, excluding the candidate. A <strong class="defined-term">departure</strong> is observed ΔSNR minus that baseline. Thus <strong>+1 dB ΔSNR against a +8 dB baseline is a −7 dB departure</strong>: Target still has higher SNR, but its advantage has fallen.</p>
 <p>The detector checks departure size, a <strong class="defined-term">robust z-score</strong> comparing it with nearby variation, agreement of baseline medians before and after it, and sign agreement within the candidate. It uses individual cycle observations before display grouping, so changing a chart's time-bin width does not change detections. Event classes and cross-path groups establish neither different certainty nor a common cause. See <a href="#sec-7-outliers">the method</a>.</p>
 <p><a id="sec-outlier-4"></a>
 <a id="sec-outlier-5"></a>
 <a id="sec-outlier-6"></a></p>
-<h5>2.5.3 Read and investigate a reported event</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.3</span> <span class="manual-heading-title">Read and investigate a reported event</span></h5>
 <p>Compare <strong>Expected local ΔSNR</strong> with <strong>Observed median ΔSNR</strong>, then inspect the pair count, timing gaps and underlying observations. <strong>↓ Show in Station Insights</strong> opens the path's wider history; <strong>↓ Show Drill-Down Details</strong> opens its detail. Both prepare <strong>Outlier Focus</strong> with surrounding baseline evidence.</p>
 <p>Use <strong>How to read this</strong> in Outlier Report and Outlier Focus for event classes, stars, shading and detector guides. The highlighted interval describes retained observations, not the duration of an unseen physical event.</p>
 <p>Check Target and corrected Reference SNR separately: either or both can drive a change. Compare nearby one-sided reports, other paths, station logs, switching, power or gain changes and independent measurements before assigning a cause.</p>
 <p><a id="sec-outlier-7"></a></p>
-<h5>2.5.4 Adjust selectivity and preserve the result</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.4</span> <span class="manual-heading-title">Adjust selectivity and preserve the result</span></h5>
 <p>Larger minimum departure or robust-score thresholds make reporting more selective. A smaller allowed before/after baseline difference requires closer agreement of those medians, not lower background variability. The same requirements apply to all event durations; <a href="#sec-5-6">Section 10.6</a> lists the controls.</p>
 <p>Record exploratory changes. For confirmation, fix the settings and path population before examining a new run. Report the path, interval, departure, supporting pairs and detector settings. The detector does not supply a p-value or correction for the number of searched paths and events.</p>
 <p>Save the analysis export to retain enabled outlier findings and their contributing pairs. File contents and availability are defined in <a href="#sec-8-4">Section 9.4</a>.</p>
@@ -719,7 +749,7 @@
 <p>Choose the route that matches the callsigns available for the experiment. Target and Reference can be two setups at one station or two coordinated stations. Keep each complete callsign attached to its documented physical path throughout the experiment.</p>
 <p><strong>Reporting callsigns in RX and transmitting them in TX work differently.</strong> An <a href="#sec-rx-reporting-identities">RX reporting suffix</a> is uploaded over the internet. In TX, the callsign must be encoded in the radiated WSPR message, so an ordinary or compound callsign determines the message sequence needed <a href="#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-tx-two-distinct-callsigns"></a></p>
-<h5>5.1.1 Two distinct callsigns</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.1.1</span> <span class="manual-heading-title">Two distinct callsigns</span></h5>
 <p>Use this route when two different callsigns are valid for the intended operation and <strong>both fit the ordinary <strong class="defined-term">Type 1</strong> WSPR format</strong>. Each transmission carries its callsign, a four-character locator (<strong class="defined-term">grid-4</strong>) and reported power together.</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -742,7 +772,7 @@
 <p>Disable extended messaging on both units for the one-message route. On the cited ZachTek firmware, explicitly select <strong>no prefix/suffix</strong> and use <code>LocationPrecision = 4</code>. A normal base callsign alone does not disable an existing suffix selection, and precision <code>6</code> adds a second transmission even after an ordinary Type 1 message. Match the <strong>actual transmitted pattern</strong>, not just the callsign format.</p>
 <p>Open the <a href="#sec-simultaneous-tx-setup-5-1">QMX/QMX+ or Ultimate3S recipe</a> or <a href="#sec-simultaneous-tx-setup-5-3">ZachTek recipe</a>, complete its shared preparation, then choose <strong>Two distinct callsigns</strong>.</p>
 <p><a id="sec-tx-one-callsign-two-suffixes"></a></p>
-<h5>5.1.2 One callsign with two suffixes</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.1.2</span> <span class="manual-heading-title">One callsign with two suffixes</span></h5>
 <p>Use this route when you have one base callsign and need to distinguish two transmitting setups with two valid compound callsigns. For example, <code>CALL/1</code> and <code>CALL/2</code> illustrate the pattern; replace <code>CALL</code> with your actual base callsign. Use only suffixes permitted for the operator, station and operation and supported by the selected firmware. Do not invent an on-air suffix merely as a hardware label.</p>
 <p>The firmware generates the extended sequence automatically:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -804,7 +834,7 @@
 <p>Choose the recipe for your equipment below, then complete the common power and signal checks in <a href="#sec-simultaneous-tx-setup-3">5.3</a> and the database check in <a href="#sec-simultaneous-tx-setup-4">5.4</a>. Record the firmware and settings that passed. Repeat those checks after changing firmware, timing, frequency, power or message format.</p>
 <p><a id="sec-simultaneous-tx-setup-5-1"></a>
 <a id="sec-simultaneous-tx-setup-5-2"></a></p>
-<h5>5.5.1 QMX and QMX+ Virtual U3S, and Ultimate3S</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1</span> <span class="manual-heading-title">QMX and QMX+ Virtual U3S, and Ultimate3S</span></h5>
 <p>Use one unit for the Target and one for the Reference. Both products support up to 16 entries, but <strong>start with one WSPR entry on each unit</strong>. That entry sends either one Type 1 message or an automatic Type 2/Type 3 pair, according to the callsign route below. Their RF hardware differs, so oscillator, filtering and output-stage differences remain part of the paths being compared <a href="#ref-12">[Ref-12]</a>.</p>
 <p>First check the hardware and firmware below. Then choose <a href="#sec-qrp-two-distinct-callsigns">two distinct callsigns</a> or <a href="#sec-qrp-one-callsign-two-suffixes">one callsign with two suffixes</a>. Both routes then use the <a href="#sec-qrp-common-setup">shared power, frequency and verification steps</a>.</p>
 <p><strong>1. Check the hardware and firmware.</strong></p>
@@ -813,7 +843,7 @@
 <p>For QMX/QMX+, the <a href="https://www.qrp-labs.com/qmx.html">official firmware history</a> labels <code>1_04_010</code> the stable release as of <strong>25 October 2026</strong>; later listed releases are beta. The initial <code>1_04_000</code> was QMX+-only. Release <code>1_04_009</code> corrected WSPR transmission <strong>250 Hz below the intended frequency</strong>, and <code>1_04_010</code> includes further Virtual U3S fixes. Use a supported release with those corrections and check the history when updating.</p>
 <p>The instructions here refer to the Virtual U3S manual for firmware <code>1_04_008</code> (document revision <code>1_04_008a</code>) and the Ultimate3S manual for firmware <code>v3.12a</code> (file <code>operation3.12a2.pdf</code>). Physical U3S firmware <code>v3.12</code> introduced consecutive extended-message transmission; do not assume older firmware behaves the same <a href="#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-qrp-two-distinct-callsigns"></a></p>
-<h6>5.5.1.1 Two distinct callsigns</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.1</span> <span class="manual-heading-title">Two distinct callsigns</span></h6>
 <p>Use this route for two valid ordinary callsigns, whether they identify two setups at one station or two separate stations, as described in <a href="#sec-tx-two-distinct-callsigns">Section 5.1.1</a>.</p>
 <ol>
 <li>Enter each unit's own complete ordinary callsign in <strong>Callsign</strong>.</li>
@@ -823,7 +853,7 @@
 </ol>
 <p>With the single Type 1 entry, the expected starts are <strong><code>:04</code>, <code>:24</code> and <code>:44</code> each hour</strong>. Each start should contain both signals. This uses <strong>3 of the 30 two-minute cycles per hour: 10% cycle occupancy</strong>.</p>
 <p><a id="sec-qrp-one-callsign-two-suffixes"></a></p>
-<h6>5.5.1.2 One callsign with two suffixes</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.2</span> <span class="manual-heading-title">One callsign with two suffixes</span></h6>
 <p>Use this route for two setups identified by one base callsign and two valid suffixes, as described in <a href="#sec-tx-one-callsign-two-suffixes">Section 5.1.2</a>.</p>
 <ol>
 <li>Enter the <strong>complete suffixed callsign</strong> in each unit's <strong>Callsign</strong> setting, for example <code>CALL/1</code> for Target and <code>CALL/2</code> for Reference. Replace <code>CALL</code> with your actual base callsign and use only valid on-air suffixes supported by the firmware.</li>
@@ -852,7 +882,7 @@
 </table></div>
 <p>When this recurrence is maintained, each transmitter uses <strong>6 of the 30 two-minute cycles per hour: 20% cycle occupancy</strong>. The Type 1 route's 10% figure does not apply. Keep both units on corresponding message phases and preserve the whole pair at one frequency before changing frequency. Verify the complete extended sequence and the resulting database identities before measuring <a href="#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-qrp-common-setup"></a></p>
-<h6>5.5.1.3 Shared power, frequency and verification steps</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.3</span> <span class="manual-heading-title">Shared power, frequency and verification steps</span></h6>
 <p><strong>Set actual power and one transmission entry.</strong></p>
 <p>Edit TX column <code>0</code> in the Virtual U3S schedule table, or mode screen <code>0</code> on physical Ultimate3S.</p>
 <p>Enter the callsign and truthful six-character locator specified by your chosen route. Keep each callsign attached to its Target or Reference path throughout the experiment.</p>
@@ -950,7 +980,7 @@
 <p>Compare both frequency positions separately. Balanced use helps reveal or reduce a fixed frequency-position advantage from QRM or the equipment, but does not prove that every frequency effect has disappeared.</p>
 <p>For the one-callsign/two-suffix route, use the between-run frequency exchange in <a href="#sec-simultaneous-tx-setup-6">5.6</a>. One extended entry already uses two cycles; adding a second extended entry changes the sequence length and occupancy, so the ordinary-route trace and 20% calculation above do not apply. Preserve the whole Type 2/Type 3 pair before changing frequency.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3"></a></p>
-<h5>5.5.2 ZachTek firmware 2.19</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2</span> <span class="manual-heading-title">ZachTek firmware 2.19</span></h5>
 <p>This setup uses ZachTek's built-in scheduling and standard frequency randomization; <strong>no custom frequency-lane firmware is required</strong>. The worked example uses the pinned ESP8285 firmware in <a href="#ref-29">Ref-29</a>, revision <code>1657468ea27052167191a7deda2440a535567ecd</code>, which selects <strong>WSPR-TX XP Plus, <code>Product_Model = 1048</code></strong>. Other models require a separately checked recipe. In this file, the Mini/Pico long-pause sleep call is disabled, and Pico startup forces altitude reporting; the pause and power instructions below therefore apply to the selected 1048 build.</p>
 <p>Use the configuration software for your exact hardware and installed firmware. The parameter names below follow the cited source; they are not instructions to edit or compile firmware. <strong>This recipe has not been validated by WSPRadar on ZachTek hardware.</strong> The manufacturer's clarification supports using the standard scheduling and randomization functions; it is not a validation of every model-specific setting below.</p>
 <p>Choose the route that matches the <strong>on-air transmitting identities</strong> you will use:</p>
@@ -976,7 +1006,7 @@
 <p>Two colocated setups should report their common physical QTH. At two different stations, each transmitter reports its own QTH; the result compares complete installed stations and their different propagation paths. Record which complete callsign and locator belong to each physical signal path.</p>
 <p>After configuring either route below, complete the shared <strong>timing → bench → on-air</strong> procedure in <a href="#sec-simultaneous-tx-setup-5-3-1">Section 5.5.2.3</a>. Keep standard frequency randomization on both units; no lower/upper frequency-lane assignment is needed.</p>
 <p><a id="sec-zachtek-two-ordinary-callsigns"></a></p>
-<h6>5.5.2.1 Two distinct callsigns</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.1</span> <span class="manual-heading-title">Two distinct callsigns</span></h6>
 <p>Use this route when the Target and Reference each have a different valid callsign that fits the ordinary Type 1 WSPR format. The callsigns can identify two permitted setups at one station or two separate stations; they do not need suffixes to become distinguishable.</p>
 <p><strong>Configure both units:</strong></p>
 <ol>
@@ -1010,7 +1040,7 @@
 </table></div>
 <p>When this recurrence is maintained, each transmitter uses <strong>3 of 30 WSPR cycles per hour: 10%</strong> of the available cycles. <code>TXPause</code> starts after each Type 1 transmission; it does not schedule extra transmissions at eight-minute intervals. Confirm the actual starts, then perform the shared bench and database checks before beginning the measurement window. <a href="#ref-29">[Ref-29]</a></p>
 <p><a id="sec-simultaneous-tx-setup-5-3-2"></a></p>
-<h6>5.5.2.2 One callsign with two suffixes</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.2</span> <span class="manual-heading-title">One callsign with two suffixes</span></h6>
 <p>Use this route when two transmitting setups use one base callsign with two distinct valid suffixes. For example, <code>CALL/1</code> and <code>CALL/2</code> illustrate the identity pattern; replace <code>CALL</code> with your actual callsign and use only suffixes permitted for the operator, station and operation. In this pinned firmware, use <strong>single-digit or single-letter suffixes</strong>.</p>
 <p><strong>Configure both units:</strong></p>
 <ol>
@@ -1046,7 +1076,7 @@
 <p><strong>Keep the source limitations in view.</strong> The Type 3 hash construction for two-digit suffixes is disabled. The prefix-based Type 3 path also rebuilds its callsign string without writing the terminating zero before hashing, so it is not a reliable recipe in this revision. The single-character-suffix route above uses the implemented construction path. <a href="#ref-29">[Ref-29]</a></p>
 <p>Observe corresponding Type 2 and Type 3 phases together, including after a restart. Verify both complete identities in the receiver/database evidence for both phases through <a href="#sec-simultaneous-tx-setup-4">Section 5.4</a>. Matching configuration values alone do not establish correct hash resolution or complete synchronized transmissions.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3-1"></a></p>
-<h6>5.5.2.3 Shared timing, frequency randomization and verification</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.3</span> <span class="manual-heading-title">Shared timing, frequency randomization and verification</span></h6>
 <p><strong>Keep the schedule and pause consistent.</strong> Both worked routes use code <code>7</code>. If you choose a different fixed start, match <code>TimeSlotCode</code> on both units and use the following rules:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -1136,11 +1166,15 @@
 <p>Three lessons recur: compare under shared conditions, establish activity before interpreting silence, and examine the complete station before attributing a difference to its antenna.</p>
 <p><a id="sec-d-1"></a></p>
 <h4>7.1 From reporting network to experimental dataset</h4>
-<p><strong>Joe Taylor, K1JT, and Bruce Walker, W1BW: a shared experimental resource.</strong> Taylor introduced WSPR in 2008; Walker developed WSPRnet to collect and share reception reports. Their 2010 article showed how those reports could support propagation experiments. One example grouped three weeks of 30 m observations into 15-minute UTC intervals: averaging revealed recurring reception patterns that were difficult to judge from individual transmissions. Station operators supplied the distributed observations, while the protocol, software and reporting service made them accessible. The reports still reflected the participating equipment, locations and operating schedules. <a href="#ref-6">[Ref-6]</a></p>
+<p><a id="sec-d-taylor-walker"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.1.1</span> <span class="manual-heading-title">Joe Taylor, K1JT, and Bruce Walker, W1BW: a shared experimental resource.</span></h5>
+<p>Taylor introduced WSPR in 2008; Walker developed WSPRnet to collect and share reception reports. Their 2010 article showed how those reports could support propagation experiments. One example grouped three weeks of 30 m observations into 15-minute UTC intervals: averaging revealed recurring reception patterns that were difficult to judge from individual transmissions. Station operators supplied the distributed observations, while the protocol, software and reporting service made them accessible. The reports still reflected the participating equipment, locations and operating schedules. <a href="#ref-6">[Ref-6]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> preserve this connection between reported observations and the question being asked. Geographic and time summaries organize the evidence, while the selected period and participating stations remain part of its meaning.</p>
 </blockquote>
-<p><strong>Nathaniel Frissell and collaborators: amateur observations in space science.</strong> Their 2019 study compared amateur-network reports during the September 2017 solar activity with a quiet-time baseline. It identified HF communication blackouts associated with flares and changes during geomagnetic disturbances, using the baseline to distinguish event responses from ordinary variations. <a href="#ref-13">[Ref-13]</a></p>
+<p><a id="sec-d-frissell"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.1.2</span> <span class="manual-heading-title">Nathaniel Frissell and collaborators: amateur observations in space science.</span></h5>
+<p>Their 2019 study compared amateur-network reports during the September 2017 solar activity with a quiet-time baseline. It identified HF communication blackouts associated with flares and changes during geomagnetic disturbances, using the baseline to distinguish event responses from ordinary variations. <a href="#ref-13">[Ref-13]</a></p>
 <p>Their 2022 study used WSPRnet, Reverse Beacon Network and PSKReporter observations from 3 November 2017. Approximately 2.5-hour fluctuations in communication distance agreed with SuperDARN radar and satellite-navigation measurements of ionospheric electron content, supporting an interpretation as large-scale traveling ionospheric disturbances. The independent measurements were part of the evidence for that physical explanation. <a href="#ref-14">[Ref-14]</a></p>
 <p>Their 2023 review places these amateur networks alongside purpose-built scientific instruments and recommends cross-calibration between networks. It recognizes the scientific value of accumulated observations without treating every contributing receiver as a calibrated instrument. <a href="#ref-7">[Ref-7]</a></p>
 <blockquote>
@@ -1148,38 +1182,48 @@
 </blockquote>
 <p><a id="sec-d-2"></a></p>
 <h4>7.2 Making observational WSPR data interpretable</h4>
-<p><a id="sec-d-lo"></a>
-<strong>Lo and collaborators, 2022: establish activity before interpreting silence.</strong> Their study used a full year of 2017 observations on 7 MHz between Europe and Australasia. Half-hour activity checks asked whether a transmitter was heard elsewhere and whether a receiver heard other stations. Reception from the UK to New Zealand occurred around UK sunrise and sunset; reception in the reverse direction was concentrated around UK sunrise, with UK-sunset reception especially sparse in summer. The authors proposed higher European evening noise as a possible explanation, rather than treating the asymmetry as propagation evidence alone. <a href="#ref-9">[Ref-9]</a></p>
+<p><a id="sec-d-lo"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.2.1</span> <span class="manual-heading-title">Lo and collaborators, 2022: establish activity before interpreting silence.</span></h5>
+<p>Their study used a full year of 2017 observations on 7 MHz between Europe and Australasia. Half-hour activity checks asked whether a transmitter was heard elsewhere and whether a receiver heard other stations. Reception from the UK to New Zealand occurred around UK sunrise and sunset; reception in the reverse direction was concentrated around UK sunrise, with UK-sunset reception especially sparse in summer. The authors proposed higher European evening noise as a possible explanation, rather than treating the asymmetry as propagation evidence alone. <a href="#ref-9">[Ref-9]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> apply the activity-check principle when defining Performance opportunities. WSPRadar's own same-cycle rules establish which endpoints have activity evidence; they are a separate design choice from the study's half-hour checks. Missing reports without the required evidence remain unknown outcomes.</p>
 </blockquote>
-<p><strong>Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, and Glenn Elmore, N6GN, 2019–2020: measure noise alongside reception.</strong> Their 2019 report compared noise estimates from gaps between WSPR transmissions with frequency-domain estimates made during reception, and investigated calibration to the receiver's antenna input. At KPH, the 40 m noise record showed a daily minimum around local noon and greater evening/night variability. These measurements added information that ordinary SNR reports could not supply. The work was subsequently published in QEX in September/October 2020. <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a></p>
+<p><a id="sec-d-griffiths-robinett-elmore"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.2.2</span> <span class="manual-heading-title">Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, and Glenn Elmore, N6GN, 2019–2020: measure noise alongside reception.</span></h5>
+<p>Their 2019 report compared noise estimates from gaps between WSPR transmissions with frequency-domain estimates made during reception, and investigated calibration to the receiver's antenna input. At KPH, the 40 m noise record showed a daily minimum around local noon and greater evening/night variability. These measurements added information that ordinary SNR reports could not supply. The work was subsequently published in QEX in September/October 2020. <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> interpret an SNR change as a change in the signal-to-noise relationship. WSPRadar does not independently measure noise; distinguishing stronger signals from lower noise requires additional measurements or controlled station tests.</p>
 </blockquote>
 <p><a id="sec-d-3"></a></p>
 <h4>7.3 Antenna and station-comparison lineage</h4>
-<p><strong>Patrick Destrem, F6IRF, 2008: automated switching and geographic comparison.</strong> Destrem alternated a 30 m vertical and inverted-V every ten minutes and corrected reports to a common transmit power. These were <strong class="defined-term">interleaved measurements</strong>: the antennas were tested in alternating periods. He examined individual receivers and distance groups. The vertical's reported average advantage was about 4 dB on one approximately 14 000 km path, while the antennas were approximately equal on a 2 000 km path. The result depended on the path and installation; sequential measurements remained exposed to changing propagation. His follow-ups extended the investigation to reception and comparisons between stations. <a href="#ref-17">[Ref-17]</a></p>
+<p><a id="sec-d-destrem"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.1</span> <span class="manual-heading-title">Patrick Destrem, F6IRF, 2008: automated switching and geographic comparison.</span></h5>
+<p>Destrem alternated a 30 m vertical and inverted-V every ten minutes and corrected reports to a common transmit power. These were <strong class="defined-term">interleaved measurements</strong>: the antennas were tested in alternating periods. He examined individual receivers and distance groups. The vertical's reported average advantage was about 4 dB on one approximately 14 000 km path, while the antennas were approximately equal on a 2 000 km path. The result depended on the path and installation; sequential measurements remained exposed to changing propagation. His follow-ups extended the investigation to reception and comparisons between stations. <a href="#ref-17">[Ref-17]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> credit the early combination of power correction and geographic inspection. Compare directions and distances explicitly, while using concurrent pairs for ΔSNR and retaining one-sided reports as separate evidence.</p>
 </blockquote>
-<p><strong>Charles Preston, KL7OA, later K7TAA, 2009 and 2017: simultaneous comparison.</strong> Preston's March 2009 preliminary experiment used two colocated 2 W transmitters, a Buddipole and a horizontal loop on 30 m. Common distant receivers supplied simultaneous reports. Overall performance was similar in the short run, but the Buddipole stood inside the loop and antenna interaction limited the conclusion. Either transmission could also be reported alone; weak reception and frequency-specific interference were possible explanations. His report distinguished received SNR from signal strength. He later published <em>Antenna Comparisons Using Simultaneous WSPR Measurements</em> in QEX in July/August 2017; the preliminary report's June 2017 update points readers to that publication. <a href="#ref-18">[Ref-18]</a> <a href="#ref-19">[Ref-19]</a></p>
+<p><a id="sec-d-preston"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.2</span> <span class="manual-heading-title">Charles Preston, KL7OA, later K7TAA, 2009 and 2017: simultaneous comparison.</span></h5>
+<p>Preston's March 2009 preliminary experiment used two colocated 2 W transmitters, a Buddipole and a horizontal loop on 30 m. Common distant receivers supplied simultaneous reports. Overall performance was similar in the short run, but the Buddipole stood inside the loop and antenna interaction limited the conclusion. Either transmission could also be reported alone; weak reception and frequency-specific interference were possible explanations. His report distinguished received SNR from signal strength. He later published <em>Antenna Comparisons Using Simultaneous WSPR Measurements</em> in QEX in July/August 2017; the preliminary report's June 2017 update points readers to that publication. <a href="#ref-18">[Ref-18]</a> <a href="#ref-19">[Ref-19]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> compare transmissions observed by the same receiver in the same cycle. Keep paired ΔSNR and one-sided decoding evidence distinct, and document the physical arrangements that bound the comparison.</p>
 </blockquote>
-<p><a id="sec-d-toledo"></a>
-<strong>Sivan Toledo, 2010: a useful negative result about timing.</strong> Toledo compared three loop antennas in successive blocks of approximately one hour. Reports changed substantially while he was still using the same antenna: one path varied by about 10 dB in forty minutes, and another receiver showed similar variability. Apparent differences between antennas were comparable with this background variation, so that experiment could not separate antenna performance from changing conditions. His account discussed automated switching and Preston's simultaneous approach as ways to improve the design. It was a limitation of the experiment, not a finding that WSPR comparisons are impossible. <a href="#ref-3">[Ref-3]</a></p>
+<p><a id="sec-d-toledo"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.3</span> <span class="manual-heading-title">Sivan Toledo, 2010: a useful negative result about timing.</span></h5>
+<p>Toledo compared three loop antennas in successive blocks of approximately one hour. Reports changed substantially while he was still using the same antenna: one path varied by about 10 dB in forty minutes, and another receiver showed similar variability. Apparent differences between antennas were comparable with this background variation, so that experiment could not separate antenna performance from changing conditions. His account discussed automated switching and Preston's simultaneous approach as ways to improve the design. It was a limitation of the experiment, not a finding that WSPR comparisons are impossible. <a href="#ref-3">[Ref-3]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> make the common operating period part of the comparison, inspect changes over time and repeat controlled tests. Collecting more reports does not by itself remove differences between the conditions being compared.</p>
 </blockquote>
-<p><a id="sec-d-milazzo"></a>
-<strong>Carol F. Milazzo, KP4MD, 2011: compare complete stations in both directions.</strong> Published in January 2011 using December 2010 measurements, Milazzo's study compared stations 29 km apart through a common receiver about 1 750 km away. She corrected for transmit-power differences and examined the results alongside VOACAP estimates. On 40 m, the horizontal-loop station generally produced stronger transmitted reports, while the vertical-antenna station received the common distant station with better SNR. Different sites, radios and band schedules remained part of the comparison, and the selected distant station limited its geographic scope. <a href="#ref-4">[Ref-4]</a></p>
+<p><a id="sec-d-milazzo"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.4</span> <span class="manual-heading-title">Carol F. Milazzo, KP4MD, 2011: compare complete stations in both directions.</span></h5>
+<p>Published in January 2011 using December 2010 measurements, Milazzo's study compared stations 29 km apart through a common receiver about 1 750 km away. She corrected for transmit-power differences and examined the results alongside VOACAP estimates. On 40 m, the horizontal-loop station generally produced stronger transmitted reports, while the vertical-antenna station received the common distant station with better SNR. Different sites, radios and band schedules remained part of the comparison, and the selected distant station limited its geographic scope. <a href="#ref-4">[Ref-4]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> analyze TX and RX separately, make the power basis explicit and check common activity. A stronger transmitted report does not establish better reception; interpret each result as evidence about the complete installations and paths tested.</p>
 <p><strong>Explore in WSPRadar:</strong> the <a href="https://wspradar.org/en/demos/milazzo_tx_buddy/">Milazzo historical replay</a> revisits Figures 6 and 7 in RX and TX. It shows how exact cycle/locator matching and reported-power normalization can leave very few usable pairs despite larger report totals, and why unverified schedules limit comparisons of those totals. The prepared profile starts in RX; the guide also provides the TX configuration.</p>
 </blockquote>
-<p><a id="sec-d-griffiths-squibb"></a>
-<strong>Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, 2017: compare, investigate and retest.</strong> In <em>Improving HF Band SNR</em>, they paired reception of the same transmitter at the same time and examined differences against time, distance, soil moisture and station changes. After three ground radials were added at G4HZX, the earlier moisture association was absent in the following test window. Replacing and relocating a nearby computer also coincided with an approximately 5 dB SNR improvement. The precise noise mechanism was unresolved, and both observations concerned complete receiving installations. The recorded changes made the comparisons useful for diagnosis without proving a universal antenna effect. <a href="#ref-5">[Ref-5]</a></p>
+<p><a id="sec-d-griffiths-squibb"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.5</span> <span class="manual-heading-title">Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, 2017: compare, investigate and retest.</span></h5>
+<p>In <em>Improving HF Band SNR</em>, they paired reception of the same transmitter at the same time and examined differences against time, distance, soil moisture and station changes. After three ground radials were added at G4HZX, the earlier moisture association was absent in the following test window. Replacing and relocating a nearby computer also coincided with an approximately 5 dB SNR improvement. The precise noise mechanism was unresolved, and both observations concerned complete receiving installations. The recorded changes made the comparisons useful for diagnosis without proving a universal antenna effect. <a href="#ref-5">[Ref-5]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> use paired receiver comparisons and temporal or distance views alongside an operator's station log. Treat a pattern as a reason for a targeted intervention and repeat measurement, with causal claims proportional to the controls.</p>
 <p><strong>Explore in WSPRadar:</strong> three prepared configurations revisit these historical reports:</p>
@@ -1189,8 +1233,9 @@
 <li><a href="https://wspradar.org/en/demos/griffiths_squibb_rx_performance/"><strong>RX Performance</strong></a> examines G3ZIL alone. Follow HB0QRP to distinguish at-least-once reach, Decode Rate within confirmed opportunities, and SNR among successful decodes. This is WSPRadar's additional analysis of the historical reports, without a Reference receiver.</li>
 </ul>
 </blockquote>
-<p><a id="sec-d-vanhamel"></a>
-<strong>Vanhamel, Machiels and Lamy, 2022: characterize the receiving chains.</strong> Their 160 m experiment first connected two receiving chains to one antenna. Two seven-day calibration periods each produced a mean offset of about 1.2 dB, which they applied before comparing antennas simultaneously. With identical antennas placed at orthogonal orientations, they observed an SNR difference of approximately 3 dB in that installation. Polarization and ionospheric effects were discussed as possible explanations; the orientation result did not establish one physical cause. The calibration also made an equipment contribution visible before interpreting the antenna comparison. <a href="#ref-2">[Ref-2]</a></p>
+<p><a id="sec-d-vanhamel"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.6</span> <span class="manual-heading-title">Vanhamel, Machiels and Lamy, 2022: characterize the receiving chains.</span></h5>
+<p>Their 160 m experiment first connected two receiving chains to one antenna. Two seven-day calibration periods each produced a mean offset of about 1.2 dB, which they applied before comparing antennas simultaneously. With identical antennas placed at orthogonal orientations, they observed an SNR difference of approximately 3 dB in that installation. Polarization and ionospheric effects were discussed as possible explanations; the orientation result did not establish one physical cause. The calibration also made an equipment contribution visible before interpreting the antenna comparison. <a href="#ref-2">[Ref-2]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> allow an independently measured receiving-chain offset to be expressed through the signed Reference correction, with its measurement procedure documented. Keep the corrected SNR comparison separate from claims about the antenna or polarization mechanism that produced it.</p>
 <p><strong>Explore in WSPRadar:</strong> two prepared comparisons separate calibration from the subsequent antenna experiment:</p>
@@ -1199,59 +1244,69 @@
 <li><a href="https://wspradar.org/en/demos/vanhamel_rx_buddy/"><strong>Antenna rotation</strong></a> follows M7AEO while the Reference dipole turns 90° and the Target long wire stays fixed. The approximately 3 dB step favors the fixed long wire relative to the dipole. It shows why one path's chronological evidence can reveal a transition hidden by its whole-period median. The guide documents the separate calibration estimate used in this configuration.</li>
 </ul>
 </blockquote>
-<p><a id="sec-d-zander"></a>
-<strong>Jens Zander, 2022: state the comparison model and its assumptions.</strong> Zander's preprint models two local antennas transmitting simultaneously to common remote receivers. A same-receiver SNR difference cancels shared path loss and receiver noise under the model's assumptions; cross-calibration between those distant receivers is unnecessary for each within-receiver difference. His preliminary paired measurements had a sample standard deviation around 3 dB. The analysis considers interference, failed decodes, quantization and the precision gained by averaging, as well as directivity, geographic sampling and unknown elevation angles. Equal or corrected powers and differences between transmitting chains still matter. <a href="#ref-1">[Ref-1]</a></p>
+<p><a id="sec-d-zander"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.7</span> <span class="manual-heading-title">Jens Zander, 2022: state the comparison model and its assumptions.</span></h5>
+<p>Zander's preprint models two local antennas transmitting simultaneously to common remote receivers. A same-receiver SNR difference cancels shared path loss and receiver noise under the model's assumptions; cross-calibration between those distant receivers is unnecessary for each within-receiver difference. His preliminary paired measurements had a sample standard deviation around 3 dB. The analysis considers interference, failed decodes, quantization and the precision gained by averaging, as well as directivity, geographic sampling and unknown elevation angles. Equal or corrected powers and differences between transmitting chains still matter. <a href="#ref-1">[Ref-1]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> make same-cycle differencing and the reported-power basis explicit. WSPRadar defines its own qualification and aggregation rules; the preprint's uncertainty model is not automatically their uncertainty model, and observed ΔSNR does not directly measure absolute antenna efficiency.</p>
 <p><strong>Explore in WSPRadar:</strong> <a href="https://wspradar.org/en/demos/zander_tx_buddy/">Zander's TX comparison</a> revisits Experiment A / Figure 4, comparing a short portable vertical with the larger Hy-Gain AV620. It shows why station-balanced and pooled spot-pair summaries differ, how the result varies by direction, and why unequal reporting spans must be checked before interpreting decode totals. The short prepared window supports this experiment's observed comparison, not a daily pattern or a universal portable-antenna penalty.</p>
 </blockquote>
-<p><strong>Thomas Rietdorf, DL2OAH, 2026: a synchronized multiband station comparison.</strong> His DARC presentation of 17 January 2026 reports measurements from 12–21 January 2025. Synchronized transceivers compared a horizontal OCF/IC-7610 installation with a vertical/FT-991A installation in separate RX and TX runs on 40, 20, 15 and 10 m. Matched two-minute reports supported comparisons by time and direction, alongside one-sided reports. The presentation reports a 2.5–7 dB SNR advantage for the horizontal installation, depending on band, while maximum distances were approximately equal. Different radios and the distribution of remote stations limit attribution to the antennas alone. <a href="#ref-20">[Ref-20]</a></p>
+<p><a id="sec-d-rietdorf"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.8</span> <span class="manual-heading-title">Thomas Rietdorf, DL2OAH, 2026: a synchronized multiband station comparison.</span></h5>
+<p>His DARC presentation of 17 January 2026 reports measurements from 12–21 January 2025. Synchronized transceivers compared a horizontal OCF/IC-7610 installation with a vertical/FT-991A installation in separate RX and TX runs on 40, 20, 15 and 10 m. Matched two-minute reports supported comparisons by time and direction, alongside one-sided reports. The presentation reports a 2.5–7 dB SNR advantage for the horizontal installation, depending on band, while maximum distances were approximately equal. Different radios and the distribution of remote stations limit attribution to the antennas alone. <a href="#ref-20">[Ref-20]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> combine synchronized comparisons with several views of the evidence. Read paired SNR, one-sided decodes and geographic or temporal patterns together, retaining the complete-installation interpretation and the actual measurement dates.</p>
 </blockquote>
+<p><a id="sec-d-ostergaard"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.3.9</span> <span class="manual-heading-title">Dale Ostergaard, N3HXZ, 2026: practical sequential antenna comparisons.</span></h5>
+<p>Ostergaard has advanced WSPR-based antenna testing for portable and field operation, documenting a repeatable approach using one transmitter and an antenna switch. His March/April 2026 <em>QEX</em> article, <em>Using WSPR to Predict Relative Antenna Gain of Directional Antennas</em>, describes alternating antenna configurations, commonly in 30-minute blocks, and estimating relative signal strength at common receiving stations. Reported SNR values are converted from dB to linear power ratios before averaging; he recommends at least 40 reports per antenna at each receiving station. His published case studies include comparisons of elevated and ground-mounted vertical antennas. This makes quantitative field comparisons accessible with modest equipment, while changing propagation between blocks and the absence of undecoded signals remain important limitations. <a href="#ref-34">[Ref-34]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> credit the practical sequential method, explicit switching schedules and receiver-level evidence requirements. Sequential relative-gain estimates complement synchronized paired ΔSNR but are not directly interchangeable with them.</p>
+</blockquote>
 <p><a id="sec-d-4"></a></p>
 <h4>7.4 Analysis infrastructure and related tools</h4>
-<p><strong>Gwyn Griffiths and Rob Robinett, 2020: reusable database analysis.</strong> Their WSPRdaemon TimescaleDB and Grafana work joined reports from the same transmitter, time and band, then displayed SNR differences with medians, quartiles, time, distance and azimuth. One example separated nighttime differences westward toward North America from daytime differences involving nearer stations. Noise measurements and exports gave operators further ways to investigate these patterns. The contribution included both the comparison method and a reusable route from stored observations to interpretable displays. <a href="#ref-21">[Ref-21]</a></p>
-<blockquote>
-<p><strong>Use in WSPRadar:</strong> continue that practice of inspecting common-signal differences in time and geography, with a route back to the contributing observations. WSPRadar's own grouping and weighting rules are specified in <a href="#sec-7">Chapter 8</a>.</p>
-</blockquote>
-<p><strong>Arne and the wspr.live project, with computing resources from HB9VQQ.</strong> Arne's ClickHouse database work provides public queries over historical and recent WSPR reports; dashboards and exports make those records usable by operators and other applications. The official service documentation credits <strong>HB9VQQ for computing resources</strong>. Phil VK7JJ's documentation also explicitly credits Arne's database contribution. <a href="#ref-10">[Ref-10]</a> <a href="#ref-22">[Ref-22]</a></p>
-<p><strong>Rob Robinett, AI6VN, and the WSPRdaemon community.</strong> Reception, multireceiver acquisition, reporting, database hosting and continued volunteer operation sustain these services. WSPRdaemon's documentation credits Arne's database development and the hosting collaboration. Its earlier TimescaleDB work and later ClickHouse services are distinct contributions. <a href="#ref-11">[Ref-11]</a></p>
 <blockquote>
 <p><strong>Use in WSPRadar:</strong> <strong>wspr.live is the primary database, with WSPRdaemon's WD2 and WD1 as alternatives</strong>. Each run uses one source. The developers, station operators, computing-resource providers and volunteer maintainers make this analysis possible; service availability and the quality of uploaded records remain part of the evidence context.</p>
 <p><strong>Our sincere thanks to everyone who sustains these services and contributes reports, computing resources and volunteer time.</strong> Your work gives the amateur-radio community a shared foundation for learning, experimentation and better station design.</p>
 </blockquote>
+<p><a id="sec-d-griffiths-robinett"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.1</span> <span class="manual-heading-title">Gwyn Griffiths and Rob Robinett, 2020: reusable database analysis.</span></h5>
+<p>Their WSPRdaemon TimescaleDB and Grafana work joined reports from the same transmitter, time and band, then displayed SNR differences with medians, quartiles, time, distance and azimuth. One example separated nighttime differences westward toward North America from daytime differences involving nearer stations. Noise measurements and exports gave operators further ways to investigate these patterns. The contribution included both the comparison method and a reusable route from stored observations to interpretable displays. <a href="#ref-21">[Ref-21]</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> continue that practice of inspecting common-signal differences in time and geography, with a route back to the contributing observations. WSPRadar's own grouping and weighting rules are specified in <a href="#sec-7">Chapter 8</a>.</p>
+</blockquote>
+<p><a id="sec-d-wspr-live"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.2</span> <span class="manual-heading-title">Arne and the wspr.live project, with computing resources from HB9VQQ.</span></h5>
+<p>Arne's ClickHouse database work provides public queries over historical and recent WSPR reports; dashboards and exports make those records usable by operators and other applications. The official service documentation credits <strong>HB9VQQ for computing resources</strong>. Phil VK7JJ's documentation also explicitly credits Arne's database contribution. <a href="#ref-10">[Ref-10]</a> <a href="#ref-22">[Ref-22]</a></p>
+<p><a id="sec-d-wsprdaemon"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.3</span> <span class="manual-heading-title">Rob Robinett, AI6VN, and the WSPRdaemon community.</span></h5>
+<p>Reception, multireceiver acquisition, reporting, database hosting and continued volunteer operation sustain these services. WSPRdaemon's documentation credits Arne's database development and the hosting collaboration. Its earlier TimescaleDB work and later ClickHouse services are distinct contributions. <a href="#ref-11">[Ref-11]</a></p>
+<p><a id="sec-d-farfield-lab"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.4</span> <span class="manual-heading-title">Tim, K5OHY — FarField Lab: accessible sequential antenna benchmarking.</span></h5>
+<p><a href="https://farfieldlab.streamlit.app/">FarField Lab</a> is a free, open-source application that makes practical WSPR antenna comparisons accessible to radio amateurs using a <strong>single transmitter or transceiver and an antenna switch</strong>. It supports rapid <strong>ABAB and ABBA</strong> alternation between transmissions, longer sequential block comparisons with editable switching schedules, and Reverse Beacon Network analysis. Its short-test method pairs observations from neighbouring transmissions, limiting the influence of changing propagation; balanced ABBA sequences can additionally compensate for approximately linear drift under suitable conditions. Repeated measurements and averaging help reduce random variability, while longer block comparisons remain more exposed to propagation changes. FarField Lab evaluates relative SNR differences at common receivers, reception reach, direction and distance, supported by receiver-activity checks, evidence thresholds, uncertainty estimates and statistical validation. Its long-block implementation reproduces published results from Dale Ostergaard, N3HXZ. <strong>FarField Lab offers a genuine and practical alternative to WSPRadar</strong>, particularly for operators without synchronized dual-station hardware. Its sequential approach complements WSPRadar's simultaneous, same-cycle paired RX/TX benchmarking, giving radio amateurs distinct but equally valuable ways to investigate antenna and station performance using public WSPR data. <a href="https://github.com/K5OHY/FarField-Lab">Ref-35</a> <a href="https://www.n3hxz.net/wspr-methodology">Ref-34</a></p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> recognize FarField Lab as a complementary sequential antenna-analysis tool and help operators choose the experimental approach best suited to their equipment and objectives.</p>
+</blockquote>
 <p>Other tools make complementary parts of experimentation accessible:</p>
-<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
-<thead>
-<tr>
-<th>Contributor or project</th>
-<th>Practical contribution and relationship</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Phil, VK7JJ — WSPR.Rocks</strong></td>
-<td>Interactive queries, maps, charts, duplicate and passband inspection, plus Head2Head comparisons of receivers, transmitters or software versions. SpotQ supplies a heuristic ranking using distance, reported power and SNR. These are useful ways to explore reports; their metrics have their own definitions. <a href="#ref-22">[Ref-22]</a></td>
-</tr>
-<tr>
-<td><strong>Richard Newstead and SOTABEAMS — WSPRlite/DXplorer</strong></td>
-<td>Standalone low-power beacons and accessible comparisons, including the DX10 range indicator. In Newstead's 2017 indoor/outdoor test, two loops transmitted simultaneously at 200 mW; 133 same-receiver, same-time pairs gave an average indoor disadvantage of 6.8 dB. <blockquote><strong>Use in WSPRadar:</strong> credit the practical paired-test design, while treating the value as a result for that installation and operating period.</blockquote> <a href="#ref-23">[Ref-23]</a> <a href="#ref-24">[Ref-24]</a></td>
-</tr>
-<tr>
-<td><strong>Walter Machiels, ON4AWM — WSPR-Station-Compare</strong></td>
-<td>An RX-comparison workflow with measured receiver-offset correction, observation thresholds, callsign filtering and azimuth selection. It makes controlled-comparison choices available in operator software. <a href="#ref-25">[Ref-25]</a></td>
-</tr>
-<tr>
-<td><strong>Fred, W6BSD — Antenna Performance Analysis</strong></td>
-<td>Reports organizing where and when transmitted WSPR signals were received, across times and frequency bands. This makes an installation's observed coverage accessible without writing a custom analysis. <a href="#ref-26">[Ref-26]</a></td>
-</tr>
-<tr>
-<td><strong>Colin Murray, GM4EAU — WATT</strong></td>
-<td>An editable Excel/VBA workflow for queries, filters, calculations, charts and map replay through successive time intervals, helping operators inspect changing propagation patterns. <a href="#ref-27">[Ref-27]</a></td>
-</tr>
-</tbody>
-</table></div>
+<p><a id="sec-d-wspr-rocks"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.5</span> <span class="manual-heading-title">Phil, VK7JJ — WSPR.Rocks</span></h5>
+<p>Interactive queries, maps, charts, duplicate and passband inspection, plus Head2Head comparisons of receivers, transmitters or software versions. SpotQ supplies a heuristic ranking using distance, reported power and SNR. These are useful ways to explore reports; their metrics have their own definitions. <a href="#ref-22">[Ref-22]</a></p>
+<p><a id="sec-d-wsprlite-dxplorer"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.6</span> <span class="manual-heading-title">Richard Newstead and SOTABEAMS — WSPRlite/DXplorer</span></h5>
+<p>Standalone low-power beacons and accessible comparisons, including the DX10 range indicator. In Newstead's 2017 indoor/outdoor test, two loops transmitted simultaneously at 200 mW; 133 same-receiver, same-time pairs gave an average indoor disadvantage of 6.8 dB.</p>
+<blockquote>
+<p><strong>Use in WSPRadar:</strong> credit the practical paired-test design, while treating the value as a result for that installation and operating period.</p>
+</blockquote>
+<p><a href="#ref-23">[Ref-23]</a> <a href="#ref-24">[Ref-24]</a></p>
+<p><a id="sec-d-wspr-station-compare"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.7</span> <span class="manual-heading-title">Walter Machiels, ON4AWM — WSPR-Station-Compare</span></h5>
+<p>An RX-comparison workflow with measured receiver-offset correction, observation thresholds, callsign filtering and azimuth selection. It makes controlled-comparison choices available in operator software. <a href="#ref-25">[Ref-25]</a></p>
+<p><a id="sec-d-antenna-performance-analysis"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.8</span> <span class="manual-heading-title">Fred, W6BSD — Antenna Performance Analysis</span></h5>
+<p>Reports organizing where and when transmitted WSPR signals were received, across times and frequency bands. This makes an installation's observed coverage accessible without writing a custom analysis. <a href="#ref-26">[Ref-26]</a></p>
+<p><a id="sec-d-watt"></a></p>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">7.4.9</span> <span class="manual-heading-title">Colin Murray, GM4EAU — WATT</span></h5>
+<p>An editable Excel/VBA workflow for queries, filters, calculations, charts and map replay through successive time intervals, helping operators inspect changing propagation patterns. <a href="#ref-27">[Ref-27]</a></p>
 <p>These tools overlap in purpose, but their filters, comparison units and summaries differ. Check the quantity behind a figure before comparing its value with a WSPRadar result.</p>
 <p><a id="sec-d-5"></a></p>
 <h4>7.5 What WSPRadar inherits, integrates and adds</h4>
@@ -1298,7 +1353,7 @@
 <p><a id="sec-7-spots-identities-cycles"></a>
 <a id="sec-7-1"></a>
 <a id="sec-7-2"></a></p>
-<h5>8.1.1 Spots, identities and cycles</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.1.1</span> <span class="manual-heading-title">Spots, identities and cycles</span></h5>
 <p>Each completed run uses one WSPR database; it does not combine records from different sources. Record that source with the result, because the reports come from different transmitters, receivers, decoders and reporting systems.</p>
 <p>A <strong>spot</strong> is a reported successful decode. A <strong>WSPR cycle</strong> is the two-minute interval beginning at an even UTC minute. WSPRadar counts observations for one remote station in one cycle retained by the analysis, on the selected band: a transmitter in RX or a receiver in TX. Before counting outcomes, it combines reports that meet the requirements into one observation per setup, station and cycle. <a href="#sec-7-normalization-consolidation">Section 8.1.2</a> explains which report is kept.</p>
 <p>A <strong>spot pair</strong> requires usable reports for Target and Reference relating to the same remote station in the same cycle. RX compares two receivers hearing the same transmitter; TX compares two transmitters heard by the same receiver. Reports from different cycles are never paired. Pairing neither requires identical RF frequencies nor establishes identical physical propagation paths; simultaneous TX signals normally need clearly separated frequencies.</p>
@@ -1353,7 +1408,7 @@
 <p>These message formats are documented in the WSJT-X reference <a href="#ref-12">[Ref-12]</a>. WSPRadar does not classify them, reconstruct missing phases or combine them into a four-minute observation. Either or both cycles can supply pairs when the required identities resolve in the database; a pair in one cycle does not require another in the next. Matching TX message patterns and schedules is an experimental recommendation, not a message-type eligibility test; see <a href="#sec-3-tx-benchmark-simultaneous">Section 2.2.1</a> and <a href="#sec-simultaneous-tx-setup">Chapter 5</a>.</p>
 <p>The configured UTC window defines the run. For wholly pre-2022 periods, an empty strict request can trigger the historical decode-code fallback: no Target source evidence in Performance, or no source evidence from either setup in Benchmark. <a href="#sec-6-4">Section 11.4</a> gives the exact cutoff and mode uncertainty; <a href="#sec-6-6">Section 11.6</a> covers database availability and source selection.</p>
 <p><a id="sec-7-normalization-consolidation"></a></p>
-<h5>8.1.2 Power normalization and consolidation</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.1.2</span> <span class="manual-heading-title">Power normalization and consolidation</span></h5>
 <p><strong>RX Performance and Benchmark use a common reported-power basis; TX Performance can retain reported received SNR or normalize it.</strong> WSPR reports SNR in dB relative to a <strong>2 500 Hz reference bandwidth</strong>, and transmit power in dBm <a href="#ref-8">[Ref-8]</a>. With TX normalization enabled, and for RX Performance and Benchmark, WSPRadar adjusts successful SNR to <strong>30 dBm (1 W)</strong>:</p>
 <p><span class="math">\[SNR_{\mathrm{norm}}=SNR_{\mathrm{reported}}-P_{\mathrm{reported}}+30\]</span></p>
 <p>The SNR terms are in dB; the power values are in dBm. For example, reported SNR of <strong>−15 dB</strong> at <strong>20 dBm</strong> becomes <strong>−5 dB</strong> at the 30 dBm comparison level: the 10 dB reported-power shortfall is added back.</p>
@@ -1370,7 +1425,7 @@
 <p>A rise between adjacent cutoffs counts reports — or newly included stations — in that SNR interval. Horizontal separation between paired curves is not the paired ΔSNR distribution. Missing-side SNR is unknown.</p>
 <p><a id="sec-7-activity-eligibility"></a>
 <a id="sec-7-3"></a></p>
-<h5>8.1.3 Operating conditions and eligibility</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.1.3</span> <span class="manual-heading-title">Operating conditions and eligibility</span></h5>
 <p><strong>Controlled Benchmark relies on independently known common operation.</strong> In RX, both receivers must have listened on the selected band with functioning reporting throughout the comparison period. In simultaneous TX, both transmitters must have transmitted in the same WSPR cycles. The shared Benchmark acceptance records that common operation was confirmed or its limitations were accepted; successful database reports cannot independently verify operation.</p>
 <p><strong>When common operation is unverified, interpretation is limited.</strong> Historical reports can describe observed differences without establishing a controlled experiment. The same observed-outcome and paired-ΔSNR calculations apply, but one-sided counts may also reflect schedules, outages or reporting interruptions. Every Benchmark uses <a href="#sec-5-3">the same acceptance control</a>; see also <a href="#sec-7-neighborhood">historical and retired designs</a>.</p>
 <p>Benchmark applies the same station-and-cycle consolidation rules and population filters to observations for both setups. A missing Target decode does not exclude Reference-only observations, even if Target has no reports anywhere in that cycle or throughout the entire period. The converse applies to Target-only observations. If neither side has a report, there is no observed outcome; WSPRadar adds no artificial “both missed” row.</p>
@@ -1401,7 +1456,7 @@
 <p>Benchmark describes two aspects of the same comparison: <strong>the SNR difference when usable reports exist for both setups</strong>, and <strong>the decoding outcomes across all retained observations</strong>. The first needs a spot pair; the second also includes reports from only one side. Keep these populations distinct when interpreting a result.</p>
 <p><a id="sec-7-benchmark-outcomes"></a>
 <a id="sec-7-6"></a></p>
-<h5>8.2.1 Decode Outcomes and missing observations</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.2.1</span> <span class="manual-heading-title">Decode Outcomes and missing observations</span></h5>
 <p><strong>First classify each remote station and WSPR cycle.</strong> After consolidation and filtering, there are three outcomes:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -1465,7 +1520,7 @@
 <p><strong>Extended-WSPR identity errors are a separate data-quality issue.</strong> Type 3 uses a 15-bit callsign hash. An unresolved or colliding hash can leave a decode unidentified or associate it with an incorrect callsign, locator or power, as documented by QRP Labs <a href="#ref-28">[Ref-28]</a>. WSPRadar can match the stored identity but cannot prove every upstream association correct. Clustered or unequal errors can change station counts, one-sided outcomes and SNR summaries; a large dataset or a median does not guarantee protection. For compound callsigns, use the database preflight and phase-specific audit in <a href="#sec-simultaneous-tx-setup">Chapter 5</a>.</p>
 <p><a id="sec-7-benchmark-delta"></a>
 <a id="sec-7-5"></a></p>
-<h5>8.2.2 Delta SNR and Reference correction</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.2.2</span> <span class="manual-heading-title">Delta SNR and Reference correction</span></h5>
 <p><strong>Reference correction</strong> represents an independently established additive offset. It is added to normalized Reference SNR:</p>
 <p><span class="math">\[SNR_{\mathrm{Reference,corr}}=SNR_{\mathrm{Reference,norm}}+C_{\mathrm{Reference}}\]</span></p>
 <p>Here <code>C_Reference</code> is the signed correction in dB. Enter a measured calibration offset with the <code>target - reference</code> sign. The offset must be approximately stable over the relevant band, signal levels, equipment state and time. <a href="#sec-5-3">Section 10.3</a> describes the control and <a href="#sec-reference-snr-calibration">Chapter 6</a> the calibration procedure.</p>
@@ -1497,7 +1552,7 @@
 <p>In RX, both receivers observe the same transmitter. Its reported-power terms cancel <strong>when both retained reports carry the same power value</strong>. TX compares different transmissions, so the normalized difference depends directly on their reported powers. Uncorrected equipment differences remain in either comparison. ΔSNR describes the documented complete setups; assigning it to an antenna or another component requires the controls in <a href="#sec-3">Chapter 2</a>.</p>
 <p><a id="sec-7-benchmark-aggregation"></a>
 <a id="sec-7-7"></a></p>
-<h5>8.2.3 Station and map aggregation</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.2.3</span> <span class="manual-heading-title">Station and map aggregation</span></h5>
 <p><strong>What qualifies for ΔSNR?</strong></p>
 <p>A remote station <strong>qualifies for ΔSNR</strong> when paired observations remain after the run’s population, UTC, solar-state and geographic filters. Each station is counted by exact callsign and full reported locator, as defined in <a href="#sec-7-spots-identities-cycles">Section 8.1.1</a>. This requirement is checked over the full filtered comparison period, not again for each time bin, station selection or zoom. These stations supply the ΔSNR map, histograms, temporal summaries and outlier analysis.</p>
 <p>All pairs and one-sided observations remain in coverage, Station Insights, Drill-Down and exports. There is no separate minimum for a station's one-sided count. For example, both <code>100 Paired / 8 Only Target / 4 Only Reference</code> and <code>4 / 100 / 100</code> supply paired ΔSNR. The observed counts stay unchanged in both cases. The paired-evidence requirement for ΔSNR does not change ΔDecode or Station Reach Advantage.</p>
@@ -1663,7 +1718,7 @@
 <p><strong>Interpret the two maps together.</strong> ΔSNR describes paired signal quality; ΔDecode describes the balance of total observed decodes. They can favor different setups. Equal decode totals can combine mostly paired events or substantial one-sided evidence that cancels. Events missed by both are absent, so ΔDecode is not an unconditional decoding probability or a Target win rate. Common-operation evidence, actual power, schedules and the observed station population remain essential context.</p>
 <p><a id="sec-7-benchmark-coverage"></a>
 <a id="sec-7-8-2"></a></p>
-<h5>8.2.4 Temporal decode coverage</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.2.4</span> <span class="manual-heading-title">Temporal decode coverage</span></h5>
 <p><strong><strong class="defined-term">ΔDecode over Time</strong> separates station reach from decode volume.</strong> Both rows use all retained outcomes, independently of ΔSNR qualification.</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -1697,7 +1752,7 @@
 <a id="sec-3-rx-benchmark-local-median"></a>
 <a id="sec-3-tx-benchmark-local-median"></a>
 <a id="sec-7-neighborhood"></a></p>
-<h5>8.2.5 Controlled operation and retired designs</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.2.5</span> <span class="manual-heading-title">Controlled operation and retired designs</span></h5>
 <p>A controlled Benchmark needs two exact setups with independently established common operation. A changing neighborhood median does not supply that fixed Reference. <strong>Reference Neighborhood has been retired</strong>, and earlier configurations using it are rejected. Select an explicit Reference and establish the operating conditions for a new controlled comparison. The retirement concerns the comparison design; a median remains a valid description of its observed contributors.</p>
 <p>The <strong>historical Milazzo example</strong> remains available as an acknowledged observational replay. It permits a reproducible examination of paired and one-sided reports, but those reports alone do not establish synchronized transmission schedules or continuous operation. Unequal schedules can contribute to one-sided counts. Interpret the reconstruction descriptively unless external operating records establish the conditions needed for a controlled decoding comparison.</p>
 <p><a id="sec-7-performance"></a>
@@ -1705,7 +1760,7 @@
 <h4>8.3 Performance: opportunities and success</h4>
 <p>Performance shows where and how regularly signals were decoded during confirmed reception opportunities. A successful decode by Target in RX, or of Target in TX, confirms the opportunity by itself. To count a miss, WSPRadar needs reports showing that both Target and the relevant remote station were active on the same band in the same WSPR cycle. A cycle without reports is not enough.</p>
 <p><a id="sec-7-performance-opportunities"></a></p>
-<h5>8.3.1 What counts as an opportunity?</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.3.1</span> <span class="manual-heading-title">What counts as an opportunity?</span></h5>
 <p>An opportunity concerns one remote station and one WSPR cycle on the selected band, after the station and geographic filters. Here, <strong>station</strong> means the exact callsign and full reported locator; different combinations are counted separately. Target activity is established as described in <a href="#sec-7-activity-eligibility">Section 8.1.3</a>. Who must have reported what depends on the analysis direction:</p>
 <ul>
 <li><strong>RX:</strong> Target or another eligible receiver decoded the remote transmitter. If Target did not decode it, count a miss only when another receiver reported that transmitter and Target decoded another transmitter on the same band in the same cycle.</li>
@@ -1758,7 +1813,7 @@
 <p>The selected <strong>Minimum confirmed opportunities per station</strong> still applies. With the default ceiling of two, the extra check can affect minima of one or two; it has no additional effect at a minimum of three or more. Stations with three or more opportunities follow the existing inclusion rule. Server configuration can disable the extra check or change its opportunity-count ceiling; the requirement of <strong>three other reporters</strong> is fixed.</p>
 <p>This check decides whether to include a station, rather than removing individual cycles. For a station that passes, all its original opportunities, successes, confirmed misses and SNR observations remain available. A station excluded by this rule is <strong>insufficiently corroborated</strong>, not a proven false decode. Different reporter callsigns also do not prove that the reports came from independent physical receivers. The analysis export records the completed run's effective policy and corroboration information.</p>
 <p><a id="sec-7-performance-rates"></a></p>
-<h5>8.3.2 Decode Rates and weighting</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.3.2</span> <span class="manual-heading-title">Decode Rates and weighting</span></h5>
 <p>For each included station <span class="math">\(i\)</span>, let <span class="math">\(S_i\)</span> be successful opportunities, <span class="math">\(M_i\)</span> confirmed misses, and <span class="math">\(O_i=S_i+M_i\)</span> all confirmed opportunities. Its Decode Rate is:</p>
 <p><span class="math">\[p_i=100\times\frac{S_i}{O_i}\]</span></p>
 <p>Here <span class="math">\(p_i\)</span> is a percentage. A station enters this calculation only if <span class="math">\(O_i\)</span> meets <strong>Minimum confirmed opportunities per station</strong> and it passes the additional confirmation check when that check applies. These are the qualifying stations. The same <span class="math">\(N\)</span> stations enter both summaries:</p>
@@ -1786,13 +1841,13 @@
 <p>The station-averaged rate describes reception across stations: each station counts equally, including a station with 0% success. The opportunity-level rate describes the share of all confirmed opportunities that succeeded. If no stations meet the requirements, neither rate is defined. Where <strong>Median Station Decode Rate</strong> is selected, WSPRadar takes the median of the individual station rates, including zeros; see <a href="#sec-7-view-geography">Section 8.4.2</a>.</p>
 <p><strong>Example.</strong> Two stations have <strong>90 successes out of 100 opportunities</strong> and <strong>5 out of 10</strong>. Their rates are 90% and 50%, so the station-averaged rate is <strong>70%</strong>. Pooling gives <strong>95 / 110 = 86.4%</strong>: 95 successes and 15 misses, each counted once. The pooled rate is higher because the more successful station supplied more opportunities. The two values answer different weighting questions.</p>
 <p><a id="sec-7-performance-reach"></a></p>
-<h5>8.3.3 At-least-once Peer Reach</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.3.3</span> <span class="manual-heading-title">At-least-once Peer Reach</span></h5>
 <p><strong>At-least-once Peer Reach</strong> is the percentage of included stations with at least one successful decode. In RX, these are transmitters heard by Target; in TX, they are receivers that heard Target. Let <span class="math">\(N\)</span> be the number of included stations and <span class="math">\(H\)</span> the number with at least one success:</p>
 <p><span class="math">\[\text{Reach (\%)}=100\times\frac{H}{N}\]</span></p>
 <p>The count is <span class="math">\(H\)</span>; <strong>Reach</strong> expresses it as a percentage of <span class="math">\(N\)</span>. A station with one success and a station with many successes each add one to <span class="math">\(H\)</span>. Both stations in the preceding example succeeded, so their Reach is <strong>100%</strong>, despite different Decode Rates. With no included stations, the Reach percentage is undefined.</p>
 <p>For a fixed set of stations, adding observations cannot undo an earlier success. However, the stations meeting the requirements can change between runs, so a longer measurement window need not produce a higher Reach percentage.</p>
 <p><a id="sec-7-performance-snr"></a></p>
-<h5>8.3.4 Successful Target SNR</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.3.4</span> <span class="manual-heading-title">Successful Target SNR</span></h5>
 <p>Successful Target SNR describes retained successful decodes, with strongest-report consolidation performed on the completed run’s selected SNR basis, as described in <a href="#sec-7-normalization-consolidation">Section 8.1.2</a>. Misses have no measured Target SNR. Adding marginal decodes can lower a successful-SNR summary even when reception and reach improve, so read SNR alongside Decode Rate and counts.</p>
 <p>The time views show successful SNR, Decode Rate and the supporting counts, Decode Rate by distance and time, and each station's SNR deviations from its own run mean or median. The selected-station view shows the first two, with absolute SNR on the selected basis. See <a href="#sec-7-view-time">Section 8.4.3</a> for the time plots and <a href="#sec-7-view-station">Section 8.4.5</a> for the selected-station view. These results describe the confirmed opportunities visible in the reporting network; they do not measure unconditional receiver sensitivity, success over every attempted transmission or absolute station efficiency.</p>
 <p>Open <strong>Expert Review</strong> to inspect SNR deviations from each station's own run mean or median. <a href="#sec-7-view-time">Section 8.4.3</a> explains this optional view and its calculation.</p>
@@ -1802,7 +1857,7 @@
 <p>The same data can answer different questions depending on what counts equally. The Performance map gives each station equal weight; the Benchmark ΔSNR map and Spot-pair distribution give each pair equal weight. A view grouped by clock hour can combine several dates. This section explains which observations each view uses and how it combines them.</p>
 <p><a id="sec-7-view-scope"></a>
 <a id="sec-7-9"></a></p>
-<h5>8.4.1 Scope, geography and filters</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.4.1</span> <span class="manual-heading-title">Scope, geography and filters</span></h5>
 <p>Distance and azimuth are calculated from Target QTH and the reported remote locators, using a spherical Earth of radius <strong>6 371 km</strong>. The azimuthal equidistant map is centered on Target QTH. Its distance boundaries are <strong>2 500</strong>, <strong>5 000</strong>, <strong>10 000</strong>, <strong>15 000</strong> and approximately <strong>20 015 km</strong>, with <strong>22.5-degree</strong> direction sectors. Locators identify grid cells, not measured antenna positions; these calculations are neither survey-grade positioning nor take-off-angle measurements.</p>
 <p><strong>Maximum peer distance from Target</strong> excludes stations <strong>at or beyond</strong> the chosen numeric limit before calculating summaries and exporting processed observations. <strong>Worldwide (≈20 015 km)</strong> includes every geographic location, subject to the other filters and evidence requirements. An Inspector selection narrows the displayed area <strong>within the retained stations</strong>. It neither deletes completed-run data nor restores stations excluded from the analysis.</p>
 <p>The greatest shortest-path distance in this spherical model is approximately <strong>20 015.087 km</strong>, at the point opposite Target. The Worldwide map ends there, with an outer label of <strong>≈20 015 km</strong> and no empty outer ring. Its final distance class runs from <strong>15 000 km</strong> to this maximum; there is no separate class beyond 20 000 km. Labels round the endpoint, but station assignment uses the unrounded distance.</p>
@@ -1811,7 +1866,7 @@
 <p>The solar filter uses the Sun's elevation at <strong>Target QTH at the WSPR-cycle timestamp</strong>. This describes conditions at Target, not along the entire radio path or at every remote station. <a href="#sec-6-6">Section 11.6</a> explains database retrieval limits and which source reports are considered.</p>
 <p><a id="sec-7-view-geography"></a>
 <a id="sec-7-8-1"></a></p>
-<h5>8.4.2 Geographic summaries</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.4.2</span> <span class="manual-heading-title">Geographic summaries</span></h5>
 <p><strong>Map colors, hatching and unfilled segments.</strong> Performance and Benchmark share the gray diagonal hatching and the English legend labels <strong>Not qualifying</strong> and <strong>No observations</strong>. Hatching means the map retains observations in that segment, but its metric's coloring requirements are not met. An unfilled segment has no observations retained for that map; it does not prove that no reception occurred. The <strong>Map shading:</strong> footer states the requirements.</p>
 <p>Performance uses the same included stations for markers and map shading. Each station must first meet the station-level requirements. The segment then follows this rule:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -1975,7 +2030,7 @@
 <p>For each distance bin, these retained summaries distinguish the arithmetic mean of individual station rates from the opportunity-level rate calculated from pooled successes and confirmed opportunities.</p>
 <p><a id="sec-7-view-time"></a>
 <a id="sec-7-8-3"></a></p>
-<h5>8.4.3 Chronological evidence</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.4.3</span> <span class="manual-heading-title">Chronological evidence</span></h5>
 <p><strong>Chronological views keep the sequence of the run.</strong> Time bins start at the selected UTC start and use the chosen width; the final bin can be shorter. <strong>Time basis</strong> changes the displayed clock and dates, not the bin boundaries, observations in each bin or statistics. Empty intervals stay empty; no <strong>0 dB</strong> or <strong>0%</strong> observations are inserted. Offered widths and defaults depend on the complete run duration, not on the span of available reports. A valid saved width can remain available outside the usual choices; see <a href="#sec-5-5">Section 10.5</a>.</p>
 <p><strong>Benchmark ΔSNR</strong> pools retained spot pairs from qualifying stations within each time bin. <strong>ΔSNR statistic: Median / Mean</strong> selects the median with IQR or the arithmetic mean with its configured pointwise CI. The density, eligible pairs, bin membership and equal-pair weighting do not change; stations with more pairs contribute more.</p>
 <p>New analyses default to Mean independently for segment and selected-station plots. A current configuration without a saved statistic also defaults to Mean at that level; explicit saved choices are honored. The Milazzo demo opens both levels with Median. Coverage separately keeps all eligible Paired and one-sided outcomes and the presence of distinct stations, using the two advantage metrics in <a href="#sec-7-benchmark-coverage">Section 8.2.4</a>. Paired observations below the ΔSNR requirements and one-sided observations can still appear in coverage even when ΔSNR is empty.</p>
@@ -2002,7 +2057,7 @@
 <p>Each successful Target observation with valid numerical SNR contributes one value on the completed run's selected basis. One observation means one included opportunity after duplicate reports have been consolidated, not one value per duplicate database report. Chronological bins pool these individual observations; clock-hour bins pool those from matching hours across represented dates. Neither first averages stations, station/date/hour groups or daily summaries. Stations and dates with more observations therefore contribute more weight. A confirmed miss enters the Decode Rate denominator but has no Target SNR; no zero or invented weak SNR is inserted.</p>
 <p>The deviation view likewise pools individual residuals directly within time bins or matching clock hours. Density, Mean/CI and Median/IQR are calculated from these deviations, not from prior station-bin or daily summaries. Station identity chooses the baseline but does not give each station equal weight. Switching Mean/Median can change both the residuals and their summaries. The CI calculation treats the observed run baselines as fixed and does not add uncertainty from estimating them. Selected-station views omit this fourth figure and retain absolute SNR on the selected basis.</p>
 <p><a id="sec-7-view-folding"></a></p>
-<h5>8.4.4 Combining dates by UTC or local solar hour</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.4.4</span> <span class="manual-heading-title">Combining dates by UTC or local solar hour</span></h5>
 <p>With <strong>Time basis: UTC</strong>, <strong class="defined-term">UTC-hour folding</strong> groups observations from the same clock hour across dates. It reveals hour-of-day patterns but removes the sequence of individual dates. This differs from chronological binning: starting at <strong>12:17 UTC</strong>, a <strong>1h</strong> chronological bin spans <strong>12:17 to 13:17</strong>. Folding uses clock hours such as <strong>12:00 to 13:00</strong>, counting only the part inside the selected window.</p>
 <p><strong>Time aggregation</strong> controls only the chronological panels and retains the existing interval choices. The adjacent <strong>Time basis</strong> control selects <strong>UTC</strong> or <strong>Local Solar</strong> for the chronological and folded SNR, decode and coverage panels at that level. Segment plots and selected-station plots keep independent clock choices; focused plots follow the selected-station clock. Folded panels always use fixed one-hour bins. New analyses default to UTC at both levels; explicit saved values are honored. The Milazzo demo explicitly uses Local Solar and Median at both levels; the other Benchmark demos use UTC and Mean.</p>
 <p>For Benchmark, <strong>ΔSNR statistic</strong> sits beside <strong>Time basis</strong> and applies to both chronological and folded ΔSNR plots at that level. Segment and selected-station statistics can be selected independently, with Mean as the new-analysis default at both levels. It changes the statistic and interval within the existing bins, not pairing, calibration, qualification or weighting. <strong>Median</strong> retains IQR; <strong>Mean</strong> uses the CI for the mean of those same pooled pairs. Benchmark Statistics remains fixed to the selected analysis and scope.</p>
@@ -2061,7 +2116,7 @@
 <p>Folding changes the grouping for display, while preserving the dated UTC timestamps and station identities in the retained data. The IID calculation assumes the pairs pooled into a bin are independent, including pairs from different stations or dates. Neither folding nor an available per-station CI establishes that assumption.</p>
 <p><a id="sec-7-view-station"></a>
 <a id="sec-7-8-4"></a></p>
-<h5>8.4.5 Selected Station Evidence</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.4.5</span> <span class="manual-heading-title">Selected Station Evidence</span></h5>
 <p>Selected Station Evidence normally follows <strong>one station, identified by exact callsign and full reported locator</strong>. In <strong>Benchmark and Performance</strong>, it uses that station's full completed-run data, independently of Inspector geography and the optional station-list filter. Hiding the station from the list does not deselect it or change its full-run metrics. Selection does not alter earlier matching or inclusion rules. An explicit Drill-Down focus can narrow the displayed interval.</p>
 <p>In Benchmark Station Insights, <strong>Median ΔSNR</strong> and <strong>Mean ΔSNR</strong> use the same retained paired differences for the selected callsign and full locator. The adjacent CI column, <strong>ΔSNR 95% CI (dB)</strong> at the default level, shows the symmetric <strong>± half-width</strong> for that station's mean at the configured confidence level.</p>
 <p>After the station identifiers, the default columns are <strong>Median ΔSNR → Mean ΔSNR → ΔSNR CI → ΔDecode → Paired spots → One-sided spots</strong>. The CI heading includes the confidence percentage. Pair counts and separate Target-only and Reference-only counts stay visible. Sample <strong>SD of paired ΔSNR</strong> is available through optional columns and exports, but hidden by default. Full CI bounds and numerical details remain in the export. Station inclusion rules, list filters and full-analysis metric scope are unchanged.</p>
@@ -2089,7 +2144,7 @@
 <p><strong>Outlier Focus</strong> can show a candidate together with its complete supported baseline periods before and after, even when they extend beyond an ordinary focus interval. It uses the completed detector result without fitting the detector again to the focused data. The local baselines and departure guides describe that candidate; they are neither confidence intervals nor independent qualification tests. Changing focus or display bins changes the view, not the completed result.</p>
 <p><a id="sec-7-view-spread"></a>
 <a id="sec-7-8-5"></a></p>
-<h5>8.4.6 Spread and display scales</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.4.6</span> <span class="manual-heading-title">Spread and display scales</span></h5>
 <p><strong>Spread is not confidence.</strong> A Q1–Q3 band spans the middle half of the contributing values; a min–max interval spans their full range. Neither is a confidence interval.</p>
 <p>In temporal median views, including Benchmark <strong>Median</strong> mode, a median marker needs only <strong>one</strong> value. Adjacent medians are connected only if <strong>each bin has at least three</strong> values. An IQR band joins adjacent bins only if <strong>each has at least five</strong>; isolated supported bins have no band, and unsupported bins break the connections. Depending on the view, the values are spot pairs, individual successful Target observations or individual station-baseline deviations.</p>
 <p>The red dashed Mean/Median markers in Performance <strong>Spot &amp; Station Decodes</strong> instead summarize successful SNR as described in <a href="#sec-7-view-geography">Section 8.4.2</a>. They do not show IQR or confidence intervals.</p>
@@ -2146,7 +2201,7 @@
 <h4>8.5 How strong is the conclusion?</h4>
 <p><strong class="defined-term">Descriptive statistics</strong> summarize the observations included in a run. <strong class="defined-term">Statistical inference</strong> uses those observations and justified assumptions to estimate behavior beyond the recorded data, often with a measure of uncertainty. A correct summary does not by itself establish how a station will perform in another period or what caused a difference. Check the supporting data and experimental design before extending the claim; <a href="#sec-8">Chapter 9</a> provides wording examples.</p>
 <p><a id="sec-7-dependence-bias"></a></p>
-<h5>8.5.1 Dependence and bias</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.5.1</span> <span class="manual-heading-title">Dependence and bias</span></h5>
 <p><strong>Why WSPRadar reports confidence intervals for mean ΔSNR</strong></p>
 <p>Each included spot pair supplies a Target–Reference SNR difference for the same remote station, band and WSPR cycle. This controls the timing of the comparison and allows propagation fluctuations shared by both setups to cancel in their SNR difference. The resulting paired differences provide a practical basis for estimating an average relative advantage — a measurement approach supported by standard paired-analysis methods and WSPR antenna-comparison models. <a href="#ref-31">[Ref-31]</a>, <a href="#ref-1">[Ref-1]</a></p>
 <p>Averaging can reduce the influence of random fluctuations, making the mean more precisely estimated than an individual observation. With sufficiently many independent, identically distributed observations of finite variance, the sampling distribution of the mean approaches a normal distribution even when individual ΔSNR values are not normally distributed. A confidence interval describes the precision of this estimated average under the statistical model, rather than the spread of individual spot pairs. <a href="#ref-31">[Ref-31]</a>, <a href="#ref-32">[Ref-32]</a></p>
@@ -2186,7 +2241,7 @@
 <p>This is a <strong class="defined-term">nominal IID Student-t baseline</strong>, exact under independent, identically distributed normal pair differences and otherwise approximate. Repeated observations on a path, adjacent WSPR cycles and shared propagation may be dependent. N is the observed pair count; the calculation makes no effective-sample-size adjustment for dependence. The interval does not incorporate systematic calibration error or remove paired-decode selection. A narrow interval does not establish independence, representative sampling or a physical cause. Coverage is nominal for each segment separately, not simultaneous over the map. The precision requirement is not a significance test: the interval may include zero and a mean of zero can qualify.</p>
 <p>For identical qualifying pairs, adjustments and confidence, this calculation matches the existing pooled Spots mean/CI in the separate <strong>Benchmark Statistics</strong> section. Its Stations equal-weight aggregate and across-station CI remain unchanged.</p>
 <p><a id="sec-7-repeatability-control"></a></p>
-<h5>8.5.2 Repeatability and experimental control</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.5.2</span> <span class="manual-heading-title">Repeatability and experimental control</span></h5>
 <p>Assess support at several levels:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -2220,19 +2275,19 @@
 </table></div>
 <p>Agreement among views of the same observations establishes internal consistency, not replication. <a href="#sec-8">Chapter 9</a> explains how to match the wording of a conclusion to this support.</p>
 <p><a id="sec-7-validation"></a></p>
-<h5>8.5.3 Validation scope</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.5.3</span> <span class="manual-heading-title">Validation scope</span></h5>
 <p>Software-validation statistics also need context. Identify the dataset, test date, WSPRadar version or source revision, and calculation method. A dated check establishes what was assessed for that test; it is not a general guarantee for every station, period or dataset.</p>
 <p><a id="sec-7-outliers"></a>
 <a id="sec-7-11"></a></p>
 <h4>8.6 Experimental ΔSNR event analysis</h4>
 <p><strong>This experimental, optional detector finds temporary departures from the usual local ΔSNR for a remote station.</strong> It is an expert diagnostic, not a required analysis step. <a href="#sec-outlier">Section 2.5</a> explains its use and <a href="#sec-5-6">Section 10.6</a> lists the controls. The sections below explain the scientific interpretation and main checks, rather than every algorithmic refinement.</p>
 <p><a id="sec-7-outlier-departure"></a></p>
-<h5>8.6.1 Departure from the local baseline</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.6.1</span> <span class="manual-heading-title">Departure from the local baseline</span></h5>
 <p>The detector examines each station separately, using its spot pairs at the original WSPR-cycle times. A station is identified by its exact callsign and full reported locator and must meet the requirements for paired ΔSNR summaries. These observations have already been matched, consolidated and scientifically filtered. Detection happens before display aggregation, so changing a plot’s time-bin width does not change the events. With reporting off, the detector does not run.</p>
 <p><strong>Departure is ΔSNR minus its local baseline.</strong> Against a <strong>+8 dB</strong> baseline, a <strong>+1 dB</strong> spot pair has departure <strong>+1 − (+8) = −7 dB</strong>. Target still has higher SNR, but its advantage is 7 dB below the local baseline. A change in Target, Reference or both can produce that departure.</p>
 <p>Candidate grouping follows the departure's sign, not the sign of ΔSNR relative to zero.</p>
 <p><a id="sec-7-outlier-baseline"></a></p>
-<h5>8.6.2 Baseline and nearby variability</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.6.2</span> <span class="manual-heading-title">Baseline and nearby variability</span></h5>
 <p>A <strong class="defined-term">baseline flank</strong> is the set of surrounding observations before or after a candidate. WSPRadar calculates median ΔSNR in <strong>UTC-aligned 10-minute cells</strong> that contain observations, using data up to <strong>six hours before and after</strong> the candidate. It excludes the candidate and a surrounding guard interval from the baseline.</p>
 <p>Each flank needs <strong>at least four populated cells</strong>. Its baseline is the median of its cell medians. The expected local ΔSNR is the <strong>average of the two flank baselines</strong>, so the periods before and after the candidate count equally. Missing cells are not filled. If either flank lacks enough data, the candidate remains unclassified.</p>
 <p>To measure nearby variation, subtract each flank's baseline from its cell medians and pool these <strong class="defined-term">residuals</strong> — the remaining deviations about the respective flank. Their <strong class="defined-term">median absolute deviation (MAD)</strong> is the median absolute distance from the pooled residuals' median.</p>
@@ -2262,7 +2317,7 @@
 <p>The IQR here is also calculated from the pooled residuals. The 0.5 dB fallback is <strong>not a universal minimum</strong>.</p>
 <p>The dimensionless robust z-score is <strong>0.6745 × departure / robust scale</strong>. A <strong>−7 dB</strong> departure with a <strong>1 dB</strong> scale scores about <strong>−4.72</strong>. It describes the departure relative to nearby variation; it is not a probability or statistical significance level.</p>
 <p><a id="sec-7-outlier-qualification"></a></p>
-<h5>8.6.3 Candidate qualification</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.6.3</span> <span class="manual-heading-title">Candidate qualification</span></h5>
 <p>Nearby departures with the same sign form provisional candidates. Their grouping uses the spacing of the station’s retained timestamps. Final qualification uses a local baseline fitted with the <strong>complete candidate excluded</strong>.</p>
 <p>The event's <strong>median departure</strong> is the median of its spot-pair ΔSNR values after subtracting that local baseline. It is not the magnitude of the observed median ΔSNR. All four checks below must pass:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -2295,7 +2350,7 @@
 <p><strong>One-sided timestamps have a limited role.</strong> The cadence estimate uses all retained Paired and one-sided timestamps for a station eligible for paired summaries; it does not verify the physical operating schedule. A scientific change that retains additional one-sided observations can therefore change estimated cadence, permitted candidate gaps and baseline guard intervals. Grouping, baseline support and qualification can change even if every paired ΔSNR value is unchanged.</p>
 <p>One-sided observations supply neither detector ΔSNR nor a vote in sign agreement. Display-only visibility changes do not alter the retained timestamps or rerun detection.</p>
 <p><a id="sec-7-outlier-boundaries"></a></p>
-<h5>8.6.4 Boundaries and event classes</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.6.4</span> <span class="manual-heading-title">Boundaries and event classes</span></h5>
 <p>The reported start and end must be spot-pair observations whose departures have the same sign and individually pass <strong>both</strong> departure thresholds. The interval is trimmed to these qualifying endpoints and tested again against the event-level requirements; weaker observations between them can remain. If only a smaller qualifying core remains, it keeps the complete candidate’s baseline, scale and support. A more favorable baseline is not fitted to that core. If no interval with qualifying endpoints passes, no event is reported.</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -2321,7 +2376,7 @@
 </table></div>
 <p>All classes pass the same checks. The span from first to last observation describes retained evidence, not uninterrupted behavior between observations or the duration of an unseen physical event.</p>
 <p><a id="sec-7-outlier-context"></a></p>
-<h5>8.6.5 Context and limits</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">8.6.5</span> <span class="manual-heading-title">Context and limits</span></h5>
 <p>Each station’s event must pass the checks separately. Grouping nearby same-sign events across stations provides review context — path-specific, directionally coherent, scope-wide or multiple paths. <strong>Scope-wide</strong> means the group spans nonadjacent direction sectors. Grouping adds neither significance nor stronger qualification.</p>
 <p>After a candidate passes the checks, separate Target and Reference SNR views and nearby one-sided counts help investigate it. These diagnostics are attached <strong>after qualification</strong>; they cannot make the candidate qualify, extend it or strengthen it. This differs from the earlier use of one-sided timestamps to estimate cadence, described in <a href="#sec-7-outlier-qualification">Section 8.6.3</a>.</p>
 <p>The detector is deterministic and descriptive. It supplies no multiple-event significance correction, and event counts are not independent samples. Assigning a cause still requires the experimental controls discussed in <a href="#sec-3">Chapter 2</a>, <a href="#sec-4">Chapter 3</a> and <a href="#sec-8">Chapter 9</a>.</p>
@@ -3111,6 +3166,12 @@
 </li>
 <li>
 <p><a id="ref-33"></a><a href="https://www.nist.gov/publications/calculation-uncertainty-mean-autocorrelated-measurements">[Ref-33]</a> <strong>Peer-reviewed article.</strong> Zhang, N.-F. (2006). <em>Calculation of the uncertainty of the mean of autocorrelated measurements</em>. <em>Metrologia</em>, 43, S276–S281. DOI: 10.1088/0026-1394/43/4/S15.</p>
+</li>
+<li>
+<p><a id="ref-34"></a><a href="https://www.arrl.org/files/file/QEX%20Binaries/March%202026/Contents.pdf" target="_blank" rel="noopener noreferrer">[Ref-34]</a> <strong>Amateur-radio technical journal article; issue contents.</strong> Ostergaard, D. / N3HXZ (2026). <em>Using WSPR to Predict Relative Antenna Gain of Directional Antennas</em>. <em>QEX</em>, March/April 2026, starting p. 19. Additional primary documentation: <a href="https://www.n3hxz.net/wspr-methodology">Whispering Antenna — WSPR Methodology</a> and <a href="https://www.n3hxz.net/case-studies">Case Studies</a>: sequential antenna switching, linear-power averaging, receiver evidence requirements and practical antenna comparisons.</p>
+</li>
+<li>
+<p><a id="ref-35"></a><a href="https://github.com/K5OHY/FarField-Lab">[Ref-35]</a> <strong>Open-source application and technical documentation.</strong> Tim / K5OHY (2026). <em>FarField Lab</em>: WSPR and RBN antenna comparison software supporting sequential ABAB/ABBA experiments, alternating-block analysis, receiver-level relative-gain estimates and statistical validation. <a href="https://farfieldlab.streamlit.app/">Live application</a>; <a href="https://github.com/K5OHY/FarField-Lab/blob/main/docs/METHODOLOGY.md">technical methodology</a>; <a href="https://github.com/K5OHY/FarField-Lab/blob/main/tests/test_dale_study.py">published-study validation</a>. Accessed 2026-11-08.</p>
 </li>
 </ul>
 <div style="page-break-before: always;"></div>

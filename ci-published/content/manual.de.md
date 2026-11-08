@@ -133,9 +133,31 @@ Verfolge ein Merkmal von der Karte bis zu den Stationen und Empfangsberichten da
 
 * [7. Literatur, Vorarbeiten und Einordnung](#sec-d)
     * [7.1 Vom Meldenetz zum Versuchsdatensatz](#sec-d-1)
+        * [7.1.1 Joe Taylor, K1JT, und Bruce Walker, W1BW: eine gemeinsame Ressource für Experimente.](#sec-d-taylor-walker)
+        * [7.1.2 Nathaniel Frissell und Mitautoren: Amateurfunkbeobachtungen in der Weltraumforschung.](#sec-d-frissell)
     * [7.2 WSPR-Beobachtungsdaten interpretierbar machen](#sec-d-2)
+        * [7.2.1 Lo und Mitautoren, 2022: vor der Interpretation ausbleibender Empfangsberichte die Aktivität belegen.](#sec-d-lo)
+        * [7.2.2 Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, und Glenn Elmore, N6GN, 2019–2020: den Rauschpegel parallel zum Empfang messen.](#sec-d-griffiths-robinett-elmore)
     * [7.3 Entwicklungslinie von Antennen- und Stationsvergleichen](#sec-d-3)
+        * [7.3.1 Patrick Destrem, F6IRF, 2008: automatisierte Umschaltung und geografischer Vergleich.](#sec-d-destrem)
+        * [7.3.2 Charles Preston, KL7OA, später K7TAA, 2009 und 2017: simultaner Vergleich.](#sec-d-preston)
+        * [7.3.3 Sivan Toledo, 2010: ein nützliches negatives Ergebnis zur zeitlichen Versuchsplanung.](#sec-d-toledo)
+        * [7.3.4 Carol F. Milazzo, KP4MD, 2011: vollständige Stationen in beiden Richtungen vergleichen.](#sec-d-milazzo)
+        * [7.3.5 Gwyn Griffiths, G3ZIL, und Nigel Squibb, G4HZX, 2017: vergleichen, untersuchen und erneut prüfen.](#sec-d-griffiths-squibb)
+        * [7.3.6 Vanhamel, Machiels und Lamy, 2022: die Empfangszweige charakterisieren.](#sec-d-vanhamel)
+        * [7.3.7 Jens Zander, 2022: Vergleichsmodell und Annahmen angeben.](#sec-d-zander)
+        * [7.3.8 Thomas Rietdorf, DL2OAH, 2026: ein synchronisierter Stationsvergleich auf mehreren Bändern.](#sec-d-rietdorf)
+        * [7.3.9 Dale Ostergaard, N3HXZ, 2026: praktische sequenzielle Antennenvergleiche.](#sec-d-ostergaard)
     * [7.4 Analyseinfrastruktur und verwandte Werkzeuge](#sec-d-4)
+        * [7.4.1 Gwyn Griffiths und Rob Robinett, 2020: wiederverwendbare Datenbankanalyse.](#sec-d-griffiths-robinett)
+        * [7.4.2 Arne und das Projekt wspr.live, mit Rechenressourcen von HB9VQQ.](#sec-d-wspr-live)
+        * [7.4.3 Rob Robinett, AI6VN, und die WSPRdaemon-Gemeinschaft.](#sec-d-wsprdaemon)
+        * [7.4.4 Tim, K5OHY — FarField Lab: praxisnahe Antennenvergleiche mit Umschaltung.](#sec-d-farfield-lab)
+        * [7.4.5 Phil, VK7JJ — WSPR.Rocks](#sec-d-wspr-rocks)
+        * [7.4.6 Richard Newstead und SOTABEAMS — WSPRlite/DXplorer](#sec-d-wsprlite-dxplorer)
+        * [7.4.7 Walter Machiels, ON4AWM — WSPR-Station-Compare](#sec-d-wspr-station-compare)
+        * [7.4.8 Fred, W6BSD — Antenna Performance Analysis](#sec-d-antenna-performance-analysis)
+        * [7.4.9 Colin Murray, GM4EAU — WATT](#sec-d-watt)
     * [7.5 Was WSPRadar übernimmt, integriert und ergänzt](#sec-d-5)
 * [8. Wissenschaftliche Methoden](#sec-7)
     * [8.1 Gemeinsame Grundlagen der Datenauswertung](#sec-7-foundations)
@@ -1039,11 +1061,17 @@ Drei Erkenntnisse kehren wieder: unter gemeinsamen Bedingungen vergleichen, vor 
 <a id="sec-d-1"></a>
 #### 7.1 Vom Meldenetz zum Versuchsdatensatz
 
-**Joe Taylor, K1JT, und Bruce Walker, W1BW: eine gemeinsame Ressource für Experimente.** Taylor führte WSPR 2008 ein; Walker entwickelte WSPRnet, um Empfangsberichte zu sammeln und bereitzustellen. Ihr Artikel von 2010 zeigte, wie diese Berichte Ausbreitungsversuche unterstützen konnten. Ein Beispiel fasste drei Wochen von Beobachtungen auf 30 m in 15-Minuten-UTC-Intervallen zusammen: Die Mittelwertbildung machte wiederkehrende Empfangsmuster sichtbar, die sich anhand einzelner Aussendungen nur schwer beurteilen ließen. Die Stationsbetreiber lieferten die räumlich verteilten Beobachtungen; Protokoll, Software und Meldedienst machten sie zugänglich. Die Berichte blieben jedoch von der beteiligten Ausrüstung, den Standorten und den Betriebszeitplänen geprägt. <a href="#ref-6">[Ref-6]</a>
+<a id="sec-d-taylor-walker"></a>
+##### 7.1.1 Joe Taylor, K1JT, und Bruce Walker, W1BW: eine gemeinsame Ressource für Experimente.
+
+Taylor führte WSPR 2008 ein; Walker entwickelte WSPRnet, um Empfangsberichte zu sammeln und bereitzustellen. Ihr Artikel von 2010 zeigte, wie diese Berichte Ausbreitungsversuche unterstützen konnten. Ein Beispiel fasste drei Wochen von Beobachtungen auf 30 m in 15-Minuten-UTC-Intervallen zusammen: Die Mittelwertbildung machte wiederkehrende Empfangsmuster sichtbar, die sich anhand einzelner Aussendungen nur schwer beurteilen ließen. Die Stationsbetreiber lieferten die räumlich verteilten Beobachtungen; Protokoll, Software und Meldedienst machten sie zugänglich. Die Berichte blieben jedoch von der beteiligten Ausrüstung, den Standorten und den Betriebszeitplänen geprägt. <a href="#ref-6">[Ref-6]</a>
 
 > **Anwendung in WSPRadar:** diesen Zusammenhang zwischen gemeldeten Beobachtungen und Fragestellung bewahren. Geografische und zeitliche Zusammenfassungen ordnen die Datengrundlage; der gewählte Zeitraum und die beteiligten Stationen bleiben Bestandteil ihrer Bedeutung.
 
-**Nathaniel Frissell und Mitautoren: Amateurfunkbeobachtungen in der Weltraumforschung.** Ihre Studie von 2019 verglich Berichte aus Amateurfunknetzen während der Sonnenaktivität im September 2017 mit einem Vergleichsverlauf aus einer ruhigen Periode. Sie erkannte mit Sonneneruptionen verbundene Kurzwellen-Funkausfälle sowie Veränderungen während geomagnetischer Störungen und nutzte den Vergleichsverlauf, um Reaktionen auf diese Ereignisse von gewöhnlichen Schwankungen zu unterscheiden. <a href="#ref-13">[Ref-13]</a>
+<a id="sec-d-frissell"></a>
+##### 7.1.2 Nathaniel Frissell und Mitautoren: Amateurfunkbeobachtungen in der Weltraumforschung.
+
+Ihre Studie von 2019 verglich Berichte aus Amateurfunknetzen während der Sonnenaktivität im September 2017 mit einem Vergleichsverlauf aus einer ruhigen Periode. Sie erkannte mit Sonneneruptionen verbundene Kurzwellen-Funkausfälle sowie Veränderungen während geomagnetischer Störungen und nutzte den Vergleichsverlauf, um Reaktionen auf diese Ereignisse von gewöhnlichen Schwankungen zu unterscheiden. <a href="#ref-13">[Ref-13]</a>
 
 Ihre Studie von 2022 verwendete Beobachtungen aus WSPRnet, dem Reverse Beacon Network und PSKReporter vom 3. November 2017. Schwankungen der Funkentfernung mit einer Dauer von ungefähr 2,5 Stunden stimmten mit SuperDARN-Radar und satellitennavigationsgestützten Messungen des ionosphärischen Elektronengehalts überein. Dies stützte die Interpretation als großräumige wandernde ionosphärische Störungen. Die unabhängigen Messungen waren Teil der Grundlage für diese physikalische Erklärung. <a href="#ref-14">[Ref-14]</a>
 
@@ -1056,11 +1084,16 @@ Ihr Übersichtsartikel von 2023 ordnet diese Amateurfunknetze neben zweckgebunde
 #### 7.2 WSPR-Beobachtungsdaten interpretierbar machen
 
 <a id="sec-d-lo"></a>
-**Lo und Mitautoren, 2022: vor der Interpretation ausbleibender Empfangsberichte die Aktivität belegen.** Ihre Studie verwendete ein vollständiges Jahr von Beobachtungen aus 2017 auf 7 MHz zwischen Europa und Australasien. Aktivitätsprüfungen in halbstündigen Intervallen untersuchten, ob ein Sender anderswo empfangen wurde und ob ein Empfänger andere Stationen empfing. Empfang aus dem Vereinigten Königreich nach Neuseeland trat um Sonnenaufgang und Sonnenuntergang im Vereinigten Königreich auf; in Gegenrichtung konzentrierte sich der Empfang auf den dortigen Sonnenaufgang, während Empfang um den dortigen Sonnenuntergang besonders im Sommer selten war. Die Autoren schlugen einen höheren europäischen Störpegel am Abend als mögliche Erklärung vor, statt die Asymmetrie allein als Ausbreitungsbefund zu behandeln. <a href="#ref-9">[Ref-9]</a>
+##### 7.2.1 Lo und Mitautoren, 2022: vor der Interpretation ausbleibender Empfangsberichte die Aktivität belegen.
+
+Ihre Studie verwendete ein vollständiges Jahr von Beobachtungen aus 2017 auf 7 MHz zwischen Europa und Australasien. Aktivitätsprüfungen in halbstündigen Intervallen untersuchten, ob ein Sender anderswo empfangen wurde und ob ein Empfänger andere Stationen empfing. Empfang aus dem Vereinigten Königreich nach Neuseeland trat um Sonnenaufgang und Sonnenuntergang im Vereinigten Königreich auf; in Gegenrichtung konzentrierte sich der Empfang auf den dortigen Sonnenaufgang, während Empfang um den dortigen Sonnenuntergang besonders im Sommer selten war. Die Autoren schlugen einen höheren europäischen Störpegel am Abend als mögliche Erklärung vor, statt die Asymmetrie allein als Ausbreitungsbefund zu behandeln. <a href="#ref-9">[Ref-9]</a>
 
 > **Anwendung in WSPRadar:** das Prinzip der Aktivitätsprüfung bei der Definition von Empfangsgelegenheiten für Performance anwenden. WSPRadars eigene Regeln für denselben Zyklus legen fest, für welche Endpunkte Aktivitätsnachweise vorliegen; sie sind eine eigenständige Entwurfsentscheidung und unterscheiden sich von den halbstündigen Prüfungen der Studie. Fehlende Empfangsberichte ohne die erforderlichen Nachweise bleiben unbekannte Ergebnisse.
 
-**Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, und Glenn Elmore, N6GN, 2019–2020: den Rauschpegel parallel zum Empfang messen.** Ihr Bericht von 2019 verglich Rauschpegelschätzungen aus den Pausen zwischen WSPR-Aussendungen mit Schätzungen im Frequenzbereich während des Empfangs und untersuchte die Kalibrierung auf den Antenneneingang des Empfängers. Bei KPH zeigte die Rauschaufzeichnung auf 40 m ein tägliches Minimum um den lokalen Mittag sowie stärkere Schwankungen am Abend und in der Nacht. Diese Messungen lieferten Informationen, die gewöhnliche SNR-Berichte nicht bieten konnten. Die Arbeit wurde anschließend in QEX, September/Oktober 2020, veröffentlicht. <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a>
+<a id="sec-d-griffiths-robinett-elmore"></a>
+##### 7.2.2 Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, und Glenn Elmore, N6GN, 2019–2020: den Rauschpegel parallel zum Empfang messen.
+
+Ihr Bericht von 2019 verglich Rauschpegelschätzungen aus den Pausen zwischen WSPR-Aussendungen mit Schätzungen im Frequenzbereich während des Empfangs und untersuchte die Kalibrierung auf den Antenneneingang des Empfängers. Bei KPH zeigte die Rauschaufzeichnung auf 40 m ein tägliches Minimum um den lokalen Mittag sowie stärkere Schwankungen am Abend und in der Nacht. Diese Messungen lieferten Informationen, die gewöhnliche SNR-Berichte nicht bieten konnten. Die Arbeit wurde anschließend in QEX, September/Oktober 2020, veröffentlicht. <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a>
 
 > **Anwendung in WSPRadar:** eine SNR-Änderung als Änderung des Verhältnisses zwischen Signal und Rauschen interpretieren. WSPRadar misst den Rauschpegel nicht unabhängig; um stärkere Signale von geringerem Rauschen zu unterscheiden, sind zusätzliche Messungen oder kontrollierte Stationsversuche nötig.
 
@@ -1068,28 +1101,40 @@ Ihr Übersichtsartikel von 2023 ordnet diese Amateurfunknetze neben zweckgebunde
 <a id="sec-d-3"></a>
 #### 7.3 Entwicklungslinie von Antennen- und Stationsvergleichen
 
-**Patrick Destrem, F6IRF, 2008: automatisierte Umschaltung und geografischer Vergleich.** Destrem wechselte alle zehn Minuten zwischen einer Vertikalantenne und einer Inverted-V für 30 m und korrigierte die Empfangsberichte auf eine gemeinsame Sendeleistung. Dies waren <strong class="defined-term">zeitlich verschachtelte Messungen</strong>: Die Antennen wurden in abwechselnden Zeitabschnitten geprüft. Er untersuchte einzelne Empfänger und Entfernungsgruppen. Der berichtete mittlere Vorteil der Vertikalantenne betrug auf einem etwa 14 000 km langen Funkpfad ungefähr 4 dB; auf einem 2 000-km-Funkpfad waren die Antennen etwa gleichwertig. Das Ergebnis hing vom Funkpfad und der Anlage ab; aufeinanderfolgende Messungen blieben wechselnder Ausbreitung ausgesetzt. Folgeuntersuchungen erweiterten die Untersuchung auf Empfang und Stationsvergleiche. <a href="#ref-17">[Ref-17]</a>
+<a id="sec-d-destrem"></a>
+##### 7.3.1 Patrick Destrem, F6IRF, 2008: automatisierte Umschaltung und geografischer Vergleich.
+
+Destrem wechselte alle zehn Minuten zwischen einer Vertikalantenne und einer Inverted-V für 30 m und korrigierte die Empfangsberichte auf eine gemeinsame Sendeleistung. Dies waren <strong class="defined-term">zeitlich verschachtelte Messungen</strong>: Die Antennen wurden in abwechselnden Zeitabschnitten geprüft. Er untersuchte einzelne Empfänger und Entfernungsgruppen. Der berichtete mittlere Vorteil der Vertikalantenne betrug auf einem etwa 14 000 km langen Funkpfad ungefähr 4 dB; auf einem 2 000-km-Funkpfad waren die Antennen etwa gleichwertig. Das Ergebnis hing vom Funkpfad und der Anlage ab; aufeinanderfolgende Messungen blieben wechselnder Ausbreitung ausgesetzt. Folgeuntersuchungen erweiterten die Untersuchung auf Empfang und Stationsvergleiche. <a href="#ref-17">[Ref-17]</a>
 
 > **Anwendung in WSPRadar:** die frühe Verbindung von Leistungskorrektur und geografischer Untersuchung würdigen. Richtungen und Entfernungen ausdrücklich vergleichen, dabei für ΔSNR zeitgleiche Spot-Paare verwenden und einseitige Empfangsberichte als eigene Datengrundlage erhalten.
 
-**Charles Preston, KL7OA, später K7TAA, 2009 und 2017: simultaner Vergleich.** Prestons vorläufiger Versuch vom März 2009 verwendete zwei am selben Standort aufgestellte 2-W-Sender, eine Buddipole und eine horizontale Schleifenantenne auf 30 m. Gemeinsame entfernte Empfänger lieferten gleichzeitige Empfangsberichte. Im kurzen Versuch war das Gesamtverhalten ähnlich; die Buddipole stand jedoch innerhalb der Schleife, und die gegenseitige Beeinflussung der Antennen begrenzte die Schlussfolgerung. Jede Aussendung konnte auch allein gemeldet werden; schwacher Empfang und frequenzabhängige Störungen waren mögliche Erklärungen. Sein Bericht unterschied empfangenes SNR von Signalstärke. Später veröffentlichte er *Antenna Comparisons Using Simultaneous WSPR Measurements* in QEX, Juli/August 2017; die Aktualisierung des vorläufigen Berichts vom Juni 2017 verweist auf diese Veröffentlichung. <a href="#ref-18">[Ref-18]</a> <a href="#ref-19">[Ref-19]</a>
+<a id="sec-d-preston"></a>
+##### 7.3.2 Charles Preston, KL7OA, später K7TAA, 2009 und 2017: simultaner Vergleich.
+
+Prestons vorläufiger Versuch vom März 2009 verwendete zwei am selben Standort aufgestellte 2-W-Sender, eine Buddipole und eine horizontale Schleifenantenne auf 30 m. Gemeinsame entfernte Empfänger lieferten gleichzeitige Empfangsberichte. Im kurzen Versuch war das Gesamtverhalten ähnlich; die Buddipole stand jedoch innerhalb der Schleife, und die gegenseitige Beeinflussung der Antennen begrenzte die Schlussfolgerung. Jede Aussendung konnte auch allein gemeldet werden; schwacher Empfang und frequenzabhängige Störungen waren mögliche Erklärungen. Sein Bericht unterschied empfangenes SNR von Signalstärke. Später veröffentlichte er *Antenna Comparisons Using Simultaneous WSPR Measurements* in QEX, Juli/August 2017; die Aktualisierung des vorläufigen Berichts vom Juni 2017 verweist auf diese Veröffentlichung. <a href="#ref-18">[Ref-18]</a> <a href="#ref-19">[Ref-19]</a>
 
 > **Anwendung in WSPRadar:** Aussendungen vergleichen, die derselbe Empfänger im selben Zyklus beobachtet hat. Gepaarte ΔSNR-Werte und einseitige Dekodierungen getrennt halten und die räumliche Anordnung dokumentieren, die den Vergleich begrenzt.
 
 <a id="sec-d-toledo"></a>
-**Sivan Toledo, 2010: ein nützliches negatives Ergebnis zur zeitlichen Versuchsplanung.** Toledo verglich drei Schleifenantennen in aufeinanderfolgenden Blöcken von ungefähr einer Stunde. Die Empfangsberichte änderten sich erheblich, während er noch dieselbe Antenne verwendete: Ein Funkpfad schwankte in vierzig Minuten um etwa 10 dB, und ein weiterer Empfänger zeigte ähnliche Schwankungen. Die scheinbaren Antennenunterschiede waren mit dieser Hintergrundschwankung vergleichbar; der Versuch konnte deshalb Antennenverhalten und wechselnde Bedingungen nicht trennen. Sein Bericht erörterte automatisierte Umschaltung und Prestons simultanen Ansatz als Verbesserungen des Versuchsdesigns. Dies war eine Grenze des Versuchs und kein Befund, dass WSPR-Vergleiche unmöglich seien. <a href="#ref-3">[Ref-3]</a>
+##### 7.3.3 Sivan Toledo, 2010: ein nützliches negatives Ergebnis zur zeitlichen Versuchsplanung.
+
+Toledo verglich drei Schleifenantennen in aufeinanderfolgenden Blöcken von ungefähr einer Stunde. Die Empfangsberichte änderten sich erheblich, während er noch dieselbe Antenne verwendete: Ein Funkpfad schwankte in vierzig Minuten um etwa 10 dB, und ein weiterer Empfänger zeigte ähnliche Schwankungen. Die scheinbaren Antennenunterschiede waren mit dieser Hintergrundschwankung vergleichbar; der Versuch konnte deshalb Antennenverhalten und wechselnde Bedingungen nicht trennen. Sein Bericht erörterte automatisierte Umschaltung und Prestons simultanen Ansatz als Verbesserungen des Versuchsdesigns. Dies war eine Grenze des Versuchs und kein Befund, dass WSPR-Vergleiche unmöglich seien. <a href="#ref-3">[Ref-3]</a>
 
 > **Anwendung in WSPRadar:** den gemeinsamen Betriebszeitraum zum Bestandteil des Vergleichs machen, zeitliche Änderungen untersuchen und kontrollierte Versuche wiederholen. Mehr Empfangsberichte allein beseitigen keine Unterschiede zwischen den verglichenen Bedingungen.
 
 <a id="sec-d-milazzo"></a>
-**Carol F. Milazzo, KP4MD, 2011: vollständige Stationen in beiden Richtungen vergleichen.** Milazzos im Januar 2011 veröffentlichte Studie verwendete Messungen vom Dezember 2010 und verglich 29 km voneinander entfernte Stationen über einen gemeinsamen Empfänger in etwa 1 750 km Entfernung. Sie korrigierte Unterschiede der Sendeleistung und betrachtete die Ergebnisse zusammen mit VOACAP-Schätzungen. Auf 40 m erzeugte die Station mit horizontaler Schleifenantenne im Allgemeinen höhere gemeldete SNR-Werte bei der Aussendung; die Station mit Vertikalantenne empfing dagegen die gemeinsame entfernte Station mit besserem SNR. Unterschiedliche Standorte, Funkgeräte und Bandzeitpläne blieben Bestandteil des Vergleichs, und die ausgewählte entfernte Station begrenzte dessen geografischen Umfang. <a href="#ref-4">[Ref-4]</a>
+##### 7.3.4 Carol F. Milazzo, KP4MD, 2011: vollständige Stationen in beiden Richtungen vergleichen.
+
+Milazzos im Januar 2011 veröffentlichte Studie verwendete Messungen vom Dezember 2010 und verglich 29 km voneinander entfernte Stationen über einen gemeinsamen Empfänger in etwa 1 750 km Entfernung. Sie korrigierte Unterschiede der Sendeleistung und betrachtete die Ergebnisse zusammen mit VOACAP-Schätzungen. Auf 40 m erzeugte die Station mit horizontaler Schleifenantenne im Allgemeinen höhere gemeldete SNR-Werte bei der Aussendung; die Station mit Vertikalantenne empfing dagegen die gemeinsame entfernte Station mit besserem SNR. Unterschiedliche Standorte, Funkgeräte und Bandzeitpläne blieben Bestandteil des Vergleichs, und die ausgewählte entfernte Station begrenzte dessen geografischen Umfang. <a href="#ref-4">[Ref-4]</a>
 
 > **Anwendung in WSPRadar:** TX und RX getrennt auswerten, die Leistungsbezugsgröße ausdrücklich angeben und gemeinsamen Betrieb prüfen. Ein stärkerer Empfangsbericht einer Aussendung belegt keinen besseren Empfang; jedes Ergebnis ist als Befund zu den vollständigen geprüften Anlagen und Funkpfaden zu interpretieren.
 >
 > **In WSPRadar erkunden:** Die [Auswertung historischer Empfangsberichte von Milazzo](https://wspradar.org/de/demos/milazzo_tx_buddy/) untersucht die Abbildungen 6 und 7 erneut in RX und TX. Sie zeigt, wie trotz größerer Gesamtzahlen von Empfangsberichten durch exakte Zuordnung nach Zyklus und Locator sowie Normierung auf die gemeldete Sendeleistung nur sehr wenige nutzbare Spot-Paare verbleiben können und warum ungeprüfte Zeitpläne Vergleiche dieser Gesamtzahlen begrenzen. Das vorbereitete Profil beginnt mit RX; die Anleitung stellt auch die TX-Konfiguration bereit.
 
 <a id="sec-d-griffiths-squibb"></a>
-**Gwyn Griffiths, G3ZIL, und Nigel Squibb, G4HZX, 2017: vergleichen, untersuchen und erneut prüfen.** In *Improving HF Band SNR* paarten sie den Empfang desselben Senders zur selben Zeit und untersuchten Unterschiede nach Zeit, Entfernung, Bodenfeuchte und Stationsänderungen. Nachdem bei G4HZX drei Bodenradials ergänzt worden waren, fehlte der frühere Zusammenhang mit der Feuchtigkeit im folgenden Testzeitraum. Austausch und Versetzen eines nahe gelegenen Computers fielen außerdem mit einer SNR-Verbesserung von ungefähr 5 dB zusammen. Der genaue Störmechanismus blieb ungeklärt, und beide Beobachtungen betrafen vollständige Empfangsanlagen. Die dokumentierten Änderungen machten die Vergleiche für die Diagnose nützlich, ohne einen universellen Antenneneffekt zu beweisen. <a href="#ref-5">[Ref-5]</a>
+##### 7.3.5 Gwyn Griffiths, G3ZIL, und Nigel Squibb, G4HZX, 2017: vergleichen, untersuchen und erneut prüfen.
+
+In *Improving HF Band SNR* paarten sie den Empfang desselben Senders zur selben Zeit und untersuchten Unterschiede nach Zeit, Entfernung, Bodenfeuchte und Stationsänderungen. Nachdem bei G4HZX drei Bodenradials ergänzt worden waren, fehlte der frühere Zusammenhang mit der Feuchtigkeit im folgenden Testzeitraum. Austausch und Versetzen eines nahe gelegenen Computers fielen außerdem mit einer SNR-Verbesserung von ungefähr 5 dB zusammen. Der genaue Störmechanismus blieb ungeklärt, und beide Beobachtungen betrafen vollständige Empfangsanlagen. Die dokumentierten Änderungen machten die Vergleiche für die Diagnose nützlich, ohne einen universellen Antenneneffekt zu beweisen. <a href="#ref-5">[Ref-5]</a>
 
 > **Anwendung in WSPRadar:** gepaarte Empfängervergleiche sowie Zeit- oder Entfernungsansichten gemeinsam mit dem Stationsprotokoll des Betreibers nutzen. Ein Muster als Anlass für einen gezielten Eingriff und eine wiederholte Messung behandeln; kausale Aussagen müssen dem Umfang der Kontrollen entsprechen.
 >
@@ -1100,7 +1145,9 @@ Ihr Übersichtsartikel von 2023 ordnet diese Amateurfunknetze neben zweckgebunde
 > - [**RX Performance**](https://wspradar.org/de/demos/griffiths_squibb_rx_performance/) untersucht G3ZIL allein. Verfolge HB0QRP, um mindestens einmal erfasste Gegenstationen, die Dekodierquote innerhalb bestätigter Empfangsgelegenheiten und das SNR erfolgreicher Dekodierungen voneinander zu unterscheiden. Dies ist WSPRadars zusätzliche Analyse der historischen Empfangsberichte ohne Referenzempfänger.
 
 <a id="sec-d-vanhamel"></a>
-**Vanhamel, Machiels und Lamy, 2022: die Empfangszweige charakterisieren.** Bei ihrem 160-m-Versuch verbanden sie zunächst zwei Empfangszweige mit einer Antenne. Zwei siebentägige Kalibrierungszeiträume ergaben jeweils einen mittleren Versatz von etwa 1,2 dB, den sie vor dem simultanen Antennenvergleich berücksichtigten. Mit identischen, rechtwinklig zueinander ausgerichteten Antennen beobachteten sie in dieser Anlage eine SNR-Differenz von ungefähr 3 dB. Polarisation und ionosphärische Effekte wurden als mögliche Erklärungen erörtert; das Ergebnis zur Ausrichtung belegte keine einzelne physikalische Ursache. Die Kalibrierung machte außerdem einen Beitrag der Ausrüstung sichtbar, bevor der Antennenvergleich interpretiert wurde. <a href="#ref-2">[Ref-2]</a>
+##### 7.3.6 Vanhamel, Machiels und Lamy, 2022: die Empfangszweige charakterisieren.
+
+Bei ihrem 160-m-Versuch verbanden sie zunächst zwei Empfangszweige mit einer Antenne. Zwei siebentägige Kalibrierungszeiträume ergaben jeweils einen mittleren Versatz von etwa 1,2 dB, den sie vor dem simultanen Antennenvergleich berücksichtigten. Mit identischen, rechtwinklig zueinander ausgerichteten Antennen beobachteten sie in dieser Anlage eine SNR-Differenz von ungefähr 3 dB. Polarisation und ionosphärische Effekte wurden als mögliche Erklärungen erörtert; das Ergebnis zur Ausrichtung belegte keine einzelne physikalische Ursache. Die Kalibrierung machte außerdem einen Beitrag der Ausrüstung sichtbar, bevor der Antennenvergleich interpretiert wurde. <a href="#ref-2">[Ref-2]</a>
 
 > **Anwendung in WSPRadar:** einen unabhängig gemessenen Versatz der Empfangszweige über die vorzeichenbehaftete Referenzkorrektur berücksichtigen können und das Messverfahren dokumentieren. Den korrigierten SNR-Vergleich von Aussagen über die Antenne oder den Polarisationsmechanismus trennen, der ihn verursacht hat.
 >
@@ -1110,41 +1157,90 @@ Ihr Übersichtsartikel von 2023 ordnet diese Amateurfunknetze neben zweckgebunde
 > - [**Antennendrehung**](https://wspradar.org/de/demos/vanhamel_rx_buddy/) verfolgt M7AEO, während sich der Referenzdipol um 90° dreht und der Target-Langdraht fest bleibt. Der Sprung von ungefähr 3 dB begünstigt den festen Langdraht gegenüber dem Dipol. Er zeigt, warum die chronologischen Beobachtungsdaten eines Funkpfads einen Übergang aufdecken können, den dessen Median über den gesamten Zeitraum verdeckt. Die Anleitung dokumentiert die separate Kalibrierungsschätzung dieser Konfiguration.
 
 <a id="sec-d-zander"></a>
-**Jens Zander, 2022: Vergleichsmodell und Annahmen angeben.** Zanders Preprint modelliert zwei lokale Antennen, die gleichzeitig zu gemeinsamen entfernten Empfängern senden. Eine SNR-Differenz innerhalb desselben Empfängers hebt unter den Modellannahmen gemeinsame Ausbreitungsdämpfung und Empfängerrauschen auf; für jede Differenz innerhalb eines Empfängers ist keine Kreuzkalibrierung zwischen diesen entfernten Empfängern nötig. Seine vorläufigen gepaarten Messungen hatten eine Stichproben-Standardabweichung von etwa 3 dB. Die Analyse berücksichtigt Störungen, fehlgeschlagene Dekodierungen, Quantisierung und den Präzisionsgewinn durch Mittelwertbildung sowie Richtwirkung, geografische Stichprobe und unbekannte Elevationswinkel. Gleiche oder korrigierte Leistungen und Unterschiede zwischen den Sendezweigen bleiben relevant. <a href="#ref-1">[Ref-1]</a>
+##### 7.3.7 Jens Zander, 2022: Vergleichsmodell und Annahmen angeben.
+
+Zanders Preprint modelliert zwei lokale Antennen, die gleichzeitig zu gemeinsamen entfernten Empfängern senden. Eine SNR-Differenz innerhalb desselben Empfängers hebt unter den Modellannahmen gemeinsame Ausbreitungsdämpfung und Empfängerrauschen auf; für jede Differenz innerhalb eines Empfängers ist keine Kreuzkalibrierung zwischen diesen entfernten Empfängern nötig. Seine vorläufigen gepaarten Messungen hatten eine Stichproben-Standardabweichung von etwa 3 dB. Die Analyse berücksichtigt Störungen, fehlgeschlagene Dekodierungen, Quantisierung und den Präzisionsgewinn durch Mittelwertbildung sowie Richtwirkung, geografische Stichprobe und unbekannte Elevationswinkel. Gleiche oder korrigierte Leistungen und Unterschiede zwischen den Sendezweigen bleiben relevant. <a href="#ref-1">[Ref-1]</a>
 
 > **Anwendung in WSPRadar:** die Differenzbildung im selben Zyklus und den Bezug auf die gemeldete Sendeleistung ausdrücklich angeben. WSPRadar definiert eigene Qualifikations- und Aggregationsregeln; das Unsicherheitsmodell des Preprints ist nicht automatisch deren Unsicherheitsmodell, und beobachtetes ΔSNR misst nicht direkt den absoluten Antennenwirkungsgrad.
 >
 > **In WSPRadar erkunden:** [Zanders TX-Vergleich](https://wspradar.org/de/demos/zander_tx_buddy/) untersucht Experiment A / Abbildung 4 erneut und vergleicht eine kurze portable Vertikalantenne mit der größeren Hy-Gain AV620. Er zeigt, warum Zusammenfassungen bei gleicher Stationsgewichtung von Zusammenfassungen über sämtliche Spot-Paare abweichen, wie das Ergebnis mit der Richtung variiert und warum ungleiche Meldezeiträume vor der Interpretation von Dekodierzahlen geprüft werden müssen. Das kurze vorbereitete Zeitfenster trägt den beobachteten Vergleich dieses Versuchs, aber kein Tagesmuster und keinen universellen Nachteil portabler Antennen.
 
-**Thomas Rietdorf, DL2OAH, 2026: ein synchronisierter Stationsvergleich auf mehreren Bändern.** Sein DARC-Vortrag vom 17. Januar 2026 berichtet über Messungen vom 12.–21. Januar 2025. Synchronisierte Transceiver verglichen eine horizontale OCF/IC-7610-Anlage mit einer vertikalen FT-991A-Anlage in getrennten RX- und TX-Durchläufen auf 40, 20, 15 und 10 m. Zugeordnete Zweiminutenberichte ermöglichten zusammen mit einseitigen Empfangsberichten Vergleiche nach Zeit und Richtung. Der Vortrag berichtet je nach Band einen SNR-Vorteil von 2,5–7 dB für die horizontale Anlage, während die maximalen Entfernungen ungefähr gleich waren. Unterschiedliche Funkgeräte und die Verteilung der Gegenstationen begrenzen die Zuordnung allein zu den Antennen. <a href="#ref-20">[Ref-20]</a>
+<a id="sec-d-rietdorf"></a>
+##### 7.3.8 Thomas Rietdorf, DL2OAH, 2026: ein synchronisierter Stationsvergleich auf mehreren Bändern.
+
+Sein DARC-Vortrag vom 17. Januar 2026 berichtet über Messungen vom 12.–21. Januar 2025. Synchronisierte Transceiver verglichen eine horizontale OCF/IC-7610-Anlage mit einer vertikalen FT-991A-Anlage in getrennten RX- und TX-Durchläufen auf 40, 20, 15 und 10 m. Zugeordnete Zweiminutenberichte ermöglichten zusammen mit einseitigen Empfangsberichten Vergleiche nach Zeit und Richtung. Der Vortrag berichtet je nach Band einen SNR-Vorteil von 2,5–7 dB für die horizontale Anlage, während die maximalen Entfernungen ungefähr gleich waren. Unterschiedliche Funkgeräte und die Verteilung der Gegenstationen begrenzen die Zuordnung allein zu den Antennen. <a href="#ref-20">[Ref-20]</a>
 
 > **Anwendung in WSPRadar:** synchronisierte Vergleiche mit mehreren Ansichten der Datengrundlage verbinden. Gepaarte SNR-Werte, einseitige Dekodierungen sowie geografische oder zeitliche Muster gemeinsam lesen und dabei die Interpretation als vollständige Anlage und die tatsächlichen Messdaten beibehalten.
+
+<a id="sec-d-ostergaard"></a>
+##### 7.3.9 Dale Ostergaard, N3HXZ, 2026: praktische sequenzielle Antennenvergleiche.
+
+Ostergaard hat Antennentests mit WSPR für den Portabelbetrieb und den Einsatz im Feld vorangebracht und einen wiederholbaren Ansatz mit einem Sender und einem Antennenumschalter dokumentiert. Sein *QEX*-Artikel vom März/April 2026, *Using WSPR to Predict Relative Antenna Gain of Directional Antennas*, beschreibt den Wechsel zwischen Antennenkonfigurationen, üblicherweise in Blöcken von 30 Minuten, und die Schätzung der relativen Signalstärke an gemeinsamen Empfangsstationen. Gemeldete SNR-Werte werden vor der Mittelwertbildung von dB in lineare Leistungsverhältnisse umgerechnet; er empfiehlt mindestens 40 Empfangsberichte je Antenne an jeder Empfangsstation. Seine veröffentlichten Fallstudien umfassen Vergleiche zwischen erhöht aufgestellten und bodennah montierten Vertikalantennen. Damit werden quantitative Vergleiche im Feld mit überschaubarem Geräteaufwand zugänglich; wechselnde Ausbreitungsbedingungen zwischen den Blöcken und die fehlende Erfassung nicht dekodierter Signale bleiben jedoch wichtige Einschränkungen. <a href="#ref-34">[Ref-34]</a>
+
+> **Anwendung in WSPRadar:** die praktische sequenzielle Methode, ausdrücklich angegebene Umschaltpläne und Anforderungen an die Datengrundlage je Empfänger würdigen. Sequenzielle Schätzungen des relativen Gewinns ergänzen synchronisierte gepaarte ΔSNR-Werte, sind aber nicht direkt mit ihnen austauschbar.
 
 
 <a id="sec-d-4"></a>
 #### 7.4 Analyseinfrastruktur und verwandte Werkzeuge
 
-**Gwyn Griffiths und Rob Robinett, 2020: wiederverwendbare Datenbankanalyse.** Ihre Arbeit mit WSPRdaemon TimescaleDB und Grafana verknüpfte Empfangsberichte desselben Senders zur selben Zeit auf demselben Band und stellte anschließend SNR-Differenzen mit Medianen, Quartilen, Zeit, Entfernung und Azimut dar. Ein Beispiel unterschied nächtliche Unterschiede westwärts nach Nordamerika von Unterschieden am Tag mit näheren Stationen. Rauschmessungen und Exporte gaben Betreibern weitere Möglichkeiten zur Untersuchung dieser Muster. Der Beitrag umfasste sowohl die Vergleichsmethode als auch einen wiederverwendbaren Weg von gespeicherten Beobachtungen zu interpretierbaren Darstellungen. <a href="#ref-21">[Ref-21]</a>
-
-> **Anwendung in WSPRadar:** die Untersuchung von Differenzen beim Empfang desselben Signals nach Zeit und Geografie fortführen und den Rückweg zu den beitragenden Beobachtungen ermöglichen. WSPRadars eigene Gruppierungs- und Gewichtungsregeln sind in [Kapitel 8](#sec-7) festgelegt.
-
-**Arne und das Projekt wspr.live, mit Rechenressourcen von HB9VQQ.** Arnes Arbeit an der ClickHouse-Datenbank ermöglicht öffentliche Abfragen historischer und aktueller WSPR-Empfangsberichte; Dashboards und Exporte machen diese Datensätze für Betreiber und andere Anwendungen nutzbar. Die offizielle Dokumentation des Dienstes würdigt **HB9VQQ für die Rechenressourcen**. Auch Phil VK7JJs Dokumentation würdigt Arnes Datenbankbeitrag ausdrücklich. <a href="#ref-10">[Ref-10]</a> <a href="#ref-22">[Ref-22]</a>
-
-**Rob Robinett, AI6VN, und die WSPRdaemon-Gemeinschaft.** Empfang, Erfassung mit mehreren Empfängern, Übermittlung von Empfangsberichten, Datenbankhosting und fortlaufender ehrenamtlicher Betrieb tragen diese Dienste. WSPRdaemons Dokumentation würdigt Arnes Datenbankentwicklung und die Zusammenarbeit beim Hosting. Die frühere TimescaleDB-Arbeit und die späteren ClickHouse-Dienste sind eigenständige Beiträge. <a href="#ref-11">[Ref-11]</a>
-
 > **Anwendung in WSPRadar:** **wspr.live ist die primäre Datenbank, mit WD2 und WD1 von WSPRdaemon als Alternativen**. Jeder Analyselauf nutzt eine Quelle. Entwickler, Stationsbetreiber, Anbieter von Rechenressourcen und ehrenamtliche Betreuer ermöglichen diese Analyse; die Verfügbarkeit der Dienste und die Qualität hochgeladener Datensätze bleiben Teil des Kontexts der Datengrundlage.
 >
 > **Unser herzlicher Dank gilt allen, die diese Dienste aufrechterhalten und Empfangsberichte, Rechenressourcen und ehrenamtliche Zeit beitragen.** Eure Arbeit gibt der Amateurfunkgemeinschaft eine gemeinsame Grundlage für Lernen, Experimente und bessere Stationsaufbauten.
 
+<a id="sec-d-griffiths-robinett"></a>
+##### 7.4.1 Gwyn Griffiths und Rob Robinett, 2020: wiederverwendbare Datenbankanalyse.
+
+Ihre Arbeit mit WSPRdaemon TimescaleDB und Grafana verknüpfte Empfangsberichte desselben Senders zur selben Zeit auf demselben Band und stellte anschließend SNR-Differenzen mit Medianen, Quartilen, Zeit, Entfernung und Azimut dar. Ein Beispiel unterschied nächtliche Unterschiede westwärts nach Nordamerika von Unterschieden am Tag mit näheren Stationen. Rauschmessungen und Exporte gaben Betreibern weitere Möglichkeiten zur Untersuchung dieser Muster. Der Beitrag umfasste sowohl die Vergleichsmethode als auch einen wiederverwendbaren Weg von gespeicherten Beobachtungen zu interpretierbaren Darstellungen. <a href="#ref-21">[Ref-21]</a>
+
+> **Anwendung in WSPRadar:** die Untersuchung von Differenzen beim Empfang desselben Signals nach Zeit und Geografie fortführen und den Rückweg zu den beitragenden Beobachtungen ermöglichen. WSPRadars eigene Gruppierungs- und Gewichtungsregeln sind in [Kapitel 8](#sec-7) festgelegt.
+
+<a id="sec-d-wspr-live"></a>
+##### 7.4.2 Arne und das Projekt wspr.live, mit Rechenressourcen von HB9VQQ.
+
+Arnes Arbeit an der ClickHouse-Datenbank ermöglicht öffentliche Abfragen historischer und aktueller WSPR-Empfangsberichte; Dashboards und Exporte machen diese Datensätze für Betreiber und andere Anwendungen nutzbar. Die offizielle Dokumentation des Dienstes würdigt **HB9VQQ für die Rechenressourcen**. Auch Phil VK7JJs Dokumentation würdigt Arnes Datenbankbeitrag ausdrücklich. <a href="#ref-10">[Ref-10]</a> <a href="#ref-22">[Ref-22]</a>
+
+<a id="sec-d-wsprdaemon"></a>
+##### 7.4.3 Rob Robinett, AI6VN, und die WSPRdaemon-Gemeinschaft.
+
+Empfang, Erfassung mit mehreren Empfängern, Übermittlung von Empfangsberichten, Datenbankhosting und fortlaufender ehrenamtlicher Betrieb tragen diese Dienste. WSPRdaemons Dokumentation würdigt Arnes Datenbankentwicklung und die Zusammenarbeit beim Hosting. Die frühere TimescaleDB-Arbeit und die späteren ClickHouse-Dienste sind eigenständige Beiträge. <a href="#ref-11">[Ref-11]</a>
+
+<a id="sec-d-farfield-lab"></a>
+##### 7.4.4 Tim, K5OHY — FarField Lab: praxisnahe Antennenvergleiche mit Umschaltung.
+
+[FarField Lab](https://farfieldlab.streamlit.app/) ist eine kostenlose Open-Source-Anwendung, die Funkamateuren praktische WSPR-Antennenvergleiche mit **nur einem Sender oder Transceiver und einem Antennenumschalter** ermöglicht. Sie unterstützt einen schnellen Antennenwechsel zwischen den Aussendungen nach den Mustern **ABAB und ABBA**, längere sequenzielle Blockvergleiche mit bearbeitbaren Umschaltplänen sowie die Auswertung von Daten des Reverse Beacon Network. Bei kurzen Tests werden Beobachtungen benachbarter Aussendungen paarweise zugeordnet, was den Einfluss wechselnder Ausbreitungsbedingungen begrenzt. Ausbalancierte ABBA-Folgen können unter geeigneten Bedingungen zusätzlich eine annähernd lineare zeitliche Drift ausgleichen. Wiederholte Messungen und Mittelwertbildung helfen, zufällige Schwankungen zu verringern, während Vergleiche längerer Blöcke stärker durch Änderungen der Ausbreitungsbedingungen beeinflusst bleiben. FarField Lab wertet relative SNR-Unterschiede bei Stationen aus, die beide Antennen empfangen haben. Es zeigt außerdem, welche Stationen in welchen Richtungen und Entfernungen erreicht wurden. Dazu gehören Prüfungen der Empfängeraktivität, Mindestanforderungen an die Datengrundlage, Unsicherheitsschätzungen und statistische Validierung. Die Auswertung langer Blöcke reproduziert veröffentlichte Ergebnisse von Dale Ostergaard, N3HXZ. **FarField Lab bietet eine echte, praxistaugliche Alternative zu WSPRadar**, insbesondere für Funkamateure ohne Hardware für zwei synchronisierte Stationen. Der sequenzielle Ansatz ergänzt WSPRadars simultanes RX/TX-Benchmarking mit Spot-Paaren aus demselben WSPR-Zyklus. Damit stehen Funkamateuren unterschiedliche, aber gleichermaßen wertvolle Möglichkeiten zur Verfügung, die Leistungsfähigkeit von Antennen und Stationen anhand öffentlicher WSPR-Daten zu untersuchen. [Ref-35](https://github.com/K5OHY/FarField-Lab) [Ref-34](https://www.n3hxz.net/wspr-methodology)
+
+> **Anwendung in WSPRadar:** FarField Lab als ergänzendes Werkzeug für sequenzielle Antennenanalysen würdigen und Funkamateuren helfen, den Versuchsansatz zu wählen, der am besten zu ihrer Ausrüstung und ihren Zielen passt.
+
 Weitere Werkzeuge machen ergänzende Bereiche des Experimentierens zugänglich:
 
-| Mitwirkende oder Projekt | Praktischer Beitrag und Zusammenhang |
-|---|---|
-| **Phil, VK7JJ — WSPR.Rocks** | Interaktive Abfragen, Karten, Diagramme, Untersuchung von Duplikaten und Empfangsdurchlassbereichen sowie Head2Head-Vergleiche von Empfängern, Sendern oder Softwareversionen. SpotQ liefert eine heuristische Rangfolge aus Entfernung, gemeldeter Sendeleistung und SNR. Dies sind nützliche Wege zur Untersuchung von Empfangsberichten; ihre Kennzahlen haben eigene Definitionen. <a href="#ref-22">[Ref-22]</a> |
-| **Richard Newstead und SOTABEAMS — WSPRlite/DXplorer** | Eigenständige Kleinleistungsbaken und leicht zugängliche Vergleiche, darunter der Entfernungsindikator DX10. In Newsteads Innen-/Außentest von 2017 sendeten zwei Schleifenantennen gleichzeitig mit 200 mW; 133 Spot-Paare desselben Empfängers zur selben Zeit ergaben einen mittleren Nachteil der Innenantenne von 6,8 dB. <blockquote><strong>Anwendung in WSPRadar:</strong> den praktischen gepaarten Versuchsaufbau würdigen und den Wert zugleich als Ergebnis für diese Anlage und diesen Betriebszeitraum behandeln.</blockquote> <a href="#ref-23">[Ref-23]</a> <a href="#ref-24">[Ref-24]</a> |
-| **Walter Machiels, ON4AWM — WSPR-Station-Compare** | Ein Ablauf für RX-Vergleiche mit Korrektur eines gemessenen Empfängerversatzes, Mindestzahlen von Beobachtungen, Rufzeichenfilter und Azimutauswahl. Er macht Entscheidungen für kontrollierte Vergleiche in einer Bediensoftware verfügbar. <a href="#ref-25">[Ref-25]</a> |
-| **Fred, W6BSD — Antenna Performance Analysis** | Berichte, die über Zeiträume und Frequenzbänder hinweg ordnen, wo und wann ausgesendete WSPR-Signale empfangen wurden. Damit wird die beobachtete Abdeckung einer Anlage ohne eigens geschriebene Analyse zugänglich. <a href="#ref-26">[Ref-26]</a> |
-| **Colin Murray, GM4EAU — WATT** | Ein bearbeitbarer Excel/VBA-Ablauf für Abfragen, Filter, Berechnungen, Diagramme und Kartenwiedergabe über aufeinanderfolgende Zeitintervalle, mit dem Betreiber wechselnde Ausbreitungsmuster untersuchen können. <a href="#ref-27">[Ref-27]</a> |
+<a id="sec-d-wspr-rocks"></a>
+##### 7.4.5 Phil, VK7JJ — WSPR.Rocks
+
+Interaktive Abfragen, Karten, Diagramme, Untersuchung von Duplikaten und Empfangsdurchlassbereichen sowie Head2Head-Vergleiche von Empfängern, Sendern oder Softwareversionen. SpotQ liefert eine heuristische Rangfolge aus Entfernung, gemeldeter Sendeleistung und SNR. Dies sind nützliche Wege zur Untersuchung von Empfangsberichten; ihre Kennzahlen haben eigene Definitionen. <a href="#ref-22">[Ref-22]</a>
+
+<a id="sec-d-wsprlite-dxplorer"></a>
+##### 7.4.6 Richard Newstead und SOTABEAMS — WSPRlite/DXplorer
+
+Eigenständige Kleinleistungsbaken und leicht zugängliche Vergleiche, darunter der Entfernungsindikator DX10. In Newsteads Innen-/Außentest von 2017 sendeten zwei Schleifenantennen gleichzeitig mit 200 mW; 133 Spot-Paare desselben Empfängers zur selben Zeit ergaben einen mittleren Nachteil der Innenantenne von 6,8 dB.
+
+> **Anwendung in WSPRadar:** den praktischen gepaarten Versuchsaufbau würdigen und den Wert zugleich als Ergebnis für diese Anlage und diesen Betriebszeitraum behandeln.
+
+<a href="#ref-23">[Ref-23]</a> <a href="#ref-24">[Ref-24]</a>
+
+<a id="sec-d-wspr-station-compare"></a>
+##### 7.4.7 Walter Machiels, ON4AWM — WSPR-Station-Compare
+
+Ein Ablauf für RX-Vergleiche mit Korrektur eines gemessenen Empfängerversatzes, Mindestzahlen von Beobachtungen, Rufzeichenfilter und Azimutauswahl. Er macht Entscheidungen für kontrollierte Vergleiche in einer Bediensoftware verfügbar. <a href="#ref-25">[Ref-25]</a>
+
+<a id="sec-d-antenna-performance-analysis"></a>
+##### 7.4.8 Fred, W6BSD — Antenna Performance Analysis
+
+Berichte, die über Zeiträume und Frequenzbänder hinweg ordnen, wo und wann ausgesendete WSPR-Signale empfangen wurden. Damit wird die beobachtete Abdeckung einer Anlage ohne eigens geschriebene Analyse zugänglich. <a href="#ref-26">[Ref-26]</a>
+
+<a id="sec-d-watt"></a>
+##### 7.4.9 Colin Murray, GM4EAU — WATT
+
+Ein bearbeitbarer Excel/VBA-Ablauf für Abfragen, Filter, Berechnungen, Diagramme und Kartenwiedergabe über aufeinanderfolgende Zeitintervalle, mit dem Betreiber wechselnde Ausbreitungsmuster untersuchen können. <a href="#ref-27">[Ref-27]</a>
 
 Diese Werkzeuge überschneiden sich in ihrem Zweck; ihre Filter, Vergleichseinheiten und Zusammenfassungen unterscheiden sich jedoch. Prüfe die Größe hinter einer Abbildung, bevor du ihren Wert mit einem WSPRadar-Ergebnis vergleichst.
 
@@ -2578,6 +2674,10 @@ Eine Anfrage mit mehr als **1 000 000 vollständigen Zeilen** wird abgewiese
 * <a id="ref-32"></a><a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf">[Ref-32]</a> **Metrologischer Leitfaden.** JCGM (2008). *Evaluation of measurement data — Guide to the expression of uncertainty in measurement*. JCGM 100:2008, insbesondere §4.2.7 zu korrelierten Beobachtungen und Anhang G.2–G.3 zur Normalapproximation und Student-t-Verteilung.
 
 * <a id="ref-33"></a><a href="https://www.nist.gov/publications/calculation-uncertainty-mean-autocorrelated-measurements">[Ref-33]</a> **Peer-reviewter Fachartikel.** Zhang, N.-F. (2006). *Calculation of the uncertainty of the mean of autocorrelated measurements*. *Metrologia*, 43, S276–S281. DOI: 10.1088/0026-1394/43/4/S15.
+
+* <a id="ref-34"></a><a href="https://www.arrl.org/files/file/QEX%20Binaries/March%202026/Contents.pdf">[Ref-34]</a> **Technischer Fachzeitschriftenartikel zum Amateurfunk; Inhaltsverzeichnis der Ausgabe.** Ostergaard, D. / N3HXZ (2026). *Using WSPR to Predict Relative Antenna Gain of Directional Antennas*. *QEX*, März/April 2026, ab S. 19. Weitere Primärdokumentation: [Whispering Antenna — WSPR Methodology](https://www.n3hxz.net/wspr-methodology) und [Case Studies](https://www.n3hxz.net/case-studies): sequenzielle Antennenumschaltung, Mittelwertbildung linearer Leistungsverhältnisse, Anforderungen an die Datengrundlage je Empfänger und praktische Antennenvergleiche.
+
+* <a id="ref-35"></a><a href="https://github.com/K5OHY/FarField-Lab">[Ref-35]</a> **Open-Source-Anwendung und technische Dokumentation.** Tim / K5OHY (2026). *FarField Lab*: Software für Antennenvergleiche mit WSPR und RBN, die sequenzielle ABAB/ABBA-Experimente, Analysen alternierender Blöcke, Schätzungen des relativen Gewinns je Empfänger und statistische Validierung unterstützt. [Live-Anwendung](https://farfieldlab.streamlit.app/); [technische Methodik](https://github.com/K5OHY/FarField-Lab/blob/main/docs/METHODOLOGY.md); [Validierung anhand einer veröffentlichten Studie](https://github.com/K5OHY/FarField-Lab/blob/main/tests/test_dale_study.py). Abgerufen am 2026-11-08.
 
 <div style="page-break-before: always;"></div>
 

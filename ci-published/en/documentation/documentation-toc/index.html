@@ -38,8 +38,8 @@
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
   <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="/assets/print.css?v=da19d9a8693c152d" media="print">
-  <script src="/assets/print.js?v=da19d9a8693c152d" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=55c3772a74fd981c" media="print">
+  <script src="/assets/print.js?v=55c3772a74fd981c" defer></script>
 </head>
 <body class="documentation-reader-page">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -131,10 +131,40 @@
 <p><strong>Part III: Scientific Foundations, Methods and Claims</strong></p>
 <ul>
 <li><a href="/en/documentation/sec-d/#sec-d">7. Literature, Prior Art and Positioning</a><ul>
-<li><a href="/en/documentation/sec-d/#sec-d-1">7.1 From reporting network to experimental dataset</a></li>
-<li><a href="/en/documentation/sec-d/#sec-d-2">7.2 Making observational WSPR data interpretable</a></li>
-<li><a href="/en/documentation/sec-d/#sec-d-3">7.3 Antenna and station-comparison lineage</a></li>
-<li><a href="/en/documentation/sec-d/#sec-d-4">7.4 Analysis infrastructure and related tools</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-1">7.1 From reporting network to experimental dataset</a><ul>
+<li><a href="/en/documentation/sec-d/#sec-d-taylor-walker">7.1.1 Joe Taylor, K1JT, and Bruce Walker, W1BW: a shared experimental resource.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-frissell">7.1.2 Nathaniel Frissell and collaborators: amateur observations in space science.</a></li>
+</ul>
+</li>
+<li><a href="/en/documentation/sec-d/#sec-d-2">7.2 Making observational WSPR data interpretable</a><ul>
+<li><a href="/en/documentation/sec-d/#sec-d-lo">7.2.1 Lo and collaborators, 2022: establish activity before interpreting silence.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-griffiths-robinett-elmore">7.2.2 Gwyn Griffiths, G3ZIL, Rob Robinett, AI6VN, and Glenn Elmore, N6GN, 2019–2020: measure noise alongside reception.</a></li>
+</ul>
+</li>
+<li><a href="/en/documentation/sec-d/#sec-d-3">7.3 Antenna and station-comparison lineage</a><ul>
+<li><a href="/en/documentation/sec-d/#sec-d-destrem">7.3.1 Patrick Destrem, F6IRF, 2008: automated switching and geographic comparison.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-preston">7.3.2 Charles Preston, KL7OA, later K7TAA, 2009 and 2017: simultaneous comparison.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-toledo">7.3.3 Sivan Toledo, 2010: a useful negative result about timing.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-milazzo">7.3.4 Carol F. Milazzo, KP4MD, 2011: compare complete stations in both directions.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-griffiths-squibb">7.3.5 Gwyn Griffiths, G3ZIL, and Nigel Squibb, G4HZX, 2017: compare, investigate and retest.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-vanhamel">7.3.6 Vanhamel, Machiels and Lamy, 2022: characterize the receiving chains.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-zander">7.3.7 Jens Zander, 2022: state the comparison model and its assumptions.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-rietdorf">7.3.8 Thomas Rietdorf, DL2OAH, 2026: a synchronized multiband station comparison.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-ostergaard">7.3.9 Dale Ostergaard, N3HXZ, 2026: practical sequential antenna comparisons.</a></li>
+</ul>
+</li>
+<li><a href="/en/documentation/sec-d/#sec-d-4">7.4 Analysis infrastructure and related tools</a><ul>
+<li><a href="/en/documentation/sec-d/#sec-d-griffiths-robinett">7.4.1 Gwyn Griffiths and Rob Robinett, 2020: reusable database analysis.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-wspr-live">7.4.2 Arne and the wspr.live project, with computing resources from HB9VQQ.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-wsprdaemon">7.4.3 Rob Robinett, AI6VN, and the WSPRdaemon community.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-farfield-lab">7.4.4 Tim, K5OHY — FarField Lab: accessible sequential antenna benchmarking.</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-wspr-rocks">7.4.5 Phil, VK7JJ — WSPR.Rocks</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-wsprlite-dxplorer">7.4.6 Richard Newstead and SOTABEAMS — WSPRlite/DXplorer</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-wspr-station-compare">7.4.7 Walter Machiels, ON4AWM — WSPR-Station-Compare</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-antenna-performance-analysis">7.4.8 Fred, W6BSD — Antenna Performance Analysis</a></li>
+<li><a href="/en/documentation/sec-d/#sec-d-watt">7.4.9 Colin Murray, GM4EAU — WATT</a></li>
+</ul>
+</li>
 <li><a href="/en/documentation/sec-d/#sec-d-5">7.5 What WSPRadar inherits, integrates and adds</a></li>
 </ul>
 </li>

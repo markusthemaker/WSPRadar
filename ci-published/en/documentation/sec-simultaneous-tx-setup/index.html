@@ -38,8 +38,8 @@
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
   <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="/assets/print.css?v=da19d9a8693c152d" media="print">
-  <script src="/assets/print.js?v=da19d9a8693c152d" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=55c3772a74fd981c" media="print">
+  <script src="/assets/print.js?v=55c3772a74fd981c" defer></script>
 </head>
 <body class="documentation-reader-page">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -85,7 +85,7 @@
 <p>Choose the route that matches the callsigns available for the experiment. Target and Reference can be two setups at one station or two coordinated stations. Keep each complete callsign attached to its documented physical path throughout the experiment.</p>
 <p><strong>Reporting callsigns in RX and transmitting them in TX work differently.</strong> An <a href="/en/documentation/sec-a/#sec-rx-reporting-identities">RX reporting suffix</a> is uploaded over the internet. In TX, the callsign must be encoded in the radiated WSPR message, so an ordinary or compound callsign determines the message sequence needed <a href="/en/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-tx-two-distinct-callsigns"></a></p>
-<h5>5.1.1 Two distinct callsigns</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.1.1</span> <span class="manual-heading-title">Two distinct callsigns</span></h5>
 <p>Use this route when two different callsigns are valid for the intended operation and <strong>both fit the ordinary <strong class="defined-term">Type 1</strong> WSPR format</strong>. Each transmission carries its callsign, a four-character locator (<strong class="defined-term">grid-4</strong>) and reported power together.</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>
@@ -108,7 +108,7 @@
 <p>Disable extended messaging on both units for the one-message route. On the cited ZachTek firmware, explicitly select <strong>no prefix/suffix</strong> and use <code>LocationPrecision = 4</code>. A normal base callsign alone does not disable an existing suffix selection, and precision <code>6</code> adds a second transmission even after an ordinary Type 1 message. Match the <strong>actual transmitted pattern</strong>, not just the callsign format.</p>
 <p>Open the <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-1">QMX/QMX+ or Ultimate3S recipe</a> or <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3">ZachTek recipe</a>, complete its shared preparation, then choose <strong>Two distinct callsigns</strong>.</p>
 <p><a id="sec-tx-one-callsign-two-suffixes"></a></p>
-<h5>5.1.2 One callsign with two suffixes</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.1.2</span> <span class="manual-heading-title">One callsign with two suffixes</span></h5>
 <p>Use this route when you have one base callsign and need to distinguish two transmitting setups with two valid compound callsigns. For example, <code>CALL/1</code> and <code>CALL/2</code> illustrate the pattern; replace <code>CALL</code> with your actual base callsign. Use only suffixes permitted for the operator, station and operation and supported by the selected firmware. Do not invent an on-air suffix merely as a hardware label.</p>
 <p>The firmware generates the extended sequence automatically:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -170,7 +170,7 @@
 <p>Choose the recipe for your equipment below, then complete the common power and signal checks in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-3">5.3</a> and the database check in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">5.4</a>. Record the firmware and settings that passed. Repeat those checks after changing firmware, timing, frequency, power or message format.</p>
 <p><a id="sec-simultaneous-tx-setup-5-1"></a>
 <a id="sec-simultaneous-tx-setup-5-2"></a></p>
-<h5>5.5.1 QMX and QMX+ Virtual U3S, and Ultimate3S</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1</span> <span class="manual-heading-title">QMX and QMX+ Virtual U3S, and Ultimate3S</span></h5>
 <p>Use one unit for the Target and one for the Reference. Both products support up to 16 entries, but <strong>start with one WSPR entry on each unit</strong>. That entry sends either one Type 1 message or an automatic Type 2/Type 3 pair, according to the callsign route below. Their RF hardware differs, so oscillator, filtering and output-stage differences remain part of the paths being compared <a href="/en/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p>First check the hardware and firmware below. Then choose <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-qrp-two-distinct-callsigns">two distinct callsigns</a> or <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-qrp-one-callsign-two-suffixes">one callsign with two suffixes</a>. Both routes then use the <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-qrp-common-setup">shared power, frequency and verification steps</a>.</p>
 <p><strong>1. Check the hardware and firmware.</strong></p>
@@ -179,7 +179,7 @@
 <p>For QMX/QMX+, the <a href="https://www.qrp-labs.com/qmx.html">official firmware history</a> labels <code>1_04_010</code> the stable release as of <strong>25 October 2026</strong>; later listed releases are beta. The initial <code>1_04_000</code> was QMX+-only. Release <code>1_04_009</code> corrected WSPR transmission <strong>250 Hz below the intended frequency</strong>, and <code>1_04_010</code> includes further Virtual U3S fixes. Use a supported release with those corrections and check the history when updating.</p>
 <p>The instructions here refer to the Virtual U3S manual for firmware <code>1_04_008</code> (document revision <code>1_04_008a</code>) and the Ultimate3S manual for firmware <code>v3.12a</code> (file <code>operation3.12a2.pdf</code>). Physical U3S firmware <code>v3.12</code> introduced consecutive extended-message transmission; do not assume older firmware behaves the same <a href="/en/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-qrp-two-distinct-callsigns"></a></p>
-<h6>5.5.1.1 Two distinct callsigns</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.1</span> <span class="manual-heading-title">Two distinct callsigns</span></h6>
 <p>Use this route for two valid ordinary callsigns, whether they identify two setups at one station or two separate stations, as described in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-tx-two-distinct-callsigns">Section 5.1.1</a>.</p>
 <ol>
 <li>Enter each unit's own complete ordinary callsign in <strong>Callsign</strong>.</li>
@@ -189,7 +189,7 @@
 </ol>
 <p>With the single Type 1 entry, the expected starts are <strong><code>:04</code>, <code>:24</code> and <code>:44</code> each hour</strong>. Each start should contain both signals. This uses <strong>3 of the 30 two-minute cycles per hour: 10% cycle occupancy</strong>.</p>
 <p><a id="sec-qrp-one-callsign-two-suffixes"></a></p>
-<h6>5.5.1.2 One callsign with two suffixes</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.2</span> <span class="manual-heading-title">One callsign with two suffixes</span></h6>
 <p>Use this route for two setups identified by one base callsign and two valid suffixes, as described in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-tx-one-callsign-two-suffixes">Section 5.1.2</a>.</p>
 <ol>
 <li>Enter the <strong>complete suffixed callsign</strong> in each unit's <strong>Callsign</strong> setting, for example <code>CALL/1</code> for Target and <code>CALL/2</code> for Reference. Replace <code>CALL</code> with your actual base callsign and use only valid on-air suffixes supported by the firmware.</li>
@@ -218,7 +218,7 @@
 </table></div>
 <p>When this recurrence is maintained, each transmitter uses <strong>6 of the 30 two-minute cycles per hour: 20% cycle occupancy</strong>. The Type 1 route's 10% figure does not apply. Keep both units on corresponding message phases and preserve the whole pair at one frequency before changing frequency. Verify the complete extended sequence and the resulting database identities before measuring <a href="/en/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-qrp-common-setup"></a></p>
-<h6>5.5.1.3 Shared power, frequency and verification steps</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.3</span> <span class="manual-heading-title">Shared power, frequency and verification steps</span></h6>
 <p><strong>Set actual power and one transmission entry.</strong></p>
 <p>Edit TX column <code>0</code> in the Virtual U3S schedule table, or mode screen <code>0</code> on physical Ultimate3S.</p>
 <p>Enter the callsign and truthful six-character locator specified by your chosen route. Keep each callsign attached to its Target or Reference path throughout the experiment.</p>
@@ -316,7 +316,7 @@
 <p>Compare both frequency positions separately. Balanced use helps reveal or reduce a fixed frequency-position advantage from QRM or the equipment, but does not prove that every frequency effect has disappeared.</p>
 <p>For the one-callsign/two-suffix route, use the between-run frequency exchange in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-6">5.6</a>. One extended entry already uses two cycles; adding a second extended entry changes the sequence length and occupancy, so the ordinary-route trace and 20% calculation above do not apply. Preserve the whole Type 2/Type 3 pair before changing frequency.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3"></a></p>
-<h5>5.5.2 ZachTek firmware 2.19</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2</span> <span class="manual-heading-title">ZachTek firmware 2.19</span></h5>
 <p>This setup uses ZachTek's built-in scheduling and standard frequency randomization; <strong>no custom frequency-lane firmware is required</strong>. The worked example uses the pinned ESP8285 firmware in <a href="/en/documentation/sec-ref/#ref-29">Ref-29</a>, revision <code>1657468ea27052167191a7deda2440a535567ecd</code>, which selects <strong>WSPR-TX XP Plus, <code>Product_Model = 1048</code></strong>. Other models require a separately checked recipe. In this file, the Mini/Pico long-pause sleep call is disabled, and Pico startup forces altitude reporting; the pause and power instructions below therefore apply to the selected 1048 build.</p>
 <p>Use the configuration software for your exact hardware and installed firmware. The parameter names below follow the cited source; they are not instructions to edit or compile firmware. <strong>This recipe has not been validated by WSPRadar on ZachTek hardware.</strong> The manufacturer's clarification supports using the standard scheduling and randomization functions; it is not a validation of every model-specific setting below.</p>
 <p>Choose the route that matches the <strong>on-air transmitting identities</strong> you will use:</p>
@@ -342,7 +342,7 @@
 <p>Two colocated setups should report their common physical QTH. At two different stations, each transmitter reports its own QTH; the result compares complete installed stations and their different propagation paths. Record which complete callsign and locator belong to each physical signal path.</p>
 <p>After configuring either route below, complete the shared <strong>timing → bench → on-air</strong> procedure in <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Section 5.5.2.3</a>. Keep standard frequency randomization on both units; no lower/upper frequency-lane assignment is needed.</p>
 <p><a id="sec-zachtek-two-ordinary-callsigns"></a></p>
-<h6>5.5.2.1 Two distinct callsigns</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.1</span> <span class="manual-heading-title">Two distinct callsigns</span></h6>
 <p>Use this route when the Target and Reference each have a different valid callsign that fits the ordinary Type 1 WSPR format. The callsigns can identify two permitted setups at one station or two separate stations; they do not need suffixes to become distinguishable.</p>
 <p><strong>Configure both units:</strong></p>
 <ol>
@@ -376,7 +376,7 @@
 </table></div>
 <p>When this recurrence is maintained, each transmitter uses <strong>3 of 30 WSPR cycles per hour: 10%</strong> of the available cycles. <code>TXPause</code> starts after each Type 1 transmission; it does not schedule extra transmissions at eight-minute intervals. Confirm the actual starts, then perform the shared bench and database checks before beginning the measurement window. <a href="/en/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
 <p><a id="sec-simultaneous-tx-setup-5-3-2"></a></p>
-<h6>5.5.2.2 One callsign with two suffixes</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.2</span> <span class="manual-heading-title">One callsign with two suffixes</span></h6>
 <p>Use this route when two transmitting setups use one base callsign with two distinct valid suffixes. For example, <code>CALL/1</code> and <code>CALL/2</code> illustrate the identity pattern; replace <code>CALL</code> with your actual callsign and use only suffixes permitted for the operator, station and operation. In this pinned firmware, use <strong>single-digit or single-letter suffixes</strong>.</p>
 <p><strong>Configure both units:</strong></p>
 <ol>
@@ -412,7 +412,7 @@
 <p><strong>Keep the source limitations in view.</strong> The Type 3 hash construction for two-digit suffixes is disabled. The prefix-based Type 3 path also rebuilds its callsign string without writing the terminating zero before hashing, so it is not a reliable recipe in this revision. The single-character-suffix route above uses the implemented construction path. <a href="/en/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
 <p>Observe corresponding Type 2 and Type 3 phases together, including after a restart. Verify both complete identities in the receiver/database evidence for both phases through <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">Section 5.4</a>. Matching configuration values alone do not establish correct hash resolution or complete synchronized transmissions.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3-1"></a></p>
-<h6>5.5.2.3 Shared timing, frequency randomization and verification</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.3</span> <span class="manual-heading-title">Shared timing, frequency randomization and verification</span></h6>
 <p><strong>Keep the schedule and pause consistent.</strong> Both worked routes use code <code>7</code>. If you choose a different fixed start, match <code>TimeSlotCode</code> on both units and use the following rules:</p>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
 <thead>

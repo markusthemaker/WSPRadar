@@ -38,8 +38,8 @@
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
   <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="/assets/print.css?v=da19d9a8693c152d" media="print">
-  <script src="/assets/print.js?v=da19d9a8693c152d" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=55c3772a74fd981c" media="print">
+  <script src="/assets/print.js?v=55c3772a74fd981c" defer></script>
 </head>
 <body class="documentation-reader-page">
   <a class="skip-link" href="#main">Zum Inhalt springen</a>
@@ -85,7 +85,7 @@
 <p>Wähle das Verfahren passend zu den für das Experiment verfügbaren Rufzeichen. Target und Referenz können zwei Aufbauten an einer Station oder zwei koordinierte Stationen sein. Behalte während des gesamten Experiments die Zuordnung jedes vollständigen Rufzeichens zu seinem dokumentierten physischen Signalweg bei.</p>
 <p><strong>Rufzeichen werden bei RX anders übermittelt als bei TX.</strong> Ein <a href="/de/documentation/sec-a/#sec-rx-reporting-identities">RX-Meldesuffix</a> wird über das Internet übermittelt. Beim Senden muss das Rufzeichen in der ausgestrahlten WSPR-Nachricht codiert sein; deshalb bestimmt ein gewöhnliches oder zusammengesetztes Rufzeichen die benötigte Nachrichtenfolge <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-tx-two-distinct-callsigns"></a></p>
-<h5>5.1.1 Zwei verschiedene Rufzeichen</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.1.1</span> <span class="manual-heading-title">Zwei verschiedene Rufzeichen</span></h5>
 <p>Verwende dieses Verfahren, wenn zwei verschiedene Rufzeichen für den vorgesehenen Betrieb gültig sind und <strong>beide in das gewöhnliche WSPR-Format <strong class="defined-term">Type 1</strong> passen</strong>. Jede Aussendung enthält das Rufzeichen, einen Locator mit vier Zeichen (<strong class="defined-term">grid-4</strong>) und die gemeldete Leistung gemeinsam.</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
 <thead>
@@ -108,7 +108,7 @@
 <p>Deaktiviere auf beiden Geräten die erweiterten Nachrichten für das Verfahren mit einer Nachricht. Wähle in der zitierten ZachTek-Firmware ausdrücklich <strong>no prefix/suffix</strong> und verwende <code>LocationPrecision = 4</code>. Ein normales Basisrufzeichen allein deaktiviert keine bereits gewählte Suffixoption, und die Genauigkeit <code>6</code> fügt auch nach einer gewöhnlichen Type-1-Nachricht eine zweite Aussendung hinzu. Gleiche das <strong>tatsächlich gesendete Muster</strong> ab, nicht nur das Rufzeichenformat.</p>
 <p>Öffne die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-1">QMX/QMX+- oder Ultimate3S-Anleitung</a> oder die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3">ZachTek-Anleitung</a>, führe deren gemeinsame Vorbereitung durch und wähle anschließend <strong>Zwei verschiedene Rufzeichen</strong>.</p>
 <p><a id="sec-tx-one-callsign-two-suffixes"></a></p>
-<h5>5.1.2 Ein Rufzeichen mit zwei Suffixen</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.1.2</span> <span class="manual-heading-title">Ein Rufzeichen mit zwei Suffixen</span></h5>
 <p>Verwende dieses Verfahren, wenn du ein Basisrufzeichen hast und zwei Sendeaufbauten mit zwei gültigen zusammengesetzten Rufzeichen unterscheiden musst. <code>CALL/1</code> und <code>CALL/2</code> veranschaulichen das Muster; ersetze <code>CALL</code> durch dein tatsächliches Basisrufzeichen. Verwende nur Suffixe, die für Operator, Station und Betrieb zulässig sind und von der ausgewählten Firmware unterstützt werden. Erfinde kein Sendesuffix lediglich als Hardwarekennzeichnung.</p>
 <p>Die Firmware erzeugt die erweiterte Folge automatisch:</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
@@ -170,7 +170,7 @@
 <p>Wähle unten die Anleitung für deine Geräte und schließe anschließend die gemeinsamen Leistungs- und Signalprüfungen in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-3">5.3</a> sowie die Datenbankprüfung in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">5.4</a> ab. Dokumentiere die Firmware und Einstellungen, mit denen die Prüfungen bestanden wurden. Wiederhole diese Prüfungen nach Änderungen an Firmware, Zeitsteuerung, Frequenz, Leistung oder Nachrichtenformat.</p>
 <p><a id="sec-simultaneous-tx-setup-5-1"></a>
 <a id="sec-simultaneous-tx-setup-5-2"></a></p>
-<h5>5.5.1 QMX und QMX+ Virtual U3S sowie Ultimate3S</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1</span> <span class="manual-heading-title">QMX und QMX+ Virtual U3S sowie Ultimate3S</span></h5>
 <p>Verwende ein Gerät für Target und eines für die Referenz. Beide Produkte unterstützen bis zu 16 Einträge; <strong>beginne jedoch mit einem WSPR-Eintrag auf jedem Gerät</strong>. Dieser Eintrag sendet je nach unten gewählter Rufzeichenvariante entweder eine Type-1-Nachricht oder automatisch ein Type-2-/Type-3-Paar. Ihre HF-Hardware unterscheidet sich; Unterschiede bei Oszillator, Filterung und Endstufe bleiben deshalb Teil der verglichenen Signalwege <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p>Prüfe zunächst Hardware und Firmware wie unten beschrieben. Wähle anschließend <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-qrp-two-distinct-callsigns">zwei verschiedene Rufzeichen</a> oder <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-qrp-one-callsign-two-suffixes">ein Rufzeichen mit zwei Suffixen</a>. Beide Verfahren verwenden danach die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-qrp-common-setup">gemeinsamen Schritte für Leistung, Frequenz und Prüfung</a>.</p>
 <p><strong>1. Hardware und Firmware prüfen.</strong></p>
@@ -179,7 +179,7 @@
 <p>Für QMX/QMX+ kennzeichnet die <a href="https://www.qrp-labs.com/qmx.html">offizielle Firmwarehistorie</a> mit Stand <strong>25. Oktober 2026</strong> <code>1_04_010</code> als stabile Version; später aufgeführte Versionen sind Betaversionen. Die erste Version <code>1_04_000</code> war ausschließlich für QMX+ vorgesehen. Version <code>1_04_009</code> korrigierte WSPR-Aussendungen <strong>250 Hz unterhalb der vorgesehenen Frequenz</strong>, und <code>1_04_010</code> enthält weitere Korrekturen für Virtual U3S. Verwende eine unterstützte Version mit diesen Korrekturen und prüfe beim Aktualisieren die Versionshistorie.</p>
 <p>Diese Anleitung bezieht sich auf das Virtual-U3S-Handbuch für Firmware <code>1_04_008</code> (Dokumentrevision <code>1_04_008a</code>) und das Ultimate3S-Handbuch für Firmware <code>v3.12a</code> (Datei <code>operation3.12a2.pdf</code>). Beim physischen U3S führte Firmware <code>v3.12</code> die aufeinanderfolgende Aussendung erweiterter Nachrichten ein; setze bei älterer Firmware nicht dasselbe Verhalten voraus <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-qrp-two-distinct-callsigns"></a></p>
-<h6>5.5.1.1 Zwei verschiedene Rufzeichen</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.1</span> <span class="manual-heading-title">Zwei verschiedene Rufzeichen</span></h6>
 <p>Verwende dieses Verfahren für zwei gültige gewöhnliche Rufzeichen, unabhängig davon, ob sie zwei Aufbauten an einer Station oder zwei getrennte Stationen kennzeichnen, wie in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-tx-two-distinct-callsigns">Abschnitt 5.1.1</a> beschrieben.</p>
 <ol>
 <li>Trage unter <strong>Callsign</strong> das eigene vollständige gewöhnliche Rufzeichen jedes Geräts ein.</li>
@@ -189,7 +189,7 @@
 </ol>
 <p>Mit dem einzelnen Type-1-Eintrag werden Starts zu <strong><code>:04</code>, <code>:24</code> und <code>:44</code> in jeder Stunde</strong> erwartet. Bei jedem Start sollten beide Signale vorhanden sein. Dies nutzt <strong>3 der 30 zweiminütigen Zyklen pro Stunde: 10% Zyklusbelegung</strong>.</p>
 <p><a id="sec-qrp-one-callsign-two-suffixes"></a></p>
-<h6>5.5.1.2 Ein Rufzeichen mit zwei Suffixen</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.2</span> <span class="manual-heading-title">Ein Rufzeichen mit zwei Suffixen</span></h6>
 <p>Verwende dieses Verfahren für zwei Aufbauten, die durch ein Basisrufzeichen und zwei gültige Suffixe gekennzeichnet werden, wie in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-tx-one-callsign-two-suffixes">Abschnitt 5.1.2</a> beschrieben.</p>
 <ol>
 <li>Trage in der Einstellung <strong>Callsign</strong> jedes Geräts das <strong>vollständige Rufzeichen mit Suffix</strong> ein, beispielsweise <code>CALL/1</code> für Target und <code>CALL/2</code> für die Referenz. Ersetze <code>CALL</code> durch dein tatsächliches Basisrufzeichen und verwende nur gültige Sendesuffixe, die von der Firmware unterstützt werden.</li>
@@ -218,7 +218,7 @@
 </table></div>
 <p>Wenn diese Wiederholung eingehalten wird, verwendet jeder Sender <strong>6 der 30 zweiminütigen Zyklen pro Stunde: 20% Zyklusbelegung</strong>. Die 10% des Type-1-Verfahrens gelten hier nicht. Halte beide Geräte in den entsprechenden Nachrichtenphasen und lasse das vollständige Paar auf einer Frequenz, bevor du die Frequenz änderst. Prüfe vor der Messung die vollständige erweiterte Folge und die daraus entstehenden Datenbankidentitäten <a href="/de/documentation/sec-ref/#ref-12">[Ref-12]</a>.</p>
 <p><a id="sec-qrp-common-setup"></a></p>
-<h6>5.5.1.3 Gemeinsame Schritte für Leistung, Frequenz und Prüfung</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.1.3</span> <span class="manual-heading-title">Gemeinsame Schritte für Leistung, Frequenz und Prüfung</span></h6>
 <p><strong>Tatsächliche Leistung und einen Sendeeintrag einstellen.</strong></p>
 <p>Bearbeite die TX-Spalte <code>0</code> in der Virtual-U3S-Zeitplantabelle oder den Mode-Bildschirm <code>0</code> am physischen Ultimate3S.</p>
 <p>Trage das Rufzeichen und den tatsächlichen Locator mit sechs Zeichen für das gewählte Verfahren ein. Behalte während des gesamten Experiments die Zuordnung jedes Rufzeichens zu seinem Target- oder Referenzsignalweg bei.</p>
@@ -316,7 +316,7 @@
 <p>Vergleiche beide Frequenzpositionen getrennt. Ihre ausgeglichene Nutzung hilft, einen festen Vorteil einer Frequenzposition durch QRM oder die Geräte aufzudecken oder zu verringern; sie belegt jedoch nicht, dass sämtliche Frequenzeffekte verschwunden sind.</p>
 <p>Verwende für das Verfahren mit einem Rufzeichen und zwei Suffixen den Frequenztausch zwischen Analyseläufen in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-6">5.6</a>. Ein erweiterter Eintrag verwendet bereits zwei Zyklen; ein zweiter erweiterter Eintrag verändert die Länge der Folge und die Belegung. Der Ablauf des gewöhnlichen Verfahrens und die obige 20%-Berechnung gelten deshalb nicht. Bewahre das vollständige Type-2-/Type-3-Paar, bevor du die Frequenz änderst.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3"></a></p>
-<h5>5.5.2 ZachTek-Firmware 2.19</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2</span> <span class="manual-heading-title">ZachTek-Firmware 2.19</span></h5>
 <p>Dieser Aufbau nutzt die integrierte Zeitsteuerung und die standardmäßige zufällige Frequenzwahl von ZachTek; <strong>eine angepasste Firmware mit getrennten Frequenzfenstern ist nicht erforderlich</strong>. Das ausgearbeitete Beispiel verwendet die auf eine bestimmte Revision festgelegte ESP8285-Firmware in <a href="/de/documentation/sec-ref/#ref-29">Ref-29</a>, Revision <code>1657468ea27052167191a7deda2440a535567ecd</code>, die <strong>WSPR-TX XP Plus, <code>Product_Model = 1048</code></strong> auswählt. Andere Modelle erfordern eine gesondert geprüfte Anleitung. In dieser Datei ist der Sleep-Aufruf für lange Pausen bei Mini/Pico deaktiviert, und beim Pico erzwingt der Start die Höhenmeldung; die folgenden Pausen- und Leistungsanweisungen gelten daher für den ausgewählten 1048-Build.</p>
 <p>Verwende die Konfigurationssoftware für deine genaue Hardware und installierte Firmware. Die folgenden Parameternamen entsprechen dem zitierten Quellcode; sie sind keine Aufforderung, Firmware zu bearbeiten oder zu kompilieren. <strong>WSPRadar hat diese Anleitung nicht an ZachTek-Hardware validiert.</strong> Die Erläuterung des Herstellers stützt die Nutzung der vorhandenen Zeitsteuerung und zufälligen Frequenzwahl; sie ist keine Validierung sämtlicher nachfolgender modellspezifischer Einstellungen.</p>
 <p>Wähle das Verfahren passend zu den <strong>Sendekennungen im Funkbetrieb</strong>, die du verwenden wirst:</p>
@@ -342,7 +342,7 @@
 <p>Zwei Aufbauten am selben Standort sollten ihr gemeinsames tatsächliches QTH melden. Bei zwei unterschiedlichen Stationen meldet jeder Sender sein eigenes QTH; das Ergebnis vergleicht die vollständigen installierten Stationen und ihre unterschiedlichen Funkpfade. Halte im Versuchsprotokoll fest, welches vollständige Rufzeichen und welcher Locator zu welchem Signalweg gehören.</p>
 <p>Schließe nach der Konfiguration einer der beiden folgenden Varianten das gemeinsame Verfahren <strong>Zeitsteuerung → Messplatz → Sendebetrieb</strong> in <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-5-3-1">Abschnitt 5.5.2.3</a> ab. Behalte auf beiden Geräten die standardmäßige zufällige Frequenzwahl bei; eine Zuordnung zu einem unteren und oberen Frequenzfenster ist nicht erforderlich.</p>
 <p><a id="sec-zachtek-two-ordinary-callsigns"></a></p>
-<h6>5.5.2.1 Zwei verschiedene Rufzeichen</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.1</span> <span class="manual-heading-title">Zwei verschiedene Rufzeichen</span></h6>
 <p>Verwende dieses Verfahren, wenn Target und Referenz jeweils ein anderes gültiges Rufzeichen haben, das in das gewöhnliche Type-1-WSPR-Format passt. Die Rufzeichen können zwei zulässige Aufbauten an einer Station oder zwei getrennte Stationen kennzeichnen; sie benötigen keine Suffixe, um unterscheidbar zu sein.</p>
 <p><strong>Beide Geräte konfigurieren:</strong></p>
 <ol>
@@ -376,7 +376,7 @@
 </table></div>
 <p>Wenn diese Wiederholung eingehalten wird, verwendet jeder Sender <strong>3 von 30 WSPR-Zyklen pro Stunde: 10%</strong> der verfügbaren Zyklen. <code>TXPause</code> beginnt nach jeder Type-1-Aussendung; es plant keine zusätzlichen Aussendungen im Abstand von acht Minuten. Bestätige die tatsächlichen Starts und führe anschließend die gemeinsamen Messplatz- und Datenbankprüfungen durch, bevor du den Messzeitraum beginnst. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
 <p><a id="sec-simultaneous-tx-setup-5-3-2"></a></p>
-<h6>5.5.2.2 Ein Rufzeichen mit zwei Suffixen</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.2</span> <span class="manual-heading-title">Ein Rufzeichen mit zwei Suffixen</span></h6>
 <p>Verwende dieses Verfahren, wenn zwei Sendeaufbauten ein Basisrufzeichen mit zwei verschiedenen gültigen Suffixen verwenden. <code>CALL/1</code> und <code>CALL/2</code> veranschaulichen das Identitätsmuster; ersetze <code>CALL</code> durch dein tatsächliches Rufzeichen und verwende nur Suffixe, die für Operator, Station und Betrieb zulässig sind. Verwende in dieser festgelegten Firmware <strong>Suffixe aus einer einzelnen Ziffer oder einem einzelnen Buchstaben</strong>.</p>
 <p><strong>Beide Geräte konfigurieren:</strong></p>
 <ol>
@@ -412,7 +412,7 @@
 <p><strong>Behalte die Grenzen des Quellcodes im Blick.</strong> Die Type-3-Hash-Bildung für zweistellige Ziffernsuffixe ist deaktiviert. Der präfixbasierte Type-3-Codepfad baut zudem seine Rufzeichenzeichenfolge neu auf, ohne vor dem Hashen die abschließende Null zu schreiben; deshalb ist er in dieser Revision kein zuverlässiges Verfahren. Die obige Variante mit einem Suffix aus einem Zeichen verwendet den implementierten Bildungspfad. <a href="/de/documentation/sec-ref/#ref-29">[Ref-29]</a></p>
 <p>Beobachte, dass die entsprechenden Type-2- und Type-3-Phasen gemeinsam stattfinden, auch nach einem Neustart. Prüfe nach <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-4">Abschnitt 5.4</a> beide vollständigen Identitäten in den Empfänger- bzw. Datenbankbeobachtungen für beide Phasen. Übereinstimmende Konfigurationswerte allein belegen weder korrekte Hash-Auflösung noch vollständige synchronisierte Aussendungen.</p>
 <p><a id="sec-simultaneous-tx-setup-5-3-1"></a></p>
-<h6>5.5.2.3 Gemeinsame Zeitsteuerung, zufällige Frequenzwahl und Prüfung</h6>
+<h6 class="manual-numbered-heading"><span class="manual-heading-number">5.5.2.3</span> <span class="manual-heading-title">Gemeinsame Zeitsteuerung, zufällige Frequenzwahl und Prüfung</span></h6>
 <p><strong>Zeitplan und Pause aufeinander abstimmen.</strong> Beide ausgearbeiteten Verfahren verwenden Code <code>7</code>. Wenn du einen anderen festen Start wählst, gleiche <code>TimeSlotCode</code> auf beiden Geräten ab und verwende die folgenden Regeln:</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
 <thead>

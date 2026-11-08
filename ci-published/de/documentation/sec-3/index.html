@@ -38,8 +38,8 @@
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
   <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="/assets/print.css?v=da19d9a8693c152d" media="print">
-  <script src="/assets/print.js?v=da19d9a8693c152d" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=55c3772a74fd981c" media="print">
+  <script src="/assets/print.js?v=55c3772a74fd981c" defer></script>
 </head>
 <body class="documentation-reader-page">
   <a class="skip-link" href="#main">Zum Inhalt springen</a>
@@ -73,7 +73,7 @@
 <p>Für ΔSNR braucht eine Station Spot-Paare; zu ΔDecode zählen weiterhin alle ihre beobachteten Dekodierungen. Die beiden Karten haben unterschiedliche Anforderungen. Auch wenige Beobachtungen können einen großen Wert ergeben. Lies deshalb neben den Farben auch die Anzahlen. Siehe <a href="/de/documentation/sec-5/#sec-5-4">Mindestanforderungen an die Datengrundlage</a>.</p>
 <p><a id="sec-2-3"></a>
 <a id="sec-3-rx-benchmark-hardware"></a></p>
-<h5>2.1.1 Referenzaufbau oder Referenzstation</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.1.1</span> <span class="manual-heading-title">Referenzaufbau oder Referenzstation</span></h5>
 <p><strong>Kontrollierter lokaler Aufbau.</strong> Betreibe für die zu vergleichenden Antennen, Speiseleitungen, Filter, Vorverstärker oder Empfänger gleichzeitig arbeitende, getrennt gekennzeichnete Empfangszweige. Prüfe ihre genauen Melderufzeichen und Standorte in der Datenbank. Ein gemeinsamer vierstelliger Locator belegt weder die Aufstellung am selben physischen Ort noch identische Signalwege.</p>
 <p>Halte die nicht untersuchten Teile der Empfangsketten gleich oder miss ihre Unterschiede: Empfänger, Verstärkung, Filterung, Audio, Decoder und Uploads können das Ergebnis beeinflussen. Eine Kalibrierung mit gemeinsamem Eingang oder ein Tausch von Bauteilen zwischen den Empfangsketten hilft zu prüfen, ob ein beobachteter Unterschied dem untersuchten Bauteil folgt. Komponenten, die gemeinsam genutzt werden sollen, müssen tatsächlich gemeinsam genutzt werden. Siehe <a href="/de/documentation/sec-a/#sec-a">parallele WSJT-X-Instanzen</a> und <a href="/de/documentation/sec-b/#sec-reference-snr-calibration">Referenzkalibrierung</a>.</p>
 <p>RX-Melderufzeichen wie <code>CALL</code> und <code>CALL/P</code> können Empfangszweige unterscheiden, sofern Software und Datenbank sie unverändert übernehmen. Sie verändern nicht das Nachrichtenformat des entfernten Senders.</p>
@@ -89,7 +89,7 @@
 <p><a id="sec-2-4"></a>
 <a id="sec-2-4-simultaneous"></a>
 <a id="sec-3-tx-benchmark-simultaneous"></a></p>
-<h5>2.2.1 Referenzaufbau oder Referenzstation</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.2.1</span> <span class="manual-heading-title">Referenzaufbau oder Referenzstation</span></h5>
 <p><strong>Kontrollierter lokaler Aufbau.</strong> Verwende zwei getrennt identifizierbare Sendeketten mit unterschiedlichen gültigen Rufzeichen, synchronisierten WSPR-Zyklen, freien getrennten Frequenzen, gemessener und wahrheitsgemäß gemeldeter Leistung sowie ausreichender HF-Entkopplung. Ein einzelner Sender, der zwischen Antennen wechselt, kann keine gleichzeitigen Spot-Paare liefern.</p>
 <p><strong>Bevorzuge zwei unterschiedliche gültige reguläre Rufzeichen.</strong> Wähle Rufzeichen, die jeweils in das WSPR-Format für eine einzelne Aussendung passen, in der Rufzeichen, Locator und Leistung gemeinsam übertragen werden.</p>
 <p>Falls <strong class="defined-term">zusammengesetzte Rufzeichen</strong> — Rufzeichen mit zusätzlichem Präfix oder Suffix — erforderlich sind, können auch zwei unterschiedliche gültige zusammengesetzte Rufzeichen funktionieren. Verwende für diesen kontrollierten Vergleich übereinstimmende, überprüfte Nachrichtenfolgen und stimme die jeweils zusammengehörenden Aussendungen zeitlich aufeinander ab. <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-1">Abschnitt 5.1</a> erklärt die Rufzeichenwahl und die daraus entstehenden Nachrichtenformate.</p>
@@ -128,23 +128,23 @@
 <h4>2.5 Vorübergehende ΔSNR-Abweichungen finden und prüfen</h4>
 <p>Diese optionale Expertendiagnose sucht für jede Gegenstation getrennt nach vorübergehenden Änderungen des gepaarten ΔSNR. Im Bericht zählt jede Kombination aus genauem Rufzeichen und vollständigem gemeldetem Locator als ein <strong class="defined-term">Funkpfad</strong>. Schließe zuerst die reguläre Benchmark-Auswertung ab. Ein möglicher Ausreißer ist ein Anlass zur Untersuchung, kein identifiziertes physisches Ereignis.</p>
 <p><a id="sec-outlier-1"></a></p>
-<h5>2.5.1 Wann diese Expertendiagnose sinnvoll ist</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.1</span> <span class="manual-heading-title">Wann diese Expertendiagnose sinnvoll ist</span></h5>
 <p>Verwende sie, wenn eine vorübergehende Änderung für deine Fragestellung relevant ist und davor, währenddessen und danach genügend Spot-Paare vorliegen. Einseitige Empfangsberichte liefern Kontext, aber kein fehlendes ΔSNR. Ein leerer Bericht kann auf unzureichende Beobachtungsdaten im Umfeld hindeuten, nicht auf einen unveränderten Funkpfad.</p>
 <p>Aktiviere <strong>Mögliche ΔSNR-Ausreißer erkennen</strong>, prüfe die <a href="/de/documentation/sec-5/#sec-5-6">drei Experteneinstellungen</a> und starte dann die Analyse. Änderungen an den Einstellungen erfordern einen weiteren ausdrücklich gestarteten Analyselauf.</p>
 <p><a id="sec-outlier-2"></a>
 <a id="sec-outlier-3"></a></p>
-<h5>2.5.2 Wie die Erkennung praktisch arbeitet</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.2</span> <span class="manual-heading-title">Wie die Erkennung praktisch arbeitet</span></h5>
 <p>Das <strong class="defined-term">lokale Vergleichsniveau</strong> schätzt das übliche ΔSNR der Funkstrecke aus ausreichend gestützten Beobachtungen vor und nach einem möglichen Ausreißer. Die Beobachtungen des möglichen Ausreißers selbst bleiben dabei ausgeschlossen. Eine <strong class="defined-term">Abweichung</strong> ist das beobachtete ΔSNR minus diesem Vergleichsniveau. Somit ergibt <strong>+1 dB ΔSNR bei einem Vergleichsniveau von +8 dB eine Abweichung von −7 dB</strong>: Das Target hat weiterhin das höhere SNR, doch sein Vorteil ist gesunken.</p>
 <p>Die Erkennung prüft die Größe der Abweichung und einen <strong class="defined-term">robusten z-Score</strong>, der sie mit den zeitlich benachbarten Schwankungen vergleicht. Dazu kommen die Übereinstimmung der Vergleichsmediane vor und nach dem möglichen Ausreißer sowie die Vorzeichen innerhalb dieses Zeitraums. Sie nutzt die einzelnen Zyklusbeobachtungen vor der Zusammenfassung für die Darstellung; eine andere Zeitintervallbreite im Diagramm ändert daher keine Erkennung. Ereignisklassen und Gruppierungen über mehrere Funkstrecken belegen weder unterschiedliche Sicherheit noch eine gemeinsame Ursache. Siehe <a href="/de/documentation/sec-7/#sec-7-outliers">die Methode</a>.</p>
 <p><a id="sec-outlier-4"></a>
 <a id="sec-outlier-5"></a>
 <a id="sec-outlier-6"></a></p>
-<h5>2.5.3 Ein gemeldetes Ereignis lesen und untersuchen</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.3</span> <span class="manual-heading-title">Ein gemeldetes Ereignis lesen und untersuchen</span></h5>
 <p>Vergleiche <strong>Erwartetes lokales ΔSNR</strong> mit <strong>Beobachteter ΔSNR-Median</strong>. Prüfe dann Spot-Paar-Anzahl, zeitliche Lücken und einzelne Beobachtungen. <strong>↓ In der Stationsauswertung anzeigen</strong> öffnet den größeren zeitlichen Zusammenhang der Funkstrecke; <strong>↓ Detaildaten anzeigen</strong> öffnet die Detailansicht. Beide bereiten <strong>Möglicher Ausreißer im Detail</strong> mit den umgebenden Beobachtungen zum Vergleichsniveau vor.</p>
 <p>Nutze <strong>So liest du die Ergebnisse</strong> in <strong>Bericht zu möglichen Ausreißern</strong> und <strong>Möglicher Ausreißer im Detail</strong>, um Ereignisklassen, Sterne, Schattierung und Hilfslinien der Erkennung nachzulesen. Das hervorgehobene Intervall beschreibt die beibehaltenen Beobachtungen, nicht die Dauer eines unbeobachteten physischen Ereignisses.</p>
 <p>Prüfe Target-SNR und korrigiertes Referenz-SNR getrennt: Eine Änderung kann von einer oder beiden Seiten ausgehen. Vergleiche zeitlich benachbarte einseitige Empfangsberichte, andere Funkpfade, Stationsaufzeichnungen, Schaltvorgänge, Leistungs- oder Verstärkungsänderungen und unabhängige Messungen, bevor du eine Ursache zuordnest.</p>
 <p><a id="sec-outlier-7"></a></p>
-<h5>2.5.4 Selektivität anpassen und Ergebnis sichern</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.4</span> <span class="manual-heading-title">Selektivität anpassen und Ergebnis sichern</span></h5>
 <p>Höhere Mindestwerte für die Abweichung oder den robusten z-Score machen die Auswahl der gemeldeten Ereignisse strenger. Eine kleinere zulässige Differenz der Vergleichsniveaus vor und nach dem Ereignis verlangt eine engere Übereinstimmung dieser Mediane, keine geringeren Hintergrundschwankungen. Für alle Ereignisdauern gelten dieselben Anforderungen; <a href="/de/documentation/sec-5/#sec-5-6">Abschnitt 10.6</a> führt die Bedienelemente auf.</p>
 <p>Dokumentiere Änderungen, die du beim Erkunden ausprobierst. Lege für eine Bestätigung die Einstellungen und die zu untersuchenden Funkstrecken fest, bevor du einen neuen Analyselauf betrachtest. Berichte Funkstrecke, Zeitraum, Abweichung, stützende Spot-Paare und Einstellungen der Erkennung. Die Erkennung liefert weder einen p-Wert noch eine Korrektur für die Zahl durchsuchter Funkstrecken und Ereignisse.</p>
 <p>Speichere den Analyseexport, um die bei aktivierter Ausreißererkennung gefundenen Ergebnisse und ihre beitragenden Spot-Paare zu erhalten. Dateiinhalte und Verfügbarkeit sind in <a href="/de/documentation/sec-8/#sec-8-4">Abschnitt 9.4</a> festgelegt.</p>

@@ -38,8 +38,8 @@
   <script id="wspradar-product-navigation" type="application/json">{"catalog": {"analysis_aliases": ["https://markusthemaker-wspradar.hf.space/", "https://wspradar.streamlit.app/", "https://markusthemaker-wspradar-test.hf.space/"], "items": [{"destination": "website", "id": "overview", "label": {"de": "Einführung", "en": "Introduction"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "demos", "label": {"de": "Demos mit Anleitung", "en": "Guided Demos"}, "new_tab": false, "path": "demos/"}, {"destination": "analysis", "id": "analysis", "label": {"de": "WSPRadar App", "en": "WSPRadar App"}, "new_tab": false, "path": ""}, {"destination": "website", "id": "documentation", "label": {"de": "Dokumentation", "en": "Documentation"}, "new_tab": false, "path": "documentation/"}, {"destination": "website", "id": "community", "label": {"de": "Community", "en": "Community"}, "new_tab": false, "path": "community/"}], "local": {"analysis_port": 8501, "website_port": 8787}, "origins": {"analysis": "https://app.wspradar.org/", "website": "https://www.wspradar.org/"}, "schema_version": 1}, "local_analysis_port": null}</script><script src="/assets/product-navigation.js"></script>
   
   <script>window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{ignoreHtmlClass:".*",processHtmlClass:"math"}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="/assets/print.css?v=da19d9a8693c152d" media="print">
-  <script src="/assets/print.js?v=da19d9a8693c152d" defer></script>
+  <link rel="stylesheet" href="/assets/print.css?v=55c3772a74fd981c" media="print">
+  <script src="/assets/print.js?v=55c3772a74fd981c" defer></script>
 </head>
 <body class="documentation-reader-page">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -73,7 +73,7 @@
 <p>A station needs spot pairs for ΔSNR; all its observed decodes still count toward ΔDecode. The two maps have different requirements. A large value can come from only a few observations, so read the counts as well as the colors. See <a href="/en/documentation/sec-5/#sec-5-4">evidence thresholds</a>.</p>
 <p><a id="sec-2-3"></a>
 <a id="sec-3-rx-benchmark-hardware"></a></p>
-<h5>2.1.1 Reference Setup/Station</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.1.1</span> <span class="manual-heading-title">Reference Setup/Station</span></h5>
 <p><strong>Controlled local setup.</strong> Run separately identified receiving paths at the same time for the antennas, feedlines, filters, preamplifiers or receivers you want to compare. Check both exact reporting callsigns and locations in the database. A shared four-character locator does not establish that the equipment is at the same physical site or uses identical signal paths.</p>
 <p>Keep non-tested parts of the chains equal, or measure their differences: receiver, gain, filtering, audio, decoder and uploads can all affect the result. A common-input calibration or swapping components between chains helps check whether an observed difference follows the tested component. Components intended to be common must actually be shared. See <a href="/en/documentation/sec-a/#sec-a">parallel WSJT-X instances</a> and <a href="/en/documentation/sec-b/#sec-reference-snr-calibration">Reference calibration</a>.</p>
 <p>RX reporting callsigns such as <code>CALL</code> and <code>CALL/P</code> can distinguish the receiving paths if the software and database preserve them. They do not change the remote transmitter's message format.</p>
@@ -89,7 +89,7 @@
 <p><a id="sec-2-4"></a>
 <a id="sec-2-4-simultaneous"></a>
 <a id="sec-3-tx-benchmark-simultaneous"></a></p>
-<h5>2.2.1 Reference Setup/Station</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.2.1</span> <span class="manual-heading-title">Reference Setup/Station</span></h5>
 <p><strong>Controlled local setup.</strong> Use two separately identifiable transmit chains with different valid callsigns, synchronized WSPR cycles, clear separated frequencies, measured and truthfully reported power, and adequate RF isolation. One transmitter alternating between antennas cannot provide simultaneous spot pairs.</p>
 <p><strong>Prefer two different valid ordinary callsigns.</strong> Choose callsigns that each fit the one-transmission WSPR format, carrying callsign, locator and power together.</p>
 <p>If <strong class="defined-term">compound callsigns</strong> — callsigns with an added prefix or suffix — are needed, two distinct valid compound callsigns can also work. For this controlled comparison, use matching, verified message sequences and align their corresponding transmissions. <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-1">Section 5.1</a> explains the callsign choices and the message formats they produce.</p>
@@ -128,23 +128,23 @@
 <h4>2.5 Find and Review Temporary ΔSNR Departures</h4>
 <p>This optional expert diagnostic looks for temporary changes in paired ΔSNR separately for each remote station. The report treats each exact callsign and full reported locator as one <strong class="defined-term">path</strong>. Complete the ordinary Benchmark review first. A possible outlier is a reason to investigate, not an identified physical event.</p>
 <p><a id="sec-outlier-1"></a></p>
-<h5>2.5.1 When to use this expert diagnostic</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.1</span> <span class="manual-heading-title">When to use this expert diagnostic</span></h5>
 <p>Use it when a temporary change matters to your question and enough spot pairs exist before, during and after it. One-sided reports provide context but no missing ΔSNR. An empty report may mean insufficient surrounding evidence, not an unchanged path.</p>
 <p>Enable <strong>Identify ΔSNR outlier candidates</strong>, review the <a href="/en/documentation/sec-5/#sec-5-6">three expert controls</a>, then run the analysis. Changing the settings requires another explicit run.</p>
 <p><a id="sec-outlier-2"></a>
 <a id="sec-outlier-3"></a></p>
-<h5>2.5.2 How detection works in practice</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.2</span> <span class="manual-heading-title">How detection works in practice</span></h5>
 <p>The <strong class="defined-term">local baseline</strong> estimates the path's usual ΔSNR from supported observations before and after a candidate, excluding the candidate. A <strong class="defined-term">departure</strong> is observed ΔSNR minus that baseline. Thus <strong>+1 dB ΔSNR against a +8 dB baseline is a −7 dB departure</strong>: Target still has higher SNR, but its advantage has fallen.</p>
 <p>The detector checks departure size, a <strong class="defined-term">robust z-score</strong> comparing it with nearby variation, agreement of baseline medians before and after it, and sign agreement within the candidate. It uses individual cycle observations before display grouping, so changing a chart's time-bin width does not change detections. Event classes and cross-path groups establish neither different certainty nor a common cause. See <a href="/en/documentation/sec-7/#sec-7-outliers">the method</a>.</p>
 <p><a id="sec-outlier-4"></a>
 <a id="sec-outlier-5"></a>
 <a id="sec-outlier-6"></a></p>
-<h5>2.5.3 Read and investigate a reported event</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.3</span> <span class="manual-heading-title">Read and investigate a reported event</span></h5>
 <p>Compare <strong>Expected local ΔSNR</strong> with <strong>Observed median ΔSNR</strong>, then inspect the pair count, timing gaps and underlying observations. <strong>↓ Show in Station Insights</strong> opens the path's wider history; <strong>↓ Show Drill-Down Details</strong> opens its detail. Both prepare <strong>Outlier Focus</strong> with surrounding baseline evidence.</p>
 <p>Use <strong>How to read this</strong> in Outlier Report and Outlier Focus for event classes, stars, shading and detector guides. The highlighted interval describes retained observations, not the duration of an unseen physical event.</p>
 <p>Check Target and corrected Reference SNR separately: either or both can drive a change. Compare nearby one-sided reports, other paths, station logs, switching, power or gain changes and independent measurements before assigning a cause.</p>
 <p><a id="sec-outlier-7"></a></p>
-<h5>2.5.4 Adjust selectivity and preserve the result</h5>
+<h5 class="manual-numbered-heading"><span class="manual-heading-number">2.5.4</span> <span class="manual-heading-title">Adjust selectivity and preserve the result</span></h5>
 <p>Larger minimum departure or robust-score thresholds make reporting more selective. A smaller allowed before/after baseline difference requires closer agreement of those medians, not lower background variability. The same requirements apply to all event durations; <a href="/en/documentation/sec-5/#sec-5-6">Section 10.6</a> lists the controls.</p>
 <p>Record exploratory changes. For confirmation, fix the settings and path population before examining a new run. Report the path, interval, departure, supporting pairs and detector settings. The detector does not supply a p-value or correction for the number of searched paths and events.</p>
 <p>Save the analysis export to retain enabled outlier findings and their contributing pairs. File contents and availability are defined in <a href="/en/documentation/sec-8/#sec-8-4">Section 9.4</a>.</p>

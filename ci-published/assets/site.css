@@ -52,4 +52,37 @@ th{text-align:inherit}
 /* Demo illustrations supplement the English website manual. */
 .manual-figure{max-width:520px;margin:24px 0 32px}.manual-figure>a{display:block}.manual-figure img{display:block;width:100%;height:auto}.manual-figure figcaption{margin-top:12px;font-size:16px;line-height:1.5}
 
+/* Manual hierarchy: heading color is separate from links and defined terms. */
+:is(.documentation-reader-page,.documentation-full-page) .prose .manual-numbered-heading {
+  display:flex;
+  align-items:baseline;
+  gap:.3em;
+}
+:is(.documentation-reader-page,.documentation-full-page) .prose .manual-heading-number {flex:none}
+:is(.documentation-reader-page,.documentation-full-page) .prose .manual-heading-title {min-width:0}
+@media screen {
+  :is(.documentation-reader-page,.documentation-full-page) .prose :is(h1,h2,h3,h4,h5,h6),
+  :is(.documentation-index-page,.documentation-full-page) main>h1,
+  .documentation-index-page .manual-start h2 {
+    color:var(--product-control-accent,#55c8ff);
+  }
+  :is(.documentation-reader-page,.documentation-full-page) .prose :is(h2,h3,h4,h5,h6) {
+    font-family:var(--product-heading,Rajdhani,Arial,sans-serif);
+    font-weight:700;
+    line-height:1.3;
+  }
+  .documentation-full-page main>h1 {
+    font:700 var(--page-heading-size,34px)/1.13 var(--product-heading,Rajdhani,Arial,sans-serif);
+  }
+  :is(.documentation-reader-page,.documentation-full-page) .prose h2 {font-size:32px;margin:40px 0 16px}
+  :is(.documentation-reader-page,.documentation-full-page) .prose h3 {font-size:28px;margin:36px 0 14px}
+  :is(.documentation-reader-page,.documentation-full-page) .prose h4 {font-size:24px;margin:32px 0 12px}
+  :is(.documentation-reader-page,.documentation-full-page) .prose h5 {font-size:20px;margin:30px 0 12px}
+  :is(.documentation-reader-page,.documentation-full-page) .prose h6 {font-size:18px;margin:28px 0 10px}
+}
+@media screen and (max-width:580px) {
+  :is(.documentation-reader-page,.documentation-full-page) .prose h2 {font-size:28px}
+  :is(.documentation-reader-page,.documentation-full-page) .prose h3 {font-size:26px}
+}
+
 :root{--bg:#050a15;--green:var(--product-green,#39ff14);--text:#e0e0e0;}
