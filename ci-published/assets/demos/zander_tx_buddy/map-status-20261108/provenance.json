@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/refresh_figure_headings.py",
+  "demo_id": "zander_tx_buddy",
+  "refresh_scope": "maps_only",
+  "verification": {
+    "temporal_decode_map_and_cutoff": {
+      "source_evidence": {
+        "path": "website/source/archive/demos/zander_tx_buddy/20261021-guided/zander-guided-demo/source/analysis_cache.parquet",
+        "bytes": 14525,
+        "sha256": "cf648de9687461b812a0856704071a7368dc8d8d94a8f82e7fcbeeaa56a7930b"
+      },
+      "analysis_context": {
+        "run_mode": "TX",
+        "callsign": "SK0WE/P",
+        "qth": "JO97",
+        "band": "20m",
+        "comparison_mode": "reference_station",
+        "reference_callsign": "SK0WE/1",
+        "reference_qth": "JO97",
+        "benchmark_conditions_accepted": true,
+        "reference_snr_correction_db": 0.0,
+        "solar_state": "all",
+        "max_peer_distance_km": 10000,
+        "exclude_special_callsigns": false,
+        "exclude_moving_stations": false,
+        "min_spot_pairs_per_station": 1,
+        "min_confirmed_opportunities_per_peer": 5,
+        "min_qualifying_stations_per_map_segment": 2,
+        "min_decode_event_share_percent": 1.0,
+        "min_decode_stations_per_segment": 1
+      },
+      "decode_summary": {
+        "decode_val": -44.657534246575345,
+        "decode_cnt": 91,
+        "decode_total_events": 564,
+        "decode_paired_events": 166,
+        "decode_target_only_events": 36,
+        "decode_reference_only_events": 362,
+        "decode_target_total": 202,
+        "decode_reference_total": 528,
+        "decode_net_events": -326
+      },
+      "bins": {
+        "segment": "10m",
+        "selected": "1h"
+      },
+      "temporal_statistic": "median",
+      "folded_time_basis": "utc",
+      "ci_alpha": 0.05,
+      "ci_method": "iid_student_t",
+      "max_segment_ci_half_width_db": 0.5,
+      "retained_counts_match_previous": true
+    },
+    "snr_map_and_statistics": {
+      "source_evidence": {
+        "path": ".tmp/station-mean-ci/zander_experiment_a_v1-retained.parquet",
+        "bytes": 14592,
+        "sha256": "bad8ecd74a96193050654b61d11d3e69af76c1ef8046629ecf6a12d47e96e61e"
+      },
+      "analysis_context": {
+        "run_mode": "TX",
+        "callsign": "SK0WE/P",
+        "qth": "JO97",
+        "band": "20m",
+        "comparison_mode": "reference_station",
+        "reference_callsign": "SK0WE/1",
+        "reference_qth": "JO97",
+        "benchmark_conditions_accepted": true,
+        "reference_snr_correction_db": 0.0,
+        "solar_state": "all",
+        "max_peer_distance_km": 10000,
+        "exclude_special_callsigns": false,
+        "exclude_moving_stations": false,
+        "min_spot_pairs_per_station": 1,
+        "min_confirmed_opportunities_per_peer": 5,
+        "min_qualifying_stations_per_map_segment": 1,
+        "min_decode_event_share_percent": 1.0,
+        "min_decode_stations_per_segment": 1
+      },
+      "decode_summary": {
+        "decode_val": -44.657534246575345,
+        "decode_cnt": 91,
+        "decode_total_events": 564,
+        "decode_paired_events": 166,
+        "decode_target_only_events": 36,
+        "decode_reference_only_events": 362,
+        "decode_target_total": 202,
+        "decode_reference_total": 528,
+        "decode_net_events": -326
+      },
+      "bins": {
+        "segment": "12h",
+        "selected": "12h"
+      },
+      "temporal_statistic": "mean",
+      "folded_time_basis": "utc",
+      "ci_alpha": 0.050000000000000044,
+      "ci_method": "iid_student_t",
+      "max_segment_ci_half_width_db": 0.5,
+      "retained_counts_match_previous": true
+    }
+  },
+  "figures": {
+    "zander-rc3-map-typography-en-20261024": {
+      "bytes": 1301418,
+      "sha256": "205dca9f75f5c71abcedf585e6ad2c26e8243197374eddbb43d1a84835175807",
+      "width": 3384,
+      "height": 3561,
+      "selected_subtitle": ""
+    },
+    "zander-rc3-decode-map-typography-en-20261024": {
+      "bytes": 1380536,
+      "sha256": "0427d3c2d731cfdabf49839013430a3b0e0b1c0b8364547b66bd3a807c45de1d",
+      "width": 3520,
+      "height": 3561,
+      "selected_subtitle": ""
+    }
+  },
+  "renderer_sources": {
+    "scripts/internal/refresh_figure_headings.py": {
+      "bytes": 37104,
+      "sha256": "cd834895c7e8e55255180389fabbf3b82dc2eb9d38e7e8a2929610a2e26867c6"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 31487,
+      "sha256": "34784c87a94930cba613b4fb05fe2968ecb2b44a70c3913ee1f8279ba4b8c1b8"
+    },
+    "core/plot_engine.py": {
+      "bytes": 54221,
+      "sha256": "9d39118fb756dd67e5f969e3a90e74f8ee21839a93d5bf7360f76943dd17b831"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 137259,
+      "sha256": "5f3d9f1da8d05c7ada4bd429dea6c379e885790c6472ac3868bb585126c8f136"
+    },
+    "ui/plots/opportunity_figures.py": {
+      "bytes": 123775,
+      "sha256": "b52695880a65e284bf530cf2305e95e3af631fd66591d545f263c036001d5895"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 148298,
+      "sha256": "84b7eecb17cd81d780b8d0033d6ec29f98780623fb4b58382944895124971e9c"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "bytes": 46589,
+      "sha256": "188be1b56cf35e1b36d072190fe930b9385952ad205815189cb573542a33e24b"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "bytes": 26661,
+      "sha256": "fa943f7ecb30dcd1217bfd44288096c19e0887e58f62e06a0790160a0feeaba0"
+    },
+    "localization/figures_en.py": {
+      "bytes": 19661,
+      "sha256": "930fb7e804ee676df8c678b310a6edba538192c8cfedac174d8d004cd7d55d5b"
+    },
+    "config/plot_constants.py": {
+      "bytes": 4250,
+      "sha256": "1619b1019ed056a0deb470937120b2a37e43823807d53970f323a051bbd328ec"
+    }
+  },
+  "network_access": "No provider retrieval; native rendering from retained completed-run observations"
+}

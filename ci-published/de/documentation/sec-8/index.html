@@ -83,7 +83,7 @@
 <tr>
 <td><strong>Inferenzstatistisch</strong></td>
 <td>Das Ergebnis ist über diese Beobachtungen hinaus verallgemeinerbar, mit angegebener Konfidenz oder Signifikanz.</td>
-<td>Ein begründetes Abhängigkeitsmodell und eine inferenzstatistische Analyse, die WSPRadar nicht liefert.</td>
+<td>Ein begründetes Modell für Stichprobe und Abhängigkeiten sowie eine für diese weitergehende Aussage geeignete Analyse. Die nominelle KI-Berechnung von WSPRadar allein liefert diese umfassendere Analyse nicht.</td>
 </tr>
 </tbody>
 </table></div>
@@ -105,15 +105,15 @@
 <tbody>
 <tr>
 <td>„Antenne A hat 3 dB mehr Gewinn als B.“</td>
-<td>„Für dieses Band, UTC-Zeitfenster und Segment betrug der Mittelwert des gepaarten ΔSNR über alle Paare [Mittelwert] dB mit einem [Konfidenzniveau]%-Konfidenzintervall von ±[Halbbreite] dB für Signalweg A gegenüber B, gestützt auf [n] qualifizierte Identitäten und [m] Spot-Paare.“</td>
+<td>„Für dieses Band, UTC-Zeitfenster und Segment betrug der Mittelwert des gepaarten ΔSNR über alle Paare [Mittelwert] dB mit einem [Konfidenzniveau]%-Konfidenzintervall von ±[Halbbreite] dB für Signalweg A gegenüber B, gestützt auf [n] Stationen mit erfüllten ΔSNR-Anforderungen und [m] Spot-Paare.“</td>
 </tr>
 <tr>
 <td>„Meine Empfängerempfindlichkeit beträgt 72 %.“</td>
-<td>„Der Mittelwert der Stationsdekodierquoten des Targets betrug während des angegebenen Zeitfensters über [n] qualifizierte Gegenstationsidentitäten 72 %, auf Grundlage bestätigter Empfangsgelegenheiten.“</td>
+<td>„Der Mittelwert der Stationsdekodierquoten des Targets betrug während des angegebenen Zeitfensters über [n] berücksichtigte Stationen 72 %. Jede Station wurde gleich gewichtet; ihre Quote beruht auf bestätigten Empfangsgelegenheiten.“</td>
 </tr>
 <tr>
 <td>„Performance sollte nahe 100 % liegen.“</td>
-<td>„Die Dekodierquote ist auf bestätigte Empfangsgelegenheiten bedingt; 100 % ist kein zu erwartender Ausgangswert.“</td>
+<td>„Die Dekodierquote beschreibt den Erfolg innerhalb bestätigter Empfangsgelegenheiten; 100 % ist kein zu erwartender Ausgangswert.“</td>
 </tr>
 <tr>
 <td>„A ist statistisch signifikant besser.“</td>
@@ -129,7 +129,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>Eine SNR-Differenz zwischen vollständigen Aufbauten identifiziert weder ihre Bauteilursache noch ihre Umgebungsursache. Halte Übereinstimmung innerhalb eines Analyselaufs von Wiederholbarkeit in einem neuen, geeignet kontrollierten Lauf getrennt. Nimm die zutreffende Betriebserklärung oder Einschränkung der Auswertung historischer Empfangsberichte, die angewandte Referenzkorrektur und die Anzahlen der Datengrundlage anhand der Checkliste in <a href="/de/documentation/sec-8/#sec-8-3">Abschnitt 9.3</a> auf.</p>
+<p>Aus einer SNR-Differenz zwischen vollständigen Aufbauten geht allein nicht hervor, welches Bauteil oder welcher Umwelteinfluss sie verursacht hat. Unterscheide zwischen übereinstimmenden Ansichten desselben Analyselaufs und einem wiederholten Ergebnis in einem neuen, geeignet kontrollierten Lauf. Dokumentiere die zutreffende Betriebserklärung beziehungsweise die Grenzen der historischen Auswertung, die angewandte Referenzkorrektur und die Datenanzahlen anhand der Checkliste in <a href="/de/documentation/sec-8/#sec-8-3">Abschnitt 9.3</a>.</p>
 <p><a id="sec-8-2"></a></p>
 <h4>9.2 Interpretationsgrenzen</h4>
 <p>Die Berechnungen beschreiben die durch den Lauf ausgewählten Beobachtungsdaten. Ihre Grenzen ergeben sich aus den Empfangsberichten, den Auswahlregeln und dem physischen Vergleich:</p>
@@ -173,7 +173,7 @@
 <li>WSPRadar-Anwendungsversion und, soweit verfügbar, Quellrevision;</li>
 <li>Datenbankquelle und ursprüngliches Exportdatum;</li>
 <li>RX-/TX-Richtung, Ergebnistyp und Benchmark-Design;</li>
-<li>exakte Target- und Referenzidentitäten und Locatoren;</li>
+<li>exakte Rufzeichen und Locatoren von Target und Referenz;</li>
 <li>Band und wirksame UTC-Grenzen;</li>
 <li>geografischer Bereich, Sonnenstand, Ausschlüsse und Mindestanforderungen an die Datengrundlage;</li>
 <li>Zweck der Referenzkorrektur, vorzeichenbehafteter Wert und Kalibriergrundlage;</li>
@@ -185,16 +185,18 @@
 <p><strong>2. Datengrundlage der Schlussfolgerung</strong></p>
 <ul>
 <li>Berichtete Kennzahl und ihre Gewichtung;</li>
-<li>qualifizierte Identitäten und bestätigte Empfangsgelegenheiten für Performance;</li>
+<li>berücksichtigte Stationen und bestätigte Empfangsgelegenheiten für Performance;</li>
 <li>Stationen mit gepaarten Beobachtungen und Anzahlen von Spot-Paaren für Benchmark;</li>
 <li>
 <p>Zusammenfassungen auf Stations- und Beobachtungsebene;</p>
 </li>
 <li>
-<p>Bei einem berichteten Konfidenzintervall: zugehöriger Mittelwert und Schätzer, Konfidenzniveau, Methode, beitragende Einheit und Anzahl, Halbbreite oder vollständige Grenzen, Verfügbarkeitsstatus und Unabhängigkeitsannahme; beim Aggregat <strong>Stationen</strong> außerdem Stationsanzahl und Standardabweichung beziehungsweise Standardfehler zwischen Stationsmittelwerten; beim Kartenmittelwert über alle Paare außerdem qualifizierte Paaranzahl N, Standardabweichung beziehungsweise Standardfehler der Paardifferenzen, qualifizierte Stationsanzahl, tatsächlich verwendete konfigurierte Stationsmindestzahl, maximale Halbbreite und Qualifikationsgrund;</p>
+<p>Bei einem berichteten Konfidenzintervall: zugehöriger Mittelwert und Schätzer, Konfidenzniveau, Methode, beitragende Einheit und Anzahl, Halbbreite oder vollständige Grenzen, Verfügbarkeitsstatus und Unabhängigkeitsannahme;</p>
 </li>
+<li>beim Aggregat <strong>Stationen</strong> zusätzlich: Stationsanzahl und Standardabweichung beziehungsweise Standardfehler zwischen Stationsmittelwerten;</li>
+<li>beim Kartenmittelwert über alle Paare zusätzlich: qualifizierte Paaranzahl N, Standardabweichung beziehungsweise Standardfehler der Paardifferenzen, qualifizierte Stationsanzahl, tatsächlich verwendete Stationsmindestzahl, maximale Halbbreite und Qualifikationsgrund;</li>
 <li>Verhältnis der Stationszahlen, zusammengefasstes ΔDecode und relevante Anzahlen gepaarter Ereignisse, Ereignisse nur des Targets und nur der Referenz;</li>
-<li>geografischer und zeitlicher Bereich, einschließlich einer einflussreichen Identität oder eines kurzen Intervalls; und</li>
+<li>geografischer und zeitlicher Bereich, einschließlich einzelner Stationen oder kurzer Intervalle mit starkem Einfluss auf das Ergebnis; und</li>
 <li>Übereinstimmung innerhalb des Analyselaufs und etwaige Wiederholung in einem separaten Lauf.</li>
 </ul>
 <p><strong>3. Externe Versuchsaufzeichnung</strong></p>
@@ -230,11 +232,11 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Metadaten des Analyselaufs</strong></td>
-<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem die Bestätigung seiner Bedingungen, die Methodenversion, die ausgewählten zeitlichen Statistiken für Segment und Station, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Die Bestätigung unterscheidet nicht zwischen bestätigtem gemeinsamem Betrieb und akzeptierten Einschränkungen und ist kein unabhängiger Betriebsnachweis. TX Performance erhält die wissenschaftliche Auswahl <code>tx_snr_normalization_to_30dbm</code> und dokumentiert die wirksame Bezugsgröße unter <code>performance_snr</code>: <code>value_basis</code>, <code>normalization_to_30dbm</code>, die angewandte Formel und <code>decode_outcomes_changed: false</code>. Die Formel lautet bei ausgeschalteter Normierung <code>reported_snr</code> beziehungsweise bei eingeschalteter Normierung <code>reported_snr - reported_tx_power_dbm + 30</code>. Jeder Performance-Ergebnisblock dokumentiert außerdem <code>performance_corroboration</code> mit Einschaltzustand, Obergrenze der Gelegenheitszahl, fester Anforderung von fünf weiteren meldenden Empfängern, Ausschlüssen, Erhebungsstatus und Bedeutung für die Stationsqualifikation.</td>
+<td><code>run_metadata.json</code> dokumentiert Softwareversion, Datenbank, tatsächliche Datenauswahl, Analyseeinstellungen, Korrekturen, Untersuchungsbereich und aktivierte Ausreißereinstellungen. Benchmark dokumentiert außerdem die Bestätigung seiner Bedingungen, die Methodenversion, die ausgewählten zeitlichen Statistiken für Segment und Station, CI-Alpha und -Methode sowie die Definitionen der Stations- und Spot-Aggregation. Die Bestätigung unterscheidet nicht zwischen bestätigtem gemeinsamem Betrieb und akzeptierten Einschränkungen und ist kein unabhängiger Betriebsnachweis. TX Performance erhält die wissenschaftliche Auswahl <code>tx_snr_normalization_to_30dbm</code> und dokumentiert die wirksame Bezugsgröße unter <code>performance_snr</code>: <code>value_basis</code>, <code>normalization_to_30dbm</code>, die angewandte Formel und <code>decode_outcomes_changed: false</code>. Die Formel lautet bei ausgeschalteter Normierung <code>reported_snr</code> beziehungsweise bei eingeschalteter Normierung <code>reported_snr - reported_tx_power_dbm + 30</code>. Jeder Performance-Ergebnisblock dokumentiert außerdem <code>performance_corroboration</code> mit Einschaltzustand, Obergrenze der Gelegenheitszahl, fester Anforderung von drei weiteren meldenden Empfängern, Ausschlüssen, Erhebungsstatus und Bedeutung für die Stationsqualifikation.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Verarbeitete Beobachtungsdaten</strong></td>
-<td><code>analysis_cache.parquet</code> enthält die beibehaltenen Beobachtungsdaten über den gesamten geografischen Bereich der abgeschlossenen Analyse nach wissenschaftlicher Filterung. Die Datei ist nicht auf das ausgewählte Segment beschränkt und kein unveränderter Datenbankdownload. Performance-<code>target_snr</code> wird auf der gewählten Bezugsgröße des abgeschlossenen Laufs gespeichert; dieselbe Spalte ist nicht zugleich ursprünglich und normiert. Das zusätzliche Merkmal <code>corroborated_cycle</code> ist 1, wenn mindestens eine passende Aussendung in dieser Kombination aus Identität und Zyklus die feste Anforderung von fünf weiteren meldenden Empfängern erfüllt, andernfalls 0. Lies sie zusammen mit den Laufmetadaten: <code>evidence_acquired: false</code> bedeutet, dass die zusätzliche Bestätigung nicht erhoben wurde, weil der Filter ausgeschaltet war oder die gewählte Gelegenheitsmindestzahl seine Obergrenze überschritt; ein Nullwert ist dann kein gemessener Mangel an Bestätigung.</td>
+<td><code>analysis_cache.parquet</code> enthält die beibehaltenen Beobachtungsdaten über den gesamten geografischen Bereich der abgeschlossenen Analyse nach wissenschaftlicher Filterung. Die Datei ist nicht auf das ausgewählte Segment beschränkt und kein unveränderter Datenbankdownload. Performance-<code>target_snr</code> wird auf der gewählten Bezugsgröße des abgeschlossenen Laufs gespeichert; dieselbe Spalte ist nicht zugleich ursprünglich und normiert. Das zusätzliche Merkmal <code>corroborated_cycle</code> ist 1, wenn mindestens eine passende Aussendung in dieser Kombination aus Identität und Zyklus die feste Anforderung von drei weiteren meldenden Empfängern erfüllt, andernfalls 0. Lies sie zusammen mit den Laufmetadaten: <code>evidence_acquired: false</code> bedeutet, dass die zusätzliche Bestätigung nicht erhoben wurde, weil der Filter ausgeschaltet war oder die gewählte Gelegenheitsmindestzahl seine Obergrenze überschritt; ein Nullwert ist dann kein gemessener Mangel an Bestätigung.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Benchmark-Kartensegmentergebnisse</strong></td>
@@ -262,7 +264,7 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Abbildungen ausgewählter Stationen</strong></td>
-<td>Benchmark und Performance verwenden die vollständigen Daten der ausgewählten Identität aus dem Analyselauf, unabhängig vom Stationslistenfilter. Bei aktivierter Ausreißerberichterstattung kann Benchmark stattdessen zusammengefasstes ΔSNR mehrerer ausgewählter Funkpfade zeigen. Performance enthält drei zeitliche Einzelstationsabbildungen: absolutes SNR, zeitliche Datengrundlage und Dekodierquote nach Entfernung/Zeit; die ausschließlich segmentbezogene Abweichungsabbildung entfällt.</td>
+<td>Benchmark und Performance verwenden die vollständigen Daten der ausgewählten Station aus dem Analyselauf, unabhängig vom Stationslistenfilter. Bei aktivierter Ausreißerberichterstattung kann Benchmark stattdessen zusammengefasstes ΔSNR mehrerer ausgewählter Funkpfade zeigen. Performance enthält zwei zeitliche Einzelstationsabbildungen: absolutes SNR und Dekodierquote mit zeitlicher Datengrundlage; die redundante Entfernungs-Heatmap und die ausschließlich segmentbezogene Abweichungsabbildung entfallen. Jeder Untertitel nennt die berechnete Entfernung vom Target nach dem Locator.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Fokusabbildungen der Detaildaten</strong></td>
@@ -291,7 +293,7 @@
 <td><code>performance/figure_segment_temporal_decode_distance.png</code></td>
 </tr>
 <tr>
-<td>Segment 4: Abweichungen vom Stationsvergleichsniveau des Laufs</td>
+<td>Segment 4: SNR-Abweichungen vom Mittelwert oder Median der jeweiligen Station im Analyselauf</td>
 <td><code>performance/figure_segment_temporal_snr_deviation.png</code></td>
 </tr>
 <tr>
@@ -302,15 +304,12 @@
 <td>Ausgewählte Station 2: zeitliche Datengrundlage und zusammengefasste Dekodierquote</td>
 <td><code>performance/figure_selected_station_temporal_evidence.png</code></td>
 </tr>
-<tr>
-<td>Ausgewählte Station 3: Dekodierquote nach Entfernung/Zeit</td>
-<td><code>performance/figure_selected_station_decode_distance.png</code></td>
-</tr>
 </tbody>
 </table></div>
-<p>Die Datei <code>config/run_metadata.json</code> im Paket erhält <code>performance_temporal_statistics</code>. <code>segment</code> behält seine Rolle für Segmentabweichungsmetadaten; <code>segment_absolute</code> beschreibt die neue absolute Ansicht, <code>selected_station</code> bleibt absolut, und <code>segment_decode_distance</code> / <code>selected_station_decode_distance</code> beschreiben Entfernungszellen. Diese Metadaten unterscheiden die Gewichte einzelner Beobachtungen, Zusammenfassung nach Tageszeit, Dichte relativ zum Maximum jedes Panels, tatsächliche zusammengefasste Prozentsätze, den gemeinsamen dargestellten Quotenbereich samt Ersatzbereichsstatus, Intervallverfügbarkeit und Behandlung festgehaltener Vergleichsniveaus. Die obigen Abbildungspfade liegen unterhalb des Paketwurzelverzeichnisses.</p>
-<p>Alle vier zeitlichen Segmentabbildungen sind im Ergebnispaket enthalten, auch wenn die Expertenansicht eingeklappt ist. Das Einzelstationspaket behält drei zeitliche Abbildungen und ergänzt keine Abweichungsabbildung.</p>
+<p>Die Datei <code>config/run_metadata.json</code> im Paket erhält <code>performance_temporal_statistics</code>. <code>segment</code> behält seine Rolle für Segmentabweichungsmetadaten; <code>segment_absolute</code> beschreibt die absolute Ansicht, <code>selected_station</code> bleibt absolut, und <code>segment_decode_distance</code> beschreibt Entfernungszellen. Diese Metadaten unterscheiden die Gewichte einzelner Beobachtungen, Zusammenfassung nach Tageszeit, Dichte relativ zum Maximum jedes Panels, tatsächliche zusammengefasste Prozentsätze, den gemeinsamen dargestellten Quotenbereich samt Ersatzbereichsstatus, Intervallverfügbarkeit und Behandlung festgehaltener Vergleichsniveaus. Die obigen Abbildungspfade liegen unterhalb des Paketwurzelverzeichnisses.</p>
+<p>Alle vier zeitlichen Segmentabbildungen sind im Ergebnispaket enthalten, auch wenn die Expertenansicht eingeklappt ist. Das Einzelstationspaket enthält zwei zeitliche Abbildungen; es enthält weder die redundante Entfernungs-Heatmap noch eine Abweichungsabbildung.</p>
 <p>Die Performance-Abbildung nach SNR-Klasse folgt der aktuellen Auswahl in den Segmentdetails. Wenn die Abbildung verfügbar ist, enthält das Paket <code>performance/figure_decodes_stations_by_snr.png</code> und <code>performance/figure_decodes_stations_by_snr_dark.png</code>. Der Eintrag <code>performance_snr_reach</code> in <code>config/run_metadata.json</code> dokumentiert Auswahl, Statistik der Markierungen, SNR-Bezugsgröße, Zählregeln und feste Nenner.</p>
+<p>Lies die wirksame Mindestzahl meldender Empfänger aus dem Zahlenfeld <code>performance_corroboration.minimum_other_reporters</code> ab. Der aktuelle Export schreibt weiterhin <code>mode_specific_five_other_reporter_requirement_met</code> in das Textfeld <code>evidence_definition</code>. Die implementierte Mindestzahl beträgt drei.</p>
 <p>TX-Performance-Exporte erhalten <code>tx_snr_normalization_to_30dbm</code> und die wirksame SNR-Bezugsgröße. Die beibehaltenen <code>target_snr</code>-Werte und alle daraus abgeleiteten SNR-Tabellen, Abbildungen, Vergleichsniveaus und Intervalle verwenden diese eine Bezugsgröße des abgeschlossenen Laufs. Ursprüngliche und normierte Ergebnisse dürfen keine irreführende gemeinsame 30-dBm-Beschriftung tragen.</p>
 <p>Numerische Benchmark-Statistikexporte behalten Mittelwert, Stichprobenstandardabweichung, Standardfehler, untere und obere Intervallgrenze, Halbbreite, Alpha, Methode, beitragende Anzahl sowie Verfügbarkeit und Status mit voller Genauigkeit. Diese Anzahl bezeichnet gepaarte Beobachtungen bei Konfidenzintervallen einzelner Stationen und zusammengefasster Paare, dagegen Stationsmittelwerte bei aggregierten Stationskonfidenzintervallen. Die Tabellenanzeige <strong>± Halbbreite</strong> ersetzt diese Werte nicht. <strong>Mittelwert der Stationsmittelwerte</strong>, <strong>Median der Stationsmediane</strong> und <strong>Mittelwert der Stationsmediane</strong> werden getrennt benannt; der erste erhält sein eigenes Konfidenzintervall, berechnet über diese Stationsmittelwerte. Diese Definitionen von <strong>Stationen</strong> bleiben unverändert. Kartensegmentexporte beschreiben dagegen den Mittelwert über alle qualifizierten Paare und dessen eigenes Konfidenzintervall, einschließlich Paaranzahl N, Standardabweichung und Standardfehler der Paardifferenzen, qualifizierter Stationsanzahl, Stationsmindestzahl, maximaler KI-Halbbreite und Qualifikationsgrund. Entartete Intervalle behalten numerische Grenzen der Breite null zusammen mit ihrem ausdrücklichen Status. Beibehaltene datierte UTC-Beobachtungen und vollständige Stationsidentitäten bleiben für spätere abhängigkeitsbewusste Auswertungen verfügbar.</p>
 <p>Die maschinenlesbaren Felder des Konfidenzintervallergebnisses umfassen <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> und <code>status</code>. Zeitliche Profile bewahren vollständige Intervallgrenzen in <code>ci_lower</code> und <code>ci_upper</code> und die beobachtete Anzahl beitragender Paare in <code>ci_n</code>, einschließlich null bei leeren Intervallen. Die übergeordnete Angabe <code>statistics_availability</code> und <code>spots.distribution_status</code> unterscheiden eine nicht verfügbare zugrunde liegende Verteilung von verfügbaren zwischengespeicherten Statistiken oder Konfidenzintervallen.</p>

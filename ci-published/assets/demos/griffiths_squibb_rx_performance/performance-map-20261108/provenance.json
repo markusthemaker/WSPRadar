@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "demo_id": "griffiths_squibb_rx_performance",
+  "completed_export": "2026-11-07T22:32:09Z",
+  "source_inputs": {
+    "refresh-20261107/data/wspradar_config.config": {
+      "bytes": 4554,
+      "sha256": "fdc48018368524fef6e8cfe96bf1f977249dfa0cb98a2a11283958de6465729e"
+    },
+    "refresh-20261107/data/run_metadata.json": {
+      "bytes": 4050160,
+      "sha256": "5434a0be8ef7597390ceda4c4989b5fdbb23984fee9f9a7b216dc46e0823fdac"
+    },
+    "refresh-20261107/data/source-export.zip": {
+      "bytes": 19983177,
+      "sha256": "9736fa02025a088fca9581cf0dd8a75ae2d51d3ae059905ae39e044c89ed9577"
+    },
+    "retained_parquet": {
+      "archive_member": "WSPRadar_export_2026_11_07__23_32/performance/analysis_cache.parquet",
+      "bytes": 6136871,
+      "sha256": "3772ad328f25423efb0ccfdf00c1396a2f93da7be86f79598885be020b8d1c3a"
+    },
+    "refresh-20261107/data/stations_all_verified.csv": {
+      "bytes": 121781,
+      "sha256": "741bfde1ec297d522978d43d2031cb6b85832be0e33148ef7629fed355b9c624"
+    }
+  },
+  "render_settings": {
+    "target": "G3ZIL",
+    "locator": "IO90HW",
+    "band": "40m",
+    "start_utc": "2017-04-01T00:00:00+00:00",
+    "end_utc": "2017-05-01T00:00:00+00:00",
+    "retained_station_opportunity_minimum": 1,
+    "export_map_shading_minimum": 1,
+    "current_map_shading_minimum": 5,
+    "saved_distance_km": 22000,
+    "dpi": 300
+  },
+  "verification": "The eligible identities, successes, misses, opportunities and station rates match the independent retained station CSV. Map shading thresholds change sector rendering without changing the station population.",
+  "verified_map_summary": {
+    "eligible_stations": 2444,
+    "heard_stations": 1102,
+    "successful_decodes": 114228,
+    "confirmed_opportunities": 673887,
+    "observed_segments": 60,
+    "colored_segments": 36,
+    "hatched_segments": 24,
+    "colored_zero_segments": 3
+  },
+  "verified_geographic_examples": {
+    "ZL4KT (RE54GD)": {
+      "geometry": [
+        15000,
+        20015,
+        2
+      ],
+      "segment_stations": 17
+    },
+    "HB0QRP (JN47)": {
+      "geometry": [
+        0,
+        2500,
+        5
+      ],
+      "segment_stations": 142
+    }
+  },
+  "rendered_figure_labels": {
+    "light": {
+      "title": "G3ZIL (RX) Decode Rate",
+      "footer": "Scope: Full Range | All Directions · Worldwide · 40 m · 01 Apr–01 May 2017 UTC · Solar: All\nEligible: ≥1 confirmed opportunities/station · Map shading: ≥5 qualifying stations/segment · Decode rate: successes / opportunities; equal-station mean.\nStation = callsign + full locator.",
+      "legend": [
+        "Heard by Target",
+        "Heard by others only",
+        "Not qualifying",
+        "No observations"
+      ]
+    },
+    "dark": {
+      "title": "G3ZIL (RX) Decode Rate",
+      "footer": "Scope: Full Range | All Directions · Worldwide · 40 m · 01 Apr–01 May 2017 UTC · Solar: All\nEligible: ≥1 confirmed opportunities/station · Map shading: ≥5 qualifying stations/segment · Decode rate: successes / opportunities; equal-station mean.\nStation = callsign + full locator.",
+      "legend": [
+        "Heard by Target",
+        "Heard by others only",
+        "Not qualifying",
+        "No observations"
+      ]
+    }
+  },
+  "renderer_sources": {
+    "core/map_data.py": {
+      "bytes": 15495,
+      "sha256": "07287c5d2452556f82cd8da17fd5e9bbb5cfec6f5a0246f0cca9aa13cbff095f"
+    },
+    "core/plot_engine.py": {
+      "bytes": 54221,
+      "sha256": "9d39118fb756dd67e5f969e3a90e74f8ee21839a93d5bf7360f76943dd17b831"
+    },
+    "core/map_base.py": {
+      "bytes": 18108,
+      "sha256": "c3f613c326fd0bb20ae878325a1bbf0c310a4b35b8b7b1c3afadb8ba517fc077"
+    },
+    "core/figure_presentation.py": {
+      "bytes": 31487,
+      "sha256": "34784c87a94930cba613b4fb05fe2968ecb2b44a70c3913ee1f8279ba4b8c1b8"
+    },
+    "config/plot_constants.py": {
+      "bytes": 4250,
+      "sha256": "1619b1019ed056a0deb470937120b2a37e43823807d53970f323a051bbd328ec"
+    },
+    "scripts/internal/render_performance_map_refresh.py": {
+      "bytes": 30753,
+      "sha256": "1aaed6ac442d0218a02cffb0dbab3ca68a502bf5aa3db8d5627be977386f3f4f"
+    },
+    "website/scripts/browser_assets.py": {
+      "bytes": 7614,
+      "sha256": "c4149f7428be3c4c25b1e58da178bd467299a165a9ebfa015ef04bb0a60167f2"
+    }
+  },
+  "network_access": "No provider queries; original retained rows and local basemap assets.",
+  "files": [
+    {
+      "path": "refresh-20261107/figures/figure_map_highres.png",
+      "bytes": 1461924,
+      "sha256": "05c1d188771c01365cbf2b219cbe7095592b358ef83e4e4e586f8f7dd8ab82f0",
+      "source_path": "assets/demos/griffiths_squibb_rx_performance/performance-map-20261108/native/figure_map_highres-05c1d188771c.png",
+      "source_role": "Native RX Performance map, re-rendered from the November 7 completed export with the five-station map shading threshold"
+    },
+    {
+      "path": "refresh-20261107/figures/figure_map_highres_dark.png",
+      "bytes": 1609247,
+      "sha256": "62b8d6a8b9c8b7132fd25a55ec61f553be073f0eee1c8abed992a4e178028170",
+      "source_path": "assets/demos/griffiths_squibb_rx_performance/performance-map-20261108/native/figure_map_highres_dark-62b8d6a8b9c8.png",
+      "source_role": "Native RX Performance map, re-rendered from the November 7 completed export with the five-station map shading threshold"
+    },
+    {
+      "path": "refresh-20261107/figures/figure_map_highres_dark-520.webp",
+      "bytes": 119702,
+      "sha256": "6f7e12596b71495cd067bd9134edec945a3b79fca8e47cc09630bca28dc585b8",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/performance-map-20261108/native/figure_map_highres_dark-62b8d6a8b9c8.png",
+        "source_sha256": "62b8d6a8b9c8b7132fd25a55ec61f553be073f0eee1c8abed992a4e178028170",
+        "source_bytes": 1609247,
+        "width": 520,
+        "height": 538,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "refresh-20261107/figures/figure_map_highres_dark-1040.webp",
+      "bytes": 319728,
+      "sha256": "d82086eafd60a9a3cd7d58b609e1f1e061c197d86a73d037f8d2a2f16aa0dab1",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/performance-map-20261108/native/figure_map_highres_dark-62b8d6a8b9c8.png",
+        "source_sha256": "62b8d6a8b9c8b7132fd25a55ec61f553be073f0eee1c8abed992a4e178028170",
+        "source_bytes": 1609247,
+        "width": 1040,
+        "height": 1076,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    },
+    {
+      "path": "refresh-20261107/figures/figure_map_highres_dark-1584.webp",
+      "bytes": 555684,
+      "sha256": "c0999e091c21e44d2e18de34a81b35937eb2325e7fb8a928426406704b724c3f",
+      "recipe": {
+        "kind": "image",
+        "source_path": "assets/demos/griffiths_squibb_rx_performance/performance-map-20261108/native/figure_map_highres_dark-62b8d6a8b9c8.png",
+        "source_sha256": "62b8d6a8b9c8b7132fd25a55ec61f553be073f0eee1c8abed992a4e178028170",
+        "source_bytes": 1609247,
+        "width": 1584,
+        "height": 1638,
+        "format": "WEBP",
+        "mode": "RGBA",
+        "lossless": true,
+        "quality": 80,
+        "method": 4,
+        "exact": true
+      }
+    }
+  ]
+}

@@ -164,6 +164,10 @@
 .case-summary>p{font-size:17px;line-height:1.5;margin:12px 0 0}
 @media(min-width:760px) and (max-width:1100px){.case-summary>ul{grid-template-columns:repeat(2,minmax(0,1fr))}.case-summary>ul>li:last-child{grid-column:1/-1}}
 @media(max-width:759px){.case-summary>ul{grid-template-columns:minmax(0,1fr)}}
+/* RX Performance mirrors the app's four whole-analysis summary tiles. */
+.case-summary:has(#rx-performance-summary-scope)>ul{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(min-width:760px) and (max-width:1100px){.case-summary:has(#rx-performance-summary-scope)>ul{grid-template-columns:repeat(2,minmax(0,1fr))}.case-summary:has(#rx-performance-summary-scope)>ul>li:last-child{grid-column:auto}}
+@media(max-width:759px){.case-summary:has(#rx-performance-summary-scope)>ul{grid-template-columns:minmax(0,1fr)}}
 @media print{.case-summary>ul>li{break-inside:avoid;background:transparent}}
 .case-copy .case-evidence-details{margin:24px 0;padding:8px 16px 12px;border:1px solid var(--case-line);border-radius:6px}
 .case-copy .case-evidence-details>summary{cursor:pointer;min-height:44px;padding:8px 0;font-weight:600;color:#d8ecfb}

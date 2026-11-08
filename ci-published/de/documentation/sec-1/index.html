@@ -50,19 +50,19 @@
 <a id="part-0"></a></p>
 <h1>Teil 0: Warum WSPRadar</h1>
 <p>Du veränderst eine Antenne, eine Speiseleitung, einen Empfänger oder eine Stationseinstellung. <strong>Hat es geholfen — und wo, wann und um wie viel?</strong> Ein Empfangsbericht mit höherem SNR oder ein zusätzlicher WSPR-Spot ist eine nützliche Beobachtung. Doch auch die Ausbreitung, die Aktivität der Gegenstationen und der lokale Rauschpegel können sich verändert haben.</p>
-<p>WSPRadar hilft dir, dieser Frage über viele Funkpfade nachzugehen. Es analysiert WSPR-Empfangsberichte und zeigt, wo Signale empfangen werden, wie sie sich unterscheiden und wie regelmäßig sie im Zeitverlauf dekodiert werden. Ein Muster auf der Karte kannst du bis zu den beteiligten Stationen und den einzelnen Empfangsberichten zurückverfolgen.</p>
+<p>WSPRadar hilft dir, dieser Frage über viele Funkstrecken nachzugehen. Es analysiert WSPR-Empfangsberichte und zeigt, wo Signale empfangen werden, wie sie sich unterscheiden und wie regelmäßig sie im Zeitverlauf dekodiert werden. Ein Muster auf der Karte kannst du bis zu den beteiligten Stationen und einzelnen Empfangsberichten zurückverfolgen.</p>
 <p>Wiederholte oder gleichzeitige Vergleiche bieten eine stärkere Grundlage als nicht zusammengehörige Empfangsberichte, die Stunden auseinanderliegen. Veröffentlichte WSPR-Versuche zeigen den Wert vergleichbarer Betriebsbedingungen <a href="/de/documentation/sec-ref/#ref-1">[Ref-1]</a> <a href="/de/documentation/sec-ref/#ref-2">[Ref-2]</a> <a href="/de/documentation/sec-ref/#ref-3">[Ref-3]</a> <a href="/de/documentation/sec-ref/#ref-4">[Ref-4]</a> <a href="/de/documentation/sec-ref/#ref-5">[Ref-5]</a>.</p>
 <p><strong>WSPRadar beschreibt vollständige Stationen und dokumentierte Signalwege unter realen Betriebsbedingungen.</strong> Es misst weder Antennengewinn noch Wirkungsgrad oder Empfängerempfindlichkeit direkt. Um einen Unterschied einem einzelnen Bauteil zuzuordnen, musst du die übrigen Unterschiede kontrollieren und den Vergleich wiederholen.</p>
 <p><a id="sec-1-1"></a></p>
 <h3>0.1 WSPR in 2 Minuten</h3>
 <p><strong class="defined-term">WSPR</strong> steht für <strong>Weak Signal Propagation Reporter</strong>. Stationen senden mit geringer Leistung zeitlich festgelegte digitale Signale, die andere Stationen dekodieren und melden. Ein <strong class="defined-term">WSPR-Zyklus</strong> ist ein zweiminütiges Intervall, das zu einer geraden UTC-Minute beginnt <a href="/de/documentation/sec-ref/#ref-6">[Ref-6]</a> <a href="/de/documentation/sec-ref/#ref-8">[Ref-8]</a>.</p>
-<p>Ein <strong class="defined-term">Spot</strong> ist ein hochgeladener Empfangsbericht über eine erfolgreiche Dekodierung. Er enthält die Identitäten und Standorte von Sender und Empfänger, Zeitpunkt, Band, gemeldete Sendeleistung und <strong class="defined-term">SNR</strong> — den Signal-Rausch-Abstand in dB. Ein höheres SNR bedeutet ein stärkeres Signal im Verhältnis zum Rauschen; ein negativer Wert bedeutet nicht, dass die Dekodierung fehlgeschlagen ist.</p>
+<p>Ein <strong class="defined-term">Spot</strong> ist ein hochgeladener Empfangsbericht über eine erfolgreiche Dekodierung. Er enthält Rufzeichen und Standorte von Sender und Empfänger, Zeitpunkt, Band, gemeldete Sendeleistung und <strong class="defined-term">SNR</strong> — den Signal-Rausch-Abstand in dB. Ein höheres SNR bedeutet ein stärkeres Signal im Verhältnis zum Rauschen; ein negativer Wert bedeutet nicht, dass die Dekodierung fehlgeschlagen ist.</p>
 <p><strong>WSPRadar analysiert hochgeladene Empfangsberichte; es empfängt und dekodiert selbst keine Funksignale.</strong> WSPRnet zeigt Empfangsberichte an. WSPRadar liest normalerweise <strong>wspr.live</strong>, mit <strong>WSPRDaemon WD2</strong> und <strong>WD1</strong> als Alternativen; jeder Analyselauf verwendet eine einzige Datenbank, ohne Quellen zu kombinieren. Siehe <a href="/de/documentation/sec-6/#sec-6-6">Datenverfügbarkeit und Quellenauswahl</a> <a href="/de/documentation/sec-ref/#ref-10">[Ref-10]</a> <a href="/de/documentation/sec-ref/#ref-11">[Ref-11]</a>.</p>
 <p>Empfangsberichte zeigen erfolgreiche Dekodierungen, nicht jeden Sendeversuch oder jeden zuhörenden Empfänger. <strong>Ein fehlender Spot allein beweist keinen fehlgeschlagenen Empfang.</strong> Wie WSPRadar mit dieser Unsicherheit umgeht, hängt von der gewählten Analyse ab.</p>
 <p><a id="sec-1-0"></a>
 <a id="sec-1-2"></a></p>
 <h3>0.2 Was WSPRadar zeigen kann</h3>
-<p>Das <strong class="defined-term">Target</strong> ist die untersuchte Station beziehungsweise der untersuchte Signalweg. Eine <strong class="defined-term">Gegenstation</strong> ist eine entfernte Station, deren Funkpfad zur Analyse beiträgt: bei RX ein Sender, bei TX ein Empfänger.</p>
+<p>Das <strong class="defined-term">Target</strong> ist die untersuchte Station beziehungsweise der untersuchte Signalweg. Eine <strong class="defined-term">Gegenstation</strong> ist bei RX ein entfernter Sender, bei TX ein entfernter Empfänger. Ihre Funkstrecke zum Target trägt zur Analyse bei.</p>
 <p><strong class="defined-term">Performance</strong> untersucht das Target für sich. <strong class="defined-term">Benchmark</strong> vergleicht es mit einer <strong class="defined-term">Referenz</strong> — einem anderen kontrollierten Signalweg oder einer bekannten Station.</p>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
 <thead>
@@ -76,12 +76,12 @@
 <tr>
 <td>Was kann diese Station empfangen, und wie regelmäßig?</td>
 <td><strong class="defined-term">RX Performance</strong></td>
-<td>Vom Target gehörte Gegenstationen auf der Sendeseite; Aktivitätsnachweise stützen die Einordnung als dekodiert oder nicht dekodiert.</td>
+<td>Welche Sender das Target hört und wie regelmäßig. Nicht dekodierte Aussendungen zählen mit, wenn die nötige Aktivität der Stationen durch Empfangsberichte belegt ist.</td>
 </tr>
 <tr>
 <td>Wo wird diese Station gehört, und wie regelmäßig?</td>
 <td><strong class="defined-term">TX Performance</strong></td>
-<td>Gegenstationen auf der Empfangsseite, die das Target hören; Aktivitätsnachweise stützen die Einordnung als dekodiert oder nicht dekodiert.</td>
+<td>Welche Empfänger das Target hören und wie regelmäßig. Nicht dekodierte Aussendungen zählen mit, wenn die nötige Aktivität der Stationen durch Empfangsberichte belegt ist.</td>
 </tr>
 <tr>
 <td>Wie unterscheiden sich zwei Empfangsaufbauten?</td>
@@ -98,13 +98,18 @@
 <p>Mit Performance kannst du einen Ausgangszustand der Station erfassen oder geografische und zeitliche Muster untersuchen. Benchmark eignet sich zum Vergleich von Antennen, Speiseleitungen, Empfängern, Filtern, Vorverstärkern oder vollständigen Aufbauten. Eine unabhängige Referenz vergleicht vollständige installierte Stationen einschließlich ihrer Standorte und Rauschumgebungen; sie ist nicht automatisch ein kalibrierter Standard.</p>
 <p><a id="sec-1-3"></a></p>
 <h3>0.3 Was ein Analyselauf liefert</h3>
-<p>Ein <strong class="defined-term">Analyselauf</strong> verarbeitet Empfangsberichte für eine gewählte Analyse, ein Band, ein UTC-Zeitfenster und einen Satz von Einstellungen. Er liefert Karten, Zusammenfassungen nach Entfernung und Zeit, Stationstabellen und einzelne Beobachtungen, die du prüfen kannst.</p>
+<p>Ein <strong class="defined-term">Analyselauf</strong> wertet Empfangsberichte für die gewählte Analyse, das Band, den UTC-Zeitraum und deine Einstellungen aus. Er liefert Karten, Zusammenfassungen nach Entfernung und Zeit, Stationstabellen und einzelne Beobachtungen, die du prüfen kannst.</p>
 <p>Der physische <strong class="defined-term">Versuch</strong> umfasst den Aufbau und den Funkbetrieb, aus denen diese Empfangsberichte entstanden sind. Wenn du die Darstellung eines abgeschlossenen Analyselaufs änderst, entsteht dadurch kein neuer Versuch.</p>
 <p>Prüfe anhand der Ergebnisse, ob ein Muster breit auftritt oder auf wenige Stationen begrenzt ist, ob es über die Zeit bestehen bleibt und wie umfangreich die Datengrundlage dafür ist. Ergebnisse und Einstellungen lassen sich zur späteren Prüfung herunterladen; deine eigenen Aufbaunotizen vervollständigen die Dokumentation.</p>
 <p><a id="sec-1-4"></a></p>
 <h3>0.4 Dein erster sinnvoller Analyselauf</h3>
-<p>Beginne mit <strong>Demo laden</strong>. Wähle ein gepflegtes Beispiel, lies seine Versuchsnotizen und folge den Bedienelementen der App zum Einrichten und Starten. Behalte beim ersten Analyselauf die vorbereiteten Einstellungen bei. Das Laden von Einstellungen allein startet noch keine Analyse. Wähle in beiden Eingabeansichten <strong>Laden und Einstellungen schrittweise prüfen</strong>, um die geführten Schritte zu öffnen, oder <strong>Laden und vor dem Start prüfen</strong>, um direkt zur Prüfung in der geführten Ansicht zu gelangen. Demolinks von der Website oder eine geteilte Demo-URL öffnen ebenfalls direkt die Prüfung. Prüfe die vorbereiteten Einstellungen und wähle dann je nach Analyserichtung <strong>RX-Analyse starten</strong> oder <strong>TX-Analyse starten</strong>.</p>
-<p>Verfolge ein Merkmal von der Karte bis zu den beitragenden Stationen und einzelnen Beobachtungen. Öffne neben einem Ergebnis <strong>So liest du die Ergebnisse</strong>, um Kennzahl, Legende und Interpretation nachzulesen. Eine Demo vermittelt die Methode; sie liefert keine Datengrundlage über deine Station. Bereite anschließend mit <a href="/de/documentation/sec-2/#sec-2">Kapitel 1</a> deinen eigenen Analyselauf vor.</p><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/documentation-toc/">Weiter: Inhaltsverzeichnis</a></nav></article></div></main>
+<p>Beginne mit <strong>Demo laden</strong>. Wähle eines der gepflegten Beispiele, lies seine Versuchsnotizen und behalte beim ersten Analyselauf die vorbereiteten Einstellungen bei. Beide Eingabeansichten bieten zwei Wege:</p>
+<ul>
+<li><strong>Laden und Einstellungen schrittweise prüfen</strong> öffnet die geführten Schritte.</li>
+<li><strong>Laden und vor dem Start prüfen</strong> öffnet direkt die Prüfung in der geführten Ansicht. Dorthin führen auch Demolinks von der Website und geteilte Demo-URLs.</li>
+</ul>
+<p>Das Laden allein startet noch keine Analyse. Prüfe die Einstellungen und wähle dann je nach Analyserichtung <strong>RX-Analyse starten</strong> oder <strong>TX-Analyse starten</strong>.</p>
+<p>Verfolge ein Merkmal von der Karte bis zu den Stationen und Empfangsberichten dahinter. Unter <strong>So liest du die Ergebnisse</strong> findest du die Erklärung von Kennzahl, Legende und Interpretation. Eine Demo vermittelt die Methode; sie beschreibt nicht deine Station. Bereite anschließend mit <a href="/de/documentation/sec-2/#sec-2">Kapitel 1</a> deinen eigenen Analyselauf vor.</p><nav class="doc-actions" aria-label="Dokumentation"><a href="/de/documentation/documentation-toc/">Weiter: Inhaltsverzeichnis</a></nav></article></div></main>
     <footer class="site-footer"><div class="footer-main"><span class="footer-wordmark"><span class="brand-prefix">WSP</span><span class="brand-radar">Radar</span> v1.0 RC5</span> <span class="footer-tagline">Echte Signale. Echte Daten. Echte Erkenntnisse.</span> <span class="footer-credit">Konzipiert von Dr. Markus Brosch (<a href='https://www.qrz.com/db/DL1MKS' target='_blank' rel='noopener noreferrer' aria-label='DL1MKS auf QRZ.com (öffnet in einem neuen Tab)' style='color:#39ff14; text-decoration:none; white-space:nowrap;'>DL1MKS<span aria-hidden='true' style='display:inline-block; color:#39ff14; font-size:0.95em; font-weight:700; line-height:1; margin-left:0.18em; text-decoration:none; vertical-align:0.08em;'>&#8599;</span></a>), programmiert mit OpenAI Codex. </span></div><div class="footer-actions"><div class="footer-legal"><a href="/de/documentation/full/#sec-disclaimer">Experimentelle Nutzung und Haftungsausschluss</a></div></div></footer>
   </div>
 </body>

@@ -442,7 +442,7 @@
     "settings": {
       "advanced_parameters": {
         "evidence_min_confirmed_opportunities_per_station": 1,
-        "evidence_min_qualifying_stations_per_map_segment": 1,
+        "evidence_min_qualifying_stations_per_map_segment": 5,
         "scope_exclude_moving_stations": false,
         "scope_exclude_special_callsigns": false,
         "scope_max_distance_km": 22000,
@@ -548,8 +548,8 @@
           "en": "Minimum qualifying stations per map segment"
         },
         "value": {
-          "de": "1",
-          "en": "1"
+          "de": "5",
+          "en": "5"
         }
       },
       {

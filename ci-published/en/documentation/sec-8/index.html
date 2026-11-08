@@ -83,7 +83,7 @@
 <tr>
 <td><strong>Inferential</strong></td>
 <td>The result generalizes beyond these observations, with a stated confidence or significance.</td>
-<td>A justified model of dependence and an inferential analysis, which WSPRadar does not supply.</td>
+<td>A justified sampling and dependence model and an analysis suited to that wider claim. WSPRadar’s supplied nominal CI calculation does not by itself provide that broader analysis.</td>
 </tr>
 </tbody>
 </table></div>
@@ -105,15 +105,15 @@
 <tbody>
 <tr>
 <td>“Antenna A has 3 dB more gain than B.”</td>
-<td>“For this band, UTC window and segment, the pooled mean paired ΔSNR was [mean] dB, with a [confidence]% CI of ±[half-width] dB for path A relative to B, supported by [n] qualifying identities and [m] spot pairs.”</td>
+<td>“For this band, UTC window and segment, the pooled mean paired ΔSNR was [mean] dB, with a [confidence]% CI of ±[half-width] dB for path A relative to B, supported by [n] stations meeting the ΔSNR requirements and [m] spot pairs.”</td>
 </tr>
 <tr>
 <td>“My receiver sensitivity is 72%.”</td>
-<td>“The Target's Station-averaged Decode Rate was 72% across [n] qualifying remote identities during the stated window, using confirmed opportunities.”</td>
+<td>“The Target's Station-averaged Decode Rate was 72% across [n] included stations during the stated window, with each station weighted equally and rates based on confirmed opportunities.”</td>
 </tr>
 <tr>
 <td>“Performance should be close to 100%.”</td>
-<td>“Decode Rate is conditional on confirmed opportunities; 100% is not an expected baseline.”</td>
+<td>“Decode Rate describes success within confirmed opportunities; 100% is not an expected baseline.”</td>
 </tr>
 <tr>
 <td>“A is statistically significantly better.”</td>
@@ -173,7 +173,7 @@
 <li>WSPRadar application version and, where available, source revision;</li>
 <li>database source and original export date;</li>
 <li>RX/TX direction, result type and Benchmark design;</li>
-<li>exact Target and Reference identities and locators;</li>
+<li>exact Target and Reference callsigns and locators;</li>
 <li>band and effective UTC boundaries;</li>
 <li>geographic scope, solar state, exclusions and evidence thresholds;</li>
 <li>Reference correction purpose, signed value and calibration basis;</li>
@@ -185,16 +185,18 @@
 <p><strong>2. Evidence supporting the conclusion</strong></p>
 <ul>
 <li>Reported metric and its weighting;</li>
-<li>qualifying identities and confirmed opportunities for Performance;</li>
+<li>included stations and confirmed opportunities for Performance;</li>
 <li>stations with paired observations and spot-pair counts for Benchmark;</li>
 <li>
 <p>station-level and observation-level summaries;</p>
 </li>
 <li>
-<p>for a reported mean CI, the associated mean value and estimator, confidence level, method, contributing unit and count, half-width or full bounds, availability/status and independence assumption; for the Stations aggregate, retain station count and across-station SD/SE; for a pooled map mean, retain qualifying pair count N, paired-difference SD/SE, qualifying station count, the configured station-count requirement actually used, the maximum half-width and qualification reason;</p>
+<p>for a reported mean CI: the mean and estimator, confidence level, method, contributing unit and count, half-width or full bounds, availability/status and independence assumption;</p>
 </li>
+<li>for the Stations aggregate: also retain station count and across-station SD/SE;</li>
+<li>for a pooled map mean: also retain qualifying pair count N, paired-difference SD/SE, qualifying station count, the station-count requirement actually used, maximum half-width and qualification reason;</li>
 <li>Station Reach Advantage, pooled ΔDecode and relevant Paired, Target-only and Reference-only counts;</li>
-<li>geographic and temporal scope, including an influential identity or short interval; and</li>
+<li>geographic and temporal scope, including any station or short interval that strongly influences the result; and</li>
 <li>within-run consistency and any repetition in a separate run.</li>
 </ul>
 <p><strong>3. External experiment record</strong></p>
@@ -230,11 +232,11 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Run metadata</strong></td>
-<td><code>run_metadata.json</code> records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its conditions acceptance, method version, selected segment and station temporal statistics, CI alpha and method, and the aggregation definitions used for the station and pooled-pair summaries. Acceptance does not identify whether common operation was confirmed or its limitations accepted, and is not independent proof of operation. TX Performance preserves the scientific <code>tx_snr_normalization_to_30dbm</code> choice and records its effective basis under <code>performance_snr</code>: <code>value_basis</code>, <code>normalization_to_30dbm</code>, the applied formula, and <code>decode_outcomes_changed: false</code>. The formula is <code>reported_snr</code> with normalization off or <code>reported_snr - reported_tx_power_dbm + 30</code> with it on. Each Performance result block also records <code>performance_corroboration</code>, including the enabled state, opportunity-count ceiling, fixed five-other-reporter requirement, exclusions, evidence-acquisition status and station-eligibility interpretation.</td>
+<td><code>run_metadata.json</code> records software version, database, actual data selection, analysis settings, corrections, inspection scope and enabled outlier settings. Benchmark also records its conditions acceptance, method version, selected segment and station temporal statistics, CI alpha and method, and the aggregation definitions used for the station and pooled-pair summaries. Acceptance does not identify whether common operation was confirmed or its limitations accepted, and is not independent proof of operation. TX Performance preserves the scientific <code>tx_snr_normalization_to_30dbm</code> choice and records its effective basis under <code>performance_snr</code>: <code>value_basis</code>, <code>normalization_to_30dbm</code>, the applied formula, and <code>decode_outcomes_changed: false</code>. The formula is <code>reported_snr</code> with normalization off or <code>reported_snr - reported_tx_power_dbm + 30</code> with it on. Each Performance result block also records <code>performance_corroboration</code>, including the enabled state, opportunity-count ceiling, fixed three-other-reporter requirement, exclusions, evidence-acquisition status and station-eligibility interpretation.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Processed evidence</strong></td>
-<td><code>analysis_cache.parquet</code> contains retained evidence across the completed analysis's full geographic scope after scientific filtering. It is not restricted to the selected segment and is not an untouched database download. Performance <code>target_snr</code> is stored on the completed run's chosen basis; it is not simultaneously a raw and normalized column. The additional <code>corroborated_cycle</code> flag is 1 when at least one matching transmission in that identity-cycle meets the fixed five-other-reporter requirement, otherwise 0. Read it with the run metadata: <code>evidence_acquired: false</code> means corroboration was not collected because the filter was disabled or the selected opportunity minimum exceeded its ceiling; a zero value then is not a measured lack of corroboration.</td>
+<td><code>analysis_cache.parquet</code> contains retained evidence across the completed analysis's full geographic scope after scientific filtering. It is not restricted to the selected segment and is not an untouched database download. Performance <code>target_snr</code> is stored on the completed run's chosen basis; it is not simultaneously a raw and normalized column. The additional <code>corroborated_cycle</code> flag is 1 when at least one matching transmission in that identity-cycle meets the fixed three-other-reporter requirement, otherwise 0. Read it with the run metadata: <code>evidence_acquired: false</code> means corroboration was not collected because the filter was disabled or the selected opportunity minimum exceeded its ceiling; a zero value then is not a measured lack of corroboration.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Benchmark map-segment results</strong></td>
@@ -262,7 +264,7 @@
 </tr>
 <tr>
 <td><strong class="defined-term">Selected-station figures</strong></td>
-<td>Benchmark and Performance use the selected identity's full-run evidence, independently of the station-list filter. With outlier reporting enabled, Benchmark can instead show pooled ΔSNR for multiple selected paths. Performance contains three selected-station temporal figures: absolute SNR, temporal support and distance/time Decode Rate; the segment-only deviation figure is omitted.</td>
+<td>Benchmark and Performance use the selected station’s full-run evidence, independently of the station-list filter. With outlier reporting enabled, Benchmark can instead show pooled ΔSNR for multiple selected paths. Performance contains two selected-station temporal figures: absolute SNR and Decode Rate with temporal support; the redundant distance heatmap and segment-only deviation figure are omitted. Each subtitle gives the calculated distance from Target after the locator.</td>
 </tr>
 <tr>
 <td><strong class="defined-term">Drill-Down focus figures</strong></td>
@@ -291,7 +293,7 @@
 <td><code>performance/figure_segment_temporal_decode_distance.png</code></td>
 </tr>
 <tr>
-<td>Segment 4: station-run-baseline residuals</td>
+<td>Segment 4: SNR deviations from each station’s run mean or median</td>
 <td><code>performance/figure_segment_temporal_snr_deviation.png</code></td>
 </tr>
 <tr>
@@ -302,17 +304,16 @@
 <td>Selected 2: temporal support and pooled Decode Rate</td>
 <td><code>performance/figure_selected_station_temporal_evidence.png</code></td>
 </tr>
-<tr>
-<td>Selected 3: distance/time Decode Rate</td>
-<td><code>performance/figure_selected_station_decode_distance.png</code></td>
-</tr>
 </tbody>
 </table></div>
-<p>The package's <code>config/run_metadata.json</code> preserves <code>performance_temporal_statistics</code>. <code>segment</code> retains the segment-deviation metadata role; <code>segment_absolute</code> describes the new absolute view, <code>selected_station</code> remains absolute, and <code>segment_decode_distance</code> / <code>selected_station_decode_distance</code> describe distance cells. These metadata distinguish individual-observation weights, folded pooling, density relative to each panel's maximum, actual pooled percentages, the shared displayed rate range and fallback status, interval availability and fixed-baseline treatment. Figure paths above are within the package root.</p>
-<p>All four segment temporal figures are included in the results package even when the Expert Review panel is collapsed. The selected-station package retains three temporal figures; it adds no deviation figure.</p>
+<p>The package's <code>config/run_metadata.json</code> preserves <code>performance_temporal_statistics</code>. <code>segment</code> retains the segment-deviation metadata role; <code>segment_absolute</code> describes the absolute view, <code>selected_station</code> remains absolute, and <code>segment_decode_distance</code> describes distance cells. These metadata distinguish individual-observation weights, folded pooling, density relative to each panel's maximum, actual pooled percentages, the shared displayed rate range and fallback status, interval availability and fixed-baseline treatment. Figure paths above are within the package root.</p>
+<p>All four segment temporal figures are included in the results package even when the Expert Review panel is collapsed. The selected-station package contains two temporal figures; it includes neither the redundant distance heatmap nor a deviation figure.</p>
 <p>The Performance SNR-band figure follows the active Inspector scope. The package includes <code>performance/figure_decodes_stations_by_snr.png</code> and <code>performance/figure_decodes_stations_by_snr_dark.png</code> when the figure is available. The <code>performance_snr_reach</code> entry in <code>config/run_metadata.json</code> records the scope, marker statistic, SNR basis, counting rules and fixed denominators.</p>
+<p>Use the numeric <code>performance_corroboration.minimum_other_reporters</code> field to read the effective reporter threshold. The current export still writes <code>mode_specific_five_other_reporter_requirement_met</code> as its <code>evidence_definition</code> string, although the implemented threshold is three.</p>
 <p>TX Performance exports preserve <code>tx_snr_normalization_to_30dbm</code> and the effective SNR basis. The retained <code>target_snr</code> values and all derived SNR tables, figures, baselines and intervals use that one completed-run basis. Raw and normalized results must not share a misleading 30 dBm label.</p>
-<p>Benchmark numeric exports preserve the mean, sample SD, standard error, CI lower bound, upper bound, symmetric half-width, alpha, method, contributing count and availability/status at full precision. The count denotes paired observations for individual-station and pooled-pair CIs, and station means for aggregate station CIs. The displayed <strong>±h</strong> value is a presentation of those bounds, not a replacement for them. Missing and degenerate states remain distinguishable. Metadata identifies the temporal statistic and the summarized population; the aggregate Stations mean is a <strong>mean of station means</strong>, with its own CI calculated across those station means. These Stations definitions remain unchanged. Map-segment exports instead describe the pooled qualifying-pair mean and its own CI, together with pair count N, paired SD/SE, qualifying station count, the station-count requirement, maximum CI half-width, and qualification reason. Degenerate intervals retain numeric zero-width bounds together with explicit status. Retained processed evidence preserves dated UTC timestamps and full station identities even when a figure folds observations by hour. The shared result fields are <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> and <code>status</code>; temporal-bin exports identify the corresponding bounds as <code>ci_lower</code> and <code>ci_upper</code>. Temporal-bin exports also retain the observed integer paired-observation count as <code>ci_n</code>, including zero for empty bins. Top-level <code>statistics_availability</code> and <code>spots.distribution_status</code> distinguish unavailable raw spot distributions from valid cached summary statistics and CI values.</p>
+<p>Benchmark numeric exports preserve the mean, sample SD, standard error, CI lower and upper bounds, symmetric half-width, alpha, method, contributing count and availability/status at full precision. The count denotes pairs for individual-station and pooled-pair CIs, but station means for aggregate station CIs. The displayed <strong>±h</strong> presents the bounds without replacing them. Missing and degenerate states remain distinguishable. Metadata identifies the temporal statistic and the summarized population.</p>
+<p><strong>Mean of station means</strong>, <strong>median of station medians</strong> and <strong>mean of station medians</strong> remain separately named. The first has its own CI calculated across the station means. These Stations definitions are unchanged. Map-segment exports describe the pooled qualifying-pair mean and its own CI, together with pair count N, paired-difference SD/SE, qualifying station count, station-count requirement, maximum CI half-width and qualification reason. Degenerate intervals retain numeric zero-width bounds and explicit status. Processed observations preserve dated UTC timestamps and full station identities even when a figure combines dates by hour, allowing later analyses that account for dependence.</p>
+<p>The shared result fields are <code>n</code>, <code>mean</code>, <code>sample_sd</code>, <code>standard_error</code>, <code>lower</code>, <code>upper</code>, <code>half_width</code>, <code>alpha</code>, <code>method</code>, <code>available</code> and <code>status</code>. Temporal-bin exports retain bounds as <code>ci_lower</code> and <code>ci_upper</code> and the observed integer pair count as <code>ci_n</code>, including zero for empty bins. Top-level <code>statistics_availability</code> and <code>spots.distribution_status</code> distinguish unavailable raw spot distributions from valid cached summary statistics and CI values.</p>
 <p>The selected-scope equal-station aggregate remains recorded in <code>benchmark_mean_statistics.stations.mean_ci</code>; the pooled Spots result remains separate. <code>benchmark_maps.delta_snr</code> identifies the pooled qualifying-pair map estimator, equal-pair weighting, CI method and contributing unit, count and precision qualification settings, and segment-result file. An Inspector scope can contain multiple segments and must not be confused with a single map segment. When the Inspector selects exactly that segment's qualifying pairs, adjustments and confidence level, the map and pooled Spots results agree.</p>
 <p>Keep metadata with the evidence: configuration alone cannot reconstruct every selection. Missing data-selection metadata remains unknown; it does not establish that the standard filter was used. See <a href="/en/documentation/sec-6/#sec-6-4">Section 11.4</a>. Inspector scope, station-list scope and selected-station/focus scope are distinct; a Benchmark station figure must not be read as limited to the Inspector's direction and distance.</p>
 <p>Benchmark figure filenames identify their quantities:</p>

@@ -48,10 +48,10 @@
     <main id="main"><p class="breadcrumb"><a href="/de/documentation/">Dokumentation</a> / 11. Fehlersuche und Datenqualität</p><div class="reader-layout"><details class="reader-index" open><summary>Dokumentation</summary><a class="part-link" href="/de/documentation/sec-1/">Teil 0: Warum WSPRadar</a><a class="chapter-link" href="/de/documentation/documentation-toc/">Inhaltsverzeichnis</a><a class="part-link" href="/de/documentation/part-i/">Teil I: Leitfaden für den Funkbetrieb</a><a class="chapter-link" href="/de/documentation/sec-2/">1. Analyse auswählen und vorbereiten</a><a class="chapter-link" href="/de/documentation/sec-3/">2. Analyse durchführen und auswerten</a><a class="chapter-link" href="/de/documentation/sec-4/">3. Ergebnis absichern und kommunizieren</a><a class="part-link" href="/de/documentation/part-iv/">Teil II: Praktische Anleitung zum Stationsaufbau</a><a class="chapter-link" href="/de/documentation/sec-a/">4. Parallele WSJT-X-Instanzen für simultanen Empfang</a><a class="chapter-link" href="/de/documentation/sec-simultaneous-tx-setup/">5. Referenzaufbau für simultanes Senden</a><a class="chapter-link" href="/de/documentation/sec-b/">6. Kalibrierung des Referenz-SNR</a><a class="part-link" href="/de/documentation/part-iii/">Teil III: Wissenschaftliche Grundlagen, Methoden und Aussagen</a><a class="chapter-link" href="/de/documentation/sec-d/">7. Literatur, Vorarbeiten und Einordnung</a><a class="chapter-link" href="/de/documentation/sec-7/">8. Wissenschaftliche Methoden</a><a class="chapter-link" href="/de/documentation/sec-8/">9. Durch die Datengrundlage getragene Aussagen und Reproduzierbarkeit</a><a class="part-link" href="/de/documentation/part-ii/">Teil IV: Bedienelemente und Fehlersuche</a><a class="chapter-link" href="/de/documentation/sec-5/">10. Bedienelemente und Konfiguration</a><a class="chapter-link" aria-current="page" href="/de/documentation/sec-6/">11. Fehlersuche und Datenqualität</a><a class="part-link" href="/de/documentation/sec-ref/">Teil V: Literatur und Quellen</a><a class="part-link" href="/de/documentation/sec-8-5/">Experimentelle Nutzung und Haftungsausschluss</a></details><article class="prose"><p><a id="sec-6"></a>
 <a id="sec-5-7"></a></p>
 <h1>11. Fehlersuche und Datenqualität</h1>
-<p>Beginne bei der Definition des Analyselaufs. Niedrigere Schwellenwerte können eine falsche Identität, ein falsches Band, einen falschen Messzeitraum oder einen ungeeigneten Sendezeitplan nicht ausgleichen.</p>
+<p>Beginne bei den Analyseeinstellungen. Niedrigere Schwellenwerte können ein falsches Rufzeichen oder einen falschen Locator, ein falsches Band, einen falschen Messzeitraum oder einen ungeeigneten Sendezeitplan nicht ausgleichen.</p>
 <p><a id="sec-6-1"></a></p>
 <h4>11.1 Zuerst die Definition des Analyselaufs prüfen</h4>
-<p>Prüfe die exakte <strong>Target-Identität und das QTH</strong>, das <strong>Band</strong> und den <strong>UTC-Messzeitraum</strong>, anschließend den tatsächlichen Betrieb und die hochgeladenen Empfangsberichte. Prüfe bei Benchmark außerdem die Referenzidentität, gemeinsame Betriebszeiten, synchronisierte Uhren und bei TX die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-2">Sendezeitpläne und den Frequenzabstand</a>. Überprüfe die Signalführung sowie tatsächliche und gemeldete Leistung, bevor du einen unerwarteten Unterschied interpretierst.</p>
+<p>Prüfe das genaue <strong>Target-Rufzeichen und das QTH</strong>, das <strong>Band</strong> und den <strong>UTC-Messzeitraum</strong>, anschließend den tatsächlichen Betrieb und die hochgeladenen Empfangsberichte. Prüfe bei Benchmark außerdem die Referenzidentität, gemeinsame Betriebszeiten, synchronisierte Uhren und bei TX die <a href="/de/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-2">Sendezeitpläne und den Frequenzabstand</a>. Überprüfe die Signalführung sowie tatsächliche und gemeldete Leistung, bevor du einen unerwarteten Unterschied interpretierst.</p>
 <p><a id="sec-6-2"></a></p>
 <h4>11.2 Diagnose anhand des Symptoms</h4>
 <p>Beziehe Hinweise auf die Einstellungen des <strong>abgeschlossenen Analyselaufs</strong>. Eine beobachtete Anzahl ist etwas anderes als eine geforderte Mindestzahl: Drei beobachtete Empfangsgelegenheiten erfüllen keine Anforderung von fünf Empfangsgelegenheiten.</p>
@@ -72,12 +72,12 @@
 <td>Prüfe Stationsausschlüsse, Sonnenstand und maximale Entfernung der Gegenstationen. Diese können die abgerufene Population vollständig entfernen.</td>
 </tr>
 <tr>
-<td><strong>Keine qualifizierten Performance-Stationen</strong></td>
-<td>Vergleiche die bestätigten Empfangsgelegenheiten mit der Mindestzahl je Station. Prüfe sowohl die Aktivitätsbelege an beiden Enden des Funkpfads als auch die Filter der Stationspopulation; unbekannte Aktivität ist keine bestätigte Nichtdekodierung.</td>
+<td><strong>Keine Station erfüllt die Performance-Anforderungen</strong></td>
+<td>Vergleiche die bestätigten Empfangsgelegenheiten jeder Station mit der geforderten Mindestzahl. Prüfe die Filter sowie die Empfangsberichte, mit denen die Aktivität von Sender und Empfänger festgestellt wird. Unbekannte Aktivität zählt nicht als bestätigte nicht dekodierte Gelegenheit.</td>
 </tr>
 <tr>
-<td><strong>Performance-Stationen vorhanden, aber kein Kartensegment qualifiziert sich</strong></td>
-<td>Prüfe die Stationsdaten und vergleiche die Anzahl qualifizierter Stationen jedes Segments mit seiner Mindestzahl. Eine fehlende Kartendarstellung bedeutet keine Dekodierquote von null.</td>
+<td><strong>Performance-Stationen vorhanden, aber kein Kartensegment ist eingefärbt</strong></td>
+<td>Vergleiche die Zahl berücksichtigter Stationen im Segment mit der geforderten Mindestzahl. Graue Schraffur (<strong>Not qualifying</strong>, Anforderungen nicht erfüllt) bedeutet: Mindestens eine Station erfüllt die Stationsanforderungen, aber für eine Färbung sind es zu wenige. Ein ungefülltes Segment (<strong>No observations</strong>, keine berücksichtigten Beobachtungen) enthält nach diesen Anforderungen keine Station für die Karte. Eine gültige Dekodierquote von 0 % wird farbig dargestellt. Schraffur und ungefüllte Segmente belegen nicht, dass kein Empfang stattfand.</td>
 </tr>
 <tr>
 <td><strong>Benchmark-ΔSNR fehlt oder ist schraffiert</strong></td>
@@ -85,7 +85,7 @@
 </tr>
 <tr>
 <td><strong>ΔDecode ist trotz beobachteter Empfangsberichte schraffiert</strong></td>
-<td>Vergleiche die Ereignisanzahl des Segments mit dem erforderlichen Ereignisanteil am gesamten Analyselauf. Die Auswahl eines kleineren Bereichs senkt diese Anforderung nicht.</td>
+<td>Prüfe die Mindestzahl beobachteter Stationen und vergleiche die Ereignisanzahl des Segments mit dem erforderlichen Ereignisanteil am gesamten Analyselauf. Beide Anforderungen müssen erfüllt sein. Ein kleinerer ausgewählter Bereich senkt die Anforderung an den Ereignisanteil nicht.</td>
 </tr>
 <tr>
 <td><strong>Stationsliste unerwartet leer</strong></td>
@@ -121,7 +121,7 @@
 <p><a id="sec-6-5"></a></p>
 <h4>11.5 Betriebsbedingungen und Aktivitätsbelege</h4>
 <p><strong>Benchmark</strong> berücksichtigt zulässige gepaarte und einseitige Empfangsberichte, ohne in jedem Zyklus einen separaten Aktivitätsbeleg für das Target zu verlangen. Selbst ein vollständig nur auf einer Seite beobachteter Zeitraum bleibt als beschreibende Datengrundlage für Dekodierungen nutzbar, liefert aber kein ΔSNR. Ein einseitiges Intervall kann durch Empfang, Sendezeitpläne, Ausfälle oder fehlende Uploads entstehen; WSPRadar ermittelt seine Ursache nicht und entfernt es nicht automatisch. Prüfe Betriebsprotokolle und verwende einen dokumentierten gemeinsamen Betriebszeitraum.</p>
-<p><strong>Performance</strong> zählt jede erfolgreiche Dekodierung als ihre eigene bestätigte Empfangsgelegenheit. Eine Nichtdekodierung erfordert Aktivitätsbelege an beiden Enden des Funkpfads auf demselben Band im selben Zyklus; andernfalls bleibt das Ergebnis unbekannt. Die richtungsabhängigen Regeln stehen in <a href="/de/documentation/sec-7/#sec-7-performance-opportunities">Abschnitt 8.3.1</a>.</p>
+<p><strong>Performance</strong> zählt jede erfolgreiche Dekodierung als ihre eigene bestätigte Empfangsgelegenheit. Eine nicht dekodierte Gelegenheit zählt nur, wenn Empfangsberichte die Aktivität von Sender und Empfänger auf demselben Band im selben Zyklus belegen; andernfalls bleibt das Ergebnis unbekannt. Die richtungsabhängigen Regeln stehen in <a href="/de/documentation/sec-7/#sec-7-performance-opportunities">Abschnitt 8.3.1</a>.</p>
 <p><a id="sec-6-6"></a></p>
 <h4>11.6 Mit Daten aus den Quellen arbeiten</h4>
 <p>Der <strong class="defined-term">Status des Analyselaufs</strong> nennt die verwendete Datenbank und eine etwaige historische Ersatzabfrage. Jeder Analyselauf verwendet eine Quelle; Empfangsberichte aus verschiedenen Datenbanken werden nicht kombiniert. WSPRadar kann für einen neuen Versuch die Quelle wechseln. Die Ermittlung des Referenzstandorts bindet die anschließende Analyse jedoch an diese Quelle. Fällt sie aus, beginne neu und prüfe den neu ermittelten Referenzstandort.</p>

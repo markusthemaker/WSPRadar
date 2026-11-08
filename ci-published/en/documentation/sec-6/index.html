@@ -48,10 +48,10 @@
     <main id="main"><p class="breadcrumb"><a href="/en/documentation/">Documentation</a> / 11. Troubleshooting and Data Quality</p><div class="reader-layout"><details class="reader-index" open><summary>Documentation</summary><a class="part-link" href="/en/documentation/sec-1/">Part 0: Why WSPRadar</a><a class="chapter-link" href="/en/documentation/documentation-toc/">Table of Contents</a><a class="part-link" href="/en/documentation/part-i/">Part I: Operator Guide</a><a class="chapter-link" href="/en/documentation/sec-2/">1. Choose and Prepare the Analysis</a><a class="chapter-link" href="/en/documentation/sec-3/">2. Run and Interpret Your Analysis</a><a class="chapter-link" href="/en/documentation/sec-4/">3. Strengthen and Communicate Your Result</a><a class="part-link" href="/en/documentation/part-iv/">Part II: Practical Setup Guide</a><a class="chapter-link" href="/en/documentation/sec-a/">4. Parallel WSJT-X Instances for Simultaneous RX</a><a class="chapter-link" href="/en/documentation/sec-simultaneous-tx-setup/">5. Simultaneous TX Reference Setup</a><a class="chapter-link" href="/en/documentation/sec-b/">6. Reference SNR Calibration</a><a class="part-link" href="/en/documentation/part-iii/">Part III: Scientific Foundations, Methods and Claims</a><a class="chapter-link" href="/en/documentation/sec-d/">7. Literature, Prior Art and Positioning</a><a class="chapter-link" href="/en/documentation/sec-7/">8. Scientific Methods</a><a class="chapter-link" href="/en/documentation/sec-8/">9. Evidence-Matched Claims and Reproducibility</a><a class="part-link" href="/en/documentation/part-ii/">Part IV: Controls and Troubleshooting</a><a class="chapter-link" href="/en/documentation/sec-5/">10. Controls and Configuration</a><a class="chapter-link" aria-current="page" href="/en/documentation/sec-6/">11. Troubleshooting and Data Quality</a><a class="part-link" href="/en/documentation/sec-ref/">Part V: References</a><a class="part-link" href="/en/documentation/sec-8-5/">Experimental Use &amp; Disclaimer</a></details><article class="prose"><p><a id="sec-6"></a>
 <a id="sec-5-7"></a></p>
 <h1>11. Troubleshooting and Data Quality</h1>
-<p>Start with the run definition. Lower thresholds cannot repair a wrong identity, band, time window or transmission schedule.</p>
+<p>Start with the analysis settings. Lower thresholds cannot repair a wrong callsign or locator, band, time window or transmission schedule.</p>
 <p><a id="sec-6-1"></a></p>
 <h4>11.1 Confirm the run definition first</h4>
-<p>Check the exact <strong>Target identity and QTH</strong>, <strong>band</strong> and <strong>UTC window</strong>, then actual operation and uploads. For Benchmark, also check Reference identity, common operating times, synchronized clocks and, for TX, <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-2">schedules and frequency separation</a>. Verify signal routing and actual versus reported power before interpreting an unexpected difference.</p>
+<p>Check the exact <strong>Target callsign and QTH</strong>, <strong>band</strong> and <strong>UTC window</strong>, then actual operation and uploads. For Benchmark, also check Reference identity, common operating times, synchronized clocks and, for TX, <a href="/en/documentation/sec-simultaneous-tx-setup/#sec-simultaneous-tx-setup-2">schedules and frequency separation</a>. Verify signal routing and actual versus reported power before interpreting an unexpected difference.</p>
 <p><a id="sec-6-2"></a></p>
 <h4>11.2 Diagnose by symptom</h4>
 <p>Read notices against the settings of the <strong>completed run</strong>. An observed count and a required minimum are different: three observed opportunities do not meet a five-opportunity requirement.</p>
@@ -72,12 +72,12 @@
 <td>Review station exclusions, solar state and maximum peer distance. These may remove the retrieved population.</td>
 </tr>
 <tr>
-<td><strong>No qualifying Performance stations</strong></td>
-<td>Compare confirmed opportunities with the station minimum. Check both endpoint-activity evidence and population filters; unknown activity is not a confirmed miss.</td>
+<td><strong>No stations meet the Performance requirements</strong></td>
+<td>Compare each station’s confirmed opportunities with the required minimum. Check the filters and the reports used to establish transmitter and receiver activity; unknown activity is not a confirmed miss.</td>
 </tr>
 <tr>
-<td><strong>Performance stations exist, but no map segment qualifies</strong></td>
-<td>Inspect station evidence and compare each segment's qualifying-station count with its minimum. Missing map output is not a zero Decode Rate.</td>
+<td><strong>Performance stations are available, but no segment is colored</strong></td>
+<td>Compare the number of included stations in each segment with its required minimum. Gray hatching (<strong>Not qualifying</strong>) means at least one station meets the station requirements, but too few remain to color the segment. An unfilled segment (<strong>No observations</strong>) has no station left for this map after those requirements. A valid 0% Decode Rate is colored; hatching or an unfilled segment does not establish that no reception occurred.</td>
 </tr>
 <tr>
 <td><strong>Benchmark ΔSNR is missing or hatched</strong></td>
@@ -85,7 +85,7 @@
 </tr>
 <tr>
 <td><strong>ΔDecode is hatched despite observed reports</strong></td>
-<td>Compare the segment's event count with the full-run event-share requirement. Selecting a smaller area does not lower that requirement.</td>
+<td>Check the segment’s minimum observed-station count and compare its event count with the full-run event-share requirement. Both must be met. Selecting a smaller area does not lower the event-share requirement.</td>
 </tr>
 <tr>
 <td><strong>Station list is unexpectedly empty</strong></td>
@@ -121,7 +121,7 @@
 <p><a id="sec-6-5"></a></p>
 <h4>11.5 Operating conditions and activity evidence</h4>
 <p><strong>Benchmark</strong> retains eligible paired and one-sided reports without requiring a separate Target-activity witness in each cycle. Even an entire period observed on only one side remains usable as descriptive decode evidence, but provides no ΔSNR. A one-sided interval may reflect reception, schedules, outages or missing uploads; WSPRadar does not identify its cause or remove it automatically. Check logs and use a documented common operating period.</p>
-<p><strong>Performance</strong> counts each success as its own confirmed opportunity. A miss requires activity evidence at both endpoints on the same band in the same cycle; otherwise the outcome remains unknown. The direction-specific rules are in <a href="/en/documentation/sec-7/#sec-7-performance-opportunities">Section 8.3.1</a>.</p>
+<p><strong>Performance</strong> counts each success as its own confirmed opportunity. A miss requires reports establishing activity at both the transmitter and receiver on the same band in the same cycle; otherwise the outcome remains unknown. The direction-specific rules are in <a href="/en/documentation/sec-7/#sec-7-performance-opportunities">Section 8.3.1</a>.</p>
 <p><a id="sec-6-6"></a></p>
 <h4>11.6 Working with upstream data</h4>
 <p><strong class="defined-term">System Audit Status</strong> identifies the database and any historical fallback used. Each run uses one source; reports from different databases are not combined. WSPRadar can switch sources for a new attempt, but Reference location discovery ties the ensuing analysis to that source. If it fails, restart and review the newly resolved Reference location.</p>
