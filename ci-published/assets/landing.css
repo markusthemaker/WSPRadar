@@ -1,6 +1,6 @@
 /* Landing redesign. Shared manual and demo typography remains in site.css. */
 @font-face{font-family:"WSPRadar Hand";src:url("/assets/landing/web/fonts/caveat-hand-latin.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
-body{background:#000b19}
+body{--site-page-bg:var(--product-bg,var(--bg));background:var(--site-page-bg)}
 .site-shell{--overview-inset:3.5%;max-width:1280px;padding:0 24px 24px}
 /* Shared screen content: artwork text edge on the left, artwork edge on the right. */
 @media screen{
@@ -48,8 +48,8 @@ body{background:#000b19}
   .landing-header .radar-artwork{position:relative;isolation:isolate}
   .landing-header .radar-artwork::before,
   .landing-header .radar-artwork::after{content:"";position:absolute;z-index:1;pointer-events:none}
-  .landing-header .radar-artwork::before{inset:0 0 0 auto;width:4%;background:linear-gradient(to left,var(--product-bg,#000b19),transparent)}
-  .landing-header .radar-artwork::after{inset:0;background:linear-gradient(to right,var(--product-bg,#000b19),transparent 1%),linear-gradient(to bottom,transparent 85%,var(--product-bg,#000b19))}
+  .landing-header .radar-artwork::before{inset:0 0 0 auto;width:4%;background:linear-gradient(to left,var(--site-page-bg),transparent)}
+  .landing-header .radar-artwork::after{inset:0;background:linear-gradient(to right,var(--site-page-bg),transparent 1%),linear-gradient(to bottom,transparent 85%,var(--site-page-bg))}
 }
 /* Both wide artworks' handwritten captions reach into the right fade. */
 @media screen and (min-width:601px){
@@ -322,7 +322,7 @@ body{background:#000b19}
 /* The navigation has its own page-spanning sticky boundary; artwork scrolls normally. */
 :root{--site-navigation-height:66px}
 html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
-.site-navigation-shell{position:sticky;top:0;z-index:20;background:#000b19;min-width:0}
+.site-navigation-shell{position:sticky;top:0;z-index:20;background:var(--site-page-bg);min-width:0}
 .site-navigation-shell .navigation{position:relative}
 .skip-link:focus{position:fixed;z-index:30}
 @media(min-width:760px){.reader-index{top:calc(var(--site-navigation-height) + 24px);max-height:calc(100dvh - var(--site-navigation-height) - 48px)}}
@@ -333,7 +333,7 @@ html{scroll-padding-top:calc(var(--site-navigation-height) + 24px)}
   .site-navigation-shell .navigation .nav-toggle{display:inline-flex;grid-column:2;grid-row:1;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;border:1px solid var(--product-control-border);border-radius:5px;background:none;color:var(--text);font:600 15px/1.5 var(--font-body)}
   .site-navigation-shell .navigation .language-selector{grid-column:3;grid-row:1;margin-left:0;padding-left:8px;border-left:1px solid var(--line)}
   .site-navigation-shell .navigation .nav-links{grid-column:1/-1;grid-row:2;flex-wrap:wrap;gap:4px 12px;white-space:normal}
-  .js .site-navigation-shell .navigation .nav-links{position:absolute;top:100%;left:0;right:0;padding:12px;border:1px solid var(--line);border-top:0;background:#000b19;max-height:calc(100dvh - var(--site-navigation-height) - 16px);overflow-y:auto;box-shadow:0 10px 20px #0006}
+  .js .site-navigation-shell .navigation .nav-links{position:absolute;top:100%;left:0;right:0;padding:12px;border:1px solid var(--line);border-top:0;background:var(--site-page-bg);max-height:calc(100dvh - var(--site-navigation-height) - 16px);overflow-y:auto;box-shadow:0 10px 20px #0006}
   .site-navigation-shell .nav-separator{display:none}
   .site-navigation-shell .nav-links>a{flex:1 0 calc(50% - 12px);min-height:44px}
 }

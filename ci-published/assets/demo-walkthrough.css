@@ -1,5 +1,5 @@
 /* Shared illustrated walkthrough. Imported scientific assets remain unchanged. */
-.demo-case-page{--case-line:#21475b;--case-cyan:var(--product-cyan,#55c8ff);--case-green:var(--product-green);background:#000b19}
+.demo-case-page{--case-line:#21475b;--case-cyan:var(--product-cyan,#55c8ff);--case-green:var(--product-green)}
 .demo-case-page .site-header.landing-header{margin-bottom:0}
 .case-study{position:relative;margin-top:-78px;isolation:isolate;padding:0}
 .case-study a:not(.button){color:var(--case-cyan)}
@@ -64,6 +64,13 @@
 .case-row .case-copy>p{font-size:17px;margin-bottom:14px}
 .case-media{min-width:0;width:100%;max-width:520px;justify-self:center}
 .case-study .figure-block{margin:0;border:1px solid #28546d;border-radius:8px;padding:8px;background:#000b19;min-width:0;overflow:hidden}
+/* Space full-width figures in the prose without changing media columns or phone gutters. */
+@media screen {
+  .demo-case-page .case-copy > figure.figure-block {
+    --case-full-figure-gap: 14px;
+    margin-block: var(--case-full-figure-gap);
+  }
+}
 .case-study .figure-block>a:first-child{display:block;position:relative;cursor:zoom-in;border-radius:4px;overflow:hidden}
 .case-study .figure-block>a:first-child::after{content:"↗";position:absolute;right:3px;top:3px;display:grid;place-items:center;width:34px;height:34px;background:#06182be8;color:white;border:1px solid #315c7a;border-radius:6px;font-size:24px;pointer-events:none}
 .case-study .figure-block img{background:#000b19;border:0;border-radius:3px;width:100%;height:auto;object-fit:contain;display:block}

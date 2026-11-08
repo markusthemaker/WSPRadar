@@ -1,5 +1,6 @@
 /* Generated from WSPRadarApp config/product_design.json; do not edit. */
 :root {
+  --product-bg:#010813;
   --product-body:'Source Sans 3',Arial,sans-serif;
   --product-heading:Rajdhani,Arial,sans-serif;
   --product-control-accent:#55c8ff;

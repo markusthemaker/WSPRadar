@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "source_export": {
+    "path": "refresh-20261108/data/source-export.zip",
+    "filename": "WSPRadar_export_2026_11_08__11_28.zip",
+    "exported_utc": "2026-11-08T10:28:05Z",
+    "bytes": 19548913,
+    "sha256": "d710474b43c8a50e34c9f5c4b018214ddbf891f46a6961500a1e3a3def8492ea"
+  },
+  "source_members": {
+    "run_metadata": {
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/config/run_metadata.json",
+      "bytes": 3091078,
+      "sha256": "1b3ff5f8d1ea90ea72e31c4fb3d611703f979d39f0b36c5b6ff8a199363748f4"
+    },
+    "configuration": {
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/config/wspradar_config.config",
+      "bytes": 4554,
+      "sha256": "32473ee8910475dbe27c4728b1ec1e459dc42e5881b505fbfc1888af76b2838e"
+    }
+  },
+  "handoff": {
+    "repository": "markusthemaker/Chatgpt_codex_handoff",
+    "commit": "6ab6c1d102ed3ba1a5c7ce27476fa943460b5cfe",
+    "path": "handoffs/2026-11-08-rx-performance"
+  },
+  "map_settings": {
+    "min_confirmed_opportunities_per_peer": 1,
+    "min_qualifying_stations_per_map_segment": 5
+  },
+  "audit": {
+    "checks_passed": 81,
+    "summary": "Retained example values and the recalculated fact set match the handoff baseline.",
+    "visual_checks": [
+      "The map shows gray hatching, the Not qualifying and No observations legend entries, and the one-opportunity and five-station requirements in the footer.",
+      "The SNR-band figure labels the three Mean markers -11.9 dB, -25.4 dB and -17.4 dB.",
+      "Both selected-station figures show HB0QRP (TX) · JN47 · 844 km in the subtitle."
+    ]
+  },
+  "figures": {
+    "figure_map_highres.png": {
+      "path": "refresh-20261108/figures/figure_map_highres.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_map_highres.png",
+      "bytes": 1461924,
+      "sha256": "05c1d188771c01365cbf2b219cbe7095592b358ef83e4e4e586f8f7dd8ab82f0",
+      "image_px": [
+        3443,
+        3561
+      ]
+    },
+    "figure_map_highres_dark.png": {
+      "path": "refresh-20261108/figures/figure_map_highres_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_map_highres_dark.png",
+      "bytes": 1609247,
+      "sha256": "62b8d6a8b9c8b7132fd25a55ec61f553be073f0eee1c8abed992a4e178028170",
+      "image_px": [
+        3443,
+        3561
+      ]
+    },
+    "figure_spots_stations.png": {
+      "path": "refresh-20261108/figures/figure_spots_stations.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_spots_stations.png",
+      "bytes": 504989,
+      "sha256": "4905b04418ee1feb6929b8ab6760b7a56ab83031f97bba89f3b03c6c7748072e",
+      "image_px": [
+        5408,
+        2130
+      ]
+    },
+    "figure_spots_stations_dark.png": {
+      "path": "refresh-20261108/figures/figure_spots_stations_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_spots_stations_dark.png",
+      "bytes": 499485,
+      "sha256": "3d87ebc64cb947375e3629b5a6ad7f139334915b341eb041572af01c752c4130",
+      "image_px": [
+        5408,
+        2130
+      ]
+    },
+    "figure_decodes_stations_by_snr.png": {
+      "path": "refresh-20261108/figures/figure_decodes_stations_by_snr.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_decodes_stations_by_snr.png",
+      "bytes": 719371,
+      "sha256": "960c7213edebeabf70d513d762e4693dfa809ad3657317790b470bb05917e775",
+      "image_px": [
+        3900,
+        3832
+      ]
+    },
+    "figure_decodes_stations_by_snr_dark.png": {
+      "path": "refresh-20261108/figures/figure_decodes_stations_by_snr_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_decodes_stations_by_snr_dark.png",
+      "bytes": 794339,
+      "sha256": "2b6c15ef4c22e17588da0036f9f8fd1a6ed415b253613da22fd8c993d381813a",
+      "image_px": [
+        3900,
+        3832
+      ]
+    },
+    "figure_segment_temporal_snr_absolute.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_snr_absolute.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_snr_absolute.png",
+      "bytes": 379319,
+      "sha256": "a2e0b31c885cc3c4e3213e0c12d98cc4eb4c4a8d45cf81ca5ba1b63b7898dcf3",
+      "image_px": [
+        3808,
+        1855
+      ]
+    },
+    "figure_segment_temporal_snr_absolute_dark.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_snr_absolute_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_snr_absolute_dark.png",
+      "bytes": 430246,
+      "sha256": "9f2ac26b65c90a584c05eb71c1e70d44f2a4d1a936e81c5bff917e9920fd3158",
+      "image_px": [
+        3808,
+        1855
+      ]
+    },
+    "figure_segment_temporal_evidence.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_evidence.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_evidence.png",
+      "bytes": 435952,
+      "sha256": "8694ae3a994e7e64d00a6412e224e62b8822f8c76cdf4f40ab278fc8b4f4c364",
+      "image_px": [
+        3799,
+        1785
+      ]
+    },
+    "figure_segment_temporal_evidence_dark.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_evidence_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_evidence_dark.png",
+      "bytes": 503740,
+      "sha256": "51f97283b160cdda8149e58b9412c1351e1aae5d63fcc50a81000a5b9756ae6c",
+      "image_px": [
+        3799,
+        1785
+      ]
+    },
+    "figure_segment_temporal_decode_distance.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_decode_distance.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_decode_distance.png",
+      "bytes": 265508,
+      "sha256": "ebdab8abca519b2137977db2132a58e8a1c0e4c03b784fd430dc1b767c4e2b8e",
+      "image_px": [
+        3856,
+        1791
+      ]
+    },
+    "figure_segment_temporal_decode_distance_dark.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_decode_distance_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_decode_distance_dark.png",
+      "bytes": 292762,
+      "sha256": "40fa1cbcc6dd7edd0f7ad8214c9c075d4936685df5975d3c4d4d8432f1f2012e",
+      "image_px": [
+        3856,
+        1791
+      ]
+    },
+    "figure_segment_temporal_snr_deviation.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_snr_deviation.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_snr_deviation.png",
+      "bytes": 391749,
+      "sha256": "40589fb7d04a2d2f8615311c6980c7c3c0ac7dc4286fb531d8a8a647f6f4cb97",
+      "image_px": [
+        3808,
+        1855
+      ]
+    },
+    "figure_segment_temporal_snr_deviation_dark.png": {
+      "path": "refresh-20261108/figures/figure_segment_temporal_snr_deviation_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_segment_temporal_snr_deviation_dark.png",
+      "bytes": 445029,
+      "sha256": "91d9bf88dafb3fbb0580c94d1d9198b3ded473d358b127a2a16f9b8b21beb40f",
+      "image_px": [
+        3808,
+        1855
+      ]
+    },
+    "figure_selected_station_snr_evidence.png": {
+      "path": "refresh-20261108/figures/figure_selected_station_snr_evidence.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_selected_station_snr_evidence.png",
+      "bytes": 386340,
+      "sha256": "c587e7ab3736e0f038e15bcffafb0722585392426a0e8e857078068725c1db00",
+      "image_px": [
+        3808,
+        1921
+      ]
+    },
+    "figure_selected_station_snr_evidence_dark.png": {
+      "path": "refresh-20261108/figures/figure_selected_station_snr_evidence_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_selected_station_snr_evidence_dark.png",
+      "bytes": 448687,
+      "sha256": "18ecb06abc5ed94b8d1b940b3f4993f5427a30cab2473e5860380bf8f3b43830",
+      "image_px": [
+        3808,
+        1921
+      ]
+    },
+    "figure_selected_station_temporal_evidence.png": {
+      "path": "refresh-20261108/figures/figure_selected_station_temporal_evidence.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_selected_station_temporal_evidence.png",
+      "bytes": 490421,
+      "sha256": "140d37bc051c4a1cb8778394289db4d1ed9d0cb81213e093d3124a7f0fff77da",
+      "image_px": [
+        3811,
+        1850
+      ]
+    },
+    "figure_selected_station_temporal_evidence_dark.png": {
+      "path": "refresh-20261108/figures/figure_selected_station_temporal_evidence_dark.png",
+      "archive_member": "WSPRadar_export_2026_11_08__11_28/performance/figure_selected_station_temporal_evidence_dark.png",
+      "bytes": 567836,
+      "sha256": "547e7daef232f297902521a538756a272ab1844121e6a6f07cc5ddb08653d4e1",
+      "image_px": [
+        3811,
+        1850
+      ]
+    }
+  }
+}

@@ -9935,8 +9935,8 @@
       "sha256": "107e60abf909bacba071fb595c079ecc5c2850ea2ec89b7a4df21e00deea9810"
     },
     "assets/brand/product-tokens.css": {
-      "bytes": 800,
-      "sha256": "1a6c10d30cef2383409360b2a7780054aa52602811768d84110b0897f3ecafed"
+      "bytes": 824,
+      "sha256": "02fe6b3acd314a5b1f4a0ca2afecfde9bf99616d7bc5960b35a71d9470cf4f97"
     },
     "assets/brand/radar-hero-desktop-1024.png": {
       "bytes": 506384,
@@ -10156,7 +10156,7 @@
     },
     "brand.json": {
       "bytes": 18615,
-      "sha256": "c37042121136adb6a8b440b8fd662b2ed50e9b6edd51608f580a21e708c75abb"
+      "sha256": "6a063fc65e35266a8da152b0f5ec89c9b3fecf3a0a082d7e7cdbfdc23ac86e90"
     },
     "configs/griffiths_squibb_fig3.config": {
       "bytes": 4106,
@@ -12184,7 +12184,7 @@
     "source_repository": "WSPRadarApp"
   },
   "product_design_source_update": {
-    "previous_bundle_manifest_sha256": "b7f139137061a6750258a2b1e9daaa32180d0ac9cebfbefa4fabc91feccf9517",
+    "previous_bundle_manifest_sha256": "708fb3daf8cafd3028639489899c2dbd18d4c67c675399a2113d1e88eb7b0172",
     "provenance_note": "Only shared product-design metadata and generated CSS tokens were synchronized. All other brand fields, artwork, manuals, demos and scientific payloads are preserved. This update does not publish the website.",
     "scope": [
       "brand.json:product_design",
@@ -12193,7 +12193,7 @@
     "source_repository": "WSPRadarApp",
     "source_text_encoding": "UTF-8 with LF line endings",
     "source_text_sha256": {
-      "config/product_design.json": "f2617c34df35d9060dc4867517341658d0a9206b2912ad500829393e207c99e8"
+      "config/product_design.json": "a1aa667c643ccc42040a563de95146469089e7ca92887c5972f933b1f718e23f"
     }
   },
   "product_design_source_update_history": [
@@ -12247,6 +12247,19 @@
       "source_text_encoding": "UTF-8 with LF line endings",
       "source_text_sha256": {
         "config/product_design.json": "a8ddeb97eeff68d73cf8d3013bb2aed53a7de437dd879102cd57d03abe226d6c"
+      }
+    },
+    {
+      "previous_bundle_manifest_sha256": "b7f139137061a6750258a2b1e9daaa32180d0ac9cebfbefa4fabc91feccf9517",
+      "provenance_note": "Only shared product-design metadata and generated CSS tokens were synchronized. All other brand fields, artwork, manuals, demos and scientific payloads are preserved. This update does not publish the website.",
+      "scope": [
+        "brand.json:product_design",
+        "assets/brand/product-tokens.css"
+      ],
+      "source_repository": "WSPRadarApp",
+      "source_text_encoding": "UTF-8 with LF line endings",
+      "source_text_sha256": {
+        "config/product_design.json": "f2617c34df35d9060dc4867517341658d0a9206b2912ad500829393e207c99e8"
       }
     }
   ],
