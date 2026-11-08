@@ -48,12 +48,8 @@ body{--site-page-bg:var(--product-bg,var(--bg));background:var(--site-page-bg)}
   .landing-header .radar-artwork{position:relative;isolation:isolate}
   .landing-header .radar-artwork::before,
   .landing-header .radar-artwork::after{content:"";position:absolute;z-index:1;pointer-events:none}
-  .landing-header .radar-artwork::before{inset:0 0 0 auto;width:4%;background:linear-gradient(to left,var(--site-page-bg),transparent)}
-  .landing-header .radar-artwork::after{inset:0;background:linear-gradient(to right,var(--site-page-bg),transparent 1%),linear-gradient(to bottom,transparent 85%,var(--site-page-bg))}
-}
-/* Both wide artworks' handwritten captions reach into the right fade. */
-@media screen and (min-width:601px){
-  .landing-header .radar-artwork::before{-webkit-mask-image:linear-gradient(to bottom,#000 61%,transparent 65%,transparent 83%,#000 87%);mask-image:linear-gradient(to bottom,#000 61%,transparent 65%,transparent 83%,#000 87%)}
+  .landing-header .radar-artwork::before{inset:0 0 0 auto;width:2%;background:linear-gradient(to left,var(--site-page-bg),transparent)}
+  .landing-header .radar-artwork::after{inset:0;background:linear-gradient(to right,var(--site-page-bg),transparent 1%),linear-gradient(to bottom,transparent 80%,var(--site-page-bg))}
 }
 .landing-header .button,.landing .button:not(.secondary){font-weight:700}
 .landing-header .button:hover,.landing .button:not(.secondary):hover{box-shadow:none}
