@@ -60,11 +60,11 @@
 <tbody>
 <tr>
 <td><strong>Input view</strong></td>
-<td>Guided and Compact use the same analysis settings. The chosen input view is not saved.</td>
+<td>Guided and Compact use the same analysis settings. Your selected input view stays selected for the session and is not stored in saved configurations.</td>
 </tr>
 <tr>
 <td><strong>Load Demo</strong></td>
-<td>Loads settings without running. In either input view, <strong>Load and walk through setup</strong> opens the Guided steps; <strong>Load and review to run</strong> opens Guided Review directly. The collapsed <strong>Guided demo</strong> panel retains the experiment notes and the <strong>Walk me through the setup</strong> / <strong>Skip to review</strong> navigation actions. Only <strong>Run RX Analysis</strong> or <strong>Run TX Analysis</strong> starts the analysis.</td>
+<td>Loads settings without running and keeps your selected Guided or Compact view. <strong>Load and walk through setup</strong> opens the progressive Guided steps or the complete Compact editor at its first setup panel; <strong>Load and review to run</strong> opens that view's Review directly. In Guided, the collapsed <strong>Guided demo</strong> panel retains the experiment notes and the <strong>Walk me through the setup</strong> / <strong>Skip to review</strong> navigation actions. Only <strong>Run RX Analysis</strong> or <strong>Run TX Analysis</strong> starts the analysis.</td>
 </tr>
 <tr>
 <td><strong>Start Fresh</strong></td>
@@ -106,8 +106,8 @@
 <td>Required. In RX, use <strong>Target callsign (receiver under test)</strong>. In TX, use <strong>Target callsign (transmitter under test)</strong>. Enter the callsign exactly as reported, including any prefix or suffix. <code>CALL</code>, <code>CALL/P</code> and <code>CALL-1</code> are distinct reported callsigns.</td>
 </tr>
 <tr>
-<td><strong>Target QTH (4 or 6 characters)</strong></td>
-<td>Required: the first four locator characters select Target reports; the full entered locator anchors map, distance, direction and solar calculations.</td>
+<td><strong>Target Grid Locator (optional)</strong></td>
+<td>Leave blank for discovery after <strong>Run analysis</strong>, or enter a valid four- or six-character Maidenhead locator. The empty field shows <code>&gt;auto-discover&lt;</code>. The first four locator characters select Target reports; the full entered or discovered locator anchors map, distance, direction and solar calculations.</td>
 </tr>
 <tr>
 <td><strong>Operating Band</strong></td>
@@ -125,6 +125,7 @@
 </table></div>
 <p>New TX Performance analyses default to the raw reported-SNR basis. Saved TX Performance configurations and links explicitly preserve the on/off boolean <code>tx_snr_normalization_to_30dbm</code>: in configurations it is <code>core_parameters.tx_snr_normalization_to_30dbm</code>, and the URL parameter has the same field name. An older configuration, link or completed-run record that lacks the field retains normalization on, preserving its former interpretation. Explicit true/false choices survive save, link, load and completed-run restoration. The setting is active only for TX Performance; it does not change RX Performance or Benchmark. Changing the scientific basis requires an analysis rerun; the observations and cached results for the two settings are kept separate. A loaded old run is not silently reinterpreted as raw SNR.</p>
 <p>A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-4) identifies a grid square; six characters identify a smaller subsquare.</p>
+<p>In Guided and Compact input, automatic location discovery starts only after <strong>Run analysis</strong> and uses the selected callsign, RX/TX direction, band and UTC window. Performance discovers the Target location; Benchmark looks up Target and Reference together when either required location is missing. One valid Target locator is selected automatically. Multiple full Target locators require your choice, including different six-character locators within the same grid-4; a selected six-character locator is not shortened. Reference choices use grid-4 and show the full reported variants. Choosing locations continues with the existing discovery results, without repeating the lookup. If no valid location is found, enter an independently known locator or revise the settings. Manually entered locators remain authoritative, and supplying all required locators skips discovery. A reported locator identifies a grid cell, not a verified antenna position.</p>
 <p><a id="sec-5-3"></a></p>
 <h4>10.3 Benchmark-design controls</h4>
 <div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
@@ -140,8 +141,8 @@
 <td>Enter the Reference callsign exactly as reported. It must differ from Target. Reference Neighborhood is no longer supported.</td>
 </tr>
 <tr>
-<td><strong>Known Reference QTH (4 characters, optional)</strong></td>
-<td>Leave blank to discover the location from reports, or enter an independently known grid-4. One discovered grid resolves automatically; several require your choice. A known location does not establish operation.</td>
+<td><strong>Reference Grid Locator (optional)</strong></td>
+<td>Leave blank to discover the location from reports after <strong>Run analysis</strong>, or enter an independently known grid-4. The empty field shows <code>&gt;auto-discover&lt;</code>. One discovered grid resolves automatically; several require your choice. A known location does not establish operation.</td>
 </tr>
 <tr>
 <td><strong>Reference SNR correction</strong></td>
@@ -150,7 +151,7 @@
 </tbody>
 </table></div>
 <p><strong>Benchmark acceptance:</strong> every Benchmark run requires <strong>I have confirmed common operation, or accept the limitations when it is unverified.</strong> Check common operation as described in <a href="/en/documentation/sec-2/#sec-2-2">Section 1.2</a>; when it is unverified, interpret the observations within the stated limitations. Changing station identities, direction or band clears acceptance. Changing the period also clears it, except when you select an eligible cycle-aligned subwindow of the completed acquisition with unchanged acquisition settings. In that case the chosen Reference site and existing acceptance carry over, and a new <strong>Run</strong> is still required. Loading a personal configuration or ordinary analysis link requires fresh acceptance; a saved acceptance does not verify operation.</p>
-<p>The same acceptance applies to <strong>historical observations</strong>, including Milazzo; there is no separate historical mode. Ordinary analysis links require fresh acceptance, including links with the inert <code>run=1</code> parameter. Opening a link never starts an analysis. Built-in demos preselect this acceptance; their experiment notes explain known operating conditions and uncertainties. A link selecting an installed demo opens Guided Review directly with that demo selected; its experiment notes remain available in the collapsed <strong>00 Guided demo</strong> panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acceptance. Loading a demo alone still does not run it.</p>
+<p>The same acceptance applies to <strong>historical observations</strong>, including Milazzo; there is no separate historical mode. Ordinary analysis links require fresh acceptance, including links with the inert <code>run=1</code> parameter. Opening a link never starts an analysis. Built-in demos preselect this acceptance; their experiment notes explain known operating conditions and uncertainties. A link selecting an installed demo opens Review directly with that demo selected, preserving your selected Guided or Compact view; a fresh session defaults to Guided. In Guided, its experiment notes remain available in the collapsed <strong>00 Guided demo</strong> panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acceptance. Loading a demo alone still does not run it.</p>
 <h5 id="reader-heading-sec-5-4">Reference-side SNR correction sign</h5>
 <p>A <strong>positive correction raises Reference SNR and reduces ΔSNR</strong>. If a common-input calibration measured Target minus Reference as <strong>+1.6 dB</strong>, enter <strong>+1.6 dB</strong>. Correction does not change decode counts or raw cumulative-SNR curves. To collect a baseline, use <strong>No correction</strong>; WSPRadar does not determine an offset automatically. See <a href="/en/documentation/sec-b/#sec-reference-snr-calibration">Chapter 6</a> for calibration and its limits.</p>
 <p><a id="sec-5-4"></a></p>

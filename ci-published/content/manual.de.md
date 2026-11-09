@@ -60,8 +60,8 @@ Prüfe anhand der Ergebnisse, ob ein Muster breit auftritt oder auf wenige Stati
 
 Beginne mit **Demo laden**. Wähle eines der gepflegten Beispiele, lies seine Versuchsnotizen und behalte beim ersten Analyselauf die vorbereiteten Einstellungen bei. Beide Eingabeansichten bieten zwei Wege:
 
-- **Laden und Einstellungen schrittweise prüfen** öffnet die geführten Schritte.
-- **Laden und vor dem Start prüfen** öffnet direkt die Prüfung in der geführten Ansicht. Dorthin führen auch Demolinks von der Website und geteilte Demo-URLs.
+- **Laden und Einstellungen schrittweise prüfen** behält deine gewählte Eingabeansicht bei. **Geführt** führt schrittweise durch die Einstellungen; **Kompakt** öffnet den vollständigen Editor beim ersten Einstellungsbereich.
+- **Laden und vor dem Start prüfen** öffnet direkt die Prüfung in deiner gewählten Ansicht **Geführt** oder **Kompakt**. Dorthin führen auch Demolinks von der Website und geteilte Demo-URLs. Eine neue Sitzung beginnt standardmäßig mit **Geführt**.
 
 Das Laden allein startet noch keine Analyse. Prüfe die Einstellungen und wähle dann je nach Analyserichtung **RX-Analyse starten** oder **TX-Analyse starten**.
 
@@ -251,11 +251,11 @@ Beginne mit einer Frage zu deiner Station. Halte fest, was du verändert hast od
 
 Wähle die Analyse anhand von [Abschnitt 0.2](#sec-1-0). <strong class="defined-term">Geführt</strong> leitet dich durch die Einstellungen; <strong class="defined-term">Kompakt</strong> bietet dieselben Analyseeinstellungen in kürzerer Form.
 
-Gib das exakte **Target-Rufzeichen**, den **Target-QTH-Locator (4 oder 6 Zeichen)** (Maidenhead-Locator), ein **Band** und einen abgeschlossenen **Messzeitraum (UTC)** ein. Der Target-QTH-Locator akzeptiert vier oder sechs Zeichen: Die ersten vier wählen die Empfangsberichte aus, während der vollständig eingegebene Locator den Bezugspunkt für Karte, Entfernungen und Richtungen festlegt. Längere Zeitfenster liefern mehr Beobachtungsdaten, können aber unterschiedliche Betriebs- und Ausbreitungsbedingungen vermischen.
+Gib das exakte **Target-Rufzeichen**, ein **Band** und einen abgeschlossenen **Messzeitraum (UTC)** ein. Gib unter **Target-Locator (optional)** einen Maidenhead-Locator mit vier oder sechs Zeichen ein oder lass das Feld leer, um den Standort nach **Analyse starten** zu ermitteln. Ein einzelner gemeldeter Locator wird automatisch gewählt; bei mehreren wählst du selbst. Dabei bleiben alle vier oder sechs Zeichen erhalten. Die ersten vier Zeichen wählen die Empfangsberichte aus, während der vollständig eingegebene oder ermittelte Locator den Bezugspunkt für Karte, Entfernungen und Richtungen festlegt. Längere Zeitfenster liefern mehr Beobachtungsdaten, können aber unterschiedliche Betriebs- und Ausbreitungsbedingungen vermischen.
 
 <a id="sec-2-5"></a>
 
-**Bei Benchmark** übernimmst du das Referenz-Rufzeichen genau wie gemeldet; es muss sich vom Target unterscheiden. Lass den optionalen QTH-Locator leer, um den Standort aus Berichten zu ermitteln, oder gib den unabhängig bekannten vierstelligen Locator ein. Werden mehrere Standorte gefunden, wähle einen. Ein Standort allein belegt weder den Betrieb noch einen gemeinsamen physischen Aufstellungsort.
+**Bei Benchmark** übernimmst du das Referenz-Rufzeichen genau wie gemeldet; es muss sich vom Target unterscheiden. Lass **Referenz-Locator (optional)** leer, um den Standort nach **Analyse starten** aus Berichten zu ermitteln, oder gib den unabhängig bekannten vierstelligen Locator ein. Werden mehrere Standorte gefunden, wähle einen. Ein Standort allein belegt weder den Betrieb noch einen gemeinsamen physischen Aufstellungsort.
 
 Bestätige die Betriebsbedingungen anhand unabhängiger Informationen:
 
@@ -409,7 +409,7 @@ Beide Anordnungen verwenden **Referenzaufbau oder Referenzstation**. Für ΔSNR 
 
 **Fragestellung:** Welche Sender hat das Target gehört, aus welchen Richtungen und Entfernungen und wie regelmäßig?
 
-Gib das Rufzeichen des untersuchten Empfängers genau wie gemeldet und seinen QTH-Locator an. Wähle ein Band und einen Zeitraum mit hochgeladenen Target-Dekodierungen. Halte die Empfangskette stabil; eine Referenz ist nicht erforderlich.
+Gib das Rufzeichen des untersuchten Empfängers genau wie gemeldet und seinen QTH-Locator an oder lass das optionale Locatorfeld für die Standortsuche nach **Analyse starten** leer. Wähle ein Band und einen Zeitraum mit hochgeladenen Target-Dekodierungen. Halte die Empfangskette stabil; eine Referenz ist nicht erforderlich.
 
 **Was zählt:** Jede Target-Dekodierung bestätigt eine erfolgreiche Empfangsgelegenheit, auch wenn kein anderer Empfänger diesen Sender gemeldet hat. Fehlt die Dekodierung, zählt dies nur dann als nicht dekodierte Gelegenheit, wenn ein anderer Empfänger diesen Sender gemeldet und das Target einen anderen Sender dekodiert hat — beides auf **demselben Band im selben WSPR-Zyklus**. Andernfalls bleibt der Fall unbekannt und geht nicht in die Quote ein.
 
@@ -433,7 +433,7 @@ Sinkt die Dekodierquote, während das SNR erfolgreicher Dekodierungen steigt, we
 
 **Fragestellung:** Welche Empfänger haben das Target gehört, aus welchen Richtungen und Entfernungen und wie regelmäßig?
 
-Gib das Rufzeichen des untersuchten Senders genau wie gemeldet und seinen QTH-Locator an. Wähle ein Band und einen Zeitraum mit gemeldeten Target-Aussendungen. Halte HF-Signalweg, Zeitplan und tatsächliche Leistung stabil und melde die Leistung korrekt; eine Referenz ist nicht erforderlich.
+Gib das Rufzeichen des untersuchten Senders genau wie gemeldet und seinen QTH-Locator an oder lass das optionale Locatorfeld für die Standortsuche nach **Analyse starten** leer. Wähle ein Band und einen Zeitraum mit gemeldeten Target-Aussendungen. Halte HF-Signalweg, Zeitplan und tatsächliche Leistung stabil und melde die Leistung korrekt; eine Referenz ist nicht erforderlich.
 
 **Was zählt:** Der Empfangsbericht eines Empfängers zum Target bestätigt eine erfolgreiche Empfangsgelegenheit, auch wenn er keinen anderen Sender meldet. Fehlt die Target-Dekodierung, zählt dies nur dann als nicht dekodierte Gelegenheit, wenn **dieser Empfänger** einen anderen Sender meldet und ein Bericht von anderer Stelle die Target-Aussendung bestätigt — beides auf **demselben Band im selben WSPR-Zyklus**. Dass ein anderer Empfänger das Target hört, belegt nicht, dass ein stiller Empfänger zugehört hat. Jeder Erfolg zählt einmal; Fälle mit unbekannter Aktivität bleiben ausgeschlossen.
 
@@ -2390,8 +2390,8 @@ Wenn du die Analyseart, Rufzeichen oder Locator der Stationen, das Band, den UTC
 
 | Bedienelement | Das solltest du wissen |
 |---|---|
-| **Eingabeansicht** | Geführt und Kompakt verwenden dieselben Analyseeinstellungen. Die gewählte Eingabeansicht wird nicht gespeichert. |
-| **Demo laden** | Lädt Einstellungen, ohne die Analyse zu starten. In beiden Eingabeansichten öffnet **Laden und Einstellungen schrittweise prüfen** die geführten Schritte; **Laden und vor dem Start prüfen** öffnet direkt die Prüfung in der geführten Ansicht. Der eingeklappte Bereich **Demo mit Anleitung** enthält weiterhin die Versuchsnotizen und die Navigationsaktionen **Schritt für Schritt durch den Aufbau** / **Direkt zur Prüfung**. Erst **RX-Analyse starten** oder **TX-Analyse starten** startet die Analyse. |
+| **Eingabeansicht** | Geführt und Kompakt verwenden dieselben Analyseeinstellungen. Deine gewählte Eingabeansicht bleibt für die Sitzung ausgewählt und wird nicht in gespeicherten Konfigurationen hinterlegt. |
+| **Demo laden** | Lädt Einstellungen, ohne die Analyse zu starten, und behält deine gewählte Ansicht **Geführt** oder **Kompakt** bei. **Laden und Einstellungen schrittweise prüfen** öffnet die geführten Schritte nacheinander oder den vollständigen kompakten Editor beim ersten Einstellungsbereich; **Laden und vor dem Start prüfen** öffnet direkt die Prüfung der gewählten Ansicht. In der geführten Ansicht enthält der eingeklappte Bereich **Demo mit Anleitung** weiterhin die Versuchsnotizen und die Navigationsaktionen **Schritt für Schritt durch den Aufbau** / **Direkt zur Prüfung**. Erst **RX-Analyse starten** oder **TX-Analyse starten** startet die Analyse. |
 | **Neu beginnen** | Löscht Einstellungen und Ergebnisse und stellt die Standardwerte einschließlich des UTC-Messzeitraums wieder her. Sprache und Eingabeansicht bleiben unverändert. |
 | **Konfiguration laden / Konfiguration speichern** | Lädt oder speichert die zutreffenden Analyseeinstellungen und unterstützten Ansichtsoptionen. Gespeicherte Datumsangaben sind feste UTC-Grenzen, kein mitlaufender Zeitraum. Eine Konfiguration enthält weder Ergebnisdaten noch Stationsnotizen. |
 | **RX-Analyse starten / TX-Analyse starten** | Startet die gewählte Analyse nach der Prüfung der Eingaben. Korrigiere zuerst markierte Felder und wähle gegebenenfalls den Standort der Referenz. Eine Karte kann bereits erscheinen, bevor die übrigen Ansichten bereitstehen; warte auf **Abgeschlossen**. |
@@ -2411,7 +2411,7 @@ Das Laden oder Speichern einer Konfiguration startet keine Analyse. Nicht unters
 |---|---|
 | **Fragestellung** | Erforderlich: Wähle RX Performance, TX Performance, RX Benchmark oder TX Benchmark. Nur Benchmark benötigt eine Referenz. |
 | **Target-Rufzeichen** | Erforderlich. Verwende bei RX **Target-Rufzeichen (untersuchter Empfänger)** und bei TX **Target-Rufzeichen (untersuchter Sender)**. Gib das Rufzeichen genau so ein, wie es gemeldet wird, einschließlich Präfix oder Suffix. `CALL`, `CALL/P` und `CALL-1` sind unterschiedliche gemeldete Rufzeichen. |
-| **Target-QTH-Locator (4 oder 6 Zeichen)** | Erforderlich: Die ersten vier Locatorzeichen bestimmen die Auswahl der Target-Empfangsberichte; der vollständig eingegebene Locator legt den Ausgangspunkt für Karte, Entfernung, Richtung und Sonnenstandsberechnung fest. |
+| **Target-Locator (optional)** | Lass das Feld für die Standortsuche nach **Analyse starten** leer oder gib einen gültigen Maidenhead-Locator mit vier oder sechs Zeichen ein. Im leeren Feld steht `>auto-discover<`. Die ersten vier Locatorzeichen bestimmen die Auswahl der Target-Empfangsberichte; der vollständig eingegebene oder ermittelte Locator legt den Ausgangspunkt für Karte, Entfernung, Richtung und Sonnenstandsberechnung fest. |
 | **Band** | Standardwert **20m**. Wähle ein Band. |
 | **TX-SNR-Normierung auf 30 dBm** | Nur TX Performance, rechts neben Band. Bei einer neuen Analyse aus: Empfangs-SNR wie gemeldet. Ein: anhand gemeldeter Sendeleistung auf 30 dBm (1 W) normieren. Dies ist eine wissenschaftliche Einstellung und erfordert einen neuen Analyselauf. Ältere Einstellungen ohne das Feld behalten Ein. RX Performance und Benchmark bleiben normiert. |
 | **Startdatum / Enddatum und Startzeit / Endzeit (UTC)** | Standardwert: 24 Stunden bis zur aktuellen UTC-Minute. Datumsangaben sind ab 2008 möglich; ein Analyselauf darf höchstens **31 verstrichene Tage** umfassen. Zeitangaben behalten Minutengenauigkeit. |
@@ -2424,6 +2424,8 @@ Die Einstellung ist nur bei TX Performance aktiv; sie ändert RX Performance und
 
 Ein vierstelliger <strong class="defined-term">Maidenhead-Locator</strong> (Grid-4) bezeichnet ein Feld des Locatorrasters; sechs Zeichen bezeichnen ein kleineres Unterfeld.
 
+In der geführten und der kompakten Eingabe beginnt die automatische Standortsuche erst nach **Analyse starten**. Sie verwendet das gewählte Rufzeichen, die RX-/TX-Richtung, das Band und den UTC-Messzeitraum. Performance ermittelt den Target-Standort; Benchmark fragt Target und Referenz gemeinsam ab, wenn einer der erforderlichen Standorte fehlt. Ein einzelner gültiger Target-Locator wird automatisch gewählt. Bei mehreren vollständigen Target-Locatoren wählst du selbst, auch bei unterschiedlichen Locatoren mit sechs Zeichen innerhalb desselben Grid-4; ein gewählter Locator mit sechs Zeichen wird nicht gekürzt. Für die Referenz werden Grid-4-Felder zur Auswahl angeboten und die vollständig gemeldeten Varianten angezeigt. Nach der Standortauswahl wird mit den vorhandenen Suchergebnissen fortgefahren, ohne die Standortsuche zu wiederholen. Wird kein gültiger Standort gefunden, gib einen unabhängig bekannten Locator ein oder passe die Einstellungen an. Manuell eingegebene Locatoren bleiben maßgeblich; sind alle erforderlichen Locatoren angegeben, entfällt die Standortsuche. Ein gemeldeter Locator bezeichnet eine Rasterzelle, keine verifizierte Antennenposition.
+
 <a id="sec-5-3"></a>
 
 #### 10.3 Einstellungen für den Benchmark-Vergleich
@@ -2431,12 +2433,12 @@ Ein vierstelliger <strong class="defined-term">Maidenhead-Locator</strong> (Grid
 | Bedienelement | Deine Eingabe |
 |---|---|
 | **Referenz-Rufzeichen** | Gib das Referenz-Rufzeichen genau so ein, wie es gemeldet wird. Es muss sich vom Target-Rufzeichen unterscheiden. Reference Neighborhood wird nicht mehr unterstützt. |
-| **Bekannter Referenz-Locator (4 Zeichen, optional)** | Lass das Feld leer, um den Standort aus Empfangsberichten zu ermitteln, oder gib einen unabhängig bekannten Grid-4-Locator ein. Wird genau ein Locator gefunden, wird er automatisch übernommen; bei mehreren musst du wählen. Ein bekannter Standort belegt keinen Betrieb. |
+| **Referenz-Locator (optional)** | Lass das Feld leer, um den Standort nach **Analyse starten** aus Empfangsberichten zu ermitteln, oder gib einen unabhängig bekannten Grid-4-Locator ein. Im leeren Feld steht `>auto-discover<`. Wird genau ein Locatorfeld gefunden, wird es automatisch übernommen; bei mehreren musst du wählen. Ein bekannter Standort belegt keinen Betrieb. |
 | **SNR-Korrektur der Referenz** | Der Standardwert **Keine Korrektur** verwendet **0.0 dB**. Wähle **Dokumentierte Korrektur verwenden** nur für einen bestimmten Offset, der für diesen Aufbau gültig ist. Das Feld mit Vorzeichen akzeptiert **−99.9 bis +99.9 dB**; ein leeres Feld bedeutet **0.0**. Verwende einen Dezimalpunkt. Ein dokumentierter Nullwert bleibt etwas anderes als eine nicht bestimmte Korrektur. |
 
 **Benchmark-Bestätigung:** Der Start jedes Benchmarks erfordert **Ich habe den gemeinsamen Betrieb bestätigt oder akzeptiere die Einschränkungen, wenn er nicht verifiziert ist.** Prüfe den gemeinsamen Betrieb wie in [Abschnitt 1.2](#sec-2-2) beschrieben; wenn er nicht verifiziert ist, interpretiere die Beobachtungen innerhalb der genannten Einschränkungen. Änderungen an Stationsidentitäten, Analyserichtung oder Band löschen die Bestätigung. Eine Änderung des Zeitraums löscht sie ebenfalls, außer bei einem geeigneten, an WSPR-Zyklen ausgerichteten Teilzeitraum des abgeschlossenen Laufs mit unveränderten Abrufeinstellungen. In diesem Fall bleiben der gewählte Referenzstandort und die bestehende Bestätigung erhalten. Ein neuer Analyselauf ist weiterhin erforderlich. Das Laden einer eigenen Konfiguration oder eines gewöhnlichen Analyselinks erfordert eine neue Bestätigung; eine gespeicherte Bestätigung belegt keinen Betrieb.
 
-Dieselbe Bestätigung gilt für **historische Beobachtungen**, einschließlich Milazzo; es gibt keinen separaten historischen Modus. Gewöhnliche Analyselinks erfordern eine neue Bestätigung, auch bei dem wirkungslosen Parameter `run=1`. Das Öffnen eines Links startet niemals eine Analyse. Integrierte Demos wählen diese Bestätigung vor; ihre Versuchsnotizen erläutern bekannte Betriebsbedingungen und Unsicherheiten. Ein Link, der eine installierte Demo auswählt, öffnet mit dieser Demo direkt die Prüfung in der geführten Ansicht; ihre Versuchsnotizen bleiben im eingeklappten Bereich **00 Demo mit Anleitung** verfügbar. Diese Abkürzung gilt nicht für gewöhnliche URLs mit geteilten Einstellungen, die weiterhin eine neue Benchmark-Bestätigung erfordern. Das bloße Laden einer Demo startet weiterhin keine Analyse.
+Dieselbe Bestätigung gilt für **historische Beobachtungen**, einschließlich Milazzo; es gibt keinen separaten historischen Modus. Gewöhnliche Analyselinks erfordern eine neue Bestätigung, auch bei dem wirkungslosen Parameter `run=1`. Das Öffnen eines Links startet niemals eine Analyse. Integrierte Demos wählen diese Bestätigung vor; ihre Versuchsnotizen erläutern bekannte Betriebsbedingungen und Unsicherheiten. Ein Link, der eine installierte Demo auswählt, öffnet mit dieser Demo direkt die Prüfung und behält deine gewählte Ansicht **Geführt** oder **Kompakt** bei; eine neue Sitzung beginnt standardmäßig mit **Geführt**. In der geführten Ansicht bleiben ihre Versuchsnotizen im eingeklappten Bereich **00 Demo mit Anleitung** verfügbar. Diese Abkürzung gilt nicht für gewöhnliche URLs mit geteilten Einstellungen, die weiterhin eine neue Benchmark-Bestätigung erfordern. Das bloße Laden einer Demo startet weiterhin keine Analyse.
 
 ##### Vorzeichen der SNR-Korrektur auf der Referenzseite
 
@@ -2570,11 +2572,11 @@ Beziehe Hinweise auf die Einstellungen des **abgeschlossenen Analyselaufs**. Ein
 
 #### 11.3 Rufzeichen und Locator prüfen
 
-Prüfe Identitäten in der **vom Analyselauf verwendeten Datenbank**, nicht nur auf der Karte einer anderen Website. Target und Referenz werden anhand des exakten Rufzeichens und des Grid-4-Locators ausgewählt; ein in `JN37` gemeldetes Target passt nicht zum konfigurierten `JN38`. Der Kartenursprung des Targets wird niemals automatisch an die Empfangsberichte angepasst.
+Prüfe Identitäten in der **vom Analyselauf verwendeten Datenbank**, nicht nur auf der Karte einer anderen Website. Target und Referenz werden anhand des exakten Rufzeichens und des Grid-4-Locators ausgewählt; ein in `JN37` gemeldetes Target passt nicht zum konfigurierten `JN38`. Ein manuell eingegebener Kartenursprung des Targets wird niemals automatisch an die Empfangsberichte angepasst. Ein leeres Target-Locatorfeld veranlasst dagegen die Standortsuche vor der Analyse; die Genauigkeit des gewählten gemeldeten Locators bleibt erhalten.
 
-Die gemeldeten Rufzeichenkennungen müssen 3–15 Zeichen lang sein; Locator müssen gültige vier- oder sechsstellige Maidenhead-Locator sein. Die Eingabe des Referenz-QTH verwendet vier Zeichen. Eine gültige Schreibweise bestätigt weder Standort noch Betrieb. Gegenstationsidentitäten verwenden den **vollständigen gemeldeten Locator**. Verschiedene Locatorangaben können daher dieselbe physische Station in mehrere Identitäten aufteilen.
+Die gemeldeten Rufzeichenkennungen müssen 3–15 Zeichen lang sein; eingegebene Target-Locatoren müssen gültige vier- oder sechsstellige Maidenhead-Locatoren sein. Die Eingabe unter Referenz-Locator verwendet vier Zeichen. Beide Locatorfelder können für die Standortsuche nach **Analyse starten** leer bleiben; der erforderliche Standort muss feststehen, bevor die Analyse fortgesetzt wird. Eine gültige Schreibweise bestätigt weder Standort noch Betrieb. Gegenstationsidentitäten verwenden den **vollständigen gemeldeten Locator**. Verschiedene Locatorangaben können daher dieselbe physische Station in mehrere Identitäten aufteilen.
 
-WSPRadar setzt weder zusammengesetzte Rufzeichen aus getrennten Nachrichten zusammen noch ergänzt es fehlende Locator. Siehe [Abschnitt 5.1](#sec-simultaneous-tx-setup-1), wenn eine TX-Identität fehlt oder unvollständig ist.
+WSPRadar setzt weder zusammengesetzte Rufzeichen aus getrennten Nachrichten zusammen noch ergänzt es fehlende Locatorfelder in Datenbankberichten. Die automatische Standortsuche verwendet gültige Locatoren, die bereits in Empfangsberichten stehen. Siehe [Abschnitt 5.1](#sec-simultaneous-tx-setup-1), wenn eine TX-Identität fehlt oder unvollständig ist.
 
 <a id="sec-6-4"></a>
 

@@ -60,8 +60,8 @@ Use the results to ask whether a pattern is broad or limited to a few stations, 
 
 Start with **Load Demo**. Choose a maintained example, read its experiment notes and keep the prepared settings for the first run. Both input views offer two routes:
 
-- **Load and walk through setup** opens the Guided steps.
-- **Load and review to run** opens Guided Review directly, as do website demo links and shared demo URLs.
+- **Load and walk through setup** keeps your selected input view. Guided introduces the setup steps progressively; Compact opens its complete editor at the first setup panel.
+- **Load and review to run** opens Review directly in your selected Guided or Compact view, as do website demo links and shared demo URLs. A fresh session defaults to Guided.
 
 Loading alone does not start an analysis. Check the settings, then select **Run RX Analysis** or **Run TX Analysis**, as appropriate.
 
@@ -251,11 +251,11 @@ Start with one station question. State what you changed or want to investigate, 
 
 Choose the analysis from [Section 0.2](#sec-1-0). <strong class="defined-term">Guided</strong> leads you through the settings; <strong class="defined-term">Compact</strong> presents the same analysis choices in a shorter form.
 
-Enter the exact **Target callsign**, **Target QTH** (Maidenhead locator), one **band**, and a completed **UTC window**. Target QTH accepts four or six locator characters: the first four select reports, while the full entered locator anchors the map, distances and directions. Longer windows add evidence but can mix operating and propagation conditions.
+Enter the exact **Target callsign**, one **band**, and a completed **UTC window**. Enter **Target Grid Locator (optional)** as a four- or six-character Maidenhead locator, or leave it blank to discover the location after **Run analysis**. One reported locator is selected automatically; several require your choice, preserving all four or six characters. The first four characters select reports, while the full entered or discovered locator anchors the map, distances and directions. Longer windows add evidence but can mix operating and propagation conditions.
 
 <a id="sec-2-5"></a>
 
-**For Benchmark**, enter the Reference callsign exactly as reported; it must differ from Target. Leave its optional QTH blank to find the location from reports, or enter its independently known four-character locator. If several locations appear, choose one. A location alone does not establish operation or a shared physical site.
+**For Benchmark**, enter the Reference callsign exactly as reported; it must differ from Target. Leave **Reference Grid Locator (optional)** blank to find the location from reports after **Run analysis**, or enter its independently known four-character locator. If several locations appear, choose one. A location alone does not establish operation or a shared physical site.
 
 Confirm the operating conditions independently:
 
@@ -409,7 +409,7 @@ Both arrangements use **Reference Setup/Station**. Spot pairs are required for �
 
 **Question:** Which transmitters did the Target hear, from which directions and distances, and how regularly?
 
-Enter the Target receiver's callsign exactly as reported and its QTH locator. Choose one band and a period with uploaded Target decodes. Keep the receiving chain stable; no Reference is needed.
+Enter the Target receiver's callsign exactly as reported and its QTH locator, or leave the optional locator blank for discovery after **Run analysis**. Choose one band and a period with uploaded Target decodes. Keep the receiving chain stable; no Reference is needed.
 
 **What counts:** each Target decode confirms a successful opportunity, even if no other receiver reported that transmitter. A missing decode counts as a miss only when another receiver reported that transmitter and Target decoded a different transmitter, both on the **same band in the same WSPR cycle**. Otherwise the outcome is unknown and is excluded from the rate.
 
@@ -433,7 +433,7 @@ If Decode Rate falls while successful SNR rises, weak signals may have stopped b
 
 **Question:** Which receivers heard the Target, from which directions and distances, and how regularly?
 
-Enter the Target transmitter's callsign exactly as reported and its QTH locator. Choose one band and a period with reported Target transmissions. Keep the RF path, schedule and actual power stable, and report power accurately; no Reference is needed.
+Enter the Target transmitter's callsign exactly as reported and its QTH locator, or leave the optional locator blank for discovery after **Run analysis**. Choose one band and a period with reported Target transmissions. Keep the RF path, schedule and actual power stable, and report power accurately; no Reference is needed.
 
 **What counts:** a receiver's report of Target confirms a successful opportunity, even if it reports no other transmitter. A missing Target decode counts as a miss only when **that receiver** reports another transmitter and a report elsewhere confirms that Target transmitted, both on the **same band in the same WSPR cycle**. A different receiver hearing Target does not show that a silent receiver was listening. Each success counts once; unknown activity remains excluded.
 
@@ -2380,8 +2380,8 @@ Changing the analysis type, station callsigns or locators, band, UTC window, Ref
 
 | Control | What you need to know |
 |---|---|
-| **Input view** | Guided and Compact use the same analysis settings. The chosen input view is not saved. |
-| **Load Demo** | Loads settings without running. In either input view, **Load and walk through setup** opens the Guided steps; **Load and review to run** opens Guided Review directly. The collapsed **Guided demo** panel retains the experiment notes and the **Walk me through the setup** / **Skip to review** navigation actions. Only **Run RX Analysis** or **Run TX Analysis** starts the analysis. |
+| **Input view** | Guided and Compact use the same analysis settings. Your selected input view stays selected for the session and is not stored in saved configurations. |
+| **Load Demo** | Loads settings without running and keeps your selected Guided or Compact view. **Load and walk through setup** opens the progressive Guided steps or the complete Compact editor at its first setup panel; **Load and review to run** opens that view's Review directly. In Guided, the collapsed **Guided demo** panel retains the experiment notes and the **Walk me through the setup** / **Skip to review** navigation actions. Only **Run RX Analysis** or **Run TX Analysis** starts the analysis. |
 | **Start Fresh** | Clears settings and results and restores defaults, including the UTC window. Language and input view stay unchanged. |
 | **Load Config / Save Config** | Load or save applicable analysis settings and supported view choices. Saved dates are fixed UTC boundaries, not a rolling period. A configuration contains no result data or station notes. |
 | **Run RX Analysis / Run TX Analysis** | Starts the chosen analysis after validation. Resolve highlighted fields and any Reference location choice first. A map can appear before the remaining views are ready; wait for **Complete**. |
@@ -2401,7 +2401,7 @@ Loading or saving a configuration does not run it. Unsupported old formats are r
 |---|---|
 | **Question** | Required: choose RX Performance, TX Performance, RX Benchmark or TX Benchmark. Only Benchmark needs a Reference. |
 | **Target callsign** | Required. In RX, use **Target callsign (receiver under test)**. In TX, use **Target callsign (transmitter under test)**. Enter the callsign exactly as reported, including any prefix or suffix. `CALL`, `CALL/P` and `CALL-1` are distinct reported callsigns. |
-| **Target QTH (4 or 6 characters)** | Required: the first four locator characters select Target reports; the full entered locator anchors map, distance, direction and solar calculations. |
+| **Target Grid Locator (optional)** | Leave blank for discovery after **Run analysis**, or enter a valid four- or six-character Maidenhead locator. The empty field shows `>auto-discover<`. The first four locator characters select Target reports; the full entered or discovered locator anchors map, distance, direction and solar calculations. |
 | **Operating Band** | Default **20m**. Select one band. |
 | **SNR TX Normalization to 30 dBm** | TX Performance only, to the right of Operating Band. Off for a new analysis: received SNR as reported. On: normalize using reported transmit power to 30 dBm (1 W). This is a scientific setting requiring an analysis rerun. Older settings without the field retain On. RX Performance and Benchmark remain normalized. |
 | **Start / End Date/Time (UTC)** | Default: 24 hours ending at the current UTC minute. Dates start in 2008; a run may span at most **31 elapsed days**. Times retain minute precision. |
@@ -2410,6 +2410,8 @@ New TX Performance analyses default to the raw reported-SNR basis. Saved TX Perf
 
 A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-4) identifies a grid square; six characters identify a smaller subsquare.
 
+In Guided and Compact input, automatic location discovery starts only after **Run analysis** and uses the selected callsign, RX/TX direction, band and UTC window. Performance discovers the Target location; Benchmark looks up Target and Reference together when either required location is missing. One valid Target locator is selected automatically. Multiple full Target locators require your choice, including different six-character locators within the same grid-4; a selected six-character locator is not shortened. Reference choices use grid-4 and show the full reported variants. Choosing locations continues with the existing discovery results, without repeating the lookup. If no valid location is found, enter an independently known locator or revise the settings. Manually entered locators remain authoritative, and supplying all required locators skips discovery. A reported locator identifies a grid cell, not a verified antenna position.
+
 <a id="sec-5-3"></a>
 
 #### 10.3 Benchmark-design controls
@@ -2417,12 +2419,12 @@ A four-character <strong class="defined-term">Maidenhead locator</strong> (grid-
 | Control | What to enter |
 |---|---|
 | **Reference callsign** | Enter the Reference callsign exactly as reported. It must differ from Target. Reference Neighborhood is no longer supported. |
-| **Known Reference QTH (4 characters, optional)** | Leave blank to discover the location from reports, or enter an independently known grid-4. One discovered grid resolves automatically; several require your choice. A known location does not establish operation. |
+| **Reference Grid Locator (optional)** | Leave blank to discover the location from reports after **Run analysis**, or enter an independently known grid-4. The empty field shows `>auto-discover<`. One discovered grid resolves automatically; several require your choice. A known location does not establish operation. |
 | **Reference SNR correction** | Default **No correction** applies **0.0 dB**. Choose **Use a documented correction** only for an established offset valid for this setup. The signed field accepts **−99.9 to +99.9 dB**; blank means **0.0**. Use a decimal point. A documented zero remains distinct from no established correction. |
 
 **Benchmark acceptance:** every Benchmark run requires **I have confirmed common operation, or accept the limitations when it is unverified.** Check common operation as described in [Section 1.2](#sec-2-2); when it is unverified, interpret the observations within the stated limitations. Changing station identities, direction or band clears acceptance. Changing the period also clears it, except when you select an eligible cycle-aligned subwindow of the completed acquisition with unchanged acquisition settings. In that case the chosen Reference site and existing acceptance carry over, and a new **Run** is still required. Loading a personal configuration or ordinary analysis link requires fresh acceptance; a saved acceptance does not verify operation.
 
-The same acceptance applies to **historical observations**, including Milazzo; there is no separate historical mode. Ordinary analysis links require fresh acceptance, including links with the inert `run=1` parameter. Opening a link never starts an analysis. Built-in demos preselect this acceptance; their experiment notes explain known operating conditions and uncertainties. A link selecting an installed demo opens Guided Review directly with that demo selected; its experiment notes remain available in the collapsed **00 Guided demo** panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acceptance. Loading a demo alone still does not run it.
+The same acceptance applies to **historical observations**, including Milazzo; there is no separate historical mode. Ordinary analysis links require fresh acceptance, including links with the inert `run=1` parameter. Opening a link never starts an analysis. Built-in demos preselect this acceptance; their experiment notes explain known operating conditions and uncertainties. A link selecting an installed demo opens Review directly with that demo selected, preserving your selected Guided or Compact view; a fresh session defaults to Guided. In Guided, its experiment notes remain available in the collapsed **00 Guided demo** panel. This shortcut does not apply to ordinary shared-settings URLs, which still require fresh Benchmark acceptance. Loading a demo alone still does not run it.
 
 ##### Reference-side SNR correction sign
 
@@ -2556,11 +2558,11 @@ Read notices against the settings of the **completed run**. An observed count an
 
 #### 11.3 Callsign and locator checks
 
-Check identities in the **database used by the run**, not only in another website's map. Target and Reference selection uses exact callsign plus grid-4; a Target reported at `JN37` does not match configured `JN38`. The Target map origin is never changed automatically to fit reports.
+Check identities in the **database used by the run**, not only in another website's map. Target and Reference selection uses exact callsign plus grid-4; a Target reported at `JN37` does not match configured `JN38`. A manually entered Target map origin is never changed automatically to fit reports. An empty Target locator instead requests discovery before analysis, preserving the selected reported locator's precision.
 
-Reporting tokens must be 3–15 characters; locators must be valid four- or six-character Maidenhead locators. Reference QTH input uses four characters. Valid syntax does not verify location or operation. Remote identities use the **full reported locator**, so locator variants can split one physical station into several identities.
+Reporting tokens must be 3–15 characters; entered Target locators must be valid four- or six-character Maidenhead locators. Reference Grid Locator input uses four characters. Either locator field can remain blank for discovery after **Run analysis**; the required location must be resolved before the analysis proceeds. Valid syntax does not verify location or operation. Remote identities use the **full reported locator**, so locator variants can split one physical station into several identities.
 
-WSPRadar neither reconstructs compound callsigns from separate messages nor supplies missing locators. See [Section 5.1](#sec-simultaneous-tx-setup-1) when a TX identity is missing or incomplete.
+WSPRadar neither reconstructs compound callsigns from separate messages nor supplies missing locator fields in database reports. Automatic location discovery uses valid locators already present in reports. See [Section 5.1](#sec-simultaneous-tx-setup-1) when a TX identity is missing or incomplete.
 
 <a id="sec-6-4"></a>
 

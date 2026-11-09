@@ -60,11 +60,11 @@
 <tbody>
 <tr>
 <td><strong>Eingabeansicht</strong></td>
-<td>Geführt und Kompakt verwenden dieselben Analyseeinstellungen. Die gewählte Eingabeansicht wird nicht gespeichert.</td>
+<td>Geführt und Kompakt verwenden dieselben Analyseeinstellungen. Deine gewählte Eingabeansicht bleibt für die Sitzung ausgewählt und wird nicht in gespeicherten Konfigurationen hinterlegt.</td>
 </tr>
 <tr>
 <td><strong>Demo laden</strong></td>
-<td>Lädt Einstellungen, ohne die Analyse zu starten. In beiden Eingabeansichten öffnet <strong>Laden und Einstellungen schrittweise prüfen</strong> die geführten Schritte; <strong>Laden und vor dem Start prüfen</strong> öffnet direkt die Prüfung in der geführten Ansicht. Der eingeklappte Bereich <strong>Demo mit Anleitung</strong> enthält weiterhin die Versuchsnotizen und die Navigationsaktionen <strong>Schritt für Schritt durch den Aufbau</strong> / <strong>Direkt zur Prüfung</strong>. Erst <strong>RX-Analyse starten</strong> oder <strong>TX-Analyse starten</strong> startet die Analyse.</td>
+<td>Lädt Einstellungen, ohne die Analyse zu starten, und behält deine gewählte Ansicht <strong>Geführt</strong> oder <strong>Kompakt</strong> bei. <strong>Laden und Einstellungen schrittweise prüfen</strong> öffnet die geführten Schritte nacheinander oder den vollständigen kompakten Editor beim ersten Einstellungsbereich; <strong>Laden und vor dem Start prüfen</strong> öffnet direkt die Prüfung der gewählten Ansicht. In der geführten Ansicht enthält der eingeklappte Bereich <strong>Demo mit Anleitung</strong> weiterhin die Versuchsnotizen und die Navigationsaktionen <strong>Schritt für Schritt durch den Aufbau</strong> / <strong>Direkt zur Prüfung</strong>. Erst <strong>RX-Analyse starten</strong> oder <strong>TX-Analyse starten</strong> startet die Analyse.</td>
 </tr>
 <tr>
 <td><strong>Neu beginnen</strong></td>
@@ -106,8 +106,8 @@
 <td>Erforderlich. Verwende bei RX <strong>Target-Rufzeichen (untersuchter Empfänger)</strong> und bei TX <strong>Target-Rufzeichen (untersuchter Sender)</strong>. Gib das Rufzeichen genau so ein, wie es gemeldet wird, einschließlich Präfix oder Suffix. <code>CALL</code>, <code>CALL/P</code> und <code>CALL-1</code> sind unterschiedliche gemeldete Rufzeichen.</td>
 </tr>
 <tr>
-<td><strong>Target-QTH-Locator (4 oder 6 Zeichen)</strong></td>
-<td>Erforderlich: Die ersten vier Locatorzeichen bestimmen die Auswahl der Target-Empfangsberichte; der vollständig eingegebene Locator legt den Ausgangspunkt für Karte, Entfernung, Richtung und Sonnenstandsberechnung fest.</td>
+<td><strong>Target-Locator (optional)</strong></td>
+<td>Lass das Feld für die Standortsuche nach <strong>Analyse starten</strong> leer oder gib einen gültigen Maidenhead-Locator mit vier oder sechs Zeichen ein. Im leeren Feld steht <code>&gt;auto-discover&lt;</code>. Die ersten vier Locatorzeichen bestimmen die Auswahl der Target-Empfangsberichte; der vollständig eingegebene oder ermittelte Locator legt den Ausgangspunkt für Karte, Entfernung, Richtung und Sonnenstandsberechnung fest.</td>
 </tr>
 <tr>
 <td><strong>Band</strong></td>
@@ -127,6 +127,7 @@
 <p>Fehlt das Feld in einer älteren Konfiguration, einem Link oder einem Datensatz eines abgeschlossenen Laufs, bleibt die Normierung eingeschaltet und die frühere Interpretation erhalten. Ausdrückliche true-/false-Auswahlen bleiben beim Speichern, Teilen, Laden und Wiederherstellen abgeschlossener Läufe erhalten.</p>
 <p>Die Einstellung ist nur bei TX Performance aktiv; sie ändert RX Performance und Benchmark nicht. Ein Wechsel der wissenschaftlichen Bezugsgröße erfordert einen neuen Analyselauf mit getrennt gekennzeichneten Beobachtungsdaten und Zwischenspeichern für die jeweilige Bezugsgröße. Ein geladener älterer Lauf wird nicht stillschweigend als ursprüngliches SNR neu interpretiert.</p>
 <p>Ein vierstelliger <strong class="defined-term">Maidenhead-Locator</strong> (Grid-4) bezeichnet ein Feld des Locatorrasters; sechs Zeichen bezeichnen ein kleineres Unterfeld.</p>
+<p>In der geführten und der kompakten Eingabe beginnt die automatische Standortsuche erst nach <strong>Analyse starten</strong>. Sie verwendet das gewählte Rufzeichen, die RX-/TX-Richtung, das Band und den UTC-Messzeitraum. Performance ermittelt den Target-Standort; Benchmark fragt Target und Referenz gemeinsam ab, wenn einer der erforderlichen Standorte fehlt. Ein einzelner gültiger Target-Locator wird automatisch gewählt. Bei mehreren vollständigen Target-Locatoren wählst du selbst, auch bei unterschiedlichen Locatoren mit sechs Zeichen innerhalb desselben Grid-4; ein gewählter Locator mit sechs Zeichen wird nicht gekürzt. Für die Referenz werden Grid-4-Felder zur Auswahl angeboten und die vollständig gemeldeten Varianten angezeigt. Nach der Standortauswahl wird mit den vorhandenen Suchergebnissen fortgefahren, ohne die Standortsuche zu wiederholen. Wird kein gültiger Standort gefunden, gib einen unabhängig bekannten Locator ein oder passe die Einstellungen an. Manuell eingegebene Locatoren bleiben maßgeblich; sind alle erforderlichen Locatoren angegeben, entfällt die Standortsuche. Ein gemeldeter Locator bezeichnet eine Rasterzelle, keine verifizierte Antennenposition.</p>
 <p><a id="sec-5-3"></a></p>
 <h4>10.3 Einstellungen für den Benchmark-Vergleich</h4>
 <div class="table-scroll" role="region" aria-label="Scrollbare Tabelle" tabindex="0"><table>
@@ -142,8 +143,8 @@
 <td>Gib das Referenz-Rufzeichen genau so ein, wie es gemeldet wird. Es muss sich vom Target-Rufzeichen unterscheiden. Reference Neighborhood wird nicht mehr unterstützt.</td>
 </tr>
 <tr>
-<td><strong>Bekannter Referenz-Locator (4 Zeichen, optional)</strong></td>
-<td>Lass das Feld leer, um den Standort aus Empfangsberichten zu ermitteln, oder gib einen unabhängig bekannten Grid-4-Locator ein. Wird genau ein Locator gefunden, wird er automatisch übernommen; bei mehreren musst du wählen. Ein bekannter Standort belegt keinen Betrieb.</td>
+<td><strong>Referenz-Locator (optional)</strong></td>
+<td>Lass das Feld leer, um den Standort nach <strong>Analyse starten</strong> aus Empfangsberichten zu ermitteln, oder gib einen unabhängig bekannten Grid-4-Locator ein. Im leeren Feld steht <code>&gt;auto-discover&lt;</code>. Wird genau ein Locatorfeld gefunden, wird es automatisch übernommen; bei mehreren musst du wählen. Ein bekannter Standort belegt keinen Betrieb.</td>
 </tr>
 <tr>
 <td><strong>SNR-Korrektur der Referenz</strong></td>
@@ -152,7 +153,7 @@
 </tbody>
 </table></div>
 <p><strong>Benchmark-Bestätigung:</strong> Der Start jedes Benchmarks erfordert <strong>Ich habe den gemeinsamen Betrieb bestätigt oder akzeptiere die Einschränkungen, wenn er nicht verifiziert ist.</strong> Prüfe den gemeinsamen Betrieb wie in <a href="/de/documentation/sec-2/#sec-2-2">Abschnitt 1.2</a> beschrieben; wenn er nicht verifiziert ist, interpretiere die Beobachtungen innerhalb der genannten Einschränkungen. Änderungen an Stationsidentitäten, Analyserichtung oder Band löschen die Bestätigung. Eine Änderung des Zeitraums löscht sie ebenfalls, außer bei einem geeigneten, an WSPR-Zyklen ausgerichteten Teilzeitraum des abgeschlossenen Laufs mit unveränderten Abrufeinstellungen. In diesem Fall bleiben der gewählte Referenzstandort und die bestehende Bestätigung erhalten. Ein neuer Analyselauf ist weiterhin erforderlich. Das Laden einer eigenen Konfiguration oder eines gewöhnlichen Analyselinks erfordert eine neue Bestätigung; eine gespeicherte Bestätigung belegt keinen Betrieb.</p>
-<p>Dieselbe Bestätigung gilt für <strong>historische Beobachtungen</strong>, einschließlich Milazzo; es gibt keinen separaten historischen Modus. Gewöhnliche Analyselinks erfordern eine neue Bestätigung, auch bei dem wirkungslosen Parameter <code>run=1</code>. Das Öffnen eines Links startet niemals eine Analyse. Integrierte Demos wählen diese Bestätigung vor; ihre Versuchsnotizen erläutern bekannte Betriebsbedingungen und Unsicherheiten. Ein Link, der eine installierte Demo auswählt, öffnet mit dieser Demo direkt die Prüfung in der geführten Ansicht; ihre Versuchsnotizen bleiben im eingeklappten Bereich <strong>00 Demo mit Anleitung</strong> verfügbar. Diese Abkürzung gilt nicht für gewöhnliche URLs mit geteilten Einstellungen, die weiterhin eine neue Benchmark-Bestätigung erfordern. Das bloße Laden einer Demo startet weiterhin keine Analyse.</p>
+<p>Dieselbe Bestätigung gilt für <strong>historische Beobachtungen</strong>, einschließlich Milazzo; es gibt keinen separaten historischen Modus. Gewöhnliche Analyselinks erfordern eine neue Bestätigung, auch bei dem wirkungslosen Parameter <code>run=1</code>. Das Öffnen eines Links startet niemals eine Analyse. Integrierte Demos wählen diese Bestätigung vor; ihre Versuchsnotizen erläutern bekannte Betriebsbedingungen und Unsicherheiten. Ein Link, der eine installierte Demo auswählt, öffnet mit dieser Demo direkt die Prüfung und behält deine gewählte Ansicht <strong>Geführt</strong> oder <strong>Kompakt</strong> bei; eine neue Sitzung beginnt standardmäßig mit <strong>Geführt</strong>. In der geführten Ansicht bleiben ihre Versuchsnotizen im eingeklappten Bereich <strong>00 Demo mit Anleitung</strong> verfügbar. Diese Abkürzung gilt nicht für gewöhnliche URLs mit geteilten Einstellungen, die weiterhin eine neue Benchmark-Bestätigung erfordern. Das bloße Laden einer Demo startet weiterhin keine Analyse.</p>
 <h5 id="reader-heading-sec-5-4">Vorzeichen der SNR-Korrektur auf der Referenzseite</h5>
 <p>Eine <strong>positive Korrektur erhöht das Referenz-SNR und verringert ΔSNR</strong>. Hat eine Kalibrierung mit gemeinsamem Eingangssignal für Target minus Referenz <strong>+1.6 dB</strong> ergeben, gib <strong>+1.6 dB</strong> ein. Die Korrektur verändert weder Dekodierzahlen noch die kumulativen Kurven des unveränderten gemeldeten SNR. Verwende <strong>Keine Korrektur</strong>, wenn du eine Vergleichsbasis bestimmen möchtest; WSPRadar ermittelt keinen Offset automatisch. <a href="/de/documentation/sec-b/#sec-reference-snr-calibration">Kapitel 6</a> beschreibt die Kalibrierung und ihre Grenzen.</p>
 <p><a id="sec-5-4"></a></p>
