@@ -85,7 +85,7 @@
 .demos-landing .reset-button:hover {border-color:var(--cyan)}
 .demos-landing .reset-button[aria-pressed="true"] {border-color:#3f9cbc;color:#eefaff}
 .demos-landing .demo-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
-.demos-landing .demo-card {display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);min-width:0;padding:0;transition:border-color .16s}
+.demos-landing .demo-card {position:relative;isolation:isolate;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);min-width:0;padding:0;transition:border-color .16s}
 .demos-landing .demo-card:hover {border-color:#42748a}
 .demos-landing .demo-card.first-demo {border-top-color:var(--green);box-shadow:inset 0 2px 0 var(--green)}
 .demos-landing .card-heading {padding:21px 21px 18px;min-height:232px;display:flex;flex-direction:column}
@@ -113,6 +113,9 @@
 .demos-landing .recommended {font-size:12px;color:var(--green);font-weight:600;display:flex;gap:5px;align-items:center}
 .demos-landing .topic-label {font-size:12px;color:var(--quiet)}
 .demos-landing .demo-link {min-height:44px;font-size:15px;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font-weight:600;color:var(--cyan);text-decoration:none;background:var(--button);border:1px solid #2e667e;padding:10px 12px;border-radius:4px}
+/* Extend the native guide link across its tile, including the evidence preview. */
+.demos-landing .demo-link::after {content:"";position:absolute;inset:0;z-index:1;border-radius:var(--radius)}
+.demos-landing .demo-link:focus-visible::after {outline:2px solid var(--green);outline-offset:-3px}
 .demos-landing .demo-link:hover {border-color:var(--cyan);color:#fff;background:#10475a}
 .demos-landing .demo-link>span[aria-hidden] {font-size:20px;line-height:1;color:var(--cyan)}
 .demos-landing .collection-note {font-size:13px;color:var(--quiet);margin-top:14px}
@@ -197,13 +200,11 @@
 
 /* Data-derived previews keep their complete axes and findings at every width. */
 .demos-landing .card-subtitle {font-family:var(--font-body);font-size:16px;line-height:1.35;color:var(--cyan);margin-top:7px}
-.demos-landing .thumbnail.evidence-thumbnail {display:block;aspect-ratio:16/9;min-height:0;padding:0;border:1px solid #203c51;text-align:initial}
-.demos-landing .evidence-thumbnail a {display:block;line-height:0}
+.demos-landing .thumbnail.evidence-thumbnail {display:block;aspect-ratio:16/9;min-height:0;padding:0;border:1px solid #203c51;text-align:initial;line-height:0}
 .demos-landing .evidence-thumbnail img {display:block;width:100%;height:auto;max-width:none}
 
 @media screen and (max-width:600px) {
-  /* Include the phone action row in the thumbnail's normal-flow height. */
+  /* Keep the complete preview in normal flow on phones. */
   .demos-landing .thumbnail.evidence-thumbnail {aspect-ratio:auto;flex:none;border:0;background:transparent}
-  /* Frame only the image, leaving the shared phone actions below it. */
-  .demos-landing .thumbnail.evidence-thumbnail > a {border:1px solid #203c51;background:var(--panel-deep)}
+  .demos-landing .thumbnail.evidence-thumbnail > img {border:1px solid #203c51;background:var(--panel-deep)}
 }

@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/prepare_zander_essentials_paper.py",
+  "pillow_version": "12.2.0",
+  "demo_id": "zander_tx_buddy",
+  "publication": {
+    "author": "J. Zander",
+    "year": 2022,
+    "title": "Simple HF antenna efficiency comparisons using the WSPR system",
+    "url": "https://arxiv.org/pdf/2209.08989v1",
+    "page": 4,
+    "figure": 4
+  },
+  "historical_reconstruction": {
+    "window_utc": "2022-05-21 09:30–10:30",
+    "band": "20 m (14 MHz)",
+    "target": "SK0WE/P",
+    "reference": "SK0WE/1",
+    "reference_correction_db": 0,
+    "historical_pdf_path": "website/source/assets/demos/zander_fig4_paper_v1/WSPRadar_Demo_Zander_Figure4.pdf",
+    "historical_pdf_sha256": "3a4b0b902d5e8ec1a862641a1fa08b40ef8131b11953550d0f3c891aac7db4be",
+    "scope_note": "This is the retained historical reconstruction window, not the current demo's 09:52–10:20 UTC selection and not an exact time window published by Zander.",
+    "excluded": [
+      "Panel C native histogram",
+      "Residual audit panel",
+      "Shared full-PDF header and footer"
+    ],
+    "reconstruction_source_generator": "scripts/internal/build_zander_fig4_comparison.py"
+  },
+  "input_identities": [
+    {
+      "path": "tests/regression/reference_fixtures/zander_fig4_paper_v1/paper_figure4.png",
+      "sha256": "23893dd3cf6de7b8f418150a7815eb0d2f0d0e49b07dd8f2b2488f4542c3f730"
+    },
+    {
+      "path": "tests/regression/reference_fixtures/zander_fig4_paper_v1/figure4_histogram_overlay.png",
+      "sha256": "f529ea9582840fad5647ffc0845df62ce0302baee54ae887181fd169837eb52e"
+    },
+    {
+      "path": "tests/regression/reference_fixtures/zander_fig4_paper_v1/paper_features.json",
+      "sha256": "480ca1bb4323a757666110929187cb2b4394d2ca504b2a68e47ae0484189847e"
+    },
+    {
+      "path": "tests/regression/reference_fixtures/zander_fig4_paper_v1/comparison_policy.json",
+      "sha256": "bcce4c0c50a83ebdef0cf7a210268c14b2ee19c54a645091e5164e6093351caf"
+    },
+    {
+      "path": "tests/regression/reference_fixtures/zander_experiment_a_v1/expected_paired_rows.csv",
+      "sha256": "6be72d961c0593ba65341877011ed7d56b90908591af152f7bb84f059fec1881"
+    },
+    {
+      "path": "website/source/assets/demos/zander_fig4_paper_v1/WSPRadar_Demo_Zander_Figure4.pdf",
+      "sha256": "3a4b0b902d5e8ec1a862641a1fa08b40ef8131b11953550d0f3c891aac7db4be"
+    }
+  ],
+  "scientific_reference_check": {
+    "scope": "Check of frozen independent paired-row reference, not a new provider query or figure recalculation.",
+    "paper_reported_mean_db": -6.8,
+    "paper_reported_standard_deviation_db": 3.5,
+    "reference_spot_pairs": 166,
+    "reference_mean_db": -6.783132530120482,
+    "reference_sample_standard_deviation_db": 3.51463845382668,
+    "paper_style_region_counts": [
+      2,
+      8,
+      16,
+      27,
+      33,
+      31,
+      34,
+      11,
+      4
+    ],
+    "max_absolute_density_residual_per_db": 0.00014138119523809944,
+    "frozen_paper_readout_allowance_per_db": 0.0005,
+    "interpretation": "Histogram and rounded-statistic agreement supports consistency. The publication does not supply exact time selectors, raw records or analysis code, so identical underlying records are not established. Standard deviation describes spread, not the confidence interval of a mean."
+  },
+  "panels": {
+    "figure4-original": {
+      "source_path": "tests/regression/reference_fixtures/zander_fig4_paper_v1/paper_figure4.png",
+      "source_sha256": "23893dd3cf6de7b8f418150a7815eb0d2f0d0e49b07dd8f2b2488f4542c3f730",
+      "source_size_px": [
+        640,
+        480
+      ],
+      "crop_box_ltrb_px": null,
+      "image_px": [
+        640,
+        480
+      ],
+      "source_pixels_preserved": true,
+      "method": "Byte-exact copy of original embedded publication raster.",
+      "output": {
+        "path": "essentials-paper-20261112/figure4-original.png",
+        "bytes": 22554,
+        "sha256": "23893dd3cf6de7b8f418150a7815eb0d2f0d0e49b07dd8f2b2488f4542c3f730"
+      }
+    },
+    "figure4-reconstruction": {
+      "source_path": "tests/regression/reference_fixtures/zander_fig4_paper_v1/figure4_histogram_overlay.png",
+      "source_sha256": "f529ea9582840fad5647ffc0845df62ce0302baee54ae887181fd169837eb52e",
+      "source_size_px": [
+        4320,
+        2592
+      ],
+      "crop_box_ltrb_px": [
+        1450,
+        480,
+        2830,
+        1705
+      ],
+      "image_px": [
+        1380,
+        1225
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact rectangular crop of retained PDF-source PNG; no relabeling, recoloring, resampling or recalculation in the PNG.",
+      "output": {
+        "path": "essentials-paper-20261112/figure4-reconstruction.png",
+        "bytes": 80616,
+        "sha256": "e4fd1930aefb1877f237669ac2fb27c00f0002c892bf695d36866251ae078461"
+      }
+    }
+  }
+}

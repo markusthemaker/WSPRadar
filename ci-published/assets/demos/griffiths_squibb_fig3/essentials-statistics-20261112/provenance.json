@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/prepare_demo1_essentials_statistics.py",
+  "pillow_version": "12.2.0",
+  "demo_id": "griffiths_squibb_fig3",
+  "scope": "April 2017, 40 m, within 10000 km; selected analysis scope, not a geographically representative global sample.",
+  "panels": {
+    "snr-pairs": {
+      "source_path": "website/source/assets/demos/griffiths_squibb_fig3/figure-headings-20261105/demo1-benchmark-statistics-typography-en-20261024.png",
+      "source_sha256": "2323a43dbe75508d92d580be349f31870b2bef11d9c6f270c08e0d11c138121c",
+      "source_size_px": [
+        3774,
+        2849
+      ],
+      "crop_box_ltrb_px": [
+        0,
+        130,
+        1900,
+        1400
+      ],
+      "image_px": [
+        1900,
+        1270
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact rectangular crop of the reviewed native panel; no relabeling, recoloring, resampling or recalculation in the PNG.",
+      "output": {
+        "path": "essentials-statistics-20261112/snr-pairs.png",
+        "bytes": 77609,
+        "sha256": "2864ccce2025d4102b6bd479aaefece55a439a668eeb5042743e3c618c371013"
+      }
+    },
+    "snr-station-means": {
+      "source_path": "website/source/assets/demos/griffiths_squibb_fig3/figure-headings-20261105/demo1-benchmark-statistics-typography-en-20261024.png",
+      "source_sha256": "2323a43dbe75508d92d580be349f31870b2bef11d9c6f270c08e0d11c138121c",
+      "source_size_px": [
+        3774,
+        2849
+      ],
+      "crop_box_ltrb_px": [
+        1900,
+        130,
+        3774,
+        1400
+      ],
+      "image_px": [
+        1874,
+        1270
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact rectangular crop of the reviewed native panel; no relabeling, recoloring, resampling or recalculation in the PNG.",
+      "output": {
+        "path": "essentials-statistics-20261112/snr-station-means.png",
+        "bytes": 114505,
+        "sha256": "a36390af8ceca72bd5f92e77f792e04352d51a2436906a984e15cce6fbce2578"
+      }
+    },
+    "decode-distribution": {
+      "source_path": "website/source/assets/demos/griffiths_squibb_fig3/figure-headings-20261105/demo1-benchmark-statistics-typography-en-20261024.png",
+      "source_sha256": "2323a43dbe75508d92d580be349f31870b2bef11d9c6f270c08e0d11c138121c",
+      "source_size_px": [
+        3774,
+        2849
+      ],
+      "crop_box_ltrb_px": [
+        0,
+        1410,
+        1900,
+        2700
+      ],
+      "image_px": [
+        1900,
+        1290
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact rectangular crop of the reviewed native panel; no relabeling, recoloring, resampling or recalculation in the PNG.",
+      "output": {
+        "path": "essentials-statistics-20261112/decode-distribution.png",
+        "bytes": 106628,
+        "sha256": "e8149f1f7de87630f0ae870c03379da626fb061b56f5820cb0a17943049a86ec"
+      }
+    }
+  }
+}

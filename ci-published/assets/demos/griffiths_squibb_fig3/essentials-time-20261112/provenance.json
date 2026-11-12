@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/internal/render_griffiths_essentials_temporal.py",
+  "generated_utc": "2026-11-12T12:59:09.857471+00:00",
+  "method": "Native production figure from verified retained paired evidence; accurate pixel crops with unchanged key, axes, density scale and CI method note.",
+  "network_access": "None; no provider retrieval",
+  "verification": {
+    "source_evidence": {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/analysis_cache.parquet",
+      "bytes": 1347354,
+      "sha256": "14edb2105039e012f4fca427de3917ff8984922efe6b0b02a91df45c7bbf6985"
+    },
+    "analysis_context": {
+      "run_mode": "RX",
+      "callsign": "G3ZIL",
+      "qth": "IO90HW",
+      "band": "40m",
+      "comparison_mode": "reference_station",
+      "reference_callsign": "G4HZX",
+      "reference_qth": "IO91",
+      "benchmark_conditions_accepted": true,
+      "reference_snr_correction_db": 0.0,
+      "solar_state": "all",
+      "max_peer_distance_km": 10000,
+      "exclude_special_callsigns": false,
+      "exclude_moving_stations": false,
+      "min_spot_pairs_per_station": 1,
+      "min_confirmed_opportunities_per_peer": 5,
+      "min_qualifying_stations_per_map_segment": 5,
+      "min_decode_event_share_percent": 1.0,
+      "min_decode_stations_per_segment": 1
+    },
+    "decode_summary": {
+      "decode_val": 24.425894099353467,
+      "decode_cnt": 1132,
+      "decode_total_events": 125518,
+      "decode_paired_events": 57767,
+      "decode_target_only_events": 56260,
+      "decode_reference_only_events": 11491,
+      "decode_target_total": 114027,
+      "decode_reference_total": 69258,
+      "decode_net_events": 44769
+    },
+    "bins": {
+      "segment": "12h",
+      "selected": "12h"
+    },
+    "temporal_statistic": "mean",
+    "folded_time_basis": "utc",
+    "ci_alpha": 0.050000000000000044,
+    "ci_method": "iid_student_t",
+    "max_segment_ci_half_width_db": 0.5,
+    "retained_counts_match_previous": true
+  },
+  "source_evidence": {
+    "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/analysis_cache.parquet",
+    "bytes": 1347354,
+    "sha256": "14edb2105039e012f4fca427de3917ff8984922efe6b0b02a91df45c7bbf6985"
+  },
+  "raw_evidence": {
+    "path": "tests/regression/reference_fixtures/griffiths_fig3_temporal_v1/source_rows.parquet",
+    "sha256": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd"
+  },
+  "configuration": {
+    "path": "config/demos/00a_griffiths_squibb_fig3.config",
+    "bytes": 4106,
+    "sha256": "449cb0c7e6ea75c8a9f00e8029cf58f0850fcf29f427308b555edf7fba4a76af"
+  },
+  "native_figure": {
+    "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/figure_segment_temporal_delta_snr_dark.png",
+    "bytes": 479380,
+    "sha256": "491ed1b0c63e00b5801503148e8b453c8e41a36afbda05efec8681d3916cea96",
+    "width": 3844,
+    "height": 1822
+  },
+  "panels": {
+    "chronological": {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/chronological_12h.png",
+      "bytes": 268115,
+      "sha256": "a4f8ec21b0378151129dd109185963dafac177cc9e21ca902bb1eac6463b737b",
+      "width": 2630,
+      "height": 1613,
+      "source": "figure_segment_temporal_delta_snr_dark.png",
+      "source_boxes": {
+        "chronological": [
+          39,
+          243,
+          2360,
+          1647
+        ],
+        "statistic_key": [
+          1305,
+          160,
+          2484,
+          219
+        ],
+        "density_scale": [
+          3571,
+          311,
+          3805,
+          1492
+        ],
+        "ci_method": [
+          2050,
+          1688,
+          2831,
+          1738
+        ]
+      },
+      "destination_positions": {
+        "chronological": [
+          25,
+          109
+        ],
+        "density_scale": [
+          2371,
+          177
+        ],
+        "statistic_key": [
+          725,
+          25
+        ],
+        "ci_method": [
+          924,
+          1538
+        ]
+      },
+      "native_component_pixels_verified": true,
+      "neighbouring_axes_hidden_for_panel_crop": true,
+      "scientific_data_pixels_equal_complete_native_figure": true
+    },
+    "folded": {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/folded_utc_hour.png",
+      "bytes": 169622,
+      "sha256": "6c21ff79467b4a99ff6d53dd26faeb5374ebacf75045b6f6e83857db3329ec61",
+      "width": 1543,
+      "height": 1560,
+      "source": "figure_segment_temporal_delta_snr_dark.png",
+      "source_boxes": {
+        "folded": [
+          2313,
+          243,
+          3547,
+          1594
+        ],
+        "statistic_key": [
+          1305,
+          160,
+          2484,
+          219
+        ],
+        "density_scale": [
+          3571,
+          311,
+          3805,
+          1492
+        ],
+        "ci_method": [
+          2050,
+          1688,
+          2831,
+          1738
+        ]
+      },
+      "destination_positions": {
+        "folded": [
+          25,
+          109
+        ],
+        "density_scale": [
+          1284,
+          177
+        ],
+        "statistic_key": [
+          182,
+          25
+        ],
+        "ci_method": [
+          381,
+          1485
+        ]
+      },
+      "native_component_pixels_verified": true,
+      "neighbouring_axes_hidden_for_panel_crop": true,
+      "scientific_data_pixels_equal_complete_native_figure": true
+    }
+  },
+  "numerical_checks": {
+    "all_60_chronological_and_24_folded_bins_match_production": true,
+    "all_95_percent_CIs_independently_checked_with_scipy_student_t": true,
+    "spot_pairs": 57767,
+    "pooled_mean_db": 6.5490851178008205,
+    "chronological_copy_examples": {
+      "01": {
+        "bin_start_utc": "2017-04-01T12:00:00+00:00",
+        "bin_end_utc_exclusive": "2017-04-02T00:00:00+00:00",
+        "bin_center_utc": "2017-04-01T18:00:00+00:00",
+        "spot_pairs": 875,
+        "mean_db": 1.5851428571428572,
+        "sample_sd_db": 6.48712920900342,
+        "standard_error_db": 0.2193049940785151,
+        "ci_lower_db": 1.1547169031755913,
+        "ci_upper_db": 2.015568811110123,
+        "ci_half_width_db": 0.4304259539672658,
+        "ci_available": true,
+        "ci_status": "available",
+        "confidence_level": 0.95,
+        "ci_method": "iid_student_t"
+      },
+      "15": {
+        "bin_start_utc": "2017-04-15T12:00:00+00:00",
+        "bin_end_utc_exclusive": "2017-04-16T00:00:00+00:00",
+        "bin_center_utc": "2017-04-15T18:00:00+00:00",
+        "spot_pairs": 1295,
+        "mean_db": 8.701158301158301,
+        "sample_sd_db": 5.447327398137071,
+        "standard_error_db": 0.15137306131886935,
+        "ci_lower_db": 8.404194787390177,
+        "ci_upper_db": 8.998121814926426,
+        "ci_half_width_db": 0.2969635137681246,
+        "ci_available": true,
+        "ci_status": "available",
+        "confidence_level": 0.95,
+        "ci_method": "iid_student_t"
+      }
+    },
+    "maximum_mean_00_to_04_utc_db": 2.3771661569826708,
+    "minimum_mean_06_to_19_utc_db": 5.3878486816966
+  },
+  "tables": [
+    {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/temporal-12h-mean-ci.csv",
+      "bytes": 13865,
+      "sha256": "66b9797e66c86c458be93ff7d000dfb26c11db28c596ad59b662732237c62697"
+    },
+    {
+      "path": "website/source/assets/demos/griffiths_squibb_fig3/essentials-time-20261112/temporal-utc-hour-mean-ci.csv",
+      "bytes": 3941,
+      "sha256": "ad63db124312666356b595949fc33daa5d8045f7fac34d24003d379cf110595c"
+    }
+  ],
+  "renderer_sources": {
+    "scripts/internal/render_griffiths_essentials_temporal.py": {
+      "bytes": 14233,
+      "sha256": "c38372d3d76ff6b363035a77cf0cdecc21ee49567118417c19bc548974c824d1"
+    },
+    "scripts/internal/refresh_figure_headings.py": {
+      "bytes": 37801,
+      "sha256": "a42eb2077f9f0c43e87a59872466d01ba37f699b20ec62bf3b6633fd0c626a1f"
+    },
+    "scripts/internal/render_calibration_min1_refresh.py": {
+      "bytes": 15335,
+      "sha256": "09e488dea0ba75c78710bcf671b7aa21a67be399c64215691d8da0fa0ba52c0b"
+    },
+    "ui/inspector/preparation.py": {
+      "bytes": 137990,
+      "sha256": "e7d486ce9893a8c43fca2fd41a02ce9e16ddc4e808af80eabbc830ccfe9b0359"
+    },
+    "ui/plots/evidence_figures.py": {
+      "bytes": 148298,
+      "sha256": "84b7eecb17cd81d780b8d0033d6ec29f98780623fb4b58382944895124971e9c"
+    },
+    "core/mean_ci.py": {
+      "bytes": 8647,
+      "sha256": "881a5cc3529350bf6dd23c1b174f1bc9b60f8c5619143a6cda9a01a5fba625ff"
+    },
+    "config/figure_layouts.py": {
+      "bytes": 2760,
+      "sha256": "67f78410ab7a7745fca198cce59ca6461c72d822e5d01fd7c242373e2eabaf37"
+    },
+    "config/figure_typography.py": {
+      "bytes": 461,
+      "sha256": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f"
+    },
+    "localization/figures_en.py": {
+      "bytes": 19661,
+      "sha256": "930fb7e804ee676df8c678b310a6edba538192c8cfedac174d8d004cd7d55d5b"
+    }
+  }
+}

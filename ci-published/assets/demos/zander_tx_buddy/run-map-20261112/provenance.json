@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "User-supplied current demo map",
+  "source_filename": "wspradar-map.png",
+  "source_identity": {
+    "bytes": 369668,
+    "sha256": "573c5cb34835bf7d72b9b42a731924248e11556be1fb1f071cf1a8cd8ffcbb47"
+  },
+  "native_png_preserved_byte_for_byte": true,
+  "dimensions_px": [
+    1200,
+    1201
+  ],
+  "scope": {
+    "start_utc": "2022-05-21T09:52Z",
+    "end_utc": "2022-05-21T10:20Z",
+    "target": "SK0WE/P",
+    "reference": "SK0WE/1",
+    "band": "20m",
+    "max_distance_km": 10000,
+    "minimum_qualifying_stations": 1,
+    "confidence_level": 0.95,
+    "max_mean_ci_half_width_db": 1.0
+  },
+  "numerical_verification": "numerical-audit.json",
+  "retained_analysis": "analysis_cache.parquet",
+  "segment_values": "segments.csv",
+  "verification_scope": "Retained current-scope observations and current production aggregation; no new provider query. The image alone does not encode exact segment values.",
+  "browser_derivatives": {
+    "Pillow": "12.2.0",
+    "encoding": "Lossless WebP; LANCZOS directly from supplied PNG; no crop, recolor, relabeling or upscaling",
+    "outputs": [
+      {
+        "path": "pooled-pairs-20261103/map-520.webp",
+        "width": 520,
+        "height": 520,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "pooled-pairs-20261103/map-1040.webp",
+        "width": 1040,
+        "height": 1041,
+        "decoded_pixels_equal_resized_source": true
+      },
+      {
+        "path": "pooled-pairs-20261103/map-2080.webp",
+        "width": 1200,
+        "height": 1201,
+        "decoded_pixels_equal_resized_source": true
+      }
+    ]
+  }
+}

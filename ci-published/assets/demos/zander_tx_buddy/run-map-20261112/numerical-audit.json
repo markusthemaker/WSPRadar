@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "audited_utc": "2026-11-12T14:27:53.639289+00:00",
+  "demo_id": "zander_tx_buddy",
+  "method": "Current demo configuration adapters and production core.map_data.build_map_data_result over the retained exact-window ledger produced segments.csv. Independently calculated arithmetic means and scipy.stats.t nominal two-sided Student-t 95% confidence intervals directly from paired SNR differences match production sector results with absolute tolerance 1e-12. No provider retrieval or figure redraw.",
+  "current_configuration": {
+    "path": "config/demos/03_zander_tx_buddy_experiment_a.config",
+    "bytes": 3853,
+    "sha256": "b079dbd33dccaf9b7f1948b136e7932634dec8bcc213ccd60a8f16ea7bf1b55a"
+  },
+  "source_ledger": {
+    "path": "website/source/archive/demos/zander_tx_buddy/20261103-2m-refresh/evidence/analysis_cache.parquet",
+    "bytes": 14141,
+    "sha256": "8592bdcb14f04b9e272bcefd9250fef1fad418329c6051f82ac5e65124c815f7"
+  },
+  "retained_ledger_copy": {
+    "path": "website/source/assets/demos/zander_tx_buddy/run-map-20261112/analysis_cache.parquet",
+    "bytes": 14141,
+    "sha256": "8592bdcb14f04b9e272bcefd9250fef1fad418329c6051f82ac5e65124c815f7"
+  },
+  "sector_results": {
+    "path": "website/source/assets/demos/zander_tx_buddy/run-map-20261112/segments.csv",
+    "bytes": 3305,
+    "sha256": "077822d0b704ab1f52652ad2721348b8a38e56a814d0c74d70a3bc85306fb5ab"
+  },
+  "ci": {
+    "confidence_level": 0.95,
+    "method": "iid_student_t",
+    "map_maximum_half_width_db": 1.0
+  },
+  "production_matches_independent_sector_statistics": true,
+  "claim_audit": {
+    "overall_paired_snr": {
+      "n": 166,
+      "mean_db": -6.783132530120482,
+      "ci_half_width_db": 0.5386067495833762,
+      "ci_lower_db": -7.321739279703858,
+      "ci_upper_db": -6.2445257805371055,
+      "median_db": -7.0,
+      "qualifying_receiver_identities": 37
+    },
+    "sector_paired_snr": {
+      "[0-2500km] SSW": {
+        "n": 41,
+        "mean_db": -9.853658536585366,
+        "ci_half_width_db": 0.7251490550940504,
+        "ci_lower_db": -10.578807591679416,
+        "ci_upper_db": -9.128509481491315,
+        "median_db": -10.0,
+        "qualifying_receiver_identities": 7
+      },
+      "[0-2500km] SW": {
+        "n": 29,
+        "mean_db": -8.03448275862069,
+        "ci_half_width_db": 0.9120206913814424,
+        "ci_lower_db": -8.946503450002133,
+        "ci_upper_db": -7.122462067239248,
+        "median_db": -8.0,
+        "qualifying_receiver_identities": 8
+      },
+      "[0-2500km] W": {
+        "n": 12,
+        "mean_db": -6.083333333333333,
+        "ci_half_width_db": 2.1751273167685237,
+        "ci_lower_db": -8.258460650101856,
+        "ci_upper_db": -3.9082060165648094,
+        "median_db": -5.0,
+        "qualifying_receiver_identities": 5
+      },
+      "[0-2500km] WSW": {
+        "n": 74,
+        "mean_db": -4.905405405405405,
+        "ci_half_width_db": 0.7257521454258191,
+        "ci_lower_db": -5.631157550831224,
+        "ci_upper_db": -4.179653259979586,
+        "median_db": -4.5,
+        "qualifying_receiver_identities": 14
+      },
+      "[5000-10000km] WNW": {
+        "n": 10,
+        "mean_db": -5.3,
+        "ci_half_width_db": 2.385714983495729,
+        "ci_lower_db": -7.685714983495728,
+        "ci_upper_db": -2.914285016504271,
+        "median_db": -5.0,
+        "qualifying_receiver_identities": 3
+      }
+    },
+    "equal_weight_receiver_means": {
+      "n": 37,
+      "mean_db": -6.256728481728482,
+      "ci_half_width_db": 0.926693499828537,
+      "ci_lower_db": -7.183421981557019,
+      "ci_upper_db": -5.330034981899945,
+      "median_db": -6.0,
+      "all_receiver_means_negative": true
+    },
+    "qualification": {
+      "observed_segments": 10,
+      "snr_colored_segments": [
+        "[0-2500km] SSW",
+        "[0-2500km] SW",
+        "[0-2500km] WSW"
+      ],
+      "snr_colored_segment_count": 3,
+      "decode_colored_segment_count": 8,
+      "minimum_qualifying_receivers": 1,
+      "maximum_positive_snr_ci_half_width_db": 1.0,
+      "decode_minimum_observed_receiver_identities": 1,
+      "decode_minimum_events": 5
+    },
+    "scope": {
+      "start_utc": "2022-05-21T09:52Z",
+      "end_utc": "2022-05-21T10:20Z",
+      "end_excluded": true,
+      "minutes": 28,
+      "first_observed_cycle_utc": "2022-05-21T09:52:00+00:00",
+      "last_observed_cycle_utc": "2022-05-21T10:18:00+00:00",
+      "all_events_within_configured_half_open_window": true,
+      "all_observed_receivers_within_10000_km": true
+    },
+    "wnw_distance_claim": {
+      "wording": "Three paired receivers approximately 6400-6500 km away",
+      "verified": true,
+      "rounding": "Distances rounded to nearest 100 km; wording explicitly says approximately.",
+      "receivers": [
+        {
+          "callsign": "KD2OM",
+          "locator": "FN12gx",
+          "distance_km": 6443.0426781320075
+        },
+        {
+          "callsign": "WZ7I",
+          "locator": "FN20kk",
+          "distance_km": 6541.231257604148
+        },
+        {
+          "callsign": "N2HQI",
+          "locator": "FN13sa",
+          "distance_km": 6388.008255308231
+        }
+      ]
+    },
+    "decode_totals": {
+      "observed_receiver_cycle_events": 493,
+      "target_decodes": 200,
+      "reference_decodes": 459,
+      "reference_to_target_ratio": 2.295,
+      "target_receiver_identities": 38,
+      "reference_receiver_identities": 87,
+      "union_receiver_identities": 88
+    },
+    "decode_map_table": {
+      "[0-2500km] SSW": {
+        "target_decodes": 42,
+        "reference_decodes": 112,
+        "reference_to_target_ratio": 2.6666666666666665
+      },
+      "[0-2500km] SW": {
+        "target_decodes": 37,
+        "reference_decodes": 117,
+        "reference_to_target_ratio": 3.1621621621621623
+      },
+      "[0-2500km] WSW": {
+        "target_decodes": 91,
+        "reference_decodes": 142,
+        "reference_to_target_ratio": 1.5604395604395604
+      },
+      "[5000-10000km] WNW": {
+        "target_decodes": 13,
+        "reference_decodes": 29,
+        "reference_to_target_ratio": 2.230769230769231
+      }
+    }
+  },
+  "walkthroughs": {
+    "en": {
+      "path": "website/source/pages/demos/zander_tx_buddy/walkthrough.en.md",
+      "bytes": 35023,
+      "sha256": "1e712770415f0e6119be9bacd1408456f66ed01edb6fe2fb493ed5dad5354297"
+    },
+    "de": {
+      "path": "website/source/pages/demos/zander_tx_buddy/walkthrough.de.md",
+      "bytes": 41524,
+      "sha256": "d9c4c0a6ed3ded77a0401f3e1784b5767af8c22a43d249a650f3855849573f88"
+    },
+    "result": "All examined map-related numerical claims match the current exact-window evidence; no prose changes required."
+  },
+  "source_implementation": {
+    "core/map_data.py": {
+      "path": "core/map_data.py",
+      "bytes": 15495,
+      "sha256": "07287c5d2452556f82cd8da17fd5e9bbb5cfec6f5a0246f0cca9aa13cbff095f"
+    },
+    "core/compare_engine.py": {
+      "path": "core/compare_engine.py",
+      "bytes": 21598,
+      "sha256": "8be9c1562bd41b1e423aa1e3fc13d245760ea6ac3ff240f1a522d2e036d72ba1"
+    },
+    "core/mean_ci.py": {
+      "path": "core/mean_ci.py",
+      "bytes": 8647,
+      "sha256": "881a5cc3529350bf6dd23c1b174f1bc9b60f8c5619143a6cda9a01a5fba625ff"
+    }
+  },
+  "prior_asset_mismatch": {
+    "provenance": "website/source/assets/demos/zander_tx_buddy/map-status-20261108/provenance.json",
+    "old_snr_ci_half_width_limit_db": 0.5,
+    "current_limit_db": 1.0,
+    "cause": "Historical figure refresh forced pooled-pairs-20261103 presentation settings and read the wider retained ledger. Its 0.5 dB limit suppresses all three sectors that qualify under current 1.0 dB settings."
+  }
+}

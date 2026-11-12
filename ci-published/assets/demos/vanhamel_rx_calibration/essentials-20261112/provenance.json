@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "demo_id": "vanhamel_rx_calibration",
+  "generator": "scripts/internal/prepare_calibration_essentials.py",
+  "pillow_version": "12.2.0",
+  "configuration": {
+    "path": "config/demos/01_vanhamel_rx_calibration.config",
+    "bytes": 3855,
+    "sha256": "cb6c7a3e4fc272ad601c8c2e4a7021926729f042e58a0574854f39df3bccd7d2"
+  },
+  "source_evidence": {
+    "path": "website/source/assets/demos/vanhamel_rx_calibration/mean-ci-20261103/analysis_cache.parquet",
+    "bytes": 29814,
+    "sha256": "daab63c4a28b8c47b1bcbf095f3a6b893a667cf02bd366dca821bc0ec92e4be8"
+  },
+  "scope": {
+    "start_utc": "2021-02-06T06:00:00Z",
+    "end_utc_exclusive": "2021-02-13T06:00:00Z",
+    "band": "160m",
+    "maximum_distance_km": 2500,
+    "directions": "all",
+    "solar": "all",
+    "reference_correction_db": 0.0
+  },
+  "native_provenance": [
+    "min1-20261103/provenance.json",
+    "figure-headings-20261105/provenance.json",
+    "figure1-provenance.json"
+  ],
+  "network_access": "None; reused current-preset native exports and retained evidence.",
+  "panels": {
+    "setup": {
+      "source_path": "assets/demos/vanhamel_rx_calibration/figure1-dark.png",
+      "source_sha256": "3efaacd2b3eecacfb82d1969626e50eedaa04070c9785ad15e2ec99d7034def3",
+      "source_size_px": [
+        1836,
+        408
+      ],
+      "image_px": [
+        1836,
+        540
+      ],
+      "components": [
+        {
+          "name": "original setup drawing",
+          "crop_box_ltrb_px": [
+            0,
+            0,
+            1836,
+            408
+          ],
+          "destination_xy_px": [
+            0,
+            0
+          ]
+        }
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact-pixel composition from the reviewed native source. Each retained rectangle is copied without relabeling, recoloring, resampling or recalculation and verified after PNG encoding. Browser variants alone resize the completed PNG using the declared lossless WebP recipe.",
+      "original_attribution": "Vanhamel et al. (2022), Figure 1, https://doi.org/10.1155/2022/4809313; CC Attribution; retained dark adaptation documented in figure1-provenance.json.",
+      "annotation": "Separate demo-role legend below the unchanged original drawing; no assignment to the paper's upper/lower physical channel.",
+      "annotation_font": "Pillow 12.2.0 bundled Aileron Regular, ImageFont.load_default(size=48)",
+      "output": {
+        "path": "essentials-20261112/setup.png",
+        "bytes": 424046,
+        "sha256": "28ccf59411d5ecd715754f28dbfd3b830d211534d17792052214dc2873b30122"
+      }
+    },
+    "statistics": {
+      "source_path": "assets/demos/vanhamel_rx_calibration/figure-headings-20261105/statistics.png",
+      "source_sha256": "948c3c834f61554be97d6e4e1559e8f3c8869b461965abe73026c56ddf4567d7",
+      "source_size_px": [
+        3774,
+        2849
+      ],
+      "image_px": [
+        3774,
+        1530
+      ],
+      "components": [
+        {
+          "name": "two upper native mean and CI panels",
+          "crop_box_ltrb_px": [
+            0,
+            0,
+            3774,
+            1380
+          ],
+          "destination_xy_px": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "relevant scope through paired observations",
+          "crop_box_ltrb_px": [
+            130,
+            2700,
+            2335,
+            2760
+          ],
+          "destination_xy_px": [
+            130,
+            1400
+          ]
+        },
+        {
+          "name": "station identity definition",
+          "crop_box_ltrb_px": [
+            130,
+            2760,
+            680,
+            2810
+          ],
+          "destination_xy_px": [
+            130,
+            1460
+          ]
+        },
+        {
+          "name": "native export attribution and date",
+          "crop_box_ltrb_px": [
+            3490,
+            2700,
+            3774,
+            2810
+          ],
+          "destination_xy_px": [
+            3490,
+            1400
+          ]
+        }
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact-pixel composition from the reviewed native source. Each retained rectangle is copied without relabeling, recoloring, resampling or recalculation and verified after PNG encoding. Browser variants alone resize the completed PNG using the declared lossless WebP recipe.",
+      "output": {
+        "path": "essentials-20261112/statistics.png",
+        "bytes": 281559,
+        "sha256": "679ecd667c055f9d2d0d0364e63e4cb2b757b1b6393ba5374f47b8a09b0b4b4e"
+      }
+    },
+    "time": {
+      "source_path": "assets/demos/vanhamel_rx_calibration/figure-headings-20261105/temporal-snr-mean-ci.png",
+      "source_sha256": "9b67dde24a8b63865cca11c663b022f5805ce91df52cca891ae164590d5619e8",
+      "source_size_px": [
+        3820,
+        1826
+      ],
+      "image_px": [
+        3100,
+        1840
+      ],
+      "components": [
+        {
+          "name": "complete native figure heading",
+          "crop_box_ltrb_px": [
+            500,
+            30,
+            3300,
+            135
+          ],
+          "destination_xy_px": [
+            150,
+            15
+          ]
+        },
+        {
+          "name": "shared mean, bin mean and CI legend",
+          "crop_box_ltrb_px": [
+            1270,
+            145,
+            2470,
+            220
+          ],
+          "destination_xy_px": [
+            950,
+            130
+          ]
+        },
+        {
+          "name": "chronological panel including nonlinear axes and labels",
+          "crop_box_ltrb_px": [
+            0,
+            235,
+            2270,
+            1650
+          ],
+          "destination_xy_px": [
+            250,
+            215
+          ]
+        },
+        {
+          "name": "native density colour key including ticks and label",
+          "crop_box_ltrb_px": [
+            3540,
+            300,
+            3800,
+            1480
+          ],
+          "destination_xy_px": [
+            2560,
+            280
+          ]
+        },
+        {
+          "name": "full range and analysis scope",
+          "crop_box_ltrb_px": [
+            30,
+            1680,
+            1755,
+            1740
+          ],
+          "destination_xy_px": [
+            240,
+            1650
+          ]
+        },
+        {
+          "name": "paired observations and CI assumption",
+          "crop_box_ltrb_px": [
+            1780,
+            1680,
+            3040,
+            1740
+          ],
+          "destination_xy_px": [
+            257,
+            1710
+          ]
+        },
+        {
+          "name": "station identity definition",
+          "crop_box_ltrb_px": [
+            30,
+            1740,
+            580,
+            1790
+          ],
+          "destination_xy_px": [
+            240,
+            1770
+          ]
+        },
+        {
+          "name": "native export attribution and date",
+          "crop_box_ltrb_px": [
+            3520,
+            1680,
+            3800,
+            1790
+          ],
+          "destination_xy_px": [
+            2630,
+            1710
+          ]
+        }
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact-pixel composition from the reviewed native source. Each retained rectangle is copied without relabeling, recoloring, resampling or recalculation and verified after PNG encoding. Browser variants alone resize the completed PNG using the declared lossless WebP recipe.",
+      "output": {
+        "path": "essentials-20261112/time.png",
+        "bytes": 290570,
+        "sha256": "e53428013641f82e9a26c8f11c781ef5b758e0efbc0c0ee427ef544f629eed9f"
+      }
+    }
+  }
+}

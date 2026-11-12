@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "demo_id": "vanhamel_rx_buddy",
+  "generator": "scripts/internal/render_current_benchmark_demo_figures.py",
+  "generated_utc": "2026-11-12T16:14:28.547126+00:00",
+  "method": "Current native production renderers and current canonical configuration over verified retained observations; no provider retrieval or pixel editing.",
+  "source_contract": {
+    "path": "website/source/assets/demos/vanhamel_rx_buddy/current-config-20261112/source-contract.json",
+    "bytes": 6101,
+    "sha256": "e71752b39f6d2dabd4a12041381d08d3eb21175764acfd6377530598592a78be"
+  },
+  "verification": {
+    "source_evidence": {
+      "path": "website/source/assets/demos/vanhamel_rx_buddy/current-config-20261112/analysis_cache.parquet",
+      "bytes": 86858,
+      "sha256": "ee7db5e47d44cf269bc66cd84f782bbcc4f597ad8b31e9ec88506b1fc2169a50"
+    },
+    "analysis_context": {
+      "run_mode": "RX",
+      "callsign": "ON4AWM0",
+      "qth": "JO20OT",
+      "band": "160m",
+      "comparison_mode": "reference_station",
+      "reference_callsign": "ON4AWM1",
+      "reference_qth": "JO20",
+      "benchmark_conditions_accepted": true,
+      "reference_snr_correction_db": 1.6,
+      "solar_state": "all",
+      "max_peer_distance_km": 5000,
+      "exclude_special_callsigns": false,
+      "exclude_moving_stations": false,
+      "min_spot_pairs_per_station": 1,
+      "min_confirmed_opportunities_per_peer": 5,
+      "min_qualifying_stations_per_map_segment": 3,
+      "min_decode_event_share_percent": 1.0,
+      "min_decode_stations_per_segment": 1
+    },
+    "decode_summary": {
+      "decode_val": 12.477078848760264,
+      "decode_cnt": 75,
+      "decode_total_events": 7164,
+      "decode_paired_events": 5379,
+      "decode_target_only_events": 1675,
+      "decode_reference_only_events": 110,
+      "decode_target_total": 7054,
+      "decode_reference_total": 5489,
+      "decode_net_events": 1565
+    },
+    "bins": {
+      "segment": "12h",
+      "selected": "12h"
+    },
+    "temporal_statistic": "mean",
+    "folded_time_basis": "utc",
+    "ci_alpha": 0.05,
+    "ci_method": "iid_student_t",
+    "max_segment_ci_half_width_db": 0.5,
+    "retained_counts_match_previous": true,
+    "configuration": {
+      "path": "config/demos/02_vanhamel_rx_ab.config",
+      "bytes": 3929,
+      "sha256": "183f982b4d3bf79f7d647e230cee576ce81907bbcd98709139618709b8520c09"
+    },
+    "time_window": {
+      "start_utc": "2021-05-01T17:15:00+00:00",
+      "end_utc_exclusive": "2021-05-15T07:00:00+00:00"
+    },
+    "selection": {
+      "callsign": "M7AEO",
+      "locator": "IO82",
+      "source": "Current canonical preset"
+    },
+    "station_temporal_statistic": "mean",
+    "station_folded_time_basis": "utc",
+    "source_scope_verified": true,
+    "source_metadata": {
+      "path": "website/source/assets/demos/vanhamel_rx_buddy/current-config-20261112/source-run-metadata.json",
+      "bytes": 6303,
+      "sha256": "b73a291deb3cf5396d0a32a4b41c8cf7db1f1ea570aff49533dd6a2e68c841c8"
+    },
+    "source_configuration": {
+      "path": "website/source/assets/demos/vanhamel_rx_buddy/current-config-20261112/source-run.config",
+      "bytes": 8589,
+      "sha256": "97d2e10bb3315d3a490cb9b8d7f964cd10015bc1af4b5d9a9969eea472bab00f"
+    },
+    "source_provenance": {
+      "path": "website/source/assets/demos/vanhamel_rx_buddy/current-config-20261112/source-contract.json",
+      "bytes": 6101,
+      "sha256": "e71752b39f6d2dabd4a12041381d08d3eb21175764acfd6377530598592a78be"
+    }
+  },
+  "numerical_audit": {
+    "overall_pairs": {
+      "n": 5379,
+      "mean_db": 2.1365681353411405,
+      "ci_half_width_db": 0.0822871958302591
+    },
+    "station_means": {
+      "n": 60,
+      "mean_db": 1.2890511392718302,
+      "ci_half_width_db": 0.7744116864857074
+    },
+    "selected_station": {
+      "callsign": "M7AEO",
+      "locator": "IO82",
+      "n": 1441,
+      "mean_db": 0.8760582928521857,
+      "ci_half_width_db": 0.11903842994691408,
+      "target_decodes": 1550,
+      "reference_decodes": 1448
+    },
+    "decode_summary": {
+      "decode_val": 12.477078848760264,
+      "decode_cnt": 75,
+      "decode_total_events": 7164,
+      "decode_paired_events": 5379,
+      "decode_target_only_events": 1675,
+      "decode_reference_only_events": 110,
+      "decode_target_total": 7054,
+      "decode_reference_total": 5489,
+      "decode_net_events": 1565
+    },
+    "segment_temporal_statistic": "mean",
+    "selected_temporal_statistic": "mean",
+    "segment_time_bin": "12h",
+    "selected_time_bin": "12h"
+  },
+  "figures": [
+    {
+      "key": "rotation-20261021-delta-snr-map-typography-en-20261024",
+      "index": 0,
+      "path": "assets/demos/vanhamel_rx_buddy/current-config-20261112/figure_map_delta_snr_dark.png",
+      "renderer": "render_benchmark_temporal_refresh.render_benchmark_map_recipe",
+      "bytes": 1219333,
+      "sha256": "0b1c92b5f306c453b23fc1badba21ec15df2a316a7ce5236f963123f2bbda886",
+      "width": 3384,
+      "height": 3561,
+      "selected_subtitle": ""
+    },
+    {
+      "key": "rotation-20261021-difference-typography-en-20261024",
+      "index": 3,
+      "path": "assets/demos/vanhamel_rx_buddy/current-config-20261112/figure_segment_statistics_dark.png",
+      "renderer": "ui.plots.evidence_figures.render_segment_insight_export_figure",
+      "bytes": 519153,
+      "sha256": "7d9ffec85c693507c304a400c0db95e0b2b35fa34949a42553dbd45471698740",
+      "width": 3774,
+      "height": 2849,
+      "selected_subtitle": ""
+    },
+    {
+      "key": "rotation-20261021-time-typography-en-20261024",
+      "index": 4,
+      "path": "assets/demos/vanhamel_rx_buddy/current-config-20261112/figure_segment_temporal_delta_snr_dark.png",
+      "renderer": "ui.plots.evidence_figures.render_segment_temporal_evidence_export_figure",
+      "bytes": 438590,
+      "sha256": "be3e768f9d3339e89970c71b42697ec4a5006f095a6a6438f4eceede97957528",
+      "width": 3844,
+      "height": 1822,
+      "selected_subtitle": ""
+    },
+    {
+      "key": "rotation-20261021-stations-typography-en-20261024",
+      "index": 6,
+      "path": "assets/demos/vanhamel_rx_buddy/current-config-20261112/figure_selected_station_temporal_delta_snr_dark.png",
+      "renderer": "ui.plots.evidence_figures.render_selected_evidence_export_figure",
+      "bytes": 451391,
+      "sha256": "d6094672fee56ef993fc934ed16b5d9161182644c7a90149aab9bff9e5a61e48",
+      "width": 3844,
+      "height": 1921,
+      "selected_subtitle": "Selected station: M7AEO (TX) · IO82"
+    }
+  ],
+  "renderer_sources": {
+    "scripts/internal/render_current_benchmark_demo_figures.py": {
+      "path": "scripts/internal/render_current_benchmark_demo_figures.py",
+      "bytes": 14855,
+      "sha256": "f3d045801370fb7ed8c90d5c3ecd4696bdc8c370a64989c1845916a704ac089a"
+    },
+    "scripts/internal/refresh_figure_headings.py": {
+      "path": "scripts/internal/refresh_figure_headings.py",
+      "bytes": 42835,
+      "sha256": "ee87db745af3ff92412f360924048ebe292196a96c8f5587477eca54d1fe8074"
+    },
+    "core/map_data.py": {
+      "path": "core/map_data.py",
+      "bytes": 15495,
+      "sha256": "07287c5d2452556f82cd8da17fd5e9bbb5cfec6f5a0246f0cca9aa13cbff095f"
+    },
+    "core/compare_engine.py": {
+      "path": "core/compare_engine.py",
+      "bytes": 21598,
+      "sha256": "8be9c1562bd41b1e423aa1e3fc13d245760ea6ac3ff240f1a522d2e036d72ba1"
+    },
+    "core/plot_engine.py": {
+      "path": "core/plot_engine.py",
+      "bytes": 54221,
+      "sha256": "9d39118fb756dd67e5f969e3a90e74f8ee21839a93d5bf7360f76943dd17b831"
+    },
+    "core/mean_ci.py": {
+      "path": "core/mean_ci.py",
+      "bytes": 8647,
+      "sha256": "881a5cc3529350bf6dd23c1b174f1bc9b60f8c5619143a6cda9a01a5fba625ff"
+    },
+    "ui/inspector/preparation.py": {
+      "path": "ui/inspector/preparation.py",
+      "bytes": 137990,
+      "sha256": "e7d486ce9893a8c43fca2fd41a02ce9e16ddc4e808af80eabbc830ccfe9b0359"
+    },
+    "ui/plots/evidence_figures.py": {
+      "path": "ui/plots/evidence_figures.py",
+      "bytes": 148298,
+      "sha256": "84b7eecb17cd81d780b8d0033d6ec29f98780623fb4b58382944895124971e9c"
+    },
+    "ui/plots/benchmark_evidence_figures.py": {
+      "path": "ui/plots/benchmark_evidence_figures.py",
+      "bytes": 46589,
+      "sha256": "188be1b56cf35e1b36d072190fe930b9385952ad205815189cb573542a33e24b"
+    },
+    "ui/plots/snr_reach_figures.py": {
+      "path": "ui/plots/snr_reach_figures.py",
+      "bytes": 26661,
+      "sha256": "fa943f7ecb30dcd1217bfd44288096c19e0887e58f62e06a0790160a0feeaba0"
+    },
+    "localization/figures_en.py": {
+      "path": "localization/figures_en.py",
+      "bytes": 19661,
+      "sha256": "930fb7e804ee676df8c678b310a6edba538192c8cfedac174d8d004cd7d55d5b"
+    },
+    "config/figure_layouts.py": {
+      "path": "config/figure_layouts.py",
+      "bytes": 2760,
+      "sha256": "67f78410ab7a7745fca198cce59ca6461c72d822e5d01fd7c242373e2eabaf37"
+    },
+    "config/figure_typography.py": {
+      "path": "config/figure_typography.py",
+      "bytes": 461,
+      "sha256": "8b2c549841663b104b2751fd2688ebbe1f6a49c4efac632e2eee51e1f7953a2f"
+    }
+  },
+  "scope": "Only the six explicitly reviewed stale figures across these two demos; unchanged figures and historical publication PDFs are outside this reproduction."
+}

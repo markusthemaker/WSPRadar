@@ -8,12 +8,15 @@
     const main = document.getElementById('main');
     if (!main) return;
 
-    const details = [...main.querySelectorAll('details')].map(element => ({
+    // Only the selected reading path prints. Leave the inactive path's images
+    // and disclosures untouched, including the Full-only unenhanced fallback.
+    const activePath = element => !element.closest('[data-reading-view]')?.hidden;
+    const details = [...main.querySelectorAll('details')].filter(activePath).map(element => ({
       element,
       open: element.open,
       name: element.getAttribute('name'),
     }));
-    const images = [...main.querySelectorAll('img[loading="lazy"]')];
+    const images = [...main.querySelectorAll('img[loading="lazy"]')].filter(activePath);
     savedState = {details, images};
 
     // Named details groups normally permit only one open member. Suspend that

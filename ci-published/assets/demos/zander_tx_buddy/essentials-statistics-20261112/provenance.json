@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "demo_id": "zander_tx_buddy",
+  "generator": "scripts/internal/prepare_zander_essentials_statistics.py",
+  "pillow_version": "12.2.0",
+  "scope": {
+    "start_utc": "2022-05-21T09:52:00Z",
+    "end_utc_exclusive": "2022-05-21T10:20:00Z",
+    "band": "20m",
+    "maximum_distance_km": 10000,
+    "directions": "all"
+  },
+  "source_evidence": {
+    "path": "website/source/assets/demos/zander_tx_buddy/run-map-20261112/analysis_cache.parquet",
+    "bytes": 14141,
+    "sha256": "8592bdcb14f04b9e272bcefd9250fef1fad418329c6051f82ac5e65124c815f7"
+  },
+  "verified_numerical_audit": {
+    "path": "website/source/assets/demos/zander_tx_buddy/current-run-20261112/walkthrough-audit.json",
+    "bytes": 12446,
+    "sha256": "68404ca80d2ad40b1efff018bba6c40f1b87981248f6582efcb295aac21ef4b0"
+  },
+  "native_provenance": "website/source/assets/demos/zander_tx_buddy/current-run-20261112/native-provenance.json",
+  "network_access": "None; reused the previously verified current-run evidence and native export.",
+  "panels": {
+    "paired-snr-histogram": {
+      "source_path": "website/source/assets/demos/zander_tx_buddy/current-run-20261112/figure_segment_statistics_dark.png",
+      "source_sha256": "02ed7d7828b9622e3acf4c6107a4a9a3c7f1bfc2bffc623ead5479eaa50a5889",
+      "source_size_px": [
+        3774,
+        2849
+      ],
+      "crop_box_ltrb_px": [
+        0,
+        130,
+        1900,
+        1400
+      ],
+      "image_px": [
+        1900,
+        1270
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact rectangular crop of the verified current native panel. All panel axes, units, counts, headings and legends retained; no scientific pixels relabeled, recolored, resampled or recalculated in the PNG.",
+      "output": {
+        "path": "essentials-statistics-20261112/paired-snr-histogram.png",
+        "bytes": 76672,
+        "sha256": "21fb8616f6044e0197ab798c3ea669fde1f9aa9b6e915f3013b3f7bc0e4c97d3"
+      }
+    },
+    "decode-histogram": {
+      "source_path": "website/source/assets/demos/zander_tx_buddy/current-run-20261112/figure_segment_statistics_dark.png",
+      "source_sha256": "02ed7d7828b9622e3acf4c6107a4a9a3c7f1bfc2bffc623ead5479eaa50a5889",
+      "source_size_px": [
+        3774,
+        2849
+      ],
+      "crop_box_ltrb_px": [
+        0,
+        1410,
+        1900,
+        2700
+      ],
+      "image_px": [
+        1900,
+        1290
+      ],
+      "source_pixels_preserved": true,
+      "method": "Exact rectangular crop of the verified current native panel. All panel axes, units, counts, headings and legends retained; no scientific pixels relabeled, recolored, resampled or recalculated in the PNG.",
+      "output": {
+        "path": "essentials-statistics-20261112/decode-histogram.png",
+        "bytes": 111602,
+        "sha256": "f4990d4b653ec50ca37691420901e8de1dd78724cd1f2a2691db1c9f70426339"
+      }
+    }
+  }
+}

@@ -68,6 +68,12 @@
         chosen = button.dataset.filter;
         applyFilters();
         updateURL();
+        // Target the heading so the shared navigation clearance applies once.
+        title.focus({preventScroll: true});
+        title.scrollIntoView({
+          block: 'start',
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
       });
     });
     reset.addEventListener('click', () => {
